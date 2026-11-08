@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+/* Ocultar barra de rolagem para Chrome, Safari e Opera */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Ocultar barra de rolagem para IE, Edge e Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE/Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Estilo global para scroll suave e tema escuro padrão */
+html, body {
+  background-color: #09090b; /* bg-zinc-950 */
+  color: #f4f4f5; /* text-zinc-100 */
+  scroll-behavior: smooth;
+}
