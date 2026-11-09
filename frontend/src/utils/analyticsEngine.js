@@ -1103,7 +1103,7 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
   // Cálculos globais de horas / oscars / obras-primas
   let totalMinutes = 0;
   let epicRuntimeCount = 0;
-  let pre2000Count = 0;
+  let _pre2000Count = 0;
   let oscarWinsTotal = 0;
   let oscarNomsTotal = 0;
   let moviesWithOscarWin = 0;
@@ -1115,7 +1115,7 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
     const rt = Number(m.runtime) || 0;
     totalMinutes += rt;
     if (rt >= 140) epicRuntimeCount++;
-    if (Number(m.release_year) > 0 && Number(m.release_year) < 2000) pre2000Count++;
+    if (Number(m.release_year) > 0 && Number(m.release_year) < 2000) _pre2000Count++;
 
     const ow = Number(m.oscar_wins) || 0;
     const on = Number(m.oscar_nominations) || 0;
@@ -1131,31 +1131,112 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
     }
   });
 
-  // 6 Atributos RPG (0 a 99) baseados na campanha completa
-  let allMinutes = 0;
-  let allEpics = 0;
-  let allOscars = 0;
-  let allMasterpieces = 0;
+  // 6 Atributos RPG (0 a 99) baseados na campanha completa com as novas regras
+  let agiSum = 0;
+  let epic120 = 0;
+  let epic140 = 0;
+  let epic170 = 0;
+
+  let intHistoricalSum = 0;
+  let pre2000EraCount = 0;
+  let pre1980EraCount = 0;
+  let pre1950EraCount = 0;
+
+  let foreignCount = 0;
+  let extremeRatingsCount = 0;
+  let oscarWinsTotalAll = 0;
+  let oscarNomsTotalAll = 0;
+
   uniqueAll.forEach((m) => {
     const rt = Number(m.runtime) || 0;
-    allMinutes += rt;
-    if (rt >= 140) allEpics++;
-    allOscars += (Number(m.oscar_wins) || 0) * 2 + (Number(m.oscar_nominations) || 0);
-    if (Number(m.user_rating) >= 9.0) allMasterpieces++;
+    if (rt > 170) {
+      agiSum += 1.0;
+      epic170++;
+    } else if (rt > 140) {
+      agiSum += 0.4;
+      epic140++;
+    } else if (rt > 120) {
+      agiSum += 0.2;
+      epic120++;
+    }
+
+    const ry = Number(m.release_year) || 0;
+    if (ry > 0) {
+      if (ry < 1950) {
+        intHistoricalSum += 0.7;
+        pre1950EraCount++;
+      } else if (ry < 1980) {
+        intHistoricalSum += 0.5;
+        pre1980EraCount++;
+      } else if (ry < 2000) {
+        intHistoricalSum += 0.3;
+        pre2000EraCount++;
+      }
+    }
+
+    const cList = (m.countries || []).map((c) => String(c).toLowerCase().trim());
+    const isForeign = cList.some((c) => c && !c.includes('brasil') && !c.includes('estados unidos'));
+    if (isForeign) foreignCount++;
+
+    const ur = Number(m.user_rating) || 0;
+    if (ur >= 9.5 || (ur > 0 && ur <= 4.0)) {
+      extremeRatingsCount++;
+    }
+
+    oscarWinsTotalAll += Number(m.oscar_wins) || 0;
+    oscarNomsTotalAll += Number(m.oscar_nominations) || 0;
   });
 
-  const allHours = allMinutes / 60;
   const tmConquered = activeXp?.sources?.timeMachine?.totalConqueredYears || 0;
   const countriesConquered = activeXp?.sources?.countries?.totalConqueredCount || 0;
-  const trophiesUnlocked = activeXp?.sources?.trophies?.totalUnlocked || 0;
-  const trophiesTotal = Math.max(1, activeXp?.sources?.trophies?.totalAvailable || 653);
 
-  const vigorScore = Math.min(99, Math.round(Math.min(75, allHours / 8) + Math.min(24, allEpics * 0.8)));
-  const wisdomScore = Math.min(99, Math.round((tmConquered / 108) * 85 + Math.min(14, pre2000Count * 0.5)));
-  const exploreScore = Math.min(99, Math.round(Math.min(99, (countriesConquered / 80) * 99)));
-  const precisionScore = Math.min(99, Math.round(Math.min(99, (uniqueAll.length / 300) * 65 + 34)));
-  const trophyScore = Math.min(99, Math.round(Math.min(99, (trophiesUnlocked / trophiesTotal) * 120)));
-  const prestigeScore = Math.min(99, Math.round(Math.min(60, allOscars * 0.35) + Math.min(39, allMasterpieces * 0.7)));
+  // VIT (Caça-Troféus PS5): SÓ ao desbloquear troféu (Bronze 0.2, Prata 0.4, Épico 0.6, Ouro 0.8, Mítico 1.0, Platina 3.0)
+  let vitSum = 0;
+  let unlockedTrophiesCount = 0;
+  if (trophiesList && trophiesList.length > 0) {
+    trophiesList.forEach((t) => {
+      if (t.unlocked) {
+        unlockedTrophiesCount++;
+        const tier = String(t.tier || '').toLowerCase();
+        if (tier === 'platinum') vitSum += 3.0;
+        else if (tier === 'mythic') vitSum += 1.0;
+        else if (tier === 'gold') vitSum += 0.8;
+        else if (tier === 'epic') vitSum += 0.6;
+        else if (tier === 'silver') vitSum += 0.4;
+        else vitSum += 0.2;
+      }
+    });
+  } else if (activeXp?.sources?.trophies?.byTier) {
+    const bt = activeXp.sources.trophies.byTier;
+    vitSum += (bt.bronze?.count || 0) * 0.2;
+    vitSum += (bt.silver?.count || 0) * 0.4;
+    vitSum += (bt.epic?.count || 0) * 0.6;
+    vitSum += (bt.gold?.count || 0) * 0.8;
+    vitSum += (bt.mythic?.count || 0) * 1.0;
+    vitSum += (bt.platinum?.count || 0) * 3.0;
+    unlockedTrophiesCount = activeXp.sources.trophies.totalUnlocked || 0;
+  } else {
+    unlockedTrophiesCount = activeXp?.sources?.trophies?.totalUnlocked || 0;
+    vitSum = unlockedTrophiesCount * 0.4;
+  }
+
+  // 1. Vigor de Tela (AGI): >120m (0.2) + >140m (0.4) + >170m (1.0)
+  const vigorScore = Math.min(99, Math.round(agiSum));
+
+  // 2. Sabedoria Temporal (INT): Anos Máquina do Tempo (0.8 cada) + clássicos pré-2000 (0.3), pré-1980 (0.5), pré-1950 (0.7)
+  const wisdomScore = Math.min(99, Math.round(tmConquered * 0.8 + intHistoricalSum));
+
+  // 3. Diplomacia Global (DES): 1.0 por nação ONU expandida + 0.2 por filme fora do eixo EUA/Brasil
+  const exploreScore = Math.min(99, Math.round(countriesConquered * 1.0 + foreignCount * 0.2));
+
+  // 4. Olhar Clínico (SOR): 0.2 por obra catalogada + 0.8 por nota extrema (>=9.5 ou <=4.0)
+  const precisionScore = Math.min(99, Math.round(uniqueAll.length * 0.2 + extremeRatingsCount * 0.8));
+
+  // 5. Caça-Troféus PS5 (VIT): 0.2 bronze, 0.4 prata, 0.6 épico, 0.8 ouro, 1.0 mítico, 3.0 platina
+  const trophyScore = Math.min(99, Math.round(vitSum));
+
+  // 6. Prestígio Áureo (FOR): 0.4 por Oscar vencido + 0.2 por indicação (sem critério de nota)
+  const prestigeScore = Math.min(99, Math.round(oscarWinsTotalAll * 0.4 + oscarNomsTotalAll * 0.2));
 
   // 6 Atributos na ordem solicitada inspirada em RPG clássico (AGI, INT, DES, SOR, VIT, FOR)
   const rpgAttributes = [
@@ -1168,7 +1249,8 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
       score: vigorScore,
       barColor: 'from-amber-400 to-yellow-300',
       ...getRankGrade(vigorScore),
-      desc: `${Math.round(allHours)}h jogadas • ${allEpics} épicos >140m`,
+      desc: `${epic170} gigantes (>170m) • ${epic140} épicos (>140m) • ${epic120} longos (>120m)`,
+      formulaSummary: '>120m: +0.2 | >140m: +0.4 | >170m: +1.0',
     },
     {
       key: 'INT',
@@ -1179,7 +1261,8 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
       score: wisdomScore,
       barColor: 'from-cyan-400 to-blue-400',
       ...getRankGrade(wisdomScore),
-      desc: `${tmConquered}/108 anos conquistados`,
+      desc: `${tmConquered} anos Máquina do Tempo • ${pre2000EraCount + pre1980EraCount + pre1950EraCount} clássicos históricos`,
+      formulaSummary: 'Ano Inédito: +0.8 | Pré-2000: +0.3 | Pré-1980: +0.5 | Pré-1950: +0.7',
     },
     {
       key: 'DES',
@@ -1190,7 +1273,8 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
       score: exploreScore,
       barColor: 'from-emerald-400 to-teal-300',
       ...getRankGrade(exploreScore),
-      desc: `${countriesConquered}/195 nações ONU`,
+      desc: `${countriesConquered}/195 nações ONU • ${foreignCount} fora EUA/Brasil`,
+      formulaSummary: 'Fora do Eixo EUA/Brasil: +0.2 | Nova Nação ONU Desafio 195: +1.0',
     },
     {
       key: 'SOR',
@@ -1201,7 +1285,8 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
       score: precisionScore,
       barColor: 'from-rose-400 to-pink-400',
       ...getRankGrade(precisionScore),
-      desc: `${uniqueAll.length} obras catalogadas`,
+      desc: `${uniqueAll.length} obras catalogadas • ${extremeRatingsCount} notas extremas`,
+      formulaSummary: 'Obra Catalogada: +0.2 | Nota Extrema (≥9.5 ou ≤4.0): +0.8',
     },
     {
       key: 'VIT',
@@ -1212,7 +1297,8 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
       score: trophyScore,
       barColor: 'from-purple-400 to-violet-300',
       ...getRankGrade(trophyScore),
-      desc: `${trophiesUnlocked}/${trophiesTotal} conquistas`,
+      desc: `${unlockedTrophiesCount} troféus conquistados (${vitSum.toFixed(1)} pts)`,
+      formulaSummary: 'Bronze: +0.2 | Prata: +0.4 | Épico: +0.6 | Ouro: +0.8 | Mítico: +1.0 | Platina: +3.0',
     },
     {
       key: 'FOR',
@@ -1223,7 +1309,8 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
       score: prestigeScore,
       barColor: 'from-yellow-400 to-amber-300',
       ...getRankGrade(prestigeScore),
-      desc: `${oscarWinsTotal} Oscars • ${allMasterpieces} notas 9+`,
+      desc: `${oscarWinsTotalAll} Oscars ganhos • ${oscarNomsTotalAll} indicações`,
+      formulaSummary: 'Indicação ao Oscar: +0.2 | Vitória no Oscar: +0.4 (Sem critério de nota)',
     },
   ];
 
@@ -1448,7 +1535,7 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
 export function computeMovieStatGains({
   movieData,
   newlyUnlocked = [],
-  progressedTrophies = [],
+  _progressedTrophies = [],
   timeMachineUnlocks = [],
   existingMovies = [],
 }) {
@@ -1456,6 +1543,7 @@ export function computeMovieStatGains({
   const runtime = Number(movieData?.runtime) || 0;
   const rating = Number(movieData?.user_rating) || 0;
   const oscarWins = Number(movieData?.oscar_wins) || 0;
+  const oscarNominations = Number(movieData?.oscar_nominations) || 0;
   const releaseYear = Number(movieData?.release_year) || 0;
   const countries = Array.isArray(movieData?.countries)
     ? movieData.countries
@@ -1463,35 +1551,38 @@ export function computeMovieStatGains({
     ? movieData.countries.split(',').map((c) => c.trim()).filter(Boolean)
     : [];
 
-  // 1. Agilidade (AGI) - Vigor de Tela (Horas + Épico >140m)
+  // 1. Agilidade (AGI) - Vigor de Tela
+  // Regra: >120m (+0.2) | >140m (+0.4) | >170m (+1.0)
   let agiGain = 0;
-  if (runtime > 0) {
-    agiGain += (runtime / 60) / 8;
-  } else {
-    agiGain += 0.2;
+  if (runtime > 170) {
+    agiGain = 1.0;
+  } else if (runtime > 140) {
+    agiGain = 0.4;
+  } else if (runtime > 120) {
+    agiGain = 0.2;
   }
-  if (runtime >= 140) {
-    agiGain += 0.8;
-  }
-  const roundedAgi = Math.round(agiGain * 10) / 10;
-  if (roundedAgi > 0) {
+  if (agiGain > 0) {
     statGains.push({
       key: 'AGI',
       icon: '⚡',
-      label: `+${roundedAgi.toFixed(1)} AGI`,
-      gain: roundedAgi,
+      label: `+${agiGain.toFixed(1)} AGI`,
+      gain: agiGain,
     });
   }
 
-  // 2. Inteligência (INT) - Sabedoria Temporal (Ano inédito + Clássico pré-2000)
+  // 2. Inteligência (INT) - Sabedoria Temporal
+  // Regra: Pré-2000 (+0.3) | Pré-1980 (+0.5) | Pré-1950 (+0.7) + Ano Inédito (+0.8) + Década (+1.5)
   let intGain = 0;
+  if (releaseYear > 0) {
+    if (releaseYear < 1950) intGain += 0.7;
+    else if (releaseYear < 1980) intGain += 0.5;
+    else if (releaseYear < 2000) intGain += 0.3;
+  }
   const hasNewYear = timeMachineUnlocks.some((u) => u.kind === 'year');
   const hasNewDecade = timeMachineUnlocks.some((u) => u.kind === 'decade');
   if (hasNewYear) intGain += 0.8;
   if (hasNewDecade) intGain += 1.5;
-  if (releaseYear > 0 && releaseYear < 2000) {
-    intGain += 0.5;
-  }
+
   const roundedInt = Math.round(intGain * 10) / 10;
   if (roundedInt > 0) {
     statGains.push({
@@ -1502,13 +1593,21 @@ export function computeMovieStatGains({
     });
   }
 
-  // 3. Destreza (DES) - Diplomacia Global (Nações e Territórios)
+  // 3. Destreza (DES) - Diplomacia Global
+  // Regra: Fora do eixo EUA/Brasil (+0.2) | Se expandir nação ONU (+1.0)
   let desGain = 0;
-  if (countries.length > 0) {
-    const isForeign = countries.some(
-      (c) => c && !c.toLowerCase().includes('brasil') && !c.toLowerCase().includes('estados unidos')
-    );
-    desGain += isForeign ? 1.0 : 0.4;
+  const isForeign = countries.some(
+    (c) => c && !c.toLowerCase().includes('brasil') && !c.toLowerCase().includes('estados unidos')
+  );
+  if (isForeign) desGain += 0.2;
+
+  if (existingMovies && existingMovies.length > 0 && countries.length > 0) {
+    const existingCountries = new Set();
+    existingMovies.forEach((m) => {
+      (m.countries || []).forEach((c) => existingCountries.add(String(c).toLowerCase().trim()));
+    });
+    const expandsNew = countries.some((c) => !existingCountries.has(String(c).toLowerCase().trim()));
+    if (expandsNew) desGain += 1.0;
   }
   const roundedDes = Math.round(desGain * 10) / 10;
   if (roundedDes > 0) {
@@ -1520,7 +1619,8 @@ export function computeMovieStatGains({
     });
   }
 
-  // 4. Sorte (SOR) - Olhar Clínico (Volume de Acervo + Notas Extremas)
+  // 4. Sorte (SOR) - Olhar Clínico
+  // Regra: toda catalogação: +0.2 | nota extrema (>=9.5 ou <=4.0): +0.8
   let sorGain = 0.2;
   if (rating >= 9.5 || (rating > 0 && rating <= 4.0)) {
     sorGain += 0.8;
@@ -1535,13 +1635,20 @@ export function computeMovieStatGains({
     });
   }
 
-  // 5. Vitalidade (VIT) - Caça-Troféus PS5 (Conquistas e Progresso)
+  // 5. Vitalidade (VIT) - Caça-Troféus PS5
+  // Regra: SÓ ao desbloquear troféu:
+  // Bronze: 0.2 | Prata: 0.4 | Épico: 0.6 | Ouro: 0.8 | Mítico: 1.0 | Platina: 3.0
   let vitGain = 0;
-  if (newlyUnlocked.length > 0) {
-    vitGain += newlyUnlocked.length * 1.2;
-  }
-  if (progressedTrophies.length > 0) {
-    vitGain += Math.min(2, progressedTrophies.length * 0.4);
+  if (Array.isArray(newlyUnlocked) && newlyUnlocked.length > 0) {
+    newlyUnlocked.forEach((t) => {
+      const tier = String(t.tier || '').toLowerCase();
+      if (tier === 'platinum') vitGain += 3.0;
+      else if (tier === 'mythic') vitGain += 1.0;
+      else if (tier === 'gold') vitGain += 0.8;
+      else if (tier === 'epic') vitGain += 0.6;
+      else if (tier === 'silver') vitGain += 0.4;
+      else vitGain += 0.2; // bronze
+    });
   }
   const roundedVit = Math.round(vitGain * 10) / 10;
   if (roundedVit > 0) {
@@ -1553,14 +1660,11 @@ export function computeMovieStatGains({
     });
   }
 
-  // 6. Força (FOR) - Prestígio Áureo (Oscars e Notas 9+)
+  // 6. Força (FOR) - Prestígio Áureo
+  // Regra: Indicado (+0.2) | Venceu (+0.4 por estatueta) (Sem critério de nota)
   let forGain = 0;
-  if (oscarWins > 0) {
-    forGain += Math.min(3, oscarWins * 0.7);
-  }
-  if (rating >= 9.0) {
-    forGain += 0.7;
-  }
+  if (oscarWins > 0) forGain += oscarWins * 0.4;
+  if (oscarNominations > 0) forGain += oscarNominations * 0.2;
   const roundedFor = Math.round(forGain * 10) / 10;
   if (roundedFor > 0) {
     statGains.push({

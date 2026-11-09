@@ -1233,6 +1233,14 @@ export default function AnalyticsDashboard({
                           <span>{attr.icon}</span>
                           <span className="truncate">{attr.label}</span>
                         </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowAttributeHelp(true)}
+                          className="w-4 h-4 rounded-full bg-zinc-800 hover:bg-amber-500/20 text-zinc-400 hover:text-amber-300 border border-zinc-700 hover:border-amber-500/40 flex items-center justify-center text-[10px] font-black cursor-pointer transition-all shrink-0"
+                          title={`Ver fórmula de ${attr.label}`}
+                        >
+                          ?
+                        </button>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <span className="font-mono text-sm font-black text-white">
@@ -1252,8 +1260,13 @@ export default function AnalyticsDashboard({
                       />
                     </div>
 
-                    <div className="text-[10px] text-zinc-400 font-mono truncate">
-                      {attr.desc}
+                    <div className="flex items-center justify-between text-[10px] text-zinc-400 font-mono">
+                      <span className="truncate">{attr.desc}</span>
+                      {attr.formulaSummary && (
+                        <span className="text-amber-400/80 font-mono text-[9px] shrink-0 ml-2 hidden sm:inline">
+                          {attr.formulaSummary}
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -2674,11 +2687,12 @@ export default function AnalyticsDashboard({
                     </span>
                   </div>
                   <p className="text-xs text-zinc-300 leading-relaxed">
-                    Mede a sua resistência física e fôlego de maratona de cinema.
+                    Mede sua resistência física e fôlego de maratona com filmes longos.
                   </p>
                   <div className="rounded-xl bg-zinc-950/80 p-2.5 border border-zinc-800/80 text-[11px] font-mono flex flex-col gap-1 text-zinc-300">
-                    <div>• <strong>+1 pt</strong> a cada <strong>8 horas</strong> de filmes assistidos (até 75 pts)</div>
-                    <div>• <strong>+0.8 pt</strong> por cada filme épico com <strong>&ge; 140 min</strong> (até 24 pts)</div>
+                    <div>• Filme com duração <strong>&gt; 120 min</strong>: <strong>+0.2 AGI</strong></div>
+                    <div>• Filme com duração <strong>&gt; 140 min</strong>: <strong>+0.4 AGI</strong></div>
+                    <div>• Filme com duração <strong>&gt; 170 min</strong>: <strong>+1.0 AGI</strong></div>
                   </div>
                 </div>
 
@@ -2693,11 +2707,13 @@ export default function AnalyticsDashboard({
                     </span>
                   </div>
                   <p className="text-xs text-zinc-300 leading-relaxed">
-                    Mede o seu alcance cronológico e conhecimento das eras da história.
+                    Mede seu alcance cronológico, história do cinema e clássicos.
                   </p>
                   <div className="rounded-xl bg-zinc-950/80 p-2.5 border border-zinc-800/80 text-[11px] font-mono flex flex-col gap-1 text-zinc-300">
-                    <div>• <strong>+0.78 pt</strong> por cada ano preenchido na <strong>Máquina do Tempo</strong> (1918–2026, até 85 pts)</div>
-                    <div>• <strong>+0.5 pt</strong> por cada filme lançado <strong>antes de 2000</strong> (até 14 pts)</div>
+                    <div>• Ano Inédito na Máquina do Tempo: <strong>+0.8 INT</strong> (Década: <strong>+1.5 INT</strong>)</div>
+                    <div>• Filme Pré-2000 (1980–1999): <strong>+0.3 INT</strong></div>
+                    <div>• Filme Pré-1980 (1950–1979): <strong>+0.5 INT</strong></div>
+                    <div>• Filme Pré-1950 (Antes de 1950): <strong>+0.7 INT</strong></div>
                   </div>
                 </div>
 
@@ -2712,11 +2728,11 @@ export default function AnalyticsDashboard({
                     </span>
                   </div>
                   <p className="text-xs text-zinc-300 leading-relaxed">
-                    Mede a sua leitura rápida de legendas e fuga do cinema tradicional.
+                    Mede sua exploração internacional fora do circuito tradicional.
                   </p>
                   <div className="rounded-xl bg-zinc-950/80 p-2.5 border border-zinc-800/80 text-[11px] font-mono flex flex-col gap-1 text-zinc-300">
-                    <div>• <strong>+1.23 pt</strong> para cada país catalogado no <strong>Desafio das 195 Nações da ONU</strong></div>
-                    <div>• Meta de 80 nações diferentes para atingir o teto de 99 pontos</div>
+                    <div>• Filme <strong>fora do eixo EUA/Brasil</strong>: <strong>+0.2 DES</strong></div>
+                    <div>• <strong>Expandir Nova Nação ONU</strong> no Desafio 195: <strong>+1.0 DES</strong></div>
                   </div>
                 </div>
 
@@ -2731,11 +2747,11 @@ export default function AnalyticsDashboard({
                     </span>
                   </div>
                   <p className="text-xs text-zinc-300 leading-relaxed">
-                    Mede o volume do seu acervo e capacidade de garimpar obras.
+                    Mede o volume do seu acervo e capacidade de garimpar extremos.
                   </p>
                   <div className="rounded-xl bg-zinc-950/80 p-2.5 border border-zinc-800/80 text-[11px] font-mono flex flex-col gap-1 text-zinc-300">
-                    <div>• Base inicial garantida de <strong>34 pontos</strong></div>
-                    <div>• <strong>+0.21 pt</strong> para cada filme novo catalogado (meta de 300 filmes para atingir 99 pts)</div>
+                    <div>• Toda catalogação que amplia seu acervo: <strong>+0.2 SOR</strong></div>
+                    <div>• Nota extrema (Obra-prima <strong>&ge; 9.5</strong> ou Trash <strong>&le; 4.0</strong>): <strong>+0.8 SOR</strong></div>
                   </div>
                 </div>
 
@@ -2750,11 +2766,12 @@ export default function AnalyticsDashboard({
                     </span>
                   </div>
                   <p className="text-xs text-zinc-300 leading-relaxed">
-                    Mede a sua taxa de conclusão e perseverança em busca de platinas.
+                    Pontos concedidos exclusivamente ao desbloquear troféus:
                   </p>
                   <div className="rounded-xl bg-zinc-950/80 p-2.5 border border-zinc-800/80 text-[11px] font-mono flex flex-col gap-1 text-zinc-300">
-                    <div>• Pontuação calculada proporcionalmente ao total de troféus desbloqueados</div>
-                    <div>• Conquistar 82% dos troféus disponíveis do sistema garante os 99 pontos</div>
+                    <div>• 🥉 Bronze: <strong>+0.2 VIT</strong> | 🥈 Prata: <strong>+0.4 VIT</strong></div>
+                    <div>• 🔮 Épico: <strong>+0.6 VIT</strong> | 🥇 Ouro: <strong>+0.8 VIT</strong></div>
+                    <div>• 💎 Mítico: <strong>+1.0 VIT</strong> | 🏆 Platina: <strong>+3.0 VIT</strong></div>
                   </div>
                 </div>
 
@@ -2769,11 +2786,11 @@ export default function AnalyticsDashboard({
                     </span>
                   </div>
                   <p className="text-xs text-zinc-300 leading-relaxed">
-                    Mede o impacto e aclamação solene das obras-primas da sua coleção.
+                    Mede o prestígio e reconhecimento oficial da Academia (sem critério de nota).
                   </p>
                   <div className="rounded-xl bg-zinc-950/80 p-2.5 border border-zinc-800/80 text-[11px] font-mono flex flex-col gap-1 text-zinc-300">
-                    <div>• <strong>+0.7 pt</strong> por vitória de Oscar / <strong>+0.35 pt</strong> por indicação (até 60 pts)</div>
-                    <div>• <strong>+0.7 pt</strong> para cada obra avaliada com sua <strong>nota pessoal &ge; 9.000</strong> (até 39 pts)</div>
+                    <div>• Cada <strong>Indicação ao Oscar</strong>: <strong>+0.2 FOR</strong></div>
+                    <div>• Cada <strong>Vitória / Estatueta do Oscar</strong>: <strong>+0.4 FOR</strong></div>
                   </div>
                 </div>
               </div>
@@ -2783,7 +2800,7 @@ export default function AnalyticsDashboard({
                 <span className="font-black text-amber-300 uppercase tracking-wider block mb-1">
                   🌟 O que a soma total de pontos desbloqueia?
                 </span>
-                A soma dos seus 6 atributos (máximo de 594 pontos) eleva seus <strong>7 Graus de Evolução de Classe</strong> (Aprendiz &rarr; Aventureiro &rarr; Veterano &rarr; Transclasse &rarr; 3ª Evolução &rarr; Hiperclasse &rarr; Entidade Cósmica) e destrava progressivamente todas as <strong>16 Classes Cinéfilas</strong> na sua Trilha!
+                A soma dos seus 6 atributos (máximo de 594 pontos) destrava progressivamente todas as <strong>16 Classes Cinéfilas</strong> na sua Trilha Linear!
               </div>
             </div>
 

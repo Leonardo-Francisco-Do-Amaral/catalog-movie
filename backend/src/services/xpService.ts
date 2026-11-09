@@ -631,22 +631,22 @@ export function computeXpGainEvent(
     });
   }
   if (newTrophies.length > 0) {
-    const vitPoints = newTrophies.length * 1.5;
+    let vitPoints = 0;
+    newTrophies.forEach((t) => {
+      const tier = String(t.tier || '').toLowerCase();
+      if (tier === 'platinum') vitPoints += 3.0;
+      else if (tier === 'mythic') vitPoints += 1.0;
+      else if (tier === 'gold') vitPoints += 0.8;
+      else if (tier === 'epic') vitPoints += 0.6;
+      else if (tier === 'silver') vitPoints += 0.4;
+      else vitPoints += 0.2;
+    });
     statGains.push({
       key: 'VIT',
       icon: '🏆',
       label: `+${vitPoints.toFixed(1)} VIT`,
       gain: vitPoints,
     });
-    const highTierCount = newTrophies.filter((t) => ['gold', 'mythic', 'platinum'].includes(t.tier)).length;
-    if (highTierCount > 0) {
-      statGains.push({
-        key: 'FOR',
-        icon: '👑',
-        label: `+${(highTierCount * 0.8).toFixed(1)} FOR`,
-        gain: highTierCount * 0.8,
-      });
-    }
   }
 
   // Fallback de segurança caso o ganho venha de ajuste/reavaliação sem entrada individual acima
