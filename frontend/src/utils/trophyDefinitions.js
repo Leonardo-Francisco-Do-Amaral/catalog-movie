@@ -15779,12 +15779,12 @@ export const TROPHY_DEFINITIONS = [
         "year": 1998
       },
       {
-        "name": "Fim (2023)",
+        "name": "O Sonho Não Acabou (1982)",
         "patterns": [
-          "fim",
-          "the end"
+          "o sonho nao acabou",
+          "o sonho não acabou"
         ],
-        "year": 2023
+        "year": 1982
       }
     ]
   },

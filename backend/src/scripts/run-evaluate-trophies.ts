@@ -12,27 +12,18 @@ async function main() {
     console.log('Evaluation completed successfully!');
     console.log(`Total Trophies: ${result.totalTrophies}`);
     console.log(`Unlocked Trophies: ${result.unlockedCount}`);
-    console.log(`Overall Percentage: ${result.overallPercentage}%`);
 
-    const newTrophyIds = [
-      'cf_isaac_bardavid',
-      'cf_wendel_bezerra',
-      'mh_guillermo_del_toro_6',
-      'tc_you_died_terror_tragico_nota_3',
-      'tc_achou_errado_rt_lt40_ur_gte80_5',
-      'tc_press_f_tragico_emocionante_fisica_5',
-      'tc_ah_shit_repetido_crime_acao_1990_2004_1',
-    ];
-
-    console.log('\n--- Status of 7 New Trophies ---');
-    for (const t of result.trophies) {
-      if (newTrophyIds.includes(t.id)) {
-        console.log(`[${t.tier.toUpperCase()}] ${t.id} - "${t.title}": ${t.is_unlocked ? '✅ CONQUISTADO' : '🔒 BLOQUEADO'} (${t.progress_current}/${t.progress_target} - ${t.progress_percentage}%)`);
-        if (t.checklist && t.checklist.length > 0) {
-          const conquered = t.checklist.filter((c: any) => c.conquered);
-          console.log(`   Items conquistados: ${conquered.length}/${t.checklist.length}`);
-          conquered.slice(0, 5).forEach((c: any) => console.log(`     - ${c.name}: ${c.extra_info || c.movie_title}`));
-        }
+    const ftTrophy = result.trophies.find((t: any) => t.id === 'cf_fernanda_torres');
+    if (ftTrophy) {
+      console.log(`\n[${ftTrophy.tier.toUpperCase()}] ${ftTrophy.id} - "${ftTrophy.title}": ${ftTrophy.is_unlocked ? '✅ CONQUISTADO' : '🔒 BLOQUEADO'} (${ftTrophy.progress_current}/${ftTrophy.progress_target} - ${ftTrophy.progress_percentage}%)`);
+      if (ftTrophy.checklist && ftTrophy.checklist.length > 0) {
+        console.log(`Total items in checklist: ${ftTrophy.checklist.length}`);
+        const conquered = ftTrophy.checklist.filter((c: any) => c.conquered);
+        console.log(`Items conquistados: ${conquered.length}`);
+        conquered.forEach((c: any) => console.log(`  ✅ ${c.name}: ${c.extra_info || c.movie_title}`));
+        const pending = ftTrophy.checklist.filter((c: any) => !c.conquered);
+        console.log(`Items pendentes: ${pending.length}`);
+        pending.slice(-3).forEach((c: any) => console.log(`  🔒 ${c.name}: ${c.extra_info}`));
       }
     }
   } catch (error) {
