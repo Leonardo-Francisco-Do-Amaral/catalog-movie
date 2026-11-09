@@ -9,11 +9,6 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
 } from 'recharts';
 import {
   Film,
@@ -370,7 +365,17 @@ export default function AnalyticsDashboard({
       };
     }, [filteredMovies, movies, availableYears]);
 
-  const { activeXp, campaignKpis, rpgAttributes, audioFactions, guilds, trophyInsights, levelRoadmap } = rpgData;
+  const {
+    activeXp,
+    characterClass,
+    totalStatPoints,
+    campaignKpis,
+    rpgAttributes,
+    audioFactions,
+    guilds,
+    trophyInsights,
+    levelRoadmap,
+  } = rpgData;
   const xpSources = activeXp?.sources || {};
   const totalXp = Math.max(1, activeXp?.totalXp || 0);
 
@@ -1007,179 +1012,282 @@ export default function AnalyticsDashboard({
             </div>
           </div>
 
-          {/* FICHA DE 6 ATRIBUTOS RPG (HEXÁGONO) + MISSÕES QUASE COMPLETAS & MAESTRIA */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            {/* Radar Hexagonal 6 Atributos RPG */}
-            <div className="lg:col-span-6 rounded-3xl bg-zinc-950/90 border border-zinc-800/90 p-5 flex flex-col gap-4">
-              <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
-                <span className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-2">
-                  ⚔️ Hexágono de Atributos do Personagem (Build 0–99)
-                </span>
-                <span className="text-[10px] font-mono text-zinc-400">Status Sheet</span>
-              </div>
+          {/* FICHA DE ATRIBUTOS POR PONTOS & CLASSE DO PERSONAGEM */}
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
+            {/* Coluna da Esquerda (Card da Classe do Personagem - 6 colunas) */}
+            <div className="xl:col-span-6 rounded-3xl bg-gradient-to-br from-zinc-950 via-zinc-900/90 to-zinc-950 border border-amber-500/35 p-5 sm:p-6 flex flex-col justify-between gap-4 shadow-xl relative overflow-hidden">
+              <div className="pointer-events-none absolute -top-20 -right-16 w-60 h-60 bg-amber-500/10 rounded-full blur-3xl" />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                <div className="h-60 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart cx="50%" cy="50%" outerRadius="72%" data={rpgAttributes}>
-                      <PolarGrid stroke="#27272a" />
-                      <PolarAngleAxis
-                        dataKey="key"
-                        tick={{ fill: '#fbbf24', fontSize: 11, fontWeight: 900 }}
-                      />
-                      <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                      <Radar
-                        name="Poder"
-                        dataKey="score"
-                        stroke="#f59e0b"
-                        strokeWidth={2}
-                        fill="#f59e0b"
-                        fillOpacity={0.28}
-                      />
-                    </RadarChart>
-                  </ResponsiveContainer>
+              <div className="relative z-10 flex flex-col gap-4">
+                {/* Topo: Emblema e Badge da Classe */}
+                <div className="flex items-start justify-between gap-3 border-b border-zinc-800/80 pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500/20 via-purple-500/15 to-cyan-500/20 border border-amber-400/50 flex items-center justify-center text-3xl shrink-0 shadow-[0_0_25px_rgba(245,158,11,0.2)]">
+                      {characterClass.classIcon}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/40">
+                          {characterClass.tierLabel}
+                        </span>
+                        <span className="text-[10px] font-mono font-bold text-zinc-400">
+                          Classe Oficial
+                        </span>
+                      </div>
+                      <h3 className="text-xl sm:text-2xl font-black text-white mt-0.5">
+                        {characterClass.className}
+                      </h3>
+                    </div>
+                  </div>
+
+                  <span className="text-xs font-mono font-black px-3 py-1.5 rounded-xl bg-zinc-900 border border-amber-400/35 text-amber-300 shrink-0">
+                    {totalStatPoints} pts
+                  </span>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  {rpgAttributes.map((attr) => (
-                    <div
-                      key={attr.key}
-                      className="rounded-xl bg-zinc-900/75 border border-zinc-800/90 px-3 py-2 flex items-center justify-between gap-2"
-                    >
-                      <div className="min-w-0">
-                        <div className="text-xs font-black text-white flex items-center gap-1.5">
+                {/* Subtítulo / Título de Honra */}
+                <div className="text-xs font-bold text-cyan-300">
+                  {characterClass.titleFlavor}
+                </div>
+
+                {/* Lore / História Cômica */}
+                <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800/90 p-3.5 text-xs text-zinc-300 leading-relaxed italic relative">
+                  <span className="text-amber-400 font-serif text-lg leading-none mr-1">“</span>
+                  {characterClass.lore}
+                  <span className="text-amber-400 font-serif text-lg leading-none ml-1">”</span>
+                </div>
+
+                {/* Destaques: Filme Favorito / Arma Relíquia + Habilidade Passiva */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="rounded-xl bg-zinc-900/60 border border-zinc-800/80 p-3 flex flex-col gap-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">
+                      🎬 Filme Favorito / Relíquia:
+                    </span>
+                    <span className="text-xs font-bold text-white line-clamp-2">
+                      {characterClass.favoriteMovie}
+                    </span>
+                  </div>
+
+                  <div className="rounded-xl bg-zinc-900/60 border border-zinc-800/80 p-3 flex flex-col gap-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-cyan-300">
+                      ✨ Habilidade Passiva:
+                    </span>
+                    <span className="text-xs text-zinc-300 line-clamp-2">
+                      {characterClass.passiveSkill}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Barra de Pontos Totais de Atributo */}
+              <div className="relative z-10 pt-2 border-t border-zinc-800/80 flex flex-col gap-1.5">
+                <div className="flex items-center justify-between text-[11px] font-mono">
+                  <span className="text-zinc-400 font-bold">
+                    Pontos Totais de Atributo Investidos:
+                  </span>
+                  <span className="text-amber-300 font-black">
+                    {totalStatPoints} / {characterClass.maxPossibleStats} pts ({characterClass.statsProgressPct}%)
+                  </span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-zinc-950 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-amber-500 via-purple-400 to-cyan-400 rounded-full transition-all duration-700"
+                    style={{ width: `${characterClass.statsProgressPct}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Coluna da Direita (Os 6 Atributos em Linhas com Barra de XP - 6 colunas) */}
+            <div className="xl:col-span-6 rounded-3xl bg-zinc-950/90 border border-zinc-800/90 p-5 sm:p-6 flex flex-col justify-between gap-3 shadow-xl">
+              <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+                <div>
+                  <span className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-2">
+                    ⚔️ Ficha de Atributos do Personagem
+                  </span>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">
+                    Pontuação individual baseada nos feitos da sua jornada cinéfila
+                  </p>
+                </div>
+                <span className="text-[10px] font-mono font-bold text-zinc-400 px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-800">
+                  Build de Atributos
+                </span>
+              </div>
+
+              {/* Lista dos 6 Atributos na Ordem Clássica com Mini-Barras de XP */}
+              <div className="flex flex-col gap-2.5">
+                {rpgAttributes.map((attr) => (
+                  <div
+                    key={attr.key}
+                    className="rounded-2xl bg-zinc-900/70 border border-zinc-800/80 p-3 flex flex-col gap-1.5 hover:border-zinc-700 transition-all"
+                  >
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xs font-mono font-black px-2 py-0.5 rounded-md bg-zinc-950 border border-zinc-800 text-amber-300">
+                          {attr.key}
+                        </span>
+                        <span className="font-black text-white flex items-center gap-1 truncate">
                           <span>{attr.icon}</span>
-                          <span>{attr.label}</span>
-                        </div>
-                        <div className="text-[10px] text-zinc-400 truncate">{attr.desc}</div>
+                          <span className="truncate">{attr.label}</span>
+                        </span>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="font-mono text-sm font-black text-white">{attr.score}</span>
-                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border ${attr.color}`}>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="font-mono text-sm font-black text-white">
+                          {attr.score} <span className="text-[10px] text-zinc-500 font-normal">/ 99</span>
+                        </span>
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded border ${attr.color}`}>
                           {attr.grade}
                         </span>
                       </div>
                     </div>
-                  ))}
-                </div>
+
+                    {/* Barra de XP do Atributo */}
+                    <div className="w-full h-1.5 rounded-full bg-zinc-950 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full bg-gradient-to-r ${attr.barColor || 'from-amber-400 to-yellow-300'}`}
+                        style={{ width: `${Math.min(100, Math.max(2, attr.score))}%` }}
+                      />
+                    </div>
+
+                    <div className="text-[10px] text-zinc-400 font-mono truncate">
+                      {attr.desc}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
+          </div>
 
-            {/* Quests Quase em 100% + Maestria por Categoria */}
-            <div className="lg:col-span-6 rounded-3xl bg-zinc-950/90 border border-zinc-800/90 p-5 flex flex-col justify-between gap-4">
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
-                  <span className="text-xs font-black uppercase tracking-wider text-cyan-300 flex items-center gap-2">
-                    🎯 Quests Ativas Quase em 100% & Domínio de Categorias
+          {/* Quests Quase em 100% + Maestria por Categoria */}
+          <div className="rounded-3xl bg-zinc-950/90 border border-zinc-800/90 p-5 sm:p-6 flex flex-col justify-between gap-4 shadow-xl">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+                <span className="text-xs font-black uppercase tracking-wider text-cyan-300 flex items-center gap-2">
+                  🎯 Quests Ativas Quase em 100% & Domínio de Categorias
+                </span>
+                <span className="text-[10px] font-mono text-emerald-300">Próximos Drops de XP</span>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                {/* Coluna Esquerda: Quests Quase em 100% */}
+                <div className="lg:col-span-6 flex flex-col gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                    🏆 Missões a um passo de completar:
                   </span>
-                  <span className="text-[10px] font-mono text-emerald-300">Próximos Drops de XP</span>
-                </div>
-
-                {trophyInsights.almostThereQuests.length > 0 ? (
-                  <div className="flex flex-col gap-2">
-                    {trophyInsights.almostThereQuests.slice(0, 3).map((q) => {
-                      const tierKey = String(q.tier || 'bronze').toLowerCase();
-                      const xpReward = TROPHY_XP_BY_TIER[tierKey] || 15;
-                      return (
-                        <button
-                          key={q.id}
-                          type="button"
-                          onClick={() => setInspectingTrophy(q)}
-                          className="rounded-xl bg-zinc-900/80 hover:bg-zinc-800/95 border border-zinc-800 hover:border-amber-400/60 px-3.5 py-2.5 flex items-center justify-between gap-3 cursor-pointer transition-all text-left group shadow-sm hover:shadow-amber-500/10"
-                          title="Clique para inspecionar os requisitos e checklist deste troféu"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <div className="text-xs font-black text-white group-hover:text-amber-300 transition-colors flex items-center gap-1.5 truncate">
-                              <span>{q.icon || '🏅'}</span>
-                              <span className="truncate">{q.cleanTitle}</span>
-                              <Search className="w-3 h-3 text-zinc-500 group-hover:text-amber-400 shrink-0 ml-0.5 transition-colors" />
-                            </div>
-                            <div className="w-full h-1.5 rounded-full bg-zinc-950 mt-1.5 overflow-hidden">
-                              <div
-                                className="h-full bg-gradient-to-r from-cyan-400 to-amber-400 rounded-full"
-                                style={{ width: `${q.pct}%` }}
-                              />
-                            </div>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <div className="text-xs font-mono font-black text-cyan-300">
-                              {q.currentVal}/{q.targetVal} ({q.pct}%)
-                            </div>
-                            <div className="text-[10px] font-mono font-bold text-amber-300">
-                              +{xpReward} XP
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-xs text-zinc-500 italic py-2">
-                    Continue cadastrando filmes para revelar missões próximas de 100%!
-                  </div>
-                )}
-
-                {/* Barras Compactas de Maestria nas Categorias de Troféus */}
-                {trophyInsights.categoryMastery.length > 0 && (
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    {trophyInsights.categoryMastery.slice(0, 6).map((cat) => (
-                      <div
-                        key={cat.key}
-                        className="rounded-xl bg-zinc-900/60 border border-zinc-800/80 px-2.5 py-1.5 flex flex-col gap-1"
-                      >
-                        <div className="flex items-center justify-between text-[10px]">
-                          <span className="font-black text-zinc-200 truncate">
-                            {cat.icon} {cat.label}
-                          </span>
-                          <span className="font-mono font-bold text-amber-300">{cat.pct}%</span>
-                        </div>
-                        <div className="w-full h-1 rounded-full bg-zinc-950 overflow-hidden">
-                          <div className="h-full bg-amber-400 rounded-full" style={{ width: `${cat.pct}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Vitrine Rápida: Troféus Mais Raros Desbloqueados */}
-                {trophyInsights.rarestUnlocked.length > 0 && (
-                  <div className="pt-1 flex flex-col gap-1.5">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-rose-300">
-                      💎 Conquistas de Maior Raridade na Sua Estante
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {trophyInsights.rarestUnlocked.slice(0, 4).map((ut) => {
-                        const tKey = String(ut.tier || 'gold').toLowerCase();
-                        const badgeCls =
-                          TROPHY_TIER_META[tKey]?.badge ||
-                          'bg-amber-500/15 border-amber-400/40 text-amber-200';
+                  {trophyInsights.almostThereQuests.length > 0 ? (
+                    <div className="flex flex-col gap-2">
+                      {trophyInsights.almostThereQuests.slice(0, 3).map((q) => {
+                        const tierKey = String(q.tier || 'bronze').toLowerCase();
+                        const xpReward = TROPHY_XP_BY_TIER[tierKey] || 15;
                         return (
                           <button
-                            key={ut.id}
+                            key={q.id}
                             type="button"
-                            onClick={() => setInspectingTrophy(ut)}
-                            className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border truncate max-w-[230px] cursor-pointer hover:scale-105 hover:border-white transition-all text-left ${badgeCls}`}
-                            title={`Clique para inspecionar checklist de "${ut.cleanTitle}"`}
+                            onClick={() => setInspectingTrophy(q)}
+                            className="rounded-xl bg-zinc-900/80 hover:bg-zinc-800/95 border border-zinc-800 hover:border-amber-400/60 px-3.5 py-2.5 flex items-center justify-between gap-3 cursor-pointer transition-all text-left group shadow-sm hover:shadow-amber-500/10"
+                            title="Clique para inspecionar os requisitos e checklist deste troféu"
                           >
-                            {ut.icon || TROPHY_TIER_META[tKey]?.icon || '🏆'} {ut.cleanTitle}
+                            <div className="min-w-0 flex-1">
+                              <div className="text-xs font-black text-white group-hover:text-amber-300 transition-colors flex items-center gap-1.5 truncate">
+                                <span>{q.icon || '🏅'}</span>
+                                <span className="truncate">{q.cleanTitle}</span>
+                                <Search className="w-3 h-3 text-zinc-500 group-hover:text-amber-400 shrink-0 ml-0.5 transition-colors" />
+                              </div>
+                              <div className="w-full h-1.5 rounded-full bg-zinc-950 mt-1.5 overflow-hidden">
+                                <div
+                                  className="h-full bg-gradient-to-r from-cyan-400 to-amber-400 rounded-full"
+                                  style={{ width: `${q.pct}%` }}
+                                />
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <div className="text-xs font-mono font-black text-cyan-300">
+                                {q.currentVal}/{q.targetVal} ({q.pct}%)
+                              </div>
+                              <div className="text-[10px] font-mono font-bold text-amber-300">
+                                +{xpReward} XP
+                              </div>
+                            </div>
                           </button>
                         );
                       })}
                     </div>
-                  </div>
-                )}
-              </div>
+                  ) : (
+                    <div className="text-xs text-zinc-500 italic py-2">
+                      Continue cadastrando filmes para revelar missões próximas de 100%!
+                    </div>
+                  )}
+                </div>
 
-              {/* Botão Expansor da Árvore Completa de Patentes Nv.1–100 */}
-              <button
-                type="button"
-                onClick={() => setShowFullRoadmap((prev) => !prev)}
-                className="w-full py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-amber-500/35 text-xs font-black uppercase tracking-wider text-amber-200 flex items-center justify-center gap-2 cursor-pointer transition-all"
-              >
-                <span>📜 {showFullRoadmap ? 'Ocultar' : 'Ver'} Árvore Completa das 21 Patentes (Nv. 1 ao 100)</span>
-                {showFullRoadmap ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
+                {/* Coluna Direita: Domínio de Categorias e Vitrine de Raros */}
+                <div className="lg:col-span-6 flex flex-col gap-3">
+                  {/* Barras Compactas de Maestria nas Categorias de Troféus */}
+                  {trophyInsights.categoryMastery.length > 0 && (
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                        📊 Maestria por Categoria:
+                      </span>
+                      <div className="grid grid-cols-2 gap-2">
+                        {trophyInsights.categoryMastery.slice(0, 6).map((cat) => (
+                          <div
+                            key={cat.key}
+                            className="rounded-xl bg-zinc-900/60 border border-zinc-800/80 px-2.5 py-1.5 flex flex-col gap-1"
+                          >
+                            <div className="flex items-center justify-between text-[10px]">
+                              <span className="font-black text-zinc-200 truncate">
+                                {cat.icon} {cat.label}
+                              </span>
+                              <span className="font-mono font-bold text-amber-300">{cat.pct}%</span>
+                            </div>
+                            <div className="w-full h-1 rounded-full bg-zinc-950 overflow-hidden">
+                              <div className="h-full bg-amber-400 rounded-full" style={{ width: `${cat.pct}%` }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Vitrine Rápida: Troféus Mais Raros Desbloqueados */}
+                  {trophyInsights.rarestUnlocked.length > 0 && (
+                    <div className="pt-1 flex flex-col gap-1.5">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-rose-300">
+                        💎 Conquistas de Maior Raridade na Sua Estante:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {trophyInsights.rarestUnlocked.slice(0, 4).map((ut) => {
+                          const tKey = String(ut.tier || 'gold').toLowerCase();
+                          const badgeCls =
+                            TROPHY_TIER_META[tKey]?.badge ||
+                            'bg-amber-500/15 border-amber-400/40 text-amber-200';
+                          return (
+                            <button
+                              key={ut.id}
+                              type="button"
+                              onClick={() => setInspectingTrophy(ut)}
+                              className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border truncate max-w-[230px] cursor-pointer hover:scale-105 hover:border-white transition-all text-left ${badgeCls}`}
+                              title={`Clique para inspecionar checklist de "${ut.cleanTitle}"`}
+                            >
+                              {ut.icon || TROPHY_TIER_META[tKey]?.icon || '🏆'} {ut.cleanTitle}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
+
+            {/* Botão Expansor da Árvore Completa de Patentes Nv.1–100 */}
+            <button
+              type="button"
+              onClick={() => setShowFullRoadmap((prev) => !prev)}
+              className="w-full py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-amber-500/35 text-xs font-black uppercase tracking-wider text-amber-200 flex items-center justify-center gap-2 cursor-pointer transition-all"
+            >
+              <span>📜 {showFullRoadmap ? 'Ocultar' : 'Ver'} Árvore Completa das 21 Patentes (Nv. 1 ao 100)</span>
+              {showFullRoadmap ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
           </div>
 
           {/* Árvore Expansível das 21 Patentes */}
@@ -1727,142 +1835,8 @@ export default function AnalyticsDashboard({
          ===================================================================== */}
       {showSection('years') && (
         <section className="flex flex-col gap-6">
-          {/* Dois Cards de Destaque Temporal */}
-          {isYearFilterActive ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              {/* Card 1: Destaque da Temporada Selecionada */}
-              <div className="rounded-3xl border border-cyan-500/40 bg-gradient-to-br from-zinc-950 via-cyan-950/15 to-zinc-950 p-5 sm:p-6 shadow-xl flex flex-col justify-between gap-4">
-                <div className="flex items-start justify-between gap-3 border-b border-zinc-800/80 pb-3">
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-cyan-300">
-                      📅 Destaque da Temporada Anual
-                    </span>
-                    <h3 className="text-lg sm:text-xl font-black text-white">
-                      Resumo das Sessões de {selectedYear}
-                    </h3>
-                  </div>
-                  <span className="text-2xl sm:text-3xl font-black font-mono px-3.5 py-1 rounded-2xl bg-cyan-500/20 border border-cyan-400/50 text-cyan-200">
-                    {selectedYear}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2.5">
-                  <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-3">
-                    <div className="text-[10px] uppercase font-bold text-zinc-400">Filmes Vistos</div>
-                    <div className="text-2xl font-black font-mono text-white mt-0.5">
-                      {campaignKpis.totalMovies}
-                    </div>
-                    <div className="text-[10px] text-cyan-300 font-mono">
-                      ~{(campaignKpis.totalMovies / 12).toFixed(1)}/mês
-                    </div>
-                  </div>
-                  <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-3">
-                    <div className="text-[10px] uppercase font-bold text-zinc-400">Horas no Ano</div>
-                    <div className="text-2xl font-black font-mono text-amber-300 mt-0.5">
-                      {campaignKpis.hours}h
-                    </div>
-                    <div className="text-[10px] text-zinc-400 font-mono">de sessões</div>
-                  </div>
-                  <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-3">
-                    <div className="text-[10px] uppercase font-bold text-zinc-400">Média Pessoal</div>
-                    <div className="text-2xl font-black font-mono text-purple-300 mt-0.5">
-                      {campaignKpis.avgUserRating}
-                    </div>
-                    <div className="text-[10px] text-zinc-400 font-mono">calibração</div>
-                  </div>
-                </div>
-
-                {(() => {
-                  const sortedMonths = [...monthlyData].sort((a, b) => b.quantidade - a.quantidade);
-                  const topM = sortedMonths[0];
-                  if (!topM || topM.quantidade === 0) return null;
-                  return (
-                    <div className="rounded-2xl bg-cyan-500/10 border border-cyan-500/30 px-4 py-2.5 flex items-center justify-between text-xs">
-                      <span className="text-zinc-200 font-bold">
-                        🔥 Mês Mais Ativo de {selectedYear}:
-                      </span>
-                      <span className="font-mono font-black text-cyan-200">
-                        {topM.name} ({topM.quantidade} filmes • Média: ⭐ {topM.notaMedia})
-                      </span>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* Card 2: Safras Assistidas Durante este Ano */}
-              <div className="rounded-3xl border border-amber-500/40 bg-gradient-to-br from-zinc-950 via-amber-950/15 to-zinc-950 p-5 sm:p-6 shadow-xl flex flex-col justify-between gap-4">
-                <div className="flex items-start justify-between gap-3 border-b border-zinc-800/80 pb-3">
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-300">
-                      🎥 Safras Assistidas em {selectedYear}
-                    </span>
-                    <h3 className="text-lg sm:text-xl font-black text-white">
-                      Ano de Lançamento Mais Presente
-                    </h3>
-                  </div>
-                  {yearShowdown.championReleaseYear && (
-                    <span className="text-2xl sm:text-3xl font-black font-mono px-3.5 py-1 rounded-2xl bg-amber-500/20 border border-amber-400/50 text-amber-200">
-                      {yearShowdown.championReleaseYear.year}
-                    </span>
-                  )}
-                </div>
-
-                {yearShowdown.championReleaseYear ? (
-                  <>
-                    <div className="rounded-2xl bg-zinc-900/80 border border-amber-500/30 p-3.5 flex items-center gap-3.5">
-                      <PosterThumb
-                        url={yearShowdown.championReleaseYear.bestMovie?.poster_url}
-                        title={yearShowdown.championReleaseYear.bestMovie?.title}
-                        className="w-14 h-20 rounded-xl"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="text-xs font-black text-amber-300">
-                          🏆 {yearShowdown.championReleaseYear.count} filmes de {yearShowdown.championReleaseYear.year} vistos em {selectedYear}!
-                        </div>
-                        <div className="text-[11px] text-zinc-300 mt-0.5">
-                          Destaque:{' '}
-                          <strong className="text-white">
-                            {yearShowdown.championReleaseYear.bestMovie?.title}
-                          </strong>{' '}
-                          (⭐ {Number(yearShowdown.championReleaseYear.bestMovie?.user_rating || 0).toFixed(3)})
-                        </div>
-                        <div className="text-[10px] font-mono text-zinc-400 mt-1">
-                          {yearShowdown.championReleaseYear.hours}h somadas • Média: ⭐ {yearShowdown.championReleaseYear.avgRating}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5 max-h-44 overflow-y-auto pr-1">
-                      {yearShowdown.releaseYearsRanked.slice(0, 5).map((ryItem, i) => {
-                        const maxC = yearShowdown.championReleaseYear.count || 1;
-                        const wPct = Math.round((ryItem.count / maxC) * 100);
-                        return (
-                          <div key={ryItem.year} className="rounded-xl bg-zinc-900/65 border border-zinc-800/80 px-3 py-2 flex flex-col gap-1">
-                            <div className="flex items-center justify-between text-xs gap-2">
-                              <span className="font-mono font-black text-white shrink-0">
-                                #{i + 1} • Safra {ryItem.year}
-                              </span>
-                              <span className="text-[11px] text-zinc-400 truncate">
-                                Top: {ryItem.bestMovie?.title}
-                              </span>
-                              <span className="font-mono font-black text-amber-300 shrink-0">
-                                {ryItem.count}x
-                              </span>
-                            </div>
-                            <div className="w-full h-1.5 rounded-full bg-zinc-950 overflow-hidden">
-                              <div className="h-full bg-amber-400 rounded-full" style={{ width: `${wPct}%` }} />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-xs text-zinc-500 italic py-8 text-center">Sem lançamentos registrados.</div>
-                )}
-              </div>
-            </div>
-          ) : (
+          {/* Dois Cards de Duelo Temporal Histórico (Exclusivo da Campanha Geral) */}
+          {!isYearFilterActive && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {/* Esquerda: O Ano em que Você Mais Assistiu Filmes (year_seen) */}
               <div className="rounded-3xl border border-purple-500/40 bg-gradient-to-br from-zinc-950 via-purple-950/15 to-zinc-950 p-5 sm:p-6 shadow-xl flex flex-col gap-4">

@@ -836,6 +836,126 @@ export function computeYearShowdown(filteredMovies = [], allMovies = []) {
   };
 }
 
+export function determineCharacterClass(attributes = [], totalStats = 0, movies = []) {
+  const sorted = [...attributes].sort((a, b) => b.score - a.score);
+  const primary = sorted[0]?.key || 'SOR';
+  const secondary = sorted[1]?.key || 'FOR';
+
+  // Verifica terror/exorcismo para Sacerdote Cinéfilo
+  const hasDemonOrExorcism = movies.some((m) => {
+    const ts = (m.tags || []).map((t) => String(t).toLowerCase());
+    const gs = (m.genres || []).map((g) => String(g).toLowerCase());
+    return (
+      ts.includes('demônio') ||
+      ts.includes('demonio') ||
+      ts.includes('exorcismo') ||
+      ts.includes('fantasma') ||
+      (gs.includes('terror') && (ts.includes('sobrenatural') || ts.includes('bruxo') || ts.includes('gore')))
+    );
+  });
+
+  // Verifica se o usuário caça filmes bem underground (< 5000 votos)
+  const undergroundCount = movies.filter((m) => Number(m.vote_count) > 0 && Number(m.vote_count) < 5000).length;
+  const hasUndergroundLoot = undergroundCount >= 3;
+
+  let className = '';
+  let classIcon = '⚔️';
+  let tierLabel = 'Classe Básica';
+  let titleFlavor = '';
+  let lore = '';
+  let favoriteMovie = '';
+  let passiveSkill = '';
+
+  if (totalStats >= 350) {
+    tierLabel = '👑 Transclasse Suprema';
+  } else if (totalStats >= 250) {
+    tierLabel = '🥇 2ª Transição de Classe';
+  } else if (totalStats >= 150) {
+    tierLabel = '🥈 1ª Transição de Classe';
+  } else {
+    tierLabel = '🌱 Aprendiz Cinéfilo';
+  }
+
+  // Lógica de seleção divertida e precisa de classes baseadas na build real:
+  if (hasDemonOrExorcism && (primary === 'INT' || secondary === 'INT' || secondary === 'FOR')) {
+    className = 'O Sacerdote Cinéfilo';
+    classIcon = '✝️';
+    titleFlavor = 'Exorcista de Demônios nas Telas em 4K';
+    lore = 'Ele exorciza demônios direto na tela da TV junto com o padre. Já decorou todas as rezas em latim dos créditos iniciais e não teme assombração nem de madrugada com a luz apagada!';
+    favoriteMovie = 'O Exorcista (1973) e um terço benzido com água benta';
+    passiveSkill = 'Água Benta Crítica: Imune a sustos baratos e jumpscares previsíveis.';
+  } else if (hasUndergroundLoot && (primary === 'SOR' || secondary === 'SOR')) {
+    className = 'Caçador de Trufas & Obras Obscuras';
+    classIcon = '🍄';
+    titleFlavor = 'Farejador de VHS Perdidos & Filmes Raros';
+    lore = 'Ele sabe onde encontrar os filmes mais underground e desconhecidos do planeta nas profundezas da internet, mas não dá a mínima garantia de qualidade a ninguém!';
+    favoriteMovie = 'Jogos Mortais (2004) ou um trash romeno obscuro de 1982';
+    passiveSkill = 'Faro Subterrâneo: +50% de tolerância a filmes com menos de 100 avaliações no mundo.';
+  } else if (primary === 'AGI') {
+    className = 'Sicário das Telonas';
+    classIcon = '⚡';
+    titleFlavor = 'Velocista dos Créditos & Maratona Contínua';
+    lore = 'Ele é tão rápido que quando você começou a ler este texto ele já viu um filme, pulou a abertura e já foi pros pós-créditos! Sua vida é um speedrun ininterrupto de sessões.';
+    favoriteMovie = 'Qualquer curta de animação ou John Wick sem respirar';
+    passiveSkill = 'Passo Sombrio: Consegue emendar 4 filmes em sequência num sábado chuvoso sem cansaço.';
+  } else if (primary === 'SOR') {
+    className = 'Algoz do Tomatômetro';
+    classIcon = '🎯';
+    titleFlavor = 'Julgamento Implacável das Três Casas Decimais';
+    lore = 'Possui uma precisão visual e crítica fora do comum. Se o microfone do boom aparecer por 1 frame no canto superior da tela, a nota da obra despenca de 9.000 para 6.421 sem dó!';
+    favoriteMovie = 'Pulp Fiction (1994) e uma caneta bic vermelha de crítico';
+    passiveSkill = 'Golpe Crítico: Avaliações com exatidão milimétrica e tolerância zero a clichês de roteiro.';
+  } else if (primary === 'INT') {
+    className = 'Arquimago da Máquina do Tempo';
+    classIcon = '🧙‍♂️';
+    titleFlavor = 'Manipulador do Continuum Espaço-Temporal';
+    lore = 'Capaz de transitar de 1920 até os lançamentos de 2027 como se pegasse o metrô. Já viu clássicos mudos soviéticos e discute direção de arte clássica com a calma de um sábio ancião!';
+    favoriteMovie = 'De Volta Para o Futuro (1985) ou Metrópolis (1927)';
+    passiveSkill = 'Teleporte Cronológico: +50% de sabedoria ao encarar filmes gravados antes da invenção da cor.';
+  } else if (primary === 'FOR') {
+    className = 'Paladino do Santo Oscar';
+    classIcon = '👑';
+    titleFlavor = 'Guardião Implacável das Obras-Primas Intocáveis';
+    lore = 'Ele só aperta o play se a fita vier abençoada por estatuetas douradas da Academia e nota pessoal 9.5+. Se o filme não for considerado arte suprema pela humanidade, ele nem clica!';
+    favoriteMovie = 'O Poderoso Chefão (1972) com moldura dourada e água benta';
+    passiveSkill = 'Aura da Academia: +40% de pompa e solenidade em discussões cult de bar.';
+  } else if (primary === 'DES') {
+    className = 'Embaixador dos 195 Reinos';
+    classIcon = '🌍';
+    titleFlavor = 'Viajante dos Festivais & Caçador de Bandeiras Raras';
+    lore = 'Não aguenta mais ver filmes passados em Nova York ou Los Angeles. Se a produção for do Azerbaijão, Butão ou Islândia com legendas traduzidas no bloco de notas, ele é o primeiro da fila!';
+    favoriteMovie = 'Parasita (2019) ou um drama mudo do Cazaquistão';
+    passiveSkill = 'Poliglota Cinéfilo: Lê legendas em fontes amarelas a 300 palavras por minuto.';
+  } else if (primary === 'VIT') {
+    className = 'Gladiador Platinador de Ferro';
+    classIcon = '🛡️';
+    titleFlavor = 'Colecionador de Notificações & Carrasco de Platina';
+    lore = 'Não assiste filmes apenas por lazer: assiste pelo som sagrado do troféu pipocando no canto da tela! Se faltar 1 filme para fechar a Trilogia ou a Categoria, ele não dorme.';
+    favoriteMovie = 'Qualquer filme que conceda troféu Mítico ou Ouro no catálogo';
+    passiveSkill = 'Bexiga de Aço: Suporta maratonas de 4 horas sem pausar para ir ao banheiro.';
+  } else {
+    className = 'Andarilho da Sétima Arte';
+    classIcon = '🎒';
+    titleFlavor = 'Explorador Híbrido de Sessões';
+    lore = 'Um aventureiro versátil que transita entre blockbusters barulhentos e jóias cult escondidas.';
+    favoriteMovie = 'Cinema Paradiso (1988)';
+    passiveSkill = 'Mente Aberta: Aprecia desde filmes B de monstros até dramas europeus intimistas.';
+  }
+
+  return {
+    className,
+    classIcon,
+    tierLabel,
+    titleFlavor,
+    lore,
+    favoriteMovie,
+    passiveSkill,
+    totalStats,
+    maxPossibleStats: 594, // 6 atributos x 99
+    statsProgressPct: Math.min(100, Math.round((totalStats / 594) * 100)),
+  };
+}
+
 /**
  * 5. Ficha RPG de 6 Atributos, Facções de Áudio, Maestria de Troféus e Guildas com Nota Média
  */
@@ -902,14 +1022,78 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
   const trophyScore = Math.min(99, Math.round(Math.min(99, (trophiesUnlocked / trophiesTotal) * 120)));
   const prestigeScore = Math.min(99, Math.round(Math.min(60, allOscars * 0.35) + Math.min(39, allMasterpieces * 0.7)));
 
+  // 6 Atributos na ordem solicitada inspirada em RPG clássico (AGI, INT, DES, SOR, VIT, FOR)
   const rpgAttributes = [
-    { key: 'END', subject: 'Vigor (END)', label: 'Vigor de Tela', icon: '⚔️', score: vigorScore, ...getRankGrade(vigorScore), desc: `${Math.round(allHours)}h jogadas • ${allEpics} épicos >140m` },
-    { key: 'WIS', subject: 'Sabedoria (WIS)', label: 'Sabedoria Temporal', icon: '🧠', score: wisdomScore, ...getRankGrade(wisdomScore), desc: `${tmConquered}/108 anos conquistados` },
-    { key: 'EXP', subject: 'Exploração (EXP)', label: 'Diplomacia Global', icon: '🌍', score: exploreScore, ...getRankGrade(exploreScore), desc: `${countriesConquered}/195 nações ONU` },
-    { key: 'PER', subject: 'Precisão (PER)', label: 'Olhar Clínico', icon: '🎯', score: precisionScore, ...getRankGrade(precisionScore), desc: `${uniqueAll.length} obras catalogadas` },
-    { key: 'LCK', subject: 'Troféus (LCK)', label: 'Caça-Troféus PS5', icon: '🏆', score: trophyScore, ...getRankGrade(trophyScore), desc: `${trophiesUnlocked}/${trophiesTotal} conquistas` },
-    { key: 'CHA', subject: 'Prestígio (CHA)', label: 'Prestígio Áureo', icon: '👑', score: prestigeScore, ...getRankGrade(prestigeScore), desc: `${oscarWinsTotal} Oscars • ${allMasterpieces} notas 9+` },
+    {
+      key: 'AGI',
+      subject: 'Agilidade (AGI)',
+      label: 'Vigor de Tela (Agilidade)',
+      shortName: 'Agilidade',
+      icon: '⚡',
+      score: vigorScore,
+      barColor: 'from-amber-400 to-yellow-300',
+      ...getRankGrade(vigorScore),
+      desc: `${Math.round(allHours)}h jogadas • ${allEpics} épicos >140m`,
+    },
+    {
+      key: 'INT',
+      subject: 'Inteligência (INT)',
+      label: 'Sabedoria Temporal (Inteligência)',
+      shortName: 'Inteligência',
+      icon: '🧠',
+      score: wisdomScore,
+      barColor: 'from-cyan-400 to-blue-400',
+      ...getRankGrade(wisdomScore),
+      desc: `${tmConquered}/108 anos conquistados`,
+    },
+    {
+      key: 'DES',
+      subject: 'Destreza (DES)',
+      label: 'Diplomacia Global (Destreza)',
+      shortName: 'Destreza',
+      icon: '🌍',
+      score: exploreScore,
+      barColor: 'from-emerald-400 to-teal-300',
+      ...getRankGrade(exploreScore),
+      desc: `${countriesConquered}/195 nações ONU`,
+    },
+    {
+      key: 'SOR',
+      subject: 'Sorte (SOR)',
+      label: 'Olhar Clínico (Sorte)',
+      shortName: 'Sorte',
+      icon: '🎯',
+      score: precisionScore,
+      barColor: 'from-rose-400 to-pink-400',
+      ...getRankGrade(precisionScore),
+      desc: `${uniqueAll.length} obras catalogadas`,
+    },
+    {
+      key: 'VIT',
+      subject: 'Vitalidade (VIT)',
+      label: 'Caça-Troféus PS5 (Vitalidade)',
+      shortName: 'Vitalidade',
+      icon: '🛡️',
+      score: trophyScore,
+      barColor: 'from-purple-400 to-violet-300',
+      ...getRankGrade(trophyScore),
+      desc: `${trophiesUnlocked}/${trophiesTotal} conquistas`,
+    },
+    {
+      key: 'FOR',
+      subject: 'Força (FOR)',
+      label: 'Prestígio Áureo (Força)',
+      shortName: 'Força',
+      icon: '👑',
+      score: prestigeScore,
+      barColor: 'from-yellow-400 to-amber-300',
+      ...getRankGrade(prestigeScore),
+      desc: `${oscarWinsTotal} Oscars • ${allMasterpieces} notas 9+`,
+    },
   ];
+
+  const totalStatPoints = vigorScore + wisdomScore + exploreScore + precisionScore + trophyScore + prestigeScore;
+  const characterClass = determineCharacterClass(rpgAttributes, totalStatPoints, uniqueAll);
 
   // Facções de Áudio (Dublado vs Legendado vs Outros)
   const audioMap = {
@@ -1067,6 +1251,8 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
 
   return {
     activeXp,
+    characterClass,
+    totalStatPoints,
     characterSubclass,
     campaignKpis: {
       totalMovies: uniqueFiltered.length,
