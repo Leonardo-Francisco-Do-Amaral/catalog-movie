@@ -1052,7 +1052,7 @@ export default function AnalyticsDashboard({
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/40">
-                          {activeDisplayClass.tierLabel}
+                          Classe #{activeDisplayClass.orderIndex || 11} de {characterClass.totalClassesCount || 16} • {activeDisplayClass.unlockPts} pts
                         </span>
                         {activeDisplayClass.isCustomEquipped ? (
                           <span className="text-[10px] font-mono font-bold text-amber-300 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/40">
@@ -1096,44 +1096,65 @@ export default function AnalyticsDashboard({
                   <span className="text-amber-400 font-serif text-lg leading-none ml-1">”</span>
                 </div>
 
-                {/* Destaques: Filme Favorito / Arma Relíquia + Habilidade Passiva */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <div className="rounded-xl bg-zinc-900/60 border border-zinc-800/80 p-3 flex flex-col gap-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">
-                      🎬 Filme Favorito / Relíquia:
+                {/* Destaques: Filme Favorito / Arma Relíquia + Habilidade Passiva (Espaçoso e Sem Cortes) */}
+                <div className="flex flex-col gap-3">
+                  <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800/90 p-4 flex flex-col gap-1.5 shadow-sm">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 flex items-center gap-1.5">
+                      <span>🎬</span>
+                      <span>Filme Favorito / Relíquia Sagrada:</span>
                     </span>
-                    <span className="text-xs font-bold text-white line-clamp-2">
+                    <p className="text-xs font-medium text-white leading-relaxed">
                       {activeDisplayClass.favoriteMovie}
-                    </span>
+                    </p>
                   </div>
 
-                  <div className="rounded-xl bg-zinc-900/60 border border-zinc-800/80 p-3 flex flex-col gap-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-cyan-300">
-                      ✨ Habilidade Passiva:
+                  <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800/90 p-4 flex flex-col gap-1.5 shadow-sm">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-cyan-300 flex items-center gap-1.5">
+                      <span>✨</span>
+                      <span>Habilidade Passiva:</span>
                     </span>
-                    <span className="text-xs text-zinc-300 line-clamp-2">
+                    <p className="text-xs font-medium text-zinc-200 leading-relaxed">
                       {activeDisplayClass.passiveSkill}
-                    </span>
+                    </p>
                   </div>
                 </div>
 
-                {/* Próximo Nível de Evolução de Classe */}
-                {activeDisplayClass.nextTierName && (
-                  <div className="rounded-2xl bg-purple-950/20 border border-purple-500/30 p-3 flex items-center justify-between gap-3 text-xs">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Zap className="w-4 h-4 text-purple-400 shrink-0" />
-                      <div className="truncate">
-                        <span className="text-zinc-400 text-[10px] uppercase font-bold block">
-                          Próximo Nível de Evolução:
+                {/* Próxima Classe a Desbloquear na Trilha Linear */}
+                {characterClass.nextClassToUnlock ? (
+                  <div className="rounded-2xl bg-gradient-to-r from-purple-950/40 via-zinc-900/80 to-purple-950/30 border border-purple-500/40 p-3.5 flex items-center justify-between gap-3 text-xs shadow-md">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-400/50 flex items-center justify-center text-xl shrink-0 shadow-[0_0_15px_rgba(168,85,247,0.25)]">
+                        {characterClass.nextClassToUnlock.classIcon}
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-zinc-400 text-[10px] font-black uppercase tracking-wider block">
+                          🔒 Próxima Classe a Desbloquear:
                         </span>
-                        <span className="text-purple-200 font-black truncate">
-                          {activeDisplayClass.nextTierName}
+                        <span className="text-purple-200 font-black text-sm block leading-snug">
+                          {characterClass.nextClassToUnlock.className}
+                        </span>
+                        <span className="text-zinc-400 text-[11px] block mt-0.5">
+                          {characterClass.nextClassToUnlock.titleFlavor}
                         </span>
                       </div>
                     </div>
                     <div className="text-right shrink-0 font-mono">
-                      <span className="text-amber-300 font-black">+{activeDisplayClass.ptsToNextTier} pts</span>
-                      <span className="text-zinc-500 text-[10px] block">para evoluir</span>
+                      <span className="text-amber-300 font-black text-sm">
+                        +{characterClass.nextClassToUnlock.ptsRemaining} pts
+                      </span>
+                      <span className="text-zinc-500 text-[10px] block font-sans">
+                        Requer {characterClass.nextClassToUnlock.unlockPts} pts
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl bg-amber-500/10 border border-amber-400/40 p-3.5 flex items-center gap-3 text-xs">
+                    <div className="text-2xl">👑</div>
+                    <div>
+                      <span className="text-amber-300 font-black block">Trilha Lendária Completa!</span>
+                      <span className="text-zinc-400 text-[11px] block">
+                        Você desbloqueou todas as 16 classes cinematográficas da jornada!
+                      </span>
                     </div>
                   </div>
                 )}
@@ -2531,22 +2552,22 @@ export default function AnalyticsDashboard({
                       }`}
                     >
                       <div className="flex flex-col gap-2.5">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <span className={`text-2xl p-2 rounded-xl bg-zinc-950 border ${isUnlocked ? 'border-zinc-800' : 'border-zinc-800/60 grayscale'}`}>
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                          <div className="flex items-start gap-2.5 min-w-0">
+                            <span className={`text-2xl p-2 rounded-xl bg-zinc-950 border shrink-0 ${isUnlocked ? 'border-zinc-800' : 'border-zinc-800/60 grayscale'}`}>
                               {cls.classIcon}
                             </span>
                             <div className="min-w-0">
-                              <h4 className="text-sm font-black text-white leading-tight truncate">
+                              <h4 className="text-sm font-black text-white leading-snug">
                                 {cls.className}
                               </h4>
-                              <p className="text-[11px] font-bold text-amber-300/90 truncate mt-0.5">
+                              <p className="text-[11px] font-bold text-amber-300/90 mt-0.5 leading-snug">
                                 {cls.titleFlavor}
                               </p>
                             </div>
                           </div>
 
-                          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border shrink-0 ${
+                          <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-full border shrink-0 self-start ${
                             isUnlocked
                               ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/35'
                               : 'bg-zinc-800 text-zinc-400 border-zinc-700'
