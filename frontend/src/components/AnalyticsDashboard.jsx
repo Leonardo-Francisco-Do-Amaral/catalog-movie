@@ -26,7 +26,6 @@ import {
   Target,
   Sparkles,
   TrendingUp,
-  Globe,
   Zap,
   ChevronRight,
   ChevronDown,
@@ -35,8 +34,10 @@ import {
   Lock,
   CheckCircle2,
   Save,
+  Search,
 } from 'lucide-react';
-import InteractiveGlobe3D, { getCountryIsoFromName } from './InteractiveGlobe3D';
+import { getCountryIsoFromName } from './InteractiveGlobe3D';
+import TrophyChecklistModal from './TrophyChecklistModal';
 import { evaluateTrophiesClientSide } from '../utils/trophyEngineClient';
 import {
   TROPHY_XP_BY_TIER,
@@ -109,16 +110,6 @@ const SLOT_ACCENTS = {
   cyan: 'border-cyan-500/50 bg-cyan-950/20 text-cyan-200',
 };
 
-const SECTION_TABS = [
-  { id: 'all', label: '✨ Visão Completa' },
-  { id: 'xp_rpg', label: '⚡ XP & Ficha RPG' },
-  { id: 'pantheon', label: '👑 Panteão das 4 Notas' },
-  { id: 'relics', label: '💎 Relíquias & Recordes' },
-  { id: 'checkpoints', label: '💾 Save Slots (#1, #50, #100...)' },
-  { id: 'years', label: '📅 Anos & Gravações' },
-  { id: 'atlas', label: '🌍 Atlas 3D & Guildas' },
-];
-
 function PosterThumb({ url, title, className = 'w-12 h-16 rounded-lg' }) {
   const resolved = resolvePosterUrl(url);
   if (!resolved) {
@@ -149,9 +140,40 @@ export default function AnalyticsDashboard({
   const [checkpointMode, setCheckpointMode] = useState('registration'); // 'registration' | 'watched'
   const [compareMode, setCompareMode] = useState('combined'); // 'combined' | 'grid' | 'table'
   const [showFullRoadmap, setShowFullRoadmap] = useState(false);
+  const [inspectingTrophy, setInspectingTrophy] = useState(null);
 
   const [liveXp, setLiveXp] = useState(xpStatusProp);
   const [trophiesList, setTrophiesList] = useState([]);
+
+  const isYearFilterActive = selectedYear !== 'Geral';
+
+  const sectionTabs = useMemo(() => {
+    if (isYearFilterActive) {
+      return [
+        { id: 'all', label: `✨ Temporada ${selectedYear}` },
+        { id: 'pantheon', label: '👑 Panteão das 4 Notas' },
+        { id: 'relics', label: '💎 Recordes da Temporada' },
+        { id: 'years', label: '📅 Ritmo & Gráficos' },
+        { id: 'guilds', label: '🎙️ Áudio, Países & Guildas' },
+      ];
+    }
+    return [
+      { id: 'all', label: '✨ Visão Geral Completa' },
+      { id: 'xp_rpg', label: '⚡ XP & Ficha RPG' },
+      { id: 'pantheon', label: '👑 Panteão das 4 Notas' },
+      { id: 'relics', label: '💎 Relíquias & Recordes' },
+      { id: 'checkpoints', label: '💾 Save Slots (#1, #50, #100...)' },
+      { id: 'years', label: '📅 Anos & Gravações' },
+      { id: 'guilds', label: '🎙️ Áudio, Países & Guildas' },
+    ];
+  }, [isYearFilterActive, selectedYear]);
+
+  // Se trocar para um ano específico e estiver numa aba exclusiva da visão geral, volta para 'all'
+  useEffect(() => {
+    if (isYearFilterActive && (activeWing === 'xp_rpg' || activeWing === 'checkpoints')) {
+      setActiveWing('all');
+    }
+  }, [isYearFilterActive, activeWing]);
 
   useEffect(() => {
     if (xpStatusProp) setLiveXp(xpStatusProp);
@@ -362,7 +384,12 @@ export default function AnalyticsDashboard({
   const pctCountriesXp = ((countriesXp / totalXp) * 100).toFixed(1);
   const pctTimeMachineXp = ((timeMachineXp / totalXp) * 100).toFixed(1);
 
-  const showSection = (id) => activeWing === 'all' || activeWing === id;
+  const showSection = (id) => {
+    if (isYearFilterActive && (id === 'xp_rpg' || id === 'checkpoints')) {
+      return false;
+    }
+    return activeWing === 'all' || activeWing === id;
+  };
 
   const unifiedDisplayedList =
     unifiedMode === 'best' ? pantheon.top5Unified : pantheon.bottom5Unified;
@@ -376,20 +403,44 @@ export default function AnalyticsDashboard({
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-zinc-800/80 pb-4">
           <div className="flex items-center gap-3.5">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/25 via-purple-500/15 to-cyan-500/20 border border-amber-400/50 flex items-center justify-center shrink-0 shadow-[0_0_25px_rgba(245,158,11,0.2)]">
-              <Shield className="w-6 h-6 text-amber-400" />
+              {isYearFilterActive ? (
+                <Calendar className="w-6 h-6 text-cyan-400" />
+              ) : (
+                <Shield className="w-6 h-6 text-amber-400" />
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/40">
-                  ⚔️ Quartel-General & Santuário RPG
-                </span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-400/35">
-                  Nível {activeXp?.level || 1} • {(activeXp?.totalXp || 0).toLocaleString('pt-BR')} XP
-                </span>
+                {isYearFilterActive ? (
+                  <>
+                    <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-400/40">
+                      📅 Temporada Anual • {selectedYear}
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/35">
+                      {filteredMovies.length} Filmes Assistidos em {selectedYear}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/40">
+                      ⚔️ Quartel-General & Santuário RPG
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-400/35">
+                      Nível {activeXp?.level || 1} • {(activeXp?.totalXp || 0).toLocaleString('pt-BR')} XP
+                    </span>
+                  </>
+                )}
               </div>
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-0.5">
-                Estatísticas Supremas, Economia de XP & Hall de Recordes
+                {isYearFilterActive
+                  ? `Relatório Anual de Desempenho & Notas de ${selectedYear}`
+                  : 'Estatísticas Supremas, Economia de XP & Hall de Recordes'}
               </h1>
+              {isYearFilterActive && (
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Visualizando exclusivamente os dados e filmes assistidos no ano de {selectedYear}. As métricas gerais de conta (XP, Nível e Saves históricos) ficam na aba Campanha Geral.
+                </p>
+              )}
             </div>
           </div>
 
@@ -428,7 +479,7 @@ export default function AnalyticsDashboard({
 
         {/* Sub-Abas / Alas do Santuário */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
-          {SECTION_TABS.map((tab) => {
+          {sectionTabs.map((tab) => {
             const active = activeWing === tab.id;
             return (
               <button
@@ -446,6 +497,59 @@ export default function AnalyticsDashboard({
             );
           })}
         </div>
+
+        {/* KPIs Exclusivos da Temporada no Topo (Quando ano específico estiver selecionado) */}
+        {isYearFilterActive && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 pt-2 border-t border-zinc-800/80">
+            <div className="bg-zinc-950/70 border border-zinc-800 rounded-2xl p-3.5">
+              <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" /> Tempo de Tela em {selectedYear}
+              </span>
+              <div className="text-2xl font-black font-mono text-white mt-1">
+                {campaignKpis.hours.toLocaleString('pt-BR')}h
+              </div>
+              <div className="text-[11px] text-zinc-400 mt-0.5">
+                {campaignKpis.totalMinutes.toLocaleString('pt-BR')} minutos assistidos
+              </div>
+            </div>
+
+            <div className="bg-zinc-950/70 border border-zinc-800 rounded-2xl p-3.5">
+              <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 flex items-center gap-1.5">
+                <Film className="w-3.5 h-3.5" /> Obras Assistidas
+              </span>
+              <div className="text-2xl font-black font-mono text-white mt-1">
+                {campaignKpis.totalMovies}
+              </div>
+              <div className="text-[11px] text-zinc-400 mt-0.5">
+                Média de {campaignKpis.avgRuntime} min por filme
+              </div>
+            </div>
+
+            <div className="bg-zinc-950/70 border border-zinc-800 rounded-2xl p-3.5">
+              <span className="text-[10px] font-black uppercase tracking-widest text-purple-400 flex items-center gap-1.5">
+                <Star className="w-3.5 h-3.5" /> Sua Média no Ano
+              </span>
+              <div className="text-2xl font-black font-mono text-white mt-1">
+                {campaignKpis.avgUserRating}
+              </div>
+              <div className="text-[11px] text-zinc-400 mt-0.5">
+                {campaignKpis.masterpiecesCount} obras com nota 9.000+
+              </div>
+            </div>
+
+            <div className="bg-zinc-950/70 border border-zinc-800 rounded-2xl p-3.5">
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
+                <Trophy className="w-3.5 h-3.5" /> Oscars Vistos em {selectedYear}
+              </span>
+              <div className="text-2xl font-black font-mono text-white mt-1">
+                🏆 {campaignKpis.oscarWinsTotal}
+              </div>
+              <div className="text-[11px] text-zinc-400 mt-0.5">
+                {campaignKpis.moviesWithOscarWin} filmes premiados na safra
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* =====================================================================
@@ -977,15 +1081,20 @@ export default function AnalyticsDashboard({
                       const tierKey = String(q.tier || 'bronze').toLowerCase();
                       const xpReward = TROPHY_XP_BY_TIER[tierKey] || 15;
                       return (
-                        <div
+                        <button
                           key={q.id}
-                          className="rounded-xl bg-zinc-900/80 border border-zinc-800 px-3.5 py-2 flex items-center justify-between gap-3"
+                          type="button"
+                          onClick={() => setInspectingTrophy(q)}
+                          className="rounded-xl bg-zinc-900/80 hover:bg-zinc-800/95 border border-zinc-800 hover:border-amber-400/60 px-3.5 py-2.5 flex items-center justify-between gap-3 cursor-pointer transition-all text-left group shadow-sm hover:shadow-amber-500/10"
+                          title="Clique para inspecionar os requisitos e checklist deste troféu"
                         >
                           <div className="min-w-0 flex-1">
-                            <div className="text-xs font-black text-white truncate">
-                              {q.icon || '🏅'} {q.cleanTitle}
+                            <div className="text-xs font-black text-white group-hover:text-amber-300 transition-colors flex items-center gap-1.5 truncate">
+                              <span>{q.icon || '🏅'}</span>
+                              <span className="truncate">{q.cleanTitle}</span>
+                              <Search className="w-3 h-3 text-zinc-500 group-hover:text-amber-400 shrink-0 ml-0.5 transition-colors" />
                             </div>
-                            <div className="w-full h-1.5 rounded-full bg-zinc-950 mt-1 overflow-hidden">
+                            <div className="w-full h-1.5 rounded-full bg-zinc-950 mt-1.5 overflow-hidden">
                               <div
                                 className="h-full bg-gradient-to-r from-cyan-400 to-amber-400 rounded-full"
                                 style={{ width: `${q.pct}%` }}
@@ -1000,7 +1109,7 @@ export default function AnalyticsDashboard({
                               +{xpReward} XP
                             </div>
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
@@ -1045,13 +1154,15 @@ export default function AnalyticsDashboard({
                           TROPHY_TIER_META[tKey]?.badge ||
                           'bg-amber-500/15 border-amber-400/40 text-amber-200';
                         return (
-                          <span
+                          <button
                             key={ut.id}
-                            className={`text-[10px] font-bold px-2 py-1 rounded-lg border truncate max-w-[230px] ${badgeCls}`}
-                            title={ut.cleanTitle}
+                            type="button"
+                            onClick={() => setInspectingTrophy(ut)}
+                            className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border truncate max-w-[230px] cursor-pointer hover:scale-105 hover:border-white transition-all text-left ${badgeCls}`}
+                            title={`Clique para inspecionar checklist de "${ut.cleanTitle}"`}
                           >
                             {ut.icon || TROPHY_TIER_META[tKey]?.icon || '🏆'} {ut.cleanTitle}
-                          </span>
+                          </button>
                         );
                       })}
                     </div>
@@ -1616,149 +1727,113 @@ export default function AnalyticsDashboard({
          ===================================================================== */}
       {showSection('years') && (
         <section className="flex flex-col gap-6">
-          {/* Dois Cards Monumentais de Recorde Anual */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {/* Esquerda: O Ano em que Você Mais Assistiu Filmes (year_seen) */}
-            <div className="rounded-3xl border border-purple-500/40 bg-gradient-to-br from-zinc-950 via-purple-950/15 to-zinc-950 p-5 sm:p-6 shadow-xl flex flex-col gap-4">
-              <div className="flex items-start justify-between gap-3 border-b border-zinc-800/80 pb-3">
-                <div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-purple-300">
-                    🍿 Recorde Pessoal de Consumo Real
+          {/* Dois Cards de Destaque Temporal */}
+          {isYearFilterActive ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {/* Card 1: Destaque da Temporada Selecionada */}
+              <div className="rounded-3xl border border-cyan-500/40 bg-gradient-to-br from-zinc-950 via-cyan-950/15 to-zinc-950 p-5 sm:p-6 shadow-xl flex flex-col justify-between gap-4">
+                <div className="flex items-start justify-between gap-3 border-b border-zinc-800/80 pb-3">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-cyan-300">
+                      📅 Destaque da Temporada Anual
+                    </span>
+                    <h3 className="text-lg sm:text-xl font-black text-white">
+                      Resumo das Sessões de {selectedYear}
+                    </h3>
+                  </div>
+                  <span className="text-2xl sm:text-3xl font-black font-mono px-3.5 py-1 rounded-2xl bg-cyan-500/20 border border-cyan-400/50 text-cyan-200">
+                    {selectedYear}
                   </span>
-                  <h3 className="text-lg sm:text-xl font-black text-white">
-                    O Ano em que Você Mais Viu Filmes
-                  </h3>
                 </div>
-                {yearShowdown.championWatchedYear && (
-                  <span className="text-2xl sm:text-3xl font-black font-mono px-3.5 py-1 rounded-2xl bg-purple-500/20 border border-purple-400/50 text-purple-200">
-                    {yearShowdown.championWatchedYear.year}
-                  </span>
-                )}
-              </div>
 
-              {yearShowdown.championWatchedYear ? (
-                <>
-                  <div className="grid grid-cols-3 gap-2.5">
-                    <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-3">
-                      <div className="text-[10px] uppercase font-bold text-zinc-400">Filmes Vistos</div>
-                      <div className="text-2xl font-black font-mono text-white mt-0.5">
-                        {yearShowdown.championWatchedYear.count}
-                      </div>
-                      <div className="text-[10px] text-purple-300 font-mono">
-                        ~{yearShowdown.championWatchedYear.avgPerMonth}/mês
-                      </div>
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-3">
+                    <div className="text-[10px] uppercase font-bold text-zinc-400">Filmes Vistos</div>
+                    <div className="text-2xl font-black font-mono text-white mt-0.5">
+                      {campaignKpis.totalMovies}
                     </div>
-                    <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-3">
-                      <div className="text-[10px] uppercase font-bold text-zinc-400">Horas no Ano</div>
-                      <div className="text-2xl font-black font-mono text-cyan-300 mt-0.5">
-                        {yearShowdown.championWatchedYear.hours}h
-                      </div>
-                      <div className="text-[10px] text-zinc-400 font-mono">de maratona</div>
-                    </div>
-                    <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-3">
-                      <div className="text-[10px] uppercase font-bold text-zinc-400">Média Dada</div>
-                      <div className="text-2xl font-black font-mono text-amber-300 mt-0.5">
-                        {yearShowdown.championWatchedYear.avgRating}
-                      </div>
-                      <div className="text-[10px] text-zinc-400 font-mono">precisão</div>
+                    <div className="text-[10px] text-cyan-300 font-mono">
+                      ~{(campaignKpis.totalMovies / 12).toFixed(1)}/mês
                     </div>
                   </div>
+                  <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-3">
+                    <div className="text-[10px] uppercase font-bold text-zinc-400">Horas no Ano</div>
+                    <div className="text-2xl font-black font-mono text-amber-300 mt-0.5">
+                      {campaignKpis.hours}h
+                    </div>
+                    <div className="text-[10px] text-zinc-400 font-mono">de sessões</div>
+                  </div>
+                  <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-3">
+                    <div className="text-[10px] uppercase font-bold text-zinc-400">Média Pessoal</div>
+                    <div className="text-2xl font-black font-mono text-purple-300 mt-0.5">
+                      {campaignKpis.avgUserRating}
+                    </div>
+                    <div className="text-[10px] text-zinc-400 font-mono">calibração</div>
+                  </div>
+                </div>
 
-                  {yearShowdown.peakMonthEver && (
-                    <div className="rounded-2xl bg-purple-500/10 border border-purple-500/30 px-4 py-2.5 flex items-center justify-between text-xs">
+                {(() => {
+                  const sortedMonths = [...monthlyData].sort((a, b) => b.quantidade - a.quantidade);
+                  const topM = sortedMonths[0];
+                  if (!topM || topM.quantidade === 0) return null;
+                  return (
+                    <div className="rounded-2xl bg-cyan-500/10 border border-cyan-500/30 px-4 py-2.5 flex items-center justify-between text-xs">
                       <span className="text-zinc-200 font-bold">
-                        🔥 Mês Mais Insano da Sua História:
+                        🔥 Mês Mais Ativo de {selectedYear}:
                       </span>
-                      <span className="font-mono font-black text-purple-200">
-                        {yearShowdown.peakMonthEver.label} ({yearShowdown.peakMonthEver.count} filmes!)
+                      <span className="font-mono font-black text-cyan-200">
+                        {topM.name} ({topM.quantidade} filmes • Média: ⭐ {topM.notaMedia})
                       </span>
                     </div>
-                  )}
-
-                  {/* Ranking de Todos os Anos Assistidos */}
-                  <div className="flex flex-col gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-                      Ranking Geral de Anos Assistidos
-                    </span>
-                    <div className="flex flex-col gap-1.5 max-h-52 overflow-y-auto pr-1">
-                      {yearShowdown.watchedYearsRanked.map((yrItem, i) => {
-                        const maxC = yearShowdown.championWatchedYear.count || 1;
-                        const wPct = Math.round((yrItem.count / maxC) * 100);
-                        return (
-                          <div key={yrItem.year} className="rounded-xl bg-zinc-900/65 border border-zinc-800/80 px-3 py-2 flex flex-col gap-1">
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="font-mono font-black text-white">
-                                #{i + 1} • Temporada {yrItem.year}
-                              </span>
-                              <span className="font-mono text-zinc-300">
-                                <strong className="text-purple-300">{yrItem.count} filmes</strong> • {yrItem.hours}h • ⭐ {yrItem.avgRating}
-                              </span>
-                            </div>
-                            <div className="w-full h-1.5 rounded-full bg-zinc-950 overflow-hidden">
-                              <div className="h-full bg-purple-400 rounded-full" style={{ width: `${wPct}%` }} />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="text-xs text-zinc-500 italic py-8 text-center">Sem registros de ano assistido.</div>
-              )}
-            </div>
-
-            {/* Direita: O Ano com Mais Gravações / Lançamentos (release_year) */}
-            <div className="rounded-3xl border border-amber-500/40 bg-gradient-to-br from-zinc-950 via-amber-950/15 to-zinc-950 p-5 sm:p-6 shadow-xl flex flex-col gap-4">
-              <div className="flex items-start justify-between gap-3 border-b border-zinc-800/80 pb-3">
-                <div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-300">
-                    🎥 Safra Favorita da História do Cinema
-                  </span>
-                  <h3 className="text-lg sm:text-xl font-black text-white">
-                    O Ano com Mais Filmes Gravados/Lançados
-                  </h3>
-                </div>
-                {yearShowdown.championReleaseYear && (
-                  <span className="text-2xl sm:text-3xl font-black font-mono px-3.5 py-1 rounded-2xl bg-amber-500/20 border border-amber-400/50 text-amber-200">
-                    {yearShowdown.championReleaseYear.year}
-                  </span>
-                )}
+                  );
+                })()}
               </div>
 
-              {yearShowdown.championReleaseYear ? (
-                <>
-                  {/* Destaque do Ano Campeão + Melhor Filme da Safra */}
-                  <div className="rounded-2xl bg-zinc-900/80 border border-amber-500/30 p-3.5 flex items-center gap-3.5">
-                    <PosterThumb
-                      url={yearShowdown.championReleaseYear.bestMovie?.poster_url}
-                      title={yearShowdown.championReleaseYear.bestMovie?.title}
-                      className="w-14 h-20 rounded-xl"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-black text-amber-300">
-                        🏆 {yearShowdown.championReleaseYear.count} filmes gravados/lançados em {yearShowdown.championReleaseYear.year}!
-                      </div>
-                      <div className="text-[11px] text-zinc-300 mt-0.5">
-                        Campeão da safra:{' '}
-                        <strong className="text-white">
-                          {yearShowdown.championReleaseYear.bestMovie?.title}
-                        </strong>{' '}
-                        (⭐ {Number(yearShowdown.championReleaseYear.bestMovie?.user_rating || 0).toFixed(3)})
-                      </div>
-                      <div className="text-[10px] font-mono text-zinc-400 mt-1">
-                        {yearShowdown.championReleaseYear.hours}h somadas • Média da safra: ⭐ {yearShowdown.championReleaseYear.avgRating}
+              {/* Card 2: Safras Assistidas Durante este Ano */}
+              <div className="rounded-3xl border border-amber-500/40 bg-gradient-to-br from-zinc-950 via-amber-950/15 to-zinc-950 p-5 sm:p-6 shadow-xl flex flex-col justify-between gap-4">
+                <div className="flex items-start justify-between gap-3 border-b border-zinc-800/80 pb-3">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-300">
+                      🎥 Safras Assistidas em {selectedYear}
+                    </span>
+                    <h3 className="text-lg sm:text-xl font-black text-white">
+                      Ano de Lançamento Mais Presente
+                    </h3>
+                  </div>
+                  {yearShowdown.championReleaseYear && (
+                    <span className="text-2xl sm:text-3xl font-black font-mono px-3.5 py-1 rounded-2xl bg-amber-500/20 border border-amber-400/50 text-amber-200">
+                      {yearShowdown.championReleaseYear.year}
+                    </span>
+                  )}
+                </div>
+
+                {yearShowdown.championReleaseYear ? (
+                  <>
+                    <div className="rounded-2xl bg-zinc-900/80 border border-amber-500/30 p-3.5 flex items-center gap-3.5">
+                      <PosterThumb
+                        url={yearShowdown.championReleaseYear.bestMovie?.poster_url}
+                        title={yearShowdown.championReleaseYear.bestMovie?.title}
+                        className="w-14 h-20 rounded-xl"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-black text-amber-300">
+                          🏆 {yearShowdown.championReleaseYear.count} filmes de {yearShowdown.championReleaseYear.year} vistos em {selectedYear}!
+                        </div>
+                        <div className="text-[11px] text-zinc-300 mt-0.5">
+                          Destaque:{' '}
+                          <strong className="text-white">
+                            {yearShowdown.championReleaseYear.bestMovie?.title}
+                          </strong>{' '}
+                          (⭐ {Number(yearShowdown.championReleaseYear.bestMovie?.user_rating || 0).toFixed(3)})
+                        </div>
+                        <div className="text-[10px] font-mono text-zinc-400 mt-1">
+                          {yearShowdown.championReleaseYear.hours}h somadas • Média: ⭐ {yearShowdown.championReleaseYear.avgRating}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Top 10 Anos de Lançamento */}
-                  <div className="flex flex-col gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-                      Top 10 Anos de Lançamento Mais Presentes ({yearShowdown.totalDistinctReleaseYears} anos distintos)
-                    </span>
-                    <div className="flex flex-col gap-1.5 max-h-52 overflow-y-auto pr-1">
-                      {yearShowdown.releaseYearsRanked.map((ryItem, i) => {
+                    <div className="flex flex-col gap-1.5 max-h-44 overflow-y-auto pr-1">
+                      {yearShowdown.releaseYearsRanked.slice(0, 5).map((ryItem, i) => {
                         const maxC = yearShowdown.championReleaseYear.count || 1;
                         const wPct = Math.round((ryItem.count / maxC) * 100);
                         return (
@@ -1781,13 +1856,185 @@ export default function AnalyticsDashboard({
                         );
                       })}
                     </div>
-                  </div>
-                </>
-              ) : (
-                <div className="text-xs text-zinc-500 italic py-8 text-center">Sem anos de lançamento.</div>
-              )}
+                  </>
+                ) : (
+                  <div className="text-xs text-zinc-500 italic py-8 text-center">Sem lançamentos registrados.</div>
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {/* Esquerda: O Ano em que Você Mais Assistiu Filmes (year_seen) */}
+              <div className="rounded-3xl border border-purple-500/40 bg-gradient-to-br from-zinc-950 via-purple-950/15 to-zinc-950 p-5 sm:p-6 shadow-xl flex flex-col gap-4">
+                <div className="flex items-start justify-between gap-3 border-b border-zinc-800/80 pb-3">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-purple-300">
+                      🍿 Recorde Pessoal de Consumo Real
+                    </span>
+                    <h3 className="text-lg sm:text-xl font-black text-white">
+                      O Ano em que Você Mais Viu Filmes
+                    </h3>
+                  </div>
+                  {yearShowdown.championWatchedYear && (
+                    <span className="text-2xl sm:text-3xl font-black font-mono px-3.5 py-1 rounded-2xl bg-purple-500/20 border border-purple-400/50 text-purple-200">
+                      {yearShowdown.championWatchedYear.year}
+                    </span>
+                  )}
+                </div>
+
+                {yearShowdown.championWatchedYear ? (
+                  <>
+                    <div className="grid grid-cols-3 gap-2.5">
+                      <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-3">
+                        <div className="text-[10px] uppercase font-bold text-zinc-400">Filmes Vistos</div>
+                        <div className="text-2xl font-black font-mono text-white mt-0.5">
+                          {yearShowdown.championWatchedYear.count}
+                        </div>
+                        <div className="text-[10px] text-purple-300 font-mono">
+                          ~{yearShowdown.championWatchedYear.avgPerMonth}/mês
+                        </div>
+                      </div>
+                      <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-3">
+                        <div className="text-[10px] uppercase font-bold text-zinc-400">Horas no Ano</div>
+                        <div className="text-2xl font-black font-mono text-cyan-300 mt-0.5">
+                          {yearShowdown.championWatchedYear.hours}h
+                        </div>
+                        <div className="text-[10px] text-zinc-400 font-mono">de maratona</div>
+                      </div>
+                      <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-3">
+                        <div className="text-[10px] uppercase font-bold text-zinc-400">Média Dada</div>
+                        <div className="text-2xl font-black font-mono text-amber-300 mt-0.5">
+                          {yearShowdown.championWatchedYear.avgRating}
+                        </div>
+                        <div className="text-[10px] text-zinc-400 font-mono">precisão</div>
+                      </div>
+                    </div>
+
+                    {yearShowdown.peakMonthEver && (
+                      <div className="rounded-2xl bg-purple-500/10 border border-purple-500/30 px-4 py-2.5 flex items-center justify-between text-xs">
+                        <span className="text-zinc-200 font-bold">
+                          🔥 Mês Mais Insano da Sua História:
+                        </span>
+                        <span className="font-mono font-black text-purple-200">
+                          {yearShowdown.peakMonthEver.label} ({yearShowdown.peakMonthEver.count} filmes!)
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Ranking de Todos os Anos Assistidos */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                        Ranking Geral de Anos Assistidos
+                      </span>
+                      <div className="flex flex-col gap-1.5 max-h-52 overflow-y-auto pr-1">
+                        {yearShowdown.watchedYearsRanked.map((yrItem, i) => {
+                          const maxC = yearShowdown.championWatchedYear.count || 1;
+                          const wPct = Math.round((yrItem.count / maxC) * 100);
+                          return (
+                            <div key={yrItem.year} className="rounded-xl bg-zinc-900/65 border border-zinc-800/80 px-3 py-2 flex flex-col gap-1">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-mono font-black text-white">
+                                  #{i + 1} • Temporada {yrItem.year}
+                                </span>
+                                <span className="font-mono text-zinc-300">
+                                  <strong className="text-purple-300">{yrItem.count} filmes</strong> • {yrItem.hours}h • ⭐ {yrItem.avgRating}
+                                </span>
+                              </div>
+                              <div className="w-full h-1.5 rounded-full bg-zinc-950 overflow-hidden">
+                                <div className="h-full bg-purple-400 rounded-full" style={{ width: `${wPct}%` }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-xs text-zinc-500 italic py-8 text-center">Sem registros de ano assistido.</div>
+                )}
+              </div>
+
+              {/* Direita: O Ano com Mais Gravações / Lançamentos (release_year) */}
+              <div className="rounded-3xl border border-amber-500/40 bg-gradient-to-br from-zinc-950 via-amber-950/15 to-zinc-950 p-5 sm:p-6 shadow-xl flex flex-col gap-4">
+                <div className="flex items-start justify-between gap-3 border-b border-zinc-800/80 pb-3">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-300">
+                      🎥 Safra Favorita da História do Cinema
+                    </span>
+                    <h3 className="text-lg sm:text-xl font-black text-white">
+                      O Ano com Mais Filmes Gravados/Lançados
+                    </h3>
+                  </div>
+                  {yearShowdown.championReleaseYear && (
+                    <span className="text-2xl sm:text-3xl font-black font-mono px-3.5 py-1 rounded-2xl bg-amber-500/20 border border-amber-400/50 text-amber-200">
+                      {yearShowdown.championReleaseYear.year}
+                    </span>
+                  )}
+                </div>
+
+                {yearShowdown.championReleaseYear ? (
+                  <>
+                    {/* Destaque do Ano Campeão + Melhor Filme da Safra */}
+                    <div className="rounded-2xl bg-zinc-900/80 border border-amber-500/30 p-3.5 flex items-center gap-3.5">
+                      <PosterThumb
+                        url={yearShowdown.championReleaseYear.bestMovie?.poster_url}
+                        title={yearShowdown.championReleaseYear.bestMovie?.title}
+                        className="w-14 h-20 rounded-xl"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-black text-amber-300">
+                          🏆 {yearShowdown.championReleaseYear.count} filmes gravados/lançados em {yearShowdown.championReleaseYear.year}!
+                        </div>
+                        <div className="text-[11px] text-zinc-300 mt-0.5">
+                          Campeão da safra:{' '}
+                          <strong className="text-white">
+                            {yearShowdown.championReleaseYear.bestMovie?.title}
+                          </strong>{' '}
+                          (⭐ {Number(yearShowdown.championReleaseYear.bestMovie?.user_rating || 0).toFixed(3)})
+                        </div>
+                        <div className="text-[10px] font-mono text-zinc-400 mt-1">
+                          {yearShowdown.championReleaseYear.hours}h somadas • Média da safra: ⭐ {yearShowdown.championReleaseYear.avgRating}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Top 10 Anos de Lançamento */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                        Top 10 Anos de Lançamento Mais Presentes ({yearShowdown.totalDistinctReleaseYears} anos distintos)
+                      </span>
+                      <div className="flex flex-col gap-1.5 max-h-52 overflow-y-auto pr-1">
+                        {yearShowdown.releaseYearsRanked.map((ryItem, i) => {
+                          const maxC = yearShowdown.championReleaseYear.count || 1;
+                          const wPct = Math.round((ryItem.count / maxC) * 100);
+                          return (
+                            <div key={ryItem.year} className="rounded-xl bg-zinc-900/65 border border-zinc-800/80 px-3 py-2 flex flex-col gap-1">
+                              <div className="flex items-center justify-between text-xs gap-2">
+                                <span className="font-mono font-black text-white shrink-0">
+                                  #{i + 1} • Safra {ryItem.year}
+                                </span>
+                                <span className="text-[11px] text-zinc-400 truncate">
+                                  Top: {ryItem.bestMovie?.title}
+                                </span>
+                                <span className="font-mono font-black text-amber-300 shrink-0">
+                                  {ryItem.count}x
+                                </span>
+                              </div>
+                              <div className="w-full h-1.5 rounded-full bg-zinc-950 overflow-hidden">
+                                <div className="h-full bg-amber-400 rounded-full" style={{ width: `${wPct}%` }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-xs text-zinc-500 italic py-8 text-center">Sem anos de lançamento.</div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Gráficos Temporais: Evolução Mensal + Curva de Notas & Décadas */}
           <div className="rounded-3xl bg-zinc-950/90 border border-zinc-800/90 p-5 sm:p-6 flex flex-col gap-4">
@@ -1954,82 +2201,126 @@ export default function AnalyticsDashboard({
       )}
 
       {/* =====================================================================
-          ALA 6: ATLAS 3D GLOBAL, CABO-DE-GUERRA DE ÁUDIO & GUILDAS DE HOLLYWOOD
+          ALA 6: CABO-DE-GUERRA DE ÁUDIO, TOP PAÍSES & GUILDAS DE HOLLYWOOD
          ===================================================================== */}
-      {showSection('atlas') && (
+      {(showSection('guilds') || showSection('atlas')) && (
         <section className="flex flex-col gap-6">
-          {/* Globo 3D + Top 10 Países + Cabo de Guerra de Áudio */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            <div className="lg:col-span-7 rounded-3xl bg-zinc-950/90 border border-cyan-500/30 p-5 flex flex-col gap-4">
-              <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
-                <span className="text-xs font-black uppercase tracking-wider text-cyan-300 flex items-center gap-2">
-                  <Globe className="w-4 h-4" /> Projeção Orbital 3D de Territórios Assistidos
+          {/* Grid de 2 Colunas Amplas: Facções de Áudio + Top 10 Países */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* Coluna 1: Facções de Áudio (Dublado vs Legendado) */}
+            <div className="rounded-3xl bg-zinc-950/90 border border-amber-500/30 p-5 sm:p-6 flex flex-col justify-between gap-4 shadow-xl">
+              <div className="border-b border-zinc-800/80 pb-3">
+                <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">
+                  🎙️ Preferência Auditiva
                 </span>
-                <span className="text-[10px] font-mono text-zinc-400">
-                  {Object.keys(countryCounts).length} territórios mapeados
-                </span>
+                <h3 className="text-lg font-black text-white mt-0.5">
+                  Duelo de Facções de Áudio: Dublado vs Legendado
+                </h3>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Comparativo de volume e afinidade crítica das suas sessões.
+                </p>
               </div>
-              <InteractiveGlobe3D countryCounts={countryCounts} />
+
+              {/* Barra de Cabo de Guerra */}
+              <div className="flex flex-col gap-2">
+                <div className="w-full h-5 rounded-full bg-zinc-900 border border-zinc-800 overflow-hidden flex p-0.5 gap-0.5">
+                  <div
+                    className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-l-full transition-all"
+                    style={{ width: `${audioFactions.dublado.pct}%` }}
+                    title={`Dublado: ${audioFactions.dublado.count} filmes (${audioFactions.dublado.pct}%)`}
+                  />
+                  <div
+                    className="h-full bg-gradient-to-r from-cyan-400 to-sky-500 rounded-r-full transition-all"
+                    style={{ width: `${audioFactions.legendado.pct}%` }}
+                    title={`Legendado: ${audioFactions.legendado.count} filmes (${audioFactions.legendado.pct}%)`}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="rounded-2xl bg-amber-500/10 border border-amber-500/30 p-3.5 flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-black text-sm text-amber-300">🎙️ Dublado</span>
+                      <span className="font-mono font-black text-amber-200">{audioFactions.dublado.pct}%</span>
+                    </div>
+                    <div className="text-2xl font-black font-mono text-white mt-0.5">
+                      {audioFactions.dublado.count} <span className="text-xs font-normal text-zinc-400">filmes</span>
+                    </div>
+                    <div className="text-[11px] font-mono text-amber-300/90 font-bold">
+                      Média pessoal: ⭐ {audioFactions.dublado.avg}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl bg-cyan-500/10 border border-cyan-500/30 p-3.5 flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-black text-sm text-cyan-300">💬 Legendado</span>
+                      <span className="font-mono font-black text-cyan-200">{audioFactions.legendado.pct}%</span>
+                    </div>
+                    <div className="text-2xl font-black font-mono text-white mt-0.5">
+                      {audioFactions.legendado.count} <span className="text-xs font-normal text-zinc-400">filmes</span>
+                    </div>
+                    <div className="text-[11px] font-mono text-cyan-300/90 font-bold">
+                      Média pessoal: ⭐ {audioFactions.legendado.avg}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {audioFactions.outros.count > 0 && (
+                <span className="text-[11px] text-zinc-500 font-mono text-center">
+                  {audioFactions.outros.count} filme(s) sem classificação de áudio ou mudos ({audioFactions.outros.pct}%).
+                </span>
+              )}
             </div>
 
-            <div className="lg:col-span-5 flex flex-col gap-5">
-              {/* Cabo de Guerra: Dublado vs Legendado */}
-              <div className="rounded-3xl bg-zinc-950/90 border border-amber-500/30 p-5 flex flex-col gap-3">
-                <span className="text-xs font-black uppercase tracking-wider text-amber-300">
-                  🎙️ Duelo de Facções de Áudio: Dublado vs Legendado
+            {/* Coluna 2: Top 10 Países Mais Assistidos */}
+            <div className="rounded-3xl bg-zinc-950/90 border border-zinc-800/90 p-5 sm:p-6 flex flex-col justify-between gap-3 shadow-xl">
+              <div className="border-b border-zinc-800/80 pb-3 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-cyan-300">
+                    🌍 Geografia Cinematográfica
+                  </span>
+                  <h3 className="text-lg font-black text-white mt-0.5">
+                    Top 10 Países Mais Assistidos
+                  </h3>
+                </div>
+                <span className="text-xs font-mono font-bold text-zinc-400 px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-800">
+                  {Object.keys(countryCounts).length} territórios
                 </span>
-                <div className="w-full h-4 rounded-full bg-zinc-900 border border-zinc-800 overflow-hidden flex p-0.5 gap-0.5">
-                  <div
-                    className="h-full bg-amber-400 rounded-l-full transition-all"
-                    style={{ width: `${audioFactions.dublado.pct}%` }}
-                  />
-                  <div
-                    className="h-full bg-cyan-400 rounded-r-full transition-all"
-                    style={{ width: `${audioFactions.legendado.pct}%` }}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-2.5 text-xs">
-                  <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-2.5">
-                    <div className="font-black text-amber-300">🎙️ Dublado ({audioFactions.dublado.pct}%)</div>
-                    <div className="font-mono text-zinc-200 mt-0.5">
-                      {audioFactions.dublado.count} filmes • ⭐ {audioFactions.dublado.avg}
-                    </div>
-                  </div>
-                  <div className="rounded-xl bg-cyan-500/10 border border-cyan-500/30 p-2.5">
-                    <div className="font-black text-cyan-300">💬 Legendado ({audioFactions.legendado.pct}%)</div>
-                    <div className="font-mono text-zinc-200 mt-0.5">
-                      {audioFactions.legendado.count} filmes • ⭐ {audioFactions.legendado.avg}
-                    </div>
-                  </div>
-                </div>
               </div>
 
-              {/* Top 10 Países com Bandeiras */}
-              <div className="rounded-3xl bg-zinc-950/90 border border-zinc-800/90 p-5 flex flex-col gap-3 flex-1">
-                <span className="text-xs font-black uppercase tracking-wider text-zinc-200 border-b border-zinc-800/80 pb-2.5">
-                  🏳️ Top 10 Países com Mais Filmes Vistos
-                </span>
-                <div className="flex flex-col gap-1.5 max-h-60 overflow-y-auto pr-1">
-                  {topCountriesList.map((c, idx) => (
+              <div className="flex flex-col gap-2 max-h-72 overflow-y-auto pr-1">
+                {topCountriesList.map((c, idx) => {
+                  const maxCountryCount = topCountriesList[0]?.count || 1;
+                  const pct = Math.round((c.count / maxCountryCount) * 100);
+                  return (
                     <div
                       key={c.name}
-                      className="rounded-xl bg-zinc-900/70 border border-zinc-800/80 px-3 py-2 flex items-center justify-between text-xs"
+                      className="rounded-xl bg-zinc-900/70 border border-zinc-800/80 px-3.5 py-2 flex flex-col gap-1"
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-mono text-zinc-500 font-bold w-5">#{idx + 1}</span>
-                        {c.iso && (
-                          <img
-                            src={`https://flagcdn.com/w40/${c.iso}.png`}
-                            alt={c.name}
-                            className="w-5 h-3.5 object-cover rounded border border-zinc-700"
-                          />
-                        )}
-                        <span className="font-bold text-zinc-100 truncate">{c.name}</span>
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="font-mono text-zinc-500 font-bold w-5">#{idx + 1}</span>
+                          {c.iso ? (
+                            <img
+                              src={`https://flagcdn.com/w40/${c.iso}.png`}
+                              alt={c.name}
+                              className="w-5 h-3.5 object-cover rounded border border-zinc-700 shrink-0"
+                            />
+                          ) : (
+                            <span>🏳️</span>
+                          )}
+                          <span className="font-bold text-zinc-100 truncate">{c.name}</span>
+                        </div>
+                        <span className="font-mono font-black text-cyan-300 shrink-0">
+                          {c.count}x
+                        </span>
                       </div>
-                      <span className="font-mono font-black text-cyan-300">{c.count}x</span>
+                      <div className="w-full h-1 rounded-full bg-zinc-950 overflow-hidden">
+                        <div className="h-full bg-cyan-400/80 rounded-full" style={{ width: `${pct}%` }} />
+                      </div>
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -2041,7 +2332,7 @@ export default function AnalyticsDashboard({
                 🕴️ Hall da Fama & Afinidade Crítica
               </span>
               <h2 className="text-xl font-black text-white mt-0.5">
-                Guildas Dominantes: Diretores, Roteiristas, Estúdios, Plataformas & Tags
+                Guildas Dominantes: Diretores, Roteiristas, Estúdios, Distribuidoras, Tags & Plataformas
               </h2>
             </div>
 
@@ -2087,6 +2378,14 @@ export default function AnalyticsDashboard({
             </div>
           </div>
         </section>
+      )}
+
+      {/* Modal de Detalhes / Checklist do Troféu */}
+      {inspectingTrophy && (
+        <TrophyChecklistModal
+          trophy={inspectingTrophy}
+          onClose={() => setInspectingTrophy(null)}
+        />
       )}
     </div>
   );
