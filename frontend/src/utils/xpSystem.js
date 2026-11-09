@@ -897,6 +897,27 @@ export function mergeXpGainEvents(baseEvent, incomingEvent) {
     }
   });
 
+  // Mescla ganhos de atributos (statGains) preservando todos os incrementos
+  const baseStatGains = baseEvent.statGains || [];
+  const incomingStatGains = incomingEvent.statGains || [];
+  const mergedStatGains = [...baseStatGains];
+  incomingStatGains.forEach((sg) => {
+    const existingIndex = mergedStatGains.findIndex((x) => x.key === sg.key);
+    if (existingIndex >= 0) {
+      const existing = mergedStatGains[existingIndex];
+      const sumGain = Math.round(((existing.gain || 0) + (sg.gain || 0)) * 10) / 10;
+      mergedStatGains[existingIndex] = {
+        ...existing,
+        gain: sumGain,
+        label: sumGain > 0 ? `+${sumGain.toFixed(1)} ${sg.key}` : sg.label,
+      };
+    } else {
+      mergedStatGains.push({ ...sg });
+    }
+  });
+
+  const unlockedClass = incomingEvent.unlockedClass || baseEvent.unlockedClass || null;
+
   return {
     gainedXp,
     prevTotalXp,
@@ -914,6 +935,8 @@ export function mergeXpGainEvents(baseEvent, incomingEvent) {
     xpNeededForNextLevel: incomingEvent.xpNeededForNextLevel ?? baseEvent.xpNeededForNextLevel,
     xpRemaining: incomingEvent.xpRemaining ?? baseEvent.xpRemaining,
     tags: mergedTags,
+    statGains: mergedStatGains.length > 0 ? mergedStatGains : undefined,
+    unlockedClass,
   };
 }
 

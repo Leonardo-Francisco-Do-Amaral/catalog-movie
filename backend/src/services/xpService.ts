@@ -213,6 +213,13 @@ export interface TimeMachineUnlockNotification {
   userRating?: number;
 }
 
+export interface XpStatGain {
+  key: 'AGI' | 'INT' | 'DES' | 'SOR' | 'VIT' | 'FOR';
+  icon: string;
+  label: string;
+  gain?: number;
+}
+
 export interface XpGainEvent {
   gainedXp: number;
   prevTotalXp: number;
@@ -231,6 +238,8 @@ export interface XpGainEvent {
   xpRemaining: number;
   tags: XpGainTag[];
   timeMachineUnlocks?: TimeMachineUnlockNotification[];
+  statGains?: XpStatGain[];
+  unlockedClass?: { name: string; icon?: string; flavor?: string } | null;
 }
 
 function isMovieCoproduction(m: any): boolean {
@@ -587,6 +596,59 @@ export function computeXpGainEvent(
     }
   }
 
+  // 5. Ganhos de Atributos RPG Cinéfilo (AGI, INT, DES, SOR, VIT, FOR)
+  const statGains: XpStatGain[] = [];
+  if (movieDiff > 0) {
+    statGains.push({
+      key: 'AGI',
+      icon: '⚡',
+      label: `+${(movieDiff * 0.4).toFixed(1)} AGI`,
+      gain: movieDiff * 0.4,
+    });
+    statGains.push({
+      key: 'SOR',
+      icon: '🎯',
+      label: `+${(movieDiff * 0.3).toFixed(1)} SOR`,
+      gain: movieDiff * 0.3,
+    });
+  }
+  if (newYearUnlocks.length > 0 || newDecadeUnlocks.length > 0) {
+    const intPoints = newYearUnlocks.length * 0.8 + newDecadeUnlocks.length * 1.5;
+    statGains.push({
+      key: 'INT',
+      icon: '🧠',
+      label: `+${intPoints.toFixed(1)} INT`,
+      gain: intPoints,
+    });
+  }
+  if (newCountries.length > 0) {
+    const desPoints = newCountries.length * 1.2;
+    statGains.push({
+      key: 'DES',
+      icon: '🌍',
+      label: `+${desPoints.toFixed(1)} DES`,
+      gain: desPoints,
+    });
+  }
+  if (newTrophies.length > 0) {
+    const vitPoints = newTrophies.length * 1.5;
+    statGains.push({
+      key: 'VIT',
+      icon: '🏆',
+      label: `+${vitPoints.toFixed(1)} VIT`,
+      gain: vitPoints,
+    });
+    const highTierCount = newTrophies.filter((t) => ['gold', 'mythic', 'platinum'].includes(t.tier)).length;
+    if (highTierCount > 0) {
+      statGains.push({
+        key: 'FOR',
+        icon: '👑',
+        label: `+${(highTierCount * 0.8).toFixed(1)} FOR`,
+        gain: highTierCount * 0.8,
+      });
+    }
+  }
+
   // Fallback de segurança caso o ganho venha de ajuste/reavaliação sem entrada individual acima
   if (tags.length === 0) {
     tags.push({
@@ -615,5 +677,6 @@ export function computeXpGainEvent(
     xpRemaining: next.xpRemaining,
     tags,
     timeMachineUnlocks,
+    statGains: statGains.length > 0 ? statGains : undefined,
   };
 }

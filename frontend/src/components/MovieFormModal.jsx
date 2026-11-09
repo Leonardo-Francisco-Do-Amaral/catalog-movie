@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, Film, Calendar, Globe, Star, Clock, AlertCircle, Sparkles, Check, Plus, RefreshCw, Volume2 } from 'lucide-react';
+import { X, Search, Film, Globe, Star, Sparkles, Check, Plus, RefreshCw } from 'lucide-react';
 import axios from 'axios';
-import { triggerPS5TrophyToast, triggerTrophyBatch } from './PS5TrophyToastContainer';
+import { triggerTrophyBatch } from './PS5TrophyToastContainer';
 import { triggerXPGainToast, triggerTimeMachineUnlock, dispatchXpStatusUpdate } from '../utils/xpSystem';
+import { computeMovieStatGains } from '../utils/analyticsEngine';
 
-export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags = [], initialSearchQuery = '', initialReleaseYear = '' }) {
+export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags = [], initialSearchQuery = '', initialReleaseYear = '', existingMovies = [] }) {
   const isEditMode = !!movie;
 
   // Estados do formulário
@@ -392,7 +393,23 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
 
           // 3º Estágio: Barra de XP (aguarda troféus E Máquina do Tempo terminarem!)
           if (res.data.xpGain) {
-            triggerXPGainToast(res.data.xpGain, res.data.xpStatus);
+            const { statGains, unlockedClass } = computeMovieStatGains({
+              movieData: { ...movie, ...formData },
+              newlyUnlocked,
+              progressedTrophies,
+              timeMachineUnlocks,
+              existingMovies,
+            });
+
+            const enrichedXpGain = {
+              ...res.data.xpGain,
+              statGains: (res.data.xpGain.statGains && res.data.xpGain.statGains.length > 0)
+                ? res.data.xpGain.statGains
+                : statGains,
+              unlockedClass: res.data.xpGain.unlockedClass || unlockedClass,
+            };
+
+            triggerXPGainToast(enrichedXpGain, res.data.xpStatus);
           } else if (res.data.xpStatus) {
             dispatchXpStatusUpdate(res.data.xpStatus);
           }
@@ -428,7 +445,23 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
 
           // 3º Estágio: Barra de XP (aguarda troféus E Máquina do Tempo terminarem!)
           if (res.data.xpGain) {
-            triggerXPGainToast(res.data.xpGain, res.data.xpStatus);
+            const { statGains, unlockedClass } = computeMovieStatGains({
+              movieData: { id: res.data.movieId, ...formData },
+              newlyUnlocked,
+              progressedTrophies,
+              timeMachineUnlocks,
+              existingMovies,
+            });
+
+            const enrichedXpGain = {
+              ...res.data.xpGain,
+              statGains: (res.data.xpGain.statGains && res.data.xpGain.statGains.length > 0)
+                ? res.data.xpGain.statGains
+                : statGains,
+              unlockedClass: res.data.xpGain.unlockedClass || unlockedClass,
+            };
+
+            triggerXPGainToast(enrichedXpGain, res.data.xpStatus);
           } else if (res.data.xpStatus) {
             dispatchXpStatusUpdate(res.data.xpStatus);
           }

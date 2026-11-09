@@ -969,6 +969,7 @@ export default function Dashboard() {
         initialSearchQuery={reviewSearchQuery}
         initialReleaseYear={initialReleaseYear}
         allTags={allTags}
+        existingMovies={movies}
         onSave={(_newlyUnlocked, _savedMovie, updatedXpStatus) => {
           if (editingMovie?.movie_id) {
             setReviewedMovieIds((prev) =>

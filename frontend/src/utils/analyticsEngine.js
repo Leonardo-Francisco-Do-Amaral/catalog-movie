@@ -1441,3 +1441,165 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
     },
   };
 }
+
+/**
+ * 6. Calcula os ganhos de atributos RPG e desbloqueio de classe ao cadastrar ou editar um filme
+ */
+export function computeMovieStatGains({
+  movieData,
+  newlyUnlocked = [],
+  progressedTrophies = [],
+  timeMachineUnlocks = [],
+  existingMovies = [],
+}) {
+  const statGains = [];
+  const runtime = Number(movieData?.runtime) || 0;
+  const rating = Number(movieData?.user_rating) || 0;
+  const oscarWins = Number(movieData?.oscar_wins) || 0;
+  const releaseYear = Number(movieData?.release_year) || 0;
+  const countries = Array.isArray(movieData?.countries)
+    ? movieData.countries
+    : typeof movieData?.countries === 'string'
+    ? movieData.countries.split(',').map((c) => c.trim()).filter(Boolean)
+    : [];
+
+  // 1. Agilidade (AGI) - Vigor de Tela (Horas + Épico >140m)
+  let agiGain = 0;
+  if (runtime > 0) {
+    agiGain += (runtime / 60) / 8;
+  } else {
+    agiGain += 0.2;
+  }
+  if (runtime >= 140) {
+    agiGain += 0.8;
+  }
+  const roundedAgi = Math.round(agiGain * 10) / 10;
+  if (roundedAgi > 0) {
+    statGains.push({
+      key: 'AGI',
+      icon: '⚡',
+      label: `+${roundedAgi.toFixed(1)} AGI`,
+      gain: roundedAgi,
+    });
+  }
+
+  // 2. Inteligência (INT) - Sabedoria Temporal (Ano inédito + Clássico pré-2000)
+  let intGain = 0;
+  const hasNewYear = timeMachineUnlocks.some((u) => u.kind === 'year');
+  const hasNewDecade = timeMachineUnlocks.some((u) => u.kind === 'decade');
+  if (hasNewYear) intGain += 0.8;
+  if (hasNewDecade) intGain += 1.5;
+  if (releaseYear > 0 && releaseYear < 2000) {
+    intGain += 0.5;
+  }
+  const roundedInt = Math.round(intGain * 10) / 10;
+  if (roundedInt > 0) {
+    statGains.push({
+      key: 'INT',
+      icon: '🧠',
+      label: `+${roundedInt.toFixed(1)} INT`,
+      gain: roundedInt,
+    });
+  }
+
+  // 3. Destreza (DES) - Diplomacia Global (Nações e Territórios)
+  let desGain = 0;
+  if (countries.length > 0) {
+    const isForeign = countries.some(
+      (c) => c && !c.toLowerCase().includes('brasil') && !c.toLowerCase().includes('estados unidos')
+    );
+    desGain += isForeign ? 1.0 : 0.4;
+  }
+  const roundedDes = Math.round(desGain * 10) / 10;
+  if (roundedDes > 0) {
+    statGains.push({
+      key: 'DES',
+      icon: '🌍',
+      label: `+${roundedDes.toFixed(1)} DES`,
+      gain: roundedDes,
+    });
+  }
+
+  // 4. Sorte (SOR) - Olhar Clínico (Volume de Acervo + Notas Extremas)
+  let sorGain = 0.2;
+  if (rating >= 9.5 || (rating > 0 && rating <= 4.0)) {
+    sorGain += 0.8;
+  }
+  const roundedSor = Math.round(sorGain * 10) / 10;
+  if (roundedSor > 0) {
+    statGains.push({
+      key: 'SOR',
+      icon: '🎯',
+      label: `+${roundedSor.toFixed(1)} SOR`,
+      gain: roundedSor,
+    });
+  }
+
+  // 5. Vitalidade (VIT) - Caça-Troféus PS5 (Conquistas e Progresso)
+  let vitGain = 0;
+  if (newlyUnlocked.length > 0) {
+    vitGain += newlyUnlocked.length * 1.2;
+  }
+  if (progressedTrophies.length > 0) {
+    vitGain += Math.min(2, progressedTrophies.length * 0.4);
+  }
+  const roundedVit = Math.round(vitGain * 10) / 10;
+  if (roundedVit > 0) {
+    statGains.push({
+      key: 'VIT',
+      icon: '🏆',
+      label: `+${roundedVit.toFixed(1)} VIT`,
+      gain: roundedVit,
+    });
+  }
+
+  // 6. Força (FOR) - Prestígio Áureo (Oscars e Notas 9+)
+  let forGain = 0;
+  if (oscarWins > 0) {
+    forGain += Math.min(3, oscarWins * 0.7);
+  }
+  if (rating >= 9.0) {
+    forGain += 0.7;
+  }
+  const roundedFor = Math.round(forGain * 10) / 10;
+  if (roundedFor > 0) {
+    statGains.push({
+      key: 'FOR',
+      icon: '👑',
+      label: `+${roundedFor.toFixed(1)} FOR`,
+      gain: roundedFor,
+    });
+  }
+
+  // Avaliação de Desbloqueio de Nova Classe
+  let unlockedClass = null;
+  if (existingMovies && existingMovies.length > 0) {
+    try {
+      const prevStats = computeRpgAndGuilds(existingMovies, existingMovies);
+      const prevClass = prevStats.characterClass;
+      const nextMovies = [...existingMovies, movieData];
+      const nextStats = computeRpgAndGuilds(nextMovies, nextMovies);
+      const nextClass = nextStats.characterClass;
+
+      if (
+        nextClass &&
+        prevClass &&
+        nextClass.id !== prevClass.id &&
+        nextClass.unlockPts > prevClass.unlockPts
+      ) {
+        unlockedClass = {
+          name: nextClass.className,
+          icon: nextClass.classIcon,
+          flavor: nextClass.titleFlavor,
+        };
+      }
+    } catch {
+      // safe fallback
+    }
+  }
+
+  return {
+    statGains,
+    unlockedClass,
+  };
+}
