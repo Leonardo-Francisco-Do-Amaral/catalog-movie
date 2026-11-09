@@ -65,11 +65,31 @@ const MOCK_TROPHIES_FOR_SIMULATION = [
   },
 ];
 
-export default function TrophyTestPanelModal({ trophies = [], movies = [], onSyncSuccess, onClose }) {
+export default function TrophyTestPanelModal({
+  isOpen = true,
+  trophies = [],
+  movies = [],
+  onSyncSuccess,
+  onRefreshData,
+  onClose,
+}) {
+  if (isOpen === false) return null;
+
   const [selectedTrophyId, setSelectedTrophyId] = useState(trophies[0]?.id || '');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [toastSettings, setToastSettings] = useState(getToastSettings);
+
+  // Fecha no ESC
+  React.useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && onClose) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const handleUpdateDurationUnlocked = (ms) => {
     const updated = { ...toastSettings, durationUnlocked: ms };
@@ -537,8 +557,14 @@ export default function TrophyTestPanelModal({ trophies = [], movies = [], onSyn
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-fadeIn overflow-y-auto">
-      <div className="relative w-full max-w-xl max-h-[92vh] overflow-y-auto bg-zinc-950 border border-zinc-800 rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col gap-5">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-fadeIn overflow-y-auto"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-xl max-h-[92vh] overflow-y-auto bg-zinc-950 border border-zinc-800 rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col gap-5"
+      >
         {/* Glow sutil */}
         <div className="absolute -top-20 -left-20 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 

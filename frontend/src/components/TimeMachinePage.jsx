@@ -1325,12 +1325,15 @@ export default function TimeMachinePage({ movies = [], onOpenAddMovieForYear }) 
       )}
 
       {/* Modal do Painel de Testes & Homologação */}
-      <TrophyTestPanelModal
-        isOpen={isTestPanelOpen}
-        onClose={() => setIsTestPanelOpen(false)}
-        trophies={trophiesForTestPanel}
-        onRefreshData={fetchTimeMachine}
-      />
+      {isTestPanelOpen && (
+        <TrophyTestPanelModal
+          isOpen={isTestPanelOpen}
+          onClose={() => setIsTestPanelOpen(false)}
+          trophies={trophiesForTestPanel}
+          onRefreshData={fetchTimeMachine}
+          onSyncSuccess={fetchTimeMachine}
+        />
+      )}
     </div>
   );
 }
