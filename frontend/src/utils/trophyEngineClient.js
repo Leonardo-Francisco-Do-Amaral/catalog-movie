@@ -5409,6 +5409,116 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
         break;
       }
 
+      // ==========================================
+      // CASOS ESPECIAIS: MEMES, GAMES E HOMENAGENS
+      // ==========================================
+      case 'terror_tragico_min_rating': {
+        const reqGenre = def.target_metadata?.genre || 'Terror';
+        const reqTag = def.target_metadata?.tag || 'Trágico';
+        const rawMin = def.target_metadata?.minRating || 8500;
+        const minRatingMillis = rawMin > 10 ? rawMin : Math.round(rawMin * 1000);
+        const matchingMovies = catalogMovies.filter((m) => {
+          if (!movieHasGenre(m, reqGenre) || !movieHasTag(m, reqTag)) return false;
+          const { ur } = extractCriticMetrics(m);
+          const urMillis = ur !== null ? Math.round(ur * 1000) : null;
+          return urMillis !== null && urMillis > minRatingMillis;
+        });
+        progressTarget = def.target_value;
+        const res = buildMovieSlotsChecklist(
+          matchingMovies,
+          progressTarget,
+          (m) => {
+            const { ur } = extractCriticMetrics(m);
+            return `${reqGenre} + [${reqTag}] | Minha Nota: ${ur !== null ? ur.toFixed(3) : '-'} (> 8.500)`;
+          },
+          `Pendente: ${reqGenre} com [${reqTag}] e Minha Nota > 8.500`
+        );
+        progressCurrent = res.progressCurrent;
+        checklist.push(...res.checklist);
+        isMet = progressCurrent >= progressTarget;
+        break;
+      }
+
+      case 'rt_lt_ur_gte_count': {
+        const maxRt = def.target_metadata?.maxRt ?? 40;
+        const rawMin = def.target_metadata?.minRating || 8000;
+        const minRatingMillis = rawMin > 10 ? rawMin : Math.round(rawMin * 1000);
+        const matchingMovies = catalogMovies.filter((m) => {
+          const { ur, rt } = extractCriticMetrics(m);
+          if (rt === null || isNaN(rt) || rt >= maxRt) return false;
+          const urMillis = ur !== null ? Math.round(ur * 1000) : null;
+          return urMillis !== null && urMillis >= minRatingMillis;
+        });
+        progressTarget = def.target_value;
+        const res = buildMovieSlotsChecklist(
+          matchingMovies,
+          progressTarget,
+          (m) => {
+            const { ur, rt } = extractCriticMetrics(m);
+            return `RT: ${rt}% (< ${maxRt}%) | Minha Nota: ${ur !== null ? ur.toFixed(3) : '-'} (>= ${(minRatingMillis / 1000).toFixed(1)})`;
+          },
+          `Pendente: RT < ${maxRt}% com Minha Nota >= ${(minRatingMillis / 1000).toFixed(1)}`
+        );
+        progressCurrent = res.progressCurrent;
+        checklist.push(...res.checklist);
+        isMet = progressCurrent >= progressTarget;
+        break;
+      }
+
+      case 'tags_or_physical_media_count': {
+        const orTags = def.target_metadata?.orTags || ['Trágico', 'Emocionante'];
+        const matchingMovies = catalogMovies.filter((m) => {
+          const hasAnyTag = orTags.some((t) => movieHasTag(m, t));
+          if (!hasAnyTag) return false;
+          const plat = getMoviePlatform(m);
+          return isPhysicalMedia(plat);
+        });
+        progressTarget = def.target_value;
+        const res = buildMovieSlotsChecklist(
+          matchingMovies,
+          progressTarget,
+          (m) => {
+            const matchedTag = orTags.find((t) => movieHasTag(m, t)) || 'Tag';
+            const plat = getMoviePlatform(m);
+            return `Tag [${matchedTag}] em Mídia Física (${plat})`;
+          },
+          `Pendente: [${orTags.join(' / ')}] em Mídia Física (Blu-ray ou DVD)`
+        );
+        progressCurrent = res.progressCurrent;
+        checklist.push(...res.checklist);
+        isMet = progressCurrent >= progressTarget;
+        break;
+      }
+
+      case 'tag_and_genres_or_year_range': {
+        const reqTag = def.target_metadata?.tag || 'Repetido';
+        const orGenres = def.target_metadata?.orGenres || ['Crime', 'Ação'];
+        const minYear = def.target_metadata?.minYear || 1990;
+        const maxYear = def.target_metadata?.maxYear || 2004;
+        const matchingMovies = catalogMovies.filter((m) => {
+          if (!movieHasTag(m, reqTag)) return false;
+          const hasAnyGenre = orGenres.some((g) => movieHasGenre(m, g));
+          if (!hasAnyGenre) return false;
+          const relYear = getMovieReleaseYear(m);
+          return relYear !== null && relYear >= minYear && relYear <= maxYear;
+        });
+        progressTarget = def.target_value;
+        const res = buildMovieSlotsChecklist(
+          matchingMovies,
+          progressTarget,
+          (m) => {
+            const matchedGenre = orGenres.find((g) => movieHasGenre(m, g)) || 'Gênero';
+            const relYear = getMovieReleaseYear(m);
+            return `Tag [${reqTag}] | ${matchedGenre} | Lançado em ${relYear}`;
+          },
+          `Pendente: [${reqTag}] de ${orGenres.join(' ou ')} (${minYear}-${maxYear})`
+        );
+        progressCurrent = res.progressCurrent;
+        checklist.push(...res.checklist);
+        isMet = progressCurrent >= progressTarget;
+        break;
+      }
+
       default:
         break;
     }

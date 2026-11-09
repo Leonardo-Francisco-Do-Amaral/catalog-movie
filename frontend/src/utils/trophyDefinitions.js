@@ -19912,6 +19912,332 @@ export const TROPHY_DEFINITIONS = [
     "tags": ["Em Família"]
   },
   "sort_order": 775
+},
+{
+  "id": "cf_isaac_bardavid",
+  "category": "calcada_da_fama",
+  "categories": ["calcada_da_fama"],
+  "tier": "gold",
+  "title": "Calçada da Fama: Não Entra no Meu Caminho, Pirralho! (Tributo a Isaac Bardavid)",
+  "description": "Conquistar pelo menos 10 dos 20 filmes da lista curada de dublagens históricas de Isaac Bardavid (Meta: 10 de 20 / 50%).",
+  "icon": "🐺",
+  "target_type": "calcada_fama_curated",
+  "target_value": 10,
+  "target_metadata": {
+    "curatedCount": 20,
+    "minTarget": 10,
+    "movies": [
+      {
+        "name": "X-Men: O Filme (2000)",
+        "patterns": ["x-men o filme", "x-men", "x men"],
+        "year": 2000,
+        "exclude": ["x-men 2", "x2", "confronto final", "dias de um futuro", "apocalypse", "primeira classe", "origens", "dark phoenix", "fenix negra"]
+      },
+      {
+        "name": "X-Men 2 (2003)",
+        "patterns": ["x-men 2", "x2", "x men 2", "x-men ii"],
+        "year": 2003
+      },
+      {
+        "name": "X-Men: O Confronto Final (2006)",
+        "patterns": ["confronto final", "the last stand", "x-men 3", "x-men iii", "x men 3"],
+        "year": 2006
+      },
+      {
+        "name": "X-Men Origens: Wolverine (2009)",
+        "patterns": ["origens wolverine", "origins wolverine", "x-men origens"],
+        "year": 2009
+      },
+      {
+        "name": "Wolverine: Imortal (2013)",
+        "patterns": ["wolverine imortal", "the wolverine"],
+        "year": 2013,
+        "exclude": ["origens", "origins"]
+      },
+      {
+        "name": "X-Men: Dias de um Futuro Esquecido (2014)",
+        "patterns": ["dias de um futuro esquecido", "days of future past"],
+        "year": 2014
+      },
+      {
+        "name": "Logan (2017)",
+        "patterns": ["logan"],
+        "year": 2017,
+        "exclude": ["lucky logan", "logan lucky"]
+      },
+      {
+        "name": "Van Helsing: O Caçador de Monstros (2004)",
+        "patterns": ["van helsing"],
+        "year": 2004
+      },
+      {
+        "name": "O Grande Truque (2006)",
+        "patterns": ["o grande truque", "the prestige"],
+        "year": 2006
+      },
+      {
+        "name": "Fonte da Vida (2006)",
+        "patterns": ["fonte da vida", "the fountain"],
+        "year": 2006
+      },
+      {
+        "name": "Austrália (2008)",
+        "patterns": ["australia"],
+        "year": 2008
+      },
+      {
+        "name": "Gigantes de Aço (2011)",
+        "patterns": ["gigantes de aco", "real steel"],
+        "year": 2011
+      },
+      {
+        "name": "Os Miseráveis (2012)",
+        "patterns": ["os miseraveis", "les miserables"],
+        "year": 2012
+      },
+      {
+        "name": "Os Suspeitos (2013)",
+        "patterns": ["os suspeitos", "prisoners"],
+        "year": 2013
+      },
+      {
+        "name": "Uma Noite no Museu 3: O Segredo da Tumba (2014)",
+        "patterns": ["o segredo da tumba", "secret of the tomb", "uma noite no museu 3", "night at the museum 3"],
+        "year": 2014
+      },
+      {
+        "name": "Chappie (2015)",
+        "patterns": ["chappie"],
+        "year": 2015
+      },
+      {
+        "name": "Voando Alto (2016)",
+        "patterns": ["voando alto", "eddie the eagle"],
+        "year": 2016
+      },
+      {
+        "name": "O Rei do Show (2017)",
+        "patterns": ["o rei do show", "the greatest showman"],
+        "year": 2017
+      },
+      {
+        "name": "O Corcunda de Notre Dame (1996)",
+        "patterns": ["o corcunda de notre dame", "corcunda de notre dame", "the hunchback of notre dame", "hunchback of notre dame"],
+        "year": 1996
+      },
+      {
+        "name": "He-Man e os Mestres do Universo (1987)",
+        "patterns": ["he-man", "mestres do universo", "masters of the universe"],
+        "year": 1987
+      }
+    ]
+  },
+  "sort_order": 776
+},
+{
+  "id": "cf_wendel_bezerra",
+  "category": "calcada_da_fama",
+  "categories": ["calcada_da_fama"],
+  "tier": "gold",
+  "title": "Calçada da Fama: Oi, Eu Sou o Goku! (Ops... Não É o Goku)",
+  "description": "Conquistar pelo menos 12 dos 20 filmes da lista curada de atuações de Wendel Bezerra em live-actions e produções fora da franquia Dragon Ball (Meta: 12 de 20 / 60%).",
+  "icon": "⚡",
+  "target_type": "calcada_fama_curated",
+  "target_value": 12,
+  "target_metadata": {
+    "curatedCount": 20,
+    "minTarget": 12,
+    "movies": [
+      {
+        "name": "O Senhor dos Anéis: A Sociedade do Anel (2001)",
+        "patterns": ["a sociedade do anel", "fellowship of the ring"],
+        "year": 2001
+      },
+      {
+        "name": "O Senhor dos Anéis: As Duas Torres (2002)",
+        "patterns": ["as duas torres", "the two towers"],
+        "year": 2002
+      },
+      {
+        "name": "O Senhor dos Anéis: O Retorno do Rei (2003)",
+        "patterns": ["o retorno do rei", "return of the king"],
+        "year": 2003
+      },
+      {
+        "name": "Crepúsculo (2008)",
+        "patterns": ["crepusculo", "twilight"],
+        "year": 2008,
+        "exclude": ["lua nova", "eclipse", "amanhecer", "breaking dawn", "new moon"]
+      },
+      {
+        "name": "A Saga Crepúsculo: Lua Nova (2009)",
+        "patterns": ["lua nova", "new moon"],
+        "year": 2009
+      },
+      {
+        "name": "A Saga Crepúsculo: Eclipse (2010)",
+        "patterns": ["eclipse"],
+        "year": 2010
+      },
+      {
+        "name": "The Batman (2022)",
+        "patterns": ["the batman"],
+        "year": 2022
+      },
+      {
+        "name": "Tenet (2020)",
+        "patterns": ["tenet"],
+        "year": 2020
+      },
+      {
+        "name": "O Farol (2019)",
+        "patterns": ["o farol", "the lighthouse"],
+        "year": 2019
+      },
+      {
+        "name": "Bob Esponja: O Filme (2004)",
+        "patterns": ["bob esponja o filme", "the spongebob squarepants movie", "spongebob squarepants movie"],
+        "year": 2004,
+        "exclude": ["fora d'agua", "fora d agua", "sponge out of water", "incrivel resgate", "sponge on the run"]
+      },
+      {
+        "name": "Bob Esponja: Um Herói Fora D'Água (2015)",
+        "patterns": ["um heroi fora d'agua", "um heroi fora d agua", "sponge out of water"],
+        "year": 2015
+      },
+      {
+        "name": "Bob Esponja: O Incrível Resgate (2020)",
+        "patterns": ["o incrivel resgate", "sponge on the run"],
+        "year": 2020
+      },
+      {
+        "name": "Curtindo a Vida Adoidado (1986)",
+        "patterns": ["curtindo a vida adoidado", "ferris bueller"],
+        "year": 1986
+      },
+      {
+        "name": "Meninas Malvadas (2004)",
+        "patterns": ["meninas malvadas", "mean girls"],
+        "year": 2004,
+        "exclude": ["meninas malvadas 2", "mean girls 2"]
+      },
+      {
+        "name": "Scott Pilgrim Contra o Mundo (2010)",
+        "patterns": ["scott pilgrim", "contra o mundo"],
+        "year": 2010
+      },
+      {
+        "name": "Donnie Darko (2001)",
+        "patterns": ["donnie darko"],
+        "year": 2001
+      },
+      {
+        "name": "Kick-Ass: Quebrando Tudo (2010)",
+        "patterns": ["kick-ass", "kick ass"],
+        "year": 2010,
+        "exclude": ["kick-ass 2", "kick ass 2"]
+      },
+      {
+        "name": "Bastardos Inglórios (2009)",
+        "patterns": ["bastardos inglorios", "inglourious basterds"],
+        "year": 2009
+      },
+      {
+        "name": "Superbad: É Hoje (2007)",
+        "patterns": ["superbad"],
+        "year": 2007
+      },
+      {
+        "name": "Gladiador (2000)",
+        "patterns": ["gladiador", "gladiator"],
+        "year": 2000,
+        "exclude": ["gladiador 2", "gladiator 2", "gladiator ii"]
+      }
+    ]
+  },
+  "sort_order": 777
+},
+{
+  "id": "mh_guillermo_del_toro_6",
+  "category": "mafia_hollywood",
+  "categories": ["mafia_hollywood"],
+  "tier": "gold",
+  "title": "A Máfia de Hollywood: Feito à Mão com Gosma e Poesia",
+  "description": "Conquistar 6 filmes que tenham Guillermo del Toro creditado no campo de Direção ou Roteiro (6 filmes).",
+  "icon": "👁️",
+  "target_type": "hollywood_director_or_writer_count",
+  "target_value": 6,
+  "target_metadata": {
+    "person": "Guillermo del Toro",
+    "patterns": ["guillermo del toro", "del toro"]
+  },
+  "sort_order": 778
+},
+{
+  "id": "tc_you_died_terror_tragico_nota_3",
+  "category": "dna_cinefilo",
+  "categories": ["dna_cinefilo", "anatomia_cinema", "tribunal_critica"],
+  "tier": "epic",
+  "title": "YOU DIED! (Nem com Guia do Detonado)",
+  "description": "Conquistar 3 filmes que combinem simultaneamente o gênero Terror, a tag pessoal Trágico e Minha Nota pessoal estritamente maior que 8.500 (3 filmes).",
+  "icon": "💀",
+  "target_type": "terror_tragico_min_rating",
+  "target_value": 3,
+  "target_metadata": {
+    "genre": "Terror",
+    "tag": "Trágico",
+    "minRating": 8500
+  },
+  "sort_order": 779
+},
+{
+  "id": "tc_achou_errado_rt_lt40_ur_gte80_5",
+  "category": "tribunal_critica",
+  "categories": ["tribunal_critica"],
+  "tier": "silver",
+  "title": "Achou Errado, Otário! (Doutor em Transporte Alternativo)",
+  "description": "Conquistar 5 filmes onde o Rotten Tomatoes esteja cadastrado/válido abaixo de 40%, mas a Minha Nota pessoal seja maior ou igual a 8.000 (5 filmes).",
+  "icon": "🚐",
+  "target_type": "rt_lt_ur_gte_count",
+  "target_value": 5,
+  "target_metadata": {
+    "maxRt": 40,
+    "minRating": 8000
+  },
+  "sort_order": 780
+},
+{
+  "id": "tc_press_f_tragico_emocionante_fisica_5",
+  "category": "dna_cinefilo",
+  "categories": ["dna_cinefilo", "ritual_cinefilo"],
+  "tier": "silver",
+  "title": "Press F to Pay Respects",
+  "description": "Conquistar 5 filmes que possuam a tag pessoal Trágico OU a tag pessoal Emocionante, assistidos em mídia física (Blu-ray ou DVD) (5 filmes).",
+  "icon": "⌨️",
+  "target_type": "tags_or_physical_media_count",
+  "target_value": 5,
+  "target_metadata": {
+    "orTags": ["Trágico", "Emocionante"]
+  },
+  "sort_order": 781
+},
+{
+  "id": "tc_ah_shit_repetido_crime_acao_1990_2004_1",
+  "category": "dna_cinefilo",
+  "categories": ["dna_cinefilo", "anatomia_cinema"],
+  "tier": "bronze",
+  "title": "Ah Shit, Here We Go Again... (CJ de Volta ao Bairro)",
+  "description": "Conquistar 1 filme que possua a tag pessoal Repetido, pertença ao gênero Crime OU Ação, e tenha ano de lançamento situado entre 1990 e 2004 (1 filme).",
+  "icon": "🚲",
+  "target_type": "tag_and_genres_or_year_range",
+  "target_value": 1,
+  "target_metadata": {
+    "tag": "Repetido",
+    "orGenres": ["Crime", "Ação"],
+    "minYear": 1990,
+    "maxYear": 2004
+  },
+  "sort_order": 782
 }
 ];
 

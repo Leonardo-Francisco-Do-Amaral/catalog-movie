@@ -15,27 +15,24 @@ async function main() {
     console.log(`Overall Percentage: ${result.overallPercentage}%`);
 
     const newTrophyIds = [
-      'tc_folha_em_branco_15',
-      'tc_em_familia_10',
-      'tc_em_familia_terror_5',
-      'tc_em_familia_natal_3',
-      'tc_em_familia_cinema_10',
-      'tc_em_familia_nota_85_10',
-      'tc_em_familia_estrangeiro_5',
-      'tc_em_familia_agosto_5',
-      'tc_em_familia_streaming_15',
-      'tc_em_familia_marvel_dc_5',
-      'tc_em_familia_emocionante_10',
-      'tc_em_familia_nota_90_5',
-      'tc_em_familia_paises_5',
-      'tc_muitas_tags_7_30',
-      'tc_em_familia_45',
+      'cf_isaac_bardavid',
+      'cf_wendel_bezerra',
+      'mh_guillermo_del_toro_6',
+      'tc_you_died_terror_tragico_nota_3',
+      'tc_achou_errado_rt_lt40_ur_gte80_5',
+      'tc_press_f_tragico_emocionante_fisica_5',
+      'tc_ah_shit_repetido_crime_acao_1990_2004_1',
     ];
 
-    console.log('\n--- Status of 15 New Trophies ---');
+    console.log('\n--- Status of 7 New Trophies ---');
     for (const t of result.trophies) {
       if (newTrophyIds.includes(t.id)) {
         console.log(`[${t.tier.toUpperCase()}] ${t.id} - "${t.title}": ${t.is_unlocked ? '✅ CONQUISTADO' : '🔒 BLOQUEADO'} (${t.progress_current}/${t.progress_target} - ${t.progress_percentage}%)`);
+        if (t.checklist && t.checklist.length > 0) {
+          const conquered = t.checklist.filter((c: any) => c.conquered);
+          console.log(`   Items conquistados: ${conquered.length}/${t.checklist.length}`);
+          conquered.slice(0, 5).forEach((c: any) => console.log(`     - ${c.name}: ${c.extra_info || c.movie_title}`));
+        }
       }
     }
   } catch (error) {
