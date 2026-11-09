@@ -20258,5 +20258,384 @@ export const TROPHY_DEFINITIONS: TrophyDefinition[] = [
     "maxYear": 2004
   },
   "sort_order": 782
+},
+{
+  "id": "tc_triforce_do_cinema",
+  "category": "dna_cinefilo",
+  "categories": ["dna_cinefilo", "anatomia_cinema", "ritual_cinefilo", "tribunal_critica"],
+  "tier": "mythic",
+  "title": "A Triforce do Cinema (As Três Virtudes de Hyrule)",
+  "description": "Cumprir os 30 marcos do checklist das três virtudes de Hyrule (30 filmes): 10 de Ação/Guerra (>140m), 10 de Doc/Hist/Bio (Nota >= 8.0) e 10 de Terror com Demônio/Gore/Fantasma.",
+  "icon": "🔺",
+  "target_type": "hyrule_triforce_checklist",
+  "target_value": 30,
+  "target_metadata": {
+    "poderTarget": 10,
+    "sabedoriaTarget": 10,
+    "coragemTarget": 10
+  },
+  "sort_order": 783
+},
+{
+  "id": "tc_magia_profunda_bruxa_decadas",
+  "category": "dna_cinefilo",
+  "categories": ["dna_cinefilo", "ritual_cinefilo"],
+  "tier": "mythic",
+  "title": "Não me cite a Magia Profunda, Bruxa. Eu estava lá quando ela foi escrita.",
+  "description": "Conquistar pelo menos 1 filme com a tag Bruxo em cada uma das 8 décadas entre 1960s e 2030s (1960s, 1970s, 1980s, 1990s, 2000s, 2010s, 2020s, 2030s) (8 décadas no checklist).",
+  "icon": "🧙‍♀️",
+  "target_type": "tag_decades_checklist",
+  "target_value": 8,
+  "target_metadata": {
+    "tag": "Bruxo",
+    "decades": [1960, 1970, 1980, 1990, 2000, 2010, 2020, 2030]
+  },
+  "sort_order": 784
+},
+{
+  "id": "ss_gotta_go_fast",
+  "category": "sessao_secreta",
+  "categories": ["sessao_secreta"],
+  "tier": "gold",
+  "title": "Sessão Secreta: Gotta Go Fast!",
+  "description": "Conquistar pelo menos 14 dos 20 filmes da lista curada de velocistas e aceleração extrema (Meta: 14 de 20 / 70%).",
+  "icon": "🦔",
+  "target_type": "secret_session_curated",
+  "target_value": 14,
+  "target_metadata": {
+    "curatedCount": 20,
+    "minTarget": 14,
+    "movies": [
+      {
+        "name": "Sonic: O Filme (2020)",
+        "patterns": ["sonic: o filme", "sonic o filme", "sonic the hedgehog"],
+        "year": 2020,
+        "exclude": ["sonic 2", "sonic 3", "sonic the hedgehog 2", "sonic the hedgehog 3"]
+      },
+      {
+        "name": "Sonic 2: O Filme (2022)",
+        "patterns": ["sonic 2", "sonic the hedgehog 2"],
+        "year": 2022
+      },
+      {
+        "name": "Sonic 3: O Filme (2024)",
+        "patterns": ["sonic 3", "sonic the hedgehog 3"],
+        "year": 2024
+      },
+      {
+        "name": "The Flash (2023)",
+        "patterns": ["the flash", "flash"],
+        "year": 2023
+      },
+      {
+        "name": "X-Men: Dias de um Futuro Esquecido (2014)",
+        "patterns": ["dias de um futuro esquecido", "days of future past"]
+      },
+      {
+        "name": "X-Men: Apocalipse (2016)",
+        "patterns": ["x-men: apocalipse", "x-men apocalipse", "x-men: apocalypse", "x-men apocalypse"]
+      },
+      {
+        "name": "X-Men: Fênix Negra (2019)",
+        "patterns": ["fênix negra", "fenix negra", "dark phoenix"]
+      },
+      {
+        "name": "Vingadores: Era de Ultron (2015)",
+        "patterns": ["era de ultron", "age of ultron"]
+      },
+      {
+        "name": "Os Incríveis (2004)",
+        "patterns": ["os incríveis", "os incriveis", "the incredibles"],
+        "year": 2004,
+        "exclude": ["os incríveis 2", "os incriveis 2", "the incredibles 2", "incredibles 2"]
+      },
+      {
+        "name": "Os Incríveis 2 (2018)",
+        "patterns": ["os incríveis 2", "os incriveis 2", "the incredibles 2", "incredibles 2"],
+        "year": 2018
+      },
+      {
+        "name": "Eternos (2021)",
+        "patterns": ["eternos", "eternals"],
+        "year": 2021
+      },
+      {
+        "name": "Liga da Justiça de Zack Snyder (2021)",
+        "patterns": ["liga da justiça de zack snyder", "liga da justica de zack snyder", "zack snyder's justice league", "snyder cut"],
+        "year": 2021
+      },
+      {
+        "name": "Turbo (2013)",
+        "patterns": ["turbo"],
+        "year": 2013
+      },
+      {
+        "name": "Sky High: Super Escola de Heróis (2005)",
+        "patterns": ["sky high", "super escola de heróis", "super escola de herois"]
+      },
+      {
+        "name": "Shazam! (2019)",
+        "patterns": ["shazam"],
+        "year": 2019,
+        "exclude": ["fúria dos deuses", "furia dos deuses", "fury of the gods"]
+      },
+      {
+        "name": "Shazam! Fúria dos Deuses (2023)",
+        "patterns": ["fúria dos deuses", "furia dos deuses", "fury of the gods"]
+      },
+      {
+        "name": "Detona Ralph (2012)",
+        "patterns": ["detona ralph", "wreck-it ralph"],
+        "exclude": ["quebra a internet", "breaks the internet", "detona ralph 2"]
+      },
+      {
+        "name": "Space Jam: O Jogo do Século (1996)",
+        "patterns": ["space jam: o jogo do século", "space jam o jogo do seculo", "space jam"],
+        "year": 1996,
+        "exclude": ["um novo legado", "a new legacy"]
+      },
+      {
+        "name": "Looney Tunes: De Volta à Ação (2003)",
+        "patterns": ["de volta à ação", "de volta a acao", "back in action"]
+      },
+      {
+        "name": "Forrest Gump: O Contador de Histórias (1994)",
+        "patterns": ["forrest gump"],
+        "year": 1994
+      }
+    ]
+  },
+  "sort_order": 785
+},
+{
+  "id": "tc_new_game_plus_repetido_nota_9",
+  "category": "dna_cinefilo",
+  "categories": ["dna_cinefilo", "tribunal_critica"],
+  "tier": "gold",
+  "title": "New Game+ (A Revanche dos Veteranos)",
+  "description": "Conquistar 5 filmes cadastrados com a tag Repetido cuja Minha Nota seja maior ou igual a 9.000 (5 filmes).",
+  "icon": "🔁",
+  "target_type": "tag_min_rating_count",
+  "target_value": 5,
+  "target_metadata": {
+    "tag": "Repetido",
+    "minRating": 9000
+  },
+  "sort_order": 786
+},
+{
+  "id": "tc_konami_code_acao_aventura_1980s_30",
+  "category": "anatomia_cinema",
+  "categories": ["anatomia_cinema", "ritual_cinefilo"],
+  "tier": "gold",
+  "title": "Konami Code: 30 Vidas no Cineclube!",
+  "description": "Conquistar 30 filmes dos gêneros Ação ou Aventura lançados na década de 1980 (entre 1980 e 1989) (30 filmes).",
+  "icon": "🎮",
+  "target_type": "genres_or_decade_range_count",
+  "target_value": 30,
+  "target_metadata": {
+    "genres": ["Ação", "Aventura"],
+    "minYear": 1980,
+    "maxYear": 1989
+  },
+  "sort_order": 787
+},
+{
+  "id": "tc_666_sessao_do_capeta",
+  "category": "tribunal_critica",
+  "categories": ["tribunal_critica"],
+  "tier": "epic",
+  "title": "666: Sessão do Capeta (A Besta Mediana do Purgatório)",
+  "description": "Conquistar 6 filmes onde pelo menos 3 notas distintas (entre Rotten Tomatoes, Metacritic, IMDb e Minha Nota) estejam na faixa do \"6\" (60% a 69% ou 6.0 a 6.9) (6 filmes).",
+  "icon": "🤘",
+  "target_type": "multi_critic_range_count",
+  "target_value": 6,
+  "target_metadata": {
+    "digit": 6,
+    "minDistinctMetrics": 3
+  },
+  "sort_order": 788
+},
+{
+  "id": "tc_climao_almoco_domingo",
+  "category": "dna_cinefilo",
+  "categories": ["dna_cinefilo", "anatomia_cinema"],
+  "tier": "epic",
+  "title": "Climão no Almoço de Domingo (Chama a Christina Rocha!)",
+  "description": "Conquistar 10 filmes do gênero Drama que possuam a tag Em família combinada com a tag Abuso familiar OU Preconceito (10 filmes).",
+  "icon": "🛋️",
+  "target_type": "genre_and_tag_and_any_tag",
+  "target_value": 10,
+  "target_metadata": {
+    "genre": "Drama",
+    "requiredTag": "Em Família",
+    "orTags": ["Abuso Familiar", "Preconceito"]
+  },
+  "sort_order": 789
+},
+{
+  "id": "tc_e_morreu_terror_suspense_tragico_final_epico",
+  "category": "dna_cinefilo",
+  "categories": ["dna_cinefilo", "anatomia_cinema"],
+  "tier": "epic",
+  "title": "E Morreu... (Sem Direito a Checkpoint)",
+  "description": "Conquistar 30 filmes do gênero Terror ou Suspense que possuam simultaneamente a tag Trágico e a tag Final epico (30 filmes).",
+  "icon": "💀",
+  "target_type": "genres_or_and_tags_and",
+  "target_value": 30,
+  "target_metadata": {
+    "genres": ["Terror", "Suspense"],
+    "requiredTags": ["Trágico", "Final Epico"]
+  },
+  "sort_order": 790
+},
+{
+  "id": "tc_333_o_meio_besta",
+  "category": "tribunal_critica",
+  "categories": ["tribunal_critica"],
+  "tier": "silver",
+  "title": "333: O Meio-Besta (Nem o Diabo Quis Completo)",
+  "description": "Conquistar 3 filmes onde pelo menos 3 notas distintas (entre Rotten Tomatoes, Metacritic, IMDb e Minha Nota) estejam na faixa do \"3\" (30% a 39% ou 3.0 a 3.9) (3 filmes).",
+  "icon": "🐐",
+  "target_type": "multi_critic_range_count",
+  "target_value": 3,
+  "target_metadata": {
+    "digit": 3,
+    "minDistinctMetrics": 3
+  },
+  "sort_order": 791
+},
+{
+  "id": "tc_milagre_industria_baseado_jogo_nota_8",
+  "category": "dna_cinefilo",
+  "categories": ["dna_cinefilo", "tribunal_critica"],
+  "tier": "silver",
+  "title": "Milagre na Indústria: Essa Adaptação Ficou Boa?!",
+  "description": "Conquistar 3 filmes com a tag Baseado em jogo onde a Minha Nota seja igual ou superior a 8.000 (3 filmes).",
+  "icon": "👾",
+  "target_type": "tag_min_rating_count",
+  "target_value": 3,
+  "target_metadata": {
+    "tag": "Baseado em jogo",
+    "minRating": 8000
+  },
+  "sort_order": 792
+},
+{
+  "id": "tc_cake_is_a_lie_ficcao_dystopia_viagem_nota_lt5",
+  "category": "dna_cinefilo",
+  "categories": ["dna_cinefilo", "anatomia_cinema", "tribunal_critica"],
+  "tier": "silver",
+  "title": "O Bolo É uma Mentira! (The Cake Is a Lie)",
+  "description": "Conquistar 3 filmes do gênero Ficção Científica com a tag Dystopia OU Viagem no tempo que tenham recebido Minha Nota abaixo de 5.000 (3 filmes).",
+  "icon": "🎂",
+  "target_type": "genre_and_tags_or_max_rating",
+  "target_value": 3,
+  "target_metadata": {
+    "genre": "Ficção Científica",
+    "orTags": ["Dystopia", "Viagem no Tempo"],
+    "maxRating": 5000
+  },
+  "sort_order": 793
+},
+{
+  "id": "tc_snake_stealth_suspense_crime",
+  "category": "anatomia_cinema",
+  "categories": ["anatomia_cinema", "dna_cinefilo"],
+  "tier": "silver",
+  "title": "Snake? Snake?! SNAAAAAKE!",
+  "description": "Conquistar 9 filmes do gênero Suspense ou Crime que possuam a tag Fatos reais ou Sequestro, mas SEM o gênero Ação e SEM a tag Gore (9 filmes).",
+  "icon": "📦",
+  "target_type": "stealth_suspense_crime_count",
+  "target_value": 9,
+  "target_metadata": {
+    "includeGenres": ["Suspense", "Crime"],
+    "includeTags": ["Fatos reais", "Sequestro"],
+    "excludeGenres": ["Ação"],
+    "excludeTags": ["Gore"]
+  },
+  "sort_order": 794
+},
+{
+  "id": "mh_roberto_gomez_bolanos",
+  "category": "mafia_hollywood",
+  "categories": ["mafia_hollywood"],
+  "tier": "silver",
+  "title": "A Máfia de Hollywood: Isso, Isso, Isso! (Tá em Acapulco Tomando Coco)",
+  "description": "Conquistar 1 filme que tenha Roberto Gómez Bolaños creditado em Direção, Roteiro ou Produção (1 filme).",
+  "icon": "🥪",
+  "target_type": "hollywood_director_or_writer_count",
+  "target_value": 1,
+  "target_metadata": {
+    "person": "Roberto Gómez Bolaños",
+    "patterns": ["roberto gomez bolanos", "roberto gómez bolaños", "chespirito"],
+    "checkProducers": true
+  },
+  "sort_order": 795
+},
+{
+  "id": "tc_rush_b_acao_max_90_min",
+  "category": "anatomia_cinema",
+  "categories": ["anatomia_cinema", "ritual_cinefilo"],
+  "tier": "silver",
+  "title": "\"Rush B, Não Para!\" (Modo Tático do CS)",
+  "description": "Conquistar 10 filmes do gênero Ação com duração máxima de até 90 minutos (10 filmes).",
+  "icon": "💣",
+  "target_type": "genre_max_runtime_count",
+  "target_value": 10,
+  "target_metadata": {
+    "genre": "Ação",
+    "maxRuntime": 90
+  },
+  "sort_order": 796
+},
+{
+  "id": "tc_e_verdade_esse_bilete_fatos_reais_nota_lt6",
+  "category": "dna_cinefilo",
+  "categories": ["dna_cinefilo", "tribunal_critica"],
+  "tier": "silver",
+  "title": "\"É Verdade Esse Bilete\" (Confia!)",
+  "description": "Conquistar 5 filmes com a tag Fatos reais que tenham recebido Minha Nota abaixo de 6.000 (5 filmes).",
+  "icon": "🎟️",
+  "target_type": "tag_max_rating_count",
+  "target_value": 5,
+  "target_metadata": {
+    "tag": "Fatos reais",
+    "maxRating": 6000
+  },
+  "sort_order": 797
+},
+{
+  "id": "tc_ray_tracing_bomba_2021_ficcao_acao_reviews_500k",
+  "category": "anatomia_cinema",
+  "categories": ["anatomia_cinema", "ritual_cinefilo", "tribunal_critica"],
+  "tier": "silver",
+  "title": "\"Nem o Ray Tracing Salva Essa Bomba!\"",
+  "description": "Conquistar 3 filmes lançados a partir do ano de 2021 do gênero Ficção Científica ou Ação que tenham mais de 500.000 Global Reviews e Minha Nota abaixo de 5.000 (3 filmes).",
+  "icon": "💥",
+  "target_type": "bomba_ray_tracing_count",
+  "target_value": 3,
+  "target_metadata": {
+    "genres": ["Ficção Científica", "Ação"],
+    "minYear": 2021,
+    "minGlobalReviews": 500000,
+    "maxRating": 5000
+  },
+  "sort_order": 798
+},
+{
+  "id": "tc_achou_que_nao_ia_ter_cinema_fev_mar_set",
+  "category": "ritual_cinefilo",
+  "categories": ["ritual_cinefilo", "data_limite"],
+  "tier": "bronze",
+  "title": "Achou que Não Ia Ter Cinema Hoje? Achou Errado, Otário!",
+  "description": "Conquistar 3 filmes assistidos no Cinema durante os meses de Fevereiro, Março ou Setembro (3 filmes).",
+  "icon": "🚐",
+  "target_type": "cinema_specific_months_count",
+  "target_value": 3,
+  "target_metadata": {
+    "months": [2, 3, 9]
+  },
+  "sort_order": 799
 }
 ];

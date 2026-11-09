@@ -524,6 +524,21 @@ function getMovieWriters(m: any): Set<string> {
   return set;
 }
 
+function getMovieProducers(m: any): Set<string> {
+  const set = new Set<string>();
+  (m.producers || []).forEach((p: string) => p && set.add(cleanStr(p)));
+  const raw = m.raw_api_data || {};
+  if (raw.omdb?.Production && raw.omdb.Production !== 'N/A') {
+    set.add(cleanStr(raw.omdb.Production));
+  }
+  if (Array.isArray(raw.tmdb?.credits?.crew)) {
+    raw.tmdb.credits.crew
+      .filter((c: any) => c && ['Producer', 'Executive Producer'].includes(c.job))
+      .forEach((c: any) => c.name && set.add(cleanStr(c.name)));
+  }
+  return set;
+}
+
 function getMovieStudios(m: any): Set<string> {
   const set = new Set<string>();
   (m.studios || []).forEach((s: string) => s && set.add(cleanStr(s)));
@@ -3384,10 +3399,12 @@ export async function evaluateTrophies(options: { markNew?: boolean } = {}): Pro
       case 'hollywood_director_or_writer_count': {
         const patterns = def.target_metadata?.patterns || [];
         const personName = def.target_metadata?.person || 'Autor';
+        const checkProducers = Boolean(def.target_metadata?.checkProducers);
         const matchingMovies = catalogMovies.filter(
           (m: any) =>
             movieHasAnyPattern(getMovieDirectors(m), patterns) ||
-            movieHasAnyPattern(getMovieWriters(m), patterns)
+            movieHasAnyPattern(getMovieWriters(m), patterns) ||
+            (checkProducers && movieHasAnyPattern(getMovieProducers(m), patterns))
         );
         progressTarget = def.target_value;
         const res = buildMovieSlotsChecklist(
@@ -3396,11 +3413,12 @@ export async function evaluateTrophies(options: { markNew?: boolean } = {}): Pro
           (m: any) => {
             const isDir = movieHasAnyPattern(getMovieDirectors(m), patterns);
             const isWri = movieHasAnyPattern(getMovieWriters(m), patterns);
-            return isDir && isWri
-              ? `Direção & Roteiro: ${personName}`
-              : isDir
-              ? `Direção: ${personName}`
-              : `Roteiro: ${personName}`;
+            const isProd = checkProducers && movieHasAnyPattern(getMovieProducers(m), patterns);
+            const roles: string[] = [];
+            if (isDir) roles.push('Direção');
+            if (isWri) roles.push('Roteiro');
+            if (isProd) roles.push('Produção');
+            return `${roles.join(' & ') || 'Crédito'}: ${personName}`;
           },
           `Pendente: filme de ${personName}`
         );
@@ -5758,6 +5776,455 @@ export async function evaluateTrophies(options: { markNew?: boolean } = {}): Pro
             return `Tag [${reqTag}] | ${matchedGenre} | Lançado em ${relYear}`;
           },
           `Pendente: [${reqTag}] de ${orGenres.join(' ou ')} (${minYear}-${maxYear})`
+        );
+        progressCurrent = res.progressCurrent;
+        checklist.push(...res.checklist);
+        isMet = progressCurrent >= progressTarget;
+        break;
+      }
+
+      case 'hyrule_triforce_checklist': {
+        const poderTarget = Number(def.target_metadata?.poderTarget || 10);
+        const sabedoriaTarget = Number(def.target_metadata?.sabedoriaTarget || 10);
+        const coragemTarget = Number(def.target_metadata?.coragemTarget || 10);
+        progressTarget = poderTarget + sabedoriaTarget + coragemTarget;
+
+        const usedMovieIds = new Set<string | number>();
+
+        // 1. Trilha do Poder (10): Ação ou Guerra com duração > 140 min
+        const poderCandidates = catalogMovies.filter((m: any) => {
+          const hasGenre = movieHasGenre(m, 'Ação') || movieHasGenre(m, 'Guerra');
+          return hasGenre && getMovieRuntime(m) > 140;
+        });
+        let poderCount = 0;
+        for (let i = 0; i < poderTarget; i++) {
+          const m = poderCandidates.find((c: any) => !usedMovieIds.has(c.movie_id || (c as any).id));
+          if (m && poderCount < poderTarget) {
+            usedMovieIds.add(m.movie_id || (m as any).id);
+            poderCount++;
+            checklist.push({
+              id: `${def.id}_poder_${i + 1}`,
+              name: `Trilha do Poder: ${m.title}${m.release_year ? ` (${m.release_year})` : ''}`,
+              required: 1,
+              current: 1,
+              conquered: true,
+              movie_title: m.title,
+              movie_year: m.release_year,
+              poster_url: m.poster_url || null,
+              extra_info: `Duração: ${getMovieRuntime(m)} min | ${(m.genres || []).filter((g: string) => ['Ação', 'Guerra'].includes(g)).join('/')}`,
+            });
+          } else {
+            checklist.push({
+              id: `${def.id}_poder_${i + 1}`,
+              name: `Trilha do Poder #${i + 1} (Ação/Guerra > 140m)`,
+              required: 1,
+              current: 0,
+              conquered: false,
+              extra_info: '🔒 Pendente',
+            });
+          }
+        }
+
+        // 2. Trilha da Sabedoria (10): Documentário, História ou Biografia com Minha Nota >= 8.000
+        const sabedoriaCandidates = catalogMovies.filter((m: any) => {
+          const hasGenre =
+            movieHasGenre(m, 'Documentário') ||
+            movieHasGenre(m, 'Documentario') ||
+            movieHasGenre(m, 'História') ||
+            movieHasGenre(m, 'Historia') ||
+            movieHasGenre(m, 'Biografia');
+          if (!hasGenre) return false;
+          const { ur } = extractCriticMetrics(m);
+          const urMillis = ur !== null ? Math.round(ur * 1000) : null;
+          return urMillis !== null && urMillis >= 8000;
+        });
+        let sabedoriaCount = 0;
+        for (let i = 0; i < sabedoriaTarget; i++) {
+          const m = sabedoriaCandidates.find((c: any) => !usedMovieIds.has(c.movie_id || (c as any).id));
+          if (m && sabedoriaCount < sabedoriaTarget) {
+            usedMovieIds.add(m.movie_id || (m as any).id);
+            sabedoriaCount++;
+            const { ur } = extractCriticMetrics(m);
+            checklist.push({
+              id: `${def.id}_sabedoria_${i + 1}`,
+              name: `Trilha da Sabedoria: ${m.title}${m.release_year ? ` (${m.release_year})` : ''}`,
+              required: 1,
+              current: 1,
+              conquered: true,
+              movie_title: m.title,
+              movie_year: m.release_year,
+              poster_url: m.poster_url || null,
+              extra_info: `Minha Nota: ${ur !== null ? ur.toFixed(3) : '8.000+'} | ${(m.genres || []).filter((g: string) => ['Documentário', 'Documentario', 'História', 'Historia', 'Biografia'].includes(g)).join('/')}`,
+            });
+          } else {
+            checklist.push({
+              id: `${def.id}_sabedoria_${i + 1}`,
+              name: `Trilha da Sabedoria #${i + 1} (Doc/Hist/Bio c/ Nota ≥ 8.000)`,
+              required: 1,
+              current: 0,
+              conquered: false,
+              extra_info: '🔒 Pendente',
+            });
+          }
+        }
+
+        // 3. Trilha da Coragem (10): Terror com tag Demônio, Gore ou Fantasma
+        const coragemCandidates = catalogMovies.filter((m: any) => {
+          if (!movieHasGenre(m, 'Terror')) return false;
+          return (
+            movieHasTag(m, 'Demônio') ||
+            movieHasTag(m, 'Demonio') ||
+            movieHasTag(m, 'Gore') ||
+            movieHasTag(m, 'Fantasma')
+          );
+        });
+        let coragemCount = 0;
+        for (let i = 0; i < coragemTarget; i++) {
+          const m = coragemCandidates.find((c: any) => !usedMovieIds.has(c.movie_id || (c as any).id));
+          if (m && coragemCount < coragemTarget) {
+            usedMovieIds.add(m.movie_id || (m as any).id);
+            coragemCount++;
+            const matchedTag = ['Demônio', 'Demonio', 'Gore', 'Fantasma'].find((t) => movieHasTag(m, t)) || 'Terror';
+            checklist.push({
+              id: `${def.id}_coragem_${i + 1}`,
+              name: `Trilha da Coragem: ${m.title}${m.release_year ? ` (${m.release_year})` : ''}`,
+              required: 1,
+              current: 1,
+              conquered: true,
+              movie_title: m.title,
+              movie_year: m.release_year,
+              poster_url: m.poster_url || null,
+              extra_info: `Terror com Tag [${matchedTag}]`,
+            });
+          } else {
+            checklist.push({
+              id: `${def.id}_coragem_${i + 1}`,
+              name: `Trilha da Coragem #${i + 1} (Terror c/ Demônio, Gore ou Fantasma)`,
+              required: 1,
+              current: 0,
+              conquered: false,
+              extra_info: '🔒 Pendente',
+            });
+          }
+        }
+
+        progressCurrent = poderCount + sabedoriaCount + coragemCount;
+        isMet = poderCount >= poderTarget && sabedoriaCount >= sabedoriaTarget && coragemCount >= coragemTarget;
+        break;
+      }
+
+      case 'tag_decades_checklist': {
+        const reqTag = def.target_metadata?.tag || 'Bruxo';
+        const decades: number[] = def.target_metadata?.decades || [1960, 1970, 1980, 1990, 2000, 2010, 2020, 2030];
+        progressTarget = def.target_value || decades.length;
+        let countDecades = 0;
+
+        for (const dec of decades) {
+          const m = catalogMovies.find((cm: any) => {
+            if (!movieHasTag(cm, reqTag)) return false;
+            const y = getMovieReleaseYear(cm);
+            return y !== null && y >= dec && y <= dec + 9;
+          });
+
+          if (m) {
+            countDecades++;
+            checklist.push({
+              id: `${def.id}_dec_${dec}`,
+              name: `Década de ${dec}s`,
+              required: 1,
+              current: 1,
+              conquered: true,
+              movie_title: m.title,
+              movie_year: m.release_year,
+              poster_url: m.poster_url || null,
+              extra_info: `✅ Conquistado (${m.title} - ${m.release_year})`,
+            });
+          } else {
+            checklist.push({
+              id: `${def.id}_dec_${dec}`,
+              name: `Década de ${dec}s`,
+              required: 1,
+              current: 0,
+              conquered: false,
+              extra_info: `🔒 Pendente (filme dos anos ${dec} c/ tag [${reqTag}])`,
+            });
+          }
+        }
+
+        progressCurrent = countDecades;
+        isMet = progressCurrent >= progressTarget;
+        break;
+      }
+
+      case 'genres_or_decade_range_count': {
+        const genres: string[] = def.target_metadata?.genres || ['Ação', 'Aventura'];
+        const minYear = Number(def.target_metadata?.minYear || 1980);
+        const maxYear = Number(def.target_metadata?.maxYear || 1989);
+        const matchingMovies = catalogMovies.filter((m: any) => {
+          const hasAnyGenre = genres.some((g: string) => movieHasGenre(m, g));
+          if (!hasAnyGenre) return false;
+          const y = getMovieReleaseYear(m);
+          return y !== null && y >= minYear && y <= maxYear;
+        });
+        progressTarget = def.target_value;
+        const res = buildMovieSlotsChecklist(
+          matchingMovies,
+          progressTarget,
+          (m: any) => {
+            const matched = genres.filter((g: string) => movieHasGenre(m, g)).join('/');
+            return `${matched} (${m.release_year})`;
+          },
+          `Pendente: ${genres.join(' ou ')} (${minYear}-${maxYear})`
+        );
+        progressCurrent = res.progressCurrent;
+        checklist.push(...res.checklist);
+        isMet = progressCurrent >= progressTarget;
+        break;
+      }
+
+      case 'multi_critic_range_count': {
+        const digit = Number(def.target_metadata?.digit || 6);
+        const minMetrics = Number(def.target_metadata?.minDistinctMetrics || 3);
+        const matchingMovies = catalogMovies.filter((m: any) => {
+          const { ur, imdb, mc, rt } = extractCriticMetrics(m);
+          const urMillis = ur !== null ? Math.round(ur * 1000) : null;
+          const inRt = rt !== null && rt >= digit * 10 && rt <= digit * 10 + 9;
+          const inMc = mc !== null && mc >= digit * 10 && mc <= digit * 10 + 9;
+          const inImdb = imdb !== null && imdb >= digit && imdb < digit + 1;
+          const inUr = urMillis !== null && urMillis >= digit * 1000 && urMillis <= digit * 1000 + 999;
+          const count = (inRt ? 1 : 0) + (inMc ? 1 : 0) + (inImdb ? 1 : 0) + (inUr ? 1 : 0);
+          return count >= minMetrics;
+        });
+        progressTarget = def.target_value;
+        const res = buildMovieSlotsChecklist(
+          matchingMovies,
+          progressTarget,
+          (m: any) => {
+            const { ur, imdb, mc, rt } = extractCriticMetrics(m);
+            const urMillis = ur !== null ? Math.round(ur * 1000) : null;
+            const parts: string[] = [];
+            if (rt !== null && rt >= digit * 10 && rt <= digit * 10 + 9) parts.push(`RT: ${rt}%`);
+            if (mc !== null && mc >= digit * 10 && mc <= digit * 10 + 9) parts.push(`MC: ${mc}`);
+            if (imdb !== null && imdb >= digit && imdb < digit + 1) parts.push(`IMDb: ${imdb.toFixed(1)}`);
+            if (urMillis !== null && urMillis >= digit * 1000 && urMillis <= digit * 1000 + 999) parts.push(`Nota: ${ur!.toFixed(3)}`);
+            return parts.join(' | ');
+          },
+          `Pendente: filme com 3+ notas na faixa do ${digit}`
+        );
+        progressCurrent = res.progressCurrent;
+        checklist.push(...res.checklist);
+        isMet = progressCurrent >= progressTarget;
+        break;
+      }
+
+      case 'genre_and_tag_and_any_tag': {
+        const reqGenre = def.target_metadata?.genre || 'Drama';
+        const reqTag = def.target_metadata?.requiredTag || 'Em Família';
+        const orTags: string[] = def.target_metadata?.orTags || ['Abuso Familiar', 'Preconceito'];
+        const matchingMovies = catalogMovies.filter((m: any) => {
+          if (!movieHasGenre(m, reqGenre)) return false;
+          if (!movieHasTag(m, reqTag)) return false;
+          return orTags.some((t: string) => movieHasTag(m, t));
+        });
+        progressTarget = def.target_value;
+        const res = buildMovieSlotsChecklist(
+          matchingMovies,
+          progressTarget,
+          (m: any) => {
+            const matchedOr = orTags.find((t: string) => movieHasTag(m, t)) || 'Tag';
+            return `${reqGenre} + [${reqTag}] + [${matchedOr}]`;
+          },
+          `Pendente: ${reqGenre} com [${reqTag}] e [${orTags.join(' ou ')}]`
+        );
+        progressCurrent = res.progressCurrent;
+        checklist.push(...res.checklist);
+        isMet = progressCurrent >= progressTarget;
+        break;
+      }
+
+      case 'genres_or_and_tags_and': {
+        const genres: string[] = def.target_metadata?.genres || ['Terror', 'Suspense'];
+        const requiredTags: string[] = def.target_metadata?.requiredTags || ['Trágico', 'Final Epico'];
+        const matchingMovies = catalogMovies.filter((m: any) => {
+          const hasAnyGenre = genres.some((g: string) => movieHasGenre(m, g));
+          if (!hasAnyGenre) return false;
+          return requiredTags.every((t: string) => movieHasTag(m, t));
+        });
+        progressTarget = def.target_value;
+        const res = buildMovieSlotsChecklist(
+          matchingMovies,
+          progressTarget,
+          (m: any) => {
+            const matchedGenre = genres.find((g: string) => movieHasGenre(m, g)) || 'Gênero';
+            return `${matchedGenre} | [${requiredTags.join(' + ')}]`;
+          },
+          `Pendente: ${genres.join(' ou ')} com tags [${requiredTags.join(' e ')}]`
+        );
+        progressCurrent = res.progressCurrent;
+        checklist.push(...res.checklist);
+        isMet = progressCurrent >= progressTarget;
+        break;
+      }
+
+      case 'genre_and_tags_or_max_rating': {
+        const reqGenre = def.target_metadata?.genre || 'Ficção Científica';
+        const orTags: string[] = def.target_metadata?.orTags || ['Dystopia', 'Viagem no Tempo'];
+        const rawMax = def.target_metadata?.maxRating || 5000;
+        const maxRatingMillis = rawMax > 10 ? rawMax : Math.round(rawMax * 1000);
+        const matchingMovies = catalogMovies.filter((m: any) => {
+          if (!movieHasGenre(m, reqGenre)) return false;
+          const hasOrTag = orTags.some((t: string) => movieHasTag(m, t));
+          if (!hasOrTag) return false;
+          const { ur } = extractCriticMetrics(m);
+          const urMillis = ur !== null ? Math.round(ur * 1000) : null;
+          return urMillis !== null && urMillis < maxRatingMillis;
+        });
+        progressTarget = def.target_value;
+        const res = buildMovieSlotsChecklist(
+          matchingMovies,
+          progressTarget,
+          (m: any) => {
+            const matchedTag = orTags.find((t: string) => movieHasTag(m, t)) || 'Tag';
+            const { ur } = extractCriticMetrics(m);
+            return `${reqGenre} [${matchedTag}] | Minha Nota: ${ur !== null ? ur.toFixed(3) : '-'}`;
+          },
+          `Pendente: ${reqGenre} c/ [${orTags.join(' ou ')}] e Minha Nota < ${(maxRatingMillis / 1000).toFixed(1)}`
+        );
+        progressCurrent = res.progressCurrent;
+        checklist.push(...res.checklist);
+        isMet = progressCurrent >= progressTarget;
+        break;
+      }
+
+      case 'stealth_suspense_crime_count': {
+        const incGenres: string[] = def.target_metadata?.includeGenres || ['Suspense', 'Crime'];
+        const incTags: string[] = def.target_metadata?.includeTags || ['Fatos reais', 'Sequestro'];
+        const excGenres: string[] = def.target_metadata?.excludeGenres || ['Ação'];
+        const excTags: string[] = def.target_metadata?.excludeTags || ['Gore'];
+
+        const matchingMovies = catalogMovies.filter((m: any) => {
+          const hasIncGenre = incGenres.some((g: string) => movieHasGenre(m, g));
+          if (!hasIncGenre) return false;
+          const hasIncTag = incTags.some((t: string) => movieHasTag(m, t));
+          if (!hasIncTag) return false;
+          const hasExcGenre = excGenres.some((g: string) => movieHasGenre(m, g));
+          if (hasExcGenre) return false;
+          const hasExcTag = excTags.some((t: string) => movieHasTag(m, t));
+          if (hasExcTag) return false;
+          return true;
+        });
+        progressTarget = def.target_value;
+        const res = buildMovieSlotsChecklist(
+          matchingMovies,
+          progressTarget,
+          (m: any) => {
+            const g = incGenres.find((genre: string) => movieHasGenre(m, genre)) || 'Gênero';
+            const t = incTags.find((tag: string) => movieHasTag(m, tag)) || 'Tag';
+            return `${g} + [${t}] (Sem Ação/Gore)`;
+          },
+          `Pendente: Suspense/Crime com [${incTags.join(' ou ')}] (sem Ação e sem Gore)`
+        );
+        progressCurrent = res.progressCurrent;
+        checklist.push(...res.checklist);
+        isMet = progressCurrent >= progressTarget;
+        break;
+      }
+
+      case 'genre_max_runtime_count': {
+        const reqGenre = def.target_metadata?.genre || 'Ação';
+        const maxRuntime = Number(def.target_metadata?.maxRuntime || 90);
+        const matchingMovies = catalogMovies.filter((m: any) => {
+          if (!movieHasGenre(m, reqGenre)) return false;
+          const r = getMovieRuntime(m);
+          return r > 0 && r <= maxRuntime;
+        });
+        progressTarget = def.target_value;
+        const res = buildMovieSlotsChecklist(
+          matchingMovies,
+          progressTarget,
+          (m: any) => `${reqGenre} (${getMovieRuntime(m)} min)`,
+          `Pendente: ${reqGenre} com até ${maxRuntime} min`
+        );
+        progressCurrent = res.progressCurrent;
+        checklist.push(...res.checklist);
+        isMet = progressCurrent >= progressTarget;
+        break;
+      }
+
+      case 'tag_max_rating_count': {
+        const reqTag = def.target_metadata?.tag || 'Fatos reais';
+        const rawMax = def.target_metadata?.maxRating || 6000;
+        const maxRatingMillis = rawMax > 10 ? rawMax : Math.round(rawMax * 1000);
+        const matchingMovies = catalogMovies.filter((m: any) => {
+          if (!movieHasTag(m, reqTag)) return false;
+          const { ur } = extractCriticMetrics(m);
+          const urMillis = ur !== null ? Math.round(ur * 1000) : null;
+          return urMillis !== null && urMillis < maxRatingMillis;
+        });
+        progressTarget = def.target_value;
+        const res = buildMovieSlotsChecklist(
+          matchingMovies,
+          progressTarget,
+          (m: any) => {
+            const { ur } = extractCriticMetrics(m);
+            return `Tag [${reqTag}] | Minha Nota: ${ur !== null ? ur.toFixed(3) : '-'}`;
+          },
+          `Pendente: [${reqTag}] com Minha Nota < ${(maxRatingMillis / 1000).toFixed(1)}`
+        );
+        progressCurrent = res.progressCurrent;
+        checklist.push(...res.checklist);
+        isMet = progressCurrent >= progressTarget;
+        break;
+      }
+
+      case 'bomba_ray_tracing_count': {
+        const genres: string[] = def.target_metadata?.genres || ['Ficção Científica', 'Ação'];
+        const minYear = Number(def.target_metadata?.minYear || 2021);
+        const minReviews = Number(def.target_metadata?.minGlobalReviews || 500000);
+        const rawMax = def.target_metadata?.maxRating || 5000;
+        const maxRatingMillis = rawMax > 10 ? rawMax : Math.round(rawMax * 1000);
+
+        const matchingMovies = catalogMovies.filter((m: any) => {
+          const hasAnyGenre = genres.some((g: string) => movieHasGenre(m, g));
+          if (!hasAnyGenre) return false;
+          const y = getMovieReleaseYear(m);
+          if (y === null || y < minYear) return false;
+          const { ur, gr } = extractCriticMetrics(m);
+          if (gr === null || gr <= minReviews) return false;
+          const urMillis = ur !== null ? Math.round(ur * 1000) : null;
+          return urMillis !== null && urMillis < maxRatingMillis;
+        });
+        progressTarget = def.target_value;
+        const res = buildMovieSlotsChecklist(
+          matchingMovies,
+          progressTarget,
+          (m: any) => {
+            const { ur, gr } = extractCriticMetrics(m);
+            return `${m.release_year} | Reviews: ${gr?.toLocaleString('pt-BR')} | Minha Nota: ${ur !== null ? ur.toFixed(3) : '-'}`;
+          },
+          `Pendente: Ficção/Ação >= ${minYear} c/ > ${minReviews.toLocaleString('pt-BR')} reviews e Nota < ${(maxRatingMillis / 1000).toFixed(1)}`
+        );
+        progressCurrent = res.progressCurrent;
+        checklist.push(...res.checklist);
+        isMet = progressCurrent >= progressTarget;
+        break;
+      }
+
+      case 'cinema_specific_months_count': {
+        const months: number[] = def.target_metadata?.months || [2, 3, 9];
+        const matchingMovies = catalogMovies.filter((m: any) => {
+          const plat = getMoviePlatform(m);
+          return isCinema(plat) && movieInMonth(m, months);
+        });
+        progressTarget = def.target_value;
+        const res = buildMovieSlotsChecklist(
+          matchingMovies,
+          progressTarget,
+          (m: any) => {
+            const mIdx = Number(m.month_seen);
+            return `Cinema em ${MONTH_NAMES[mIdx] || `Mês ${mIdx}`}`;
+          },
+          `Pendente: Filme no Cinema em Fevereiro, Março ou Setembro`
         );
         progressCurrent = res.progressCurrent;
         checklist.push(...res.checklist);
