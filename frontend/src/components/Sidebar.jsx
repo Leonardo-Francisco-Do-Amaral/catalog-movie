@@ -329,6 +329,24 @@ export default function Sidebar({
                 📊 Estatísticas
               </button>
             </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('avatar_lab');
+                setIsOpen(false);
+              }}
+              className={`w-full py-2 text-[9px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer flex items-center justify-center gap-1.5 ${
+                activeTab === 'avatar_lab'
+                  ? 'bg-purple-500 text-slate-950 font-black shadow-md shadow-purple-500/20'
+                  : 'text-purple-300/80 hover:text-purple-200 bg-purple-500/10 hover:bg-purple-500/15'
+              }`}
+            >
+              <span>🍿 Avatar Lab</span>
+              <span className="text-[7px] bg-purple-400 text-slate-950 px-1 py-0.2 rounded font-black">
+                TESTE
+              </span>
+            </button>
           </div>
 
           {activeTab === 'catalog' ? (

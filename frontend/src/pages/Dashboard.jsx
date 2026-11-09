@@ -8,6 +8,7 @@ import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import WorldChallengePage from '../components/WorldChallengePage';
 import TimeMachinePage from '../components/TimeMachinePage';
 import TrophiesPage from './TrophiesPage';
+import AvatarLabPage from './AvatarLabPage';
 import PS5TrophyToastContainer, { triggerPS5TrophyToast, triggerTrophyBatch } from '../components/PS5TrophyToastContainer';
 import TimeMachineToastContainer from '../components/TimeMachineToastContainer';
 import XPGainToastContainer from '../components/XPGainToastContainer';
@@ -298,6 +299,18 @@ export default function Dashboard() {
     };
     window.addEventListener('cine-xp-status-sync', onExternalXpSync);
     return () => window.removeEventListener('cine-xp-status-sync', onExternalXpSync);
+  }, []);
+
+  useEffect(() => {
+    const checkHashTab = () => {
+      const h = window.location.hash.toLowerCase();
+      if (h === '#avatar' || h === '#avatar_lab') {
+        setActiveTab('avatar_lab');
+      }
+    };
+    checkHashTab();
+    window.addEventListener('hashchange', checkHashTab);
+    return () => window.removeEventListener('hashchange', checkHashTab);
   }, []);
 
   const checkTrophyUnlocks = useCallback(async (currentMovies = allMovies, forceAlerts = false) => {
@@ -829,6 +842,12 @@ export default function Dashboard() {
             <RefreshCw className="w-8 h-8 text-amber-500 animate-spin" />
             <span className="text-zinc-500 text-sm font-semibold tracking-wider uppercase">Carregando Catálogo...</span>
           </div>
+        ) : activeTab === 'avatar_lab' ? (
+          <AvatarLabPage
+            movies={allMovies}
+            xpStatus={xpStatus}
+            onBack={() => setActiveTab('catalog')}
+          />
         ) : activeTab === 'analytics' ? (
           <AnalyticsDashboard
             movies={allMovies}

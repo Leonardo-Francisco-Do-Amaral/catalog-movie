@@ -545,6 +545,24 @@ export default function TopNavbar({
             >
               ⏳ Máquina do Tempo
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('avatar_lab');
+                setOpenDropdown(null);
+              }}
+              className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'avatar_lab'
+                  ? 'bg-purple-500 text-slate-950 shadow-md shadow-purple-500/25'
+                  : 'text-purple-300/90 hover:text-purple-200 hover:bg-purple-500/10'
+              }`}
+            >
+              <span>🍿</span>
+              <span>Avatar Lab</span>
+              <span className="text-[8px] bg-purple-400 text-slate-950 px-1 py-0.2 rounded font-black tracking-wider">
+                TESTE
+              </span>
+            </button>
           </div>
         </div>
 
