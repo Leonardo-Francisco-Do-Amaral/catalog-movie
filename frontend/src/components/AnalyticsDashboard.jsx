@@ -141,6 +141,7 @@ export default function AnalyticsDashboard({
   const [isGrimoireOpen, setIsGrimoireOpen] = useState(false);
   const [equippedClassId, setEquippedClassId] = useState(null);
   const [grimoireSearch, setGrimoireSearch] = useState('');
+  const [showAttributeHelp, setShowAttributeHelp] = useState(false);
 
   const [liveXp, setLiveXp] = useState(xpStatusProp);
   const [trophiesList, setTrophiesList] = useState([]);
@@ -1054,12 +1055,12 @@ export default function AnalyticsDashboard({
                           {activeDisplayClass.tierLabel}
                         </span>
                         {activeDisplayClass.isCustomEquipped ? (
-                          <span className="text-[10px] font-mono font-bold text-amber-300 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30">
-                            Equipada Manual
+                          <span className="text-[10px] font-mono font-bold text-amber-300 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/40">
+                            Equipada Manualmente
                           </span>
                         ) : (
-                          <span className="text-[10px] font-mono font-bold text-emerald-300 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30">
-                            Build Ativa ({activeDisplayClass.affinityPct}% Afinidade)
+                          <span className="text-[10px] font-mono font-bold text-emerald-300 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40">
+                            Classe Atual (Desbloqueada)
                           </span>
                         )}
                       </div>
@@ -2443,7 +2444,7 @@ export default function AnalyticsDashboard({
         />
       )}
 
-      {/* MODAL DO GRIMÓRIO DAS 16 CLASSES CINÉFILAS */}
+      {/* MODAL DA TRILHA DE CLASSES CINÉFILAS */}
       {isGrimoireOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
           <div className="relative w-full max-w-4xl max-h-[90vh] bg-zinc-950 border border-amber-500/40 rounded-3xl shadow-2xl flex flex-col overflow-hidden">
@@ -2455,10 +2456,10 @@ export default function AnalyticsDashboard({
                 </div>
                 <div>
                   <h2 className="text-lg font-black text-white flex items-center gap-2">
-                    Grimório das 16 Classes Cinéfilas
+                    Trilha das 16 Classes Cinéfilas
                   </h2>
                   <p className="text-xs text-zinc-400">
-                    Classes exclusivas e cômicas calculadas com base na sua afinidade e hábitos de cinema
+                    Desbloqueie novas classes acumulando pontos de atributo na sua jornada. Você pode equipar qualquer classe já conquistada!
                   </p>
                 </div>
               </div>
@@ -2491,16 +2492,16 @@ export default function AnalyticsDashboard({
                     onClick={() => setEquippedClassId(null)}
                     className="font-black text-amber-400 hover:text-amber-300 underline cursor-pointer"
                   >
-                    Restaurar Classe Automática da Build
+                    Restaurar Mais Alta Desbloqueada
                   </button>
                 )}
                 <span className="font-mono text-zinc-400">
-                  {characterClass.allClasses?.length || 16} Classes Descobertas
+                  <strong className="text-amber-300">{characterClass.unlockedClassesCount || 11}</strong> / {characterClass.totalClassesCount || 16} Desbloqueadas
                 </span>
               </div>
             </div>
 
-            {/* Conteúdo do Grimório (Grid das 16 Classes) */}
+            {/* Conteúdo do Grimório (Grid das 16 Classes em Ordem de Desbloqueio) */}
             <div className="p-4 sm:p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4">
               {(characterClass.allClasses || [])
                 .filter((cls) => {
@@ -2516,77 +2517,264 @@ export default function AnalyticsDashboard({
                 })
                 .map((cls) => {
                   const isEquipped = activeDisplayClass.id === cls.id;
+                  const isUnlocked = cls.isUnlocked;
+
                   return (
                     <div
                       key={cls.id}
                       className={`rounded-2xl p-4 border flex flex-col justify-between gap-3 transition-all ${
-                        isEquipped
+                        !isUnlocked
+                          ? 'bg-zinc-950/40 border-zinc-800/40 opacity-55 border-dashed'
+                          : isEquipped
                           ? 'bg-amber-500/10 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
                           : 'bg-zinc-900/60 border-zinc-800/80 hover:border-zinc-700'
                       }`}
                     >
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-2.5">
                         <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2.5">
-                            <span className="text-2xl p-2 rounded-xl bg-zinc-950 border border-zinc-800">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className={`text-2xl p-2 rounded-xl bg-zinc-950 border ${isUnlocked ? 'border-zinc-800' : 'border-zinc-800/60 grayscale'}`}>
                               {cls.classIcon}
                             </span>
-                            <div>
-                              <span className="text-[10px] font-mono uppercase text-zinc-400 font-bold">
-                                {cls.archetype}
-                              </span>
-                              <h4 className="text-sm font-black text-white leading-tight">
+                            <div className="min-w-0">
+                              <h4 className="text-sm font-black text-white leading-tight truncate">
                                 {cls.className}
                               </h4>
+                              <p className="text-[11px] font-bold text-amber-300/90 truncate mt-0.5">
+                                {cls.titleFlavor}
+                              </p>
                             </div>
                           </div>
-                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-400/30 shrink-0">
-                            {cls.affinityPct}% Afinidade
+
+                          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border shrink-0 ${
+                            isUnlocked
+                              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/35'
+                              : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                          }`}>
+                            {isUnlocked ? `✅ Desbloqueada (${cls.unlockPts} pts)` : `🔒 Requer ${cls.unlockPts} pts`}
                           </span>
                         </div>
 
-                        <p className="text-[11px] font-bold text-amber-300">
-                          {cls.titleFlavor}
-                        </p>
-
-                        <p className="text-xs text-zinc-300 italic bg-zinc-950/60 rounded-xl p-2.5 border border-zinc-800/60">
+                        {/* Lore sem cortes */}
+                        <p className="text-xs text-zinc-300 italic bg-zinc-950/60 rounded-xl p-3 border border-zinc-800/60 leading-relaxed">
                           “{cls.lore}”
                         </p>
 
-                        <div className="text-[11px] flex flex-col gap-1 text-zinc-300">
-                          <div>
-                            <strong className="text-amber-400">🎬 Filme Favorito:</strong>{' '}
-                            <span className="text-zinc-200">{cls.favoriteMovie}</span>
+                        {/* Destaques sem cortes */}
+                        <div className="text-[11px] flex flex-col gap-2 text-zinc-300">
+                          <div className="rounded-xl bg-zinc-950/40 p-2.5 border border-zinc-800/40 flex flex-col gap-0.5">
+                            <span className="text-[10px] font-black uppercase text-amber-400">🎬 Filme Favorito / Relíquia:</span>
+                            <span className="text-zinc-100 font-medium leading-relaxed">{cls.favoriteMovie}</span>
                           </div>
-                          <div>
-                            <strong className="text-cyan-300">✨ Passiva:</strong>{' '}
-                            <span className="text-zinc-200">{cls.passiveSkill}</span>
+                          <div className="rounded-xl bg-zinc-950/40 p-2.5 border border-zinc-800/40 flex flex-col gap-0.5">
+                            <span className="text-[10px] font-black uppercase text-cyan-300">✨ Habilidade Passiva:</span>
+                            <span className="text-zinc-200 leading-relaxed">{cls.passiveSkill}</span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between">
-                        <span className="text-[10px] font-mono text-zinc-500">
-                          {isEquipped ? '✅ Atualmente em Uso' : 'Disponível no Grimório'}
+                      <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-mono text-zinc-400">
+                          {isUnlocked ? (
+                            isEquipped ? '👑 Atualmente Equipada' : 'Desbloqueada para uso'
+                          ) : (
+                            <span className="text-amber-400/90 font-bold">Faltam {cls.ptsRemaining} pts de atributo</span>
+                          )}
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEquippedClassId(cls.id);
-                            setIsGrimoireOpen(false);
-                          }}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer transition-all ${
-                            isEquipped
-                              ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
-                              : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700'
-                          }`}
-                        >
-                          {isEquipped ? 'Equipada' : 'Equipar Classe'}
-                        </button>
+
+                        {isUnlocked ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEquippedClassId(cls.id);
+                              setIsGrimoireOpen(false);
+                            }}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer transition-all ${
+                              isEquipped
+                                ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
+                                : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700'
+                            }`}
+                          >
+                            {isEquipped ? 'Equipada' : 'Equipar Classe'}
+                          </button>
+                        ) : (
+                          <span className="px-3 py-1.5 rounded-xl text-xs font-mono font-bold text-zinc-500 bg-zinc-900 border border-zinc-800 flex items-center gap-1 cursor-not-allowed">
+                            <Lock className="w-3 h-3" /> Bloqueada
+                          </span>
+                        )}
                       </div>
                     </div>
                   );
                 })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE EXPLICAÇÃO DAS FÓRMULAS DE ATRIBUTO (?) */}
+      {showAttributeHelp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="relative w-full max-w-3xl max-h-[90vh] bg-zinc-950 border border-amber-500/50 rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+            {/* Topo do Modal */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900/60">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-xl font-black text-amber-300">
+                  ?
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-white">
+                    Como Ganhar Cada Ponto de Atributo?
+                  </h2>
+                  <p className="text-xs text-zinc-400">
+                    Regras e métricas oficiais que calculam sua pontuação (0 a 99 em cada atributo)
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAttributeHelp(false)}
+                className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 cursor-pointer transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Conteúdo Explicativo das 6 Fórmulas */}
+            <div className="p-4 sm:p-6 overflow-y-auto flex flex-col gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {/* AGI */}
+                <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800 p-4 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-amber-300 flex items-center gap-1.5">
+                      <span>⚡</span> AGI • Vigor de Tela (Agilidade)
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-300">
+                      Máx 99 pts
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-300 leading-relaxed">
+                    Mede a sua resistência física e fôlego de maratona de cinema.
+                  </p>
+                  <div className="rounded-xl bg-zinc-950/80 p-2.5 border border-zinc-800/80 text-[11px] font-mono flex flex-col gap-1 text-zinc-300">
+                    <div>• <strong>+1 pt</strong> a cada <strong>8 horas</strong> de filmes assistidos (até 75 pts)</div>
+                    <div>• <strong>+0.8 pt</strong> por cada filme épico com <strong>&ge; 140 min</strong> (até 24 pts)</div>
+                  </div>
+                </div>
+
+                {/* INT */}
+                <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800 p-4 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-cyan-300 flex items-center gap-1.5">
+                      <span>🧠</span> INT • Sabedoria Temporal (Inteligência)
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-300">
+                      Máx 99 pts
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-300 leading-relaxed">
+                    Mede o seu alcance cronológico e conhecimento das eras da história.
+                  </p>
+                  <div className="rounded-xl bg-zinc-950/80 p-2.5 border border-zinc-800/80 text-[11px] font-mono flex flex-col gap-1 text-zinc-300">
+                    <div>• <strong>+0.78 pt</strong> por cada ano preenchido na <strong>Máquina do Tempo</strong> (1918–2026, até 85 pts)</div>
+                    <div>• <strong>+0.5 pt</strong> por cada filme lançado <strong>antes de 2000</strong> (até 14 pts)</div>
+                  </div>
+                </div>
+
+                {/* DES */}
+                <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800 p-4 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-emerald-300 flex items-center gap-1.5">
+                      <span>🌍</span> DES • Diplomacia Global (Destreza)
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-300">
+                      Máx 99 pts
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-300 leading-relaxed">
+                    Mede a sua leitura rápida de legendas e fuga do cinema tradicional.
+                  </p>
+                  <div className="rounded-xl bg-zinc-950/80 p-2.5 border border-zinc-800/80 text-[11px] font-mono flex flex-col gap-1 text-zinc-300">
+                    <div>• <strong>+1.23 pt</strong> para cada país catalogado no <strong>Desafio das 195 Nações da ONU</strong></div>
+                    <div>• Meta de 80 nações diferentes para atingir o teto de 99 pontos</div>
+                  </div>
+                </div>
+
+                {/* SOR */}
+                <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800 p-4 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-rose-300 flex items-center gap-1.5">
+                      <span>🎯</span> SOR • Olhar Clínico (Sorte / Precisão)
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-300">
+                      Máx 99 pts
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-300 leading-relaxed">
+                    Mede o volume do seu acervo e capacidade de garimpar obras.
+                  </p>
+                  <div className="rounded-xl bg-zinc-950/80 p-2.5 border border-zinc-800/80 text-[11px] font-mono flex flex-col gap-1 text-zinc-300">
+                    <div>• Base inicial garantida de <strong>34 pontos</strong></div>
+                    <div>• <strong>+0.21 pt</strong> para cada filme novo catalogado (meta de 300 filmes para atingir 99 pts)</div>
+                  </div>
+                </div>
+
+                {/* VIT */}
+                <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800 p-4 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-purple-300 flex items-center gap-1.5">
+                      <span>🛡️</span> VIT • Caça-Troféus PS5 (Vitalidade)
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-300">
+                      Máx 99 pts
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-300 leading-relaxed">
+                    Mede a sua taxa de conclusão e perseverança em busca de platinas.
+                  </p>
+                  <div className="rounded-xl bg-zinc-950/80 p-2.5 border border-zinc-800/80 text-[11px] font-mono flex flex-col gap-1 text-zinc-300">
+                    <div>• Pontuação calculada proporcionalmente ao total de troféus desbloqueados</div>
+                    <div>• Conquistar 82% dos troféus disponíveis do sistema garante os 99 pontos</div>
+                  </div>
+                </div>
+
+                {/* FOR */}
+                <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800 p-4 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-yellow-300 flex items-center gap-1.5">
+                      <span>👑</span> FOR • Prestígio Áureo (Força)
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-300">
+                      Máx 99 pts
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-300 leading-relaxed">
+                    Mede o impacto e aclamação solene das obras-primas da sua coleção.
+                  </p>
+                  <div className="rounded-xl bg-zinc-950/80 p-2.5 border border-zinc-800/80 text-[11px] font-mono flex flex-col gap-1 text-zinc-300">
+                    <div>• <strong>+0.7 pt</strong> por vitória de Oscar / <strong>+0.35 pt</strong> por indicação (até 60 pts)</div>
+                    <div>• <strong>+0.7 pt</strong> para cada obra avaliada com sua <strong>nota pessoal &ge; 9.000</strong> (até 39 pts)</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Box de Resumo da Progressão */}
+              <div className="rounded-2xl bg-gradient-to-r from-amber-500/15 via-purple-500/15 to-cyan-500/15 border border-amber-500/35 p-4 text-xs text-zinc-200 leading-relaxed">
+                <span className="font-black text-amber-300 uppercase tracking-wider block mb-1">
+                  🌟 O que a soma total de pontos desbloqueia?
+                </span>
+                A soma dos seus 6 atributos (máximo de 594 pontos) eleva seus <strong>7 Graus de Evolução de Classe</strong> (Aprendiz &rarr; Aventureiro &rarr; Veterano &rarr; Transclasse &rarr; 3ª Evolução &rarr; Hiperclasse &rarr; Entidade Cósmica) e destrava progressivamente todas as <strong>16 Classes Cinéfilas</strong> na sua Trilha!
+              </div>
+            </div>
+
+            {/* Rodapé do Modal */}
+            <div className="px-6 py-3 border-t border-zinc-800 bg-zinc-900/40 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowAttributeHelp(false)}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase tracking-wider cursor-pointer transition-all"
+              >
+                Entendido!
+              </button>
             </div>
           </div>
         </div>

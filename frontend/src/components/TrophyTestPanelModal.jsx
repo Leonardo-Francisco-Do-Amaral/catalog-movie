@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Play, RefreshCw, RotateCcw, Sparkles, Check, AlertCircle, Clock, Sliders, Layers } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Play, RefreshCw, RotateCcw, Sparkles, Check, AlertCircle, Clock, Layers } from 'lucide-react';
 import {
   triggerPS5TrophyToast,
   triggerPS5ProgressToast,
@@ -70,18 +70,16 @@ export default function TrophyTestPanelModal({
   trophies = [],
   movies = [],
   onSyncSuccess,
-  onRefreshData,
+  _onRefreshData,
   onClose,
 }) {
-  if (isOpen === false) return null;
-
   const [selectedTrophyId, setSelectedTrophyId] = useState(trophies[0]?.id || '');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [toastSettings, setToastSettings] = useState(getToastSettings);
 
   // Fecha no ESC
-  React.useEffect(() => {
+  useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && onClose) {
         onClose();
@@ -90,6 +88,8 @@ export default function TrophyTestPanelModal({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
+
+  if (!isOpen) return null;
 
   const handleUpdateDurationUnlocked = (ms) => {
     const updated = { ...toastSettings, durationUnlocked: ms };
@@ -749,7 +749,7 @@ export default function TrophyTestPanelModal({
             </button>
 
             {/* Botões para testar animação da Barra de XP e Level Up */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 type="button"
               onClick={() =>
@@ -775,11 +775,16 @@ export default function TrophyTestPanelModal({
                     { type: 'country', icon: '🔵', label: '+45 XP País Raro (Suécia)', xp: 45, rarityOrTier: 'rare' },
                     { type: 'trophy', icon: '🥈', label: '+25 XP Troféu Prata', xp: 25, rarityOrTier: 'silver' },
                   ],
+                  statGains: [
+                    { key: 'AGI', icon: '⚡', label: '+0.8 AGI' },
+                    { key: 'INT', icon: '🧠', label: '+1.0 INT' },
+                    { key: 'FOR', icon: '👑', label: '+0.7 FOR' },
+                  ],
                 })
               }
               className="p-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-[11px] font-black uppercase tracking-wider flex items-center justify-between cursor-pointer transition-all"
             >
-              <span>✨ Simular +135 XP (Barra)</span>
+              <span>✨ +135 XP (Barra)</span>
               <Play className="w-3.5 h-3.5" />
             </button>
 
@@ -807,11 +812,54 @@ export default function TrophyTestPanelModal({
                     { type: 'country', icon: '🥇', label: '+100 XP País Lendário', xp: 100, rarityOrTier: 'legendary' },
                     { type: 'trophy', icon: '🥇', label: '+70 XP Troféu Ouro', xp: 70, rarityOrTier: 'gold' },
                   ],
+                  statGains: [
+                    { key: 'DES', icon: '🎯', label: '+1.2 DES' },
+                    { key: 'VIT', icon: '🏆', label: '+1.5 VIT' },
+                  ],
                 })
               }
               className="p-2 rounded-xl border border-amber-400/50 bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 text-[11px] font-black uppercase tracking-wider flex items-center justify-between cursor-pointer transition-all"
             >
-              <span>🎉 Simular LEVEL UP!</span>
+              <span>🎉 LEVEL UP!</span>
+              <Play className="w-3.5 h-3.5" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                triggerXPGainToast({
+                  gainedXp: 210,
+                  prevTotalXp: 9100,
+                  nextTotalXp: 9310,
+                  prevLevel: 26,
+                  newLevel: 26,
+                  prevPercentage: 45,
+                  newPercentage: 82,
+                  leveledUp: false,
+                  levelsGained: 0,
+                  prevTitle: 'Você Já Deve Ter Visto Bastante a Mulher do Paul W.S. Anderson!',
+                  newTitle: 'Você Já Deve Ter Visto Bastante a Mulher do Paul W.S. Anderson!',
+                  titleChanged: false,
+                  xpInCurrentLevel: 310,
+                  xpNeededForNextLevel: 440,
+                  xpRemaining: 130,
+                  tags: [
+                    { type: 'movie', icon: '🎬', label: '+10 XP Obra Rara', xp: 10 },
+                    { type: 'trophy', icon: '💎', label: '+200 XP Troféu Mítico', xp: 200, rarityOrTier: 'mythic' },
+                  ],
+                  statGains: [
+                    { key: 'INT', icon: '🧠', label: '+1.5 INT' },
+                    { key: 'SOR', icon: '🎲', label: '+1.0 SOR' },
+                  ],
+                  unlockedClass: {
+                    name: 'O Monge das Três Casas Decimais',
+                    icon: '⚖️',
+                  },
+                })
+              }
+              className="p-2 rounded-xl border border-purple-400/50 bg-purple-500/15 hover:bg-purple-500/25 text-purple-200 text-[11px] font-black uppercase tracking-wider flex items-center justify-between cursor-pointer transition-all"
+            >
+              <span>👑 Nova Classe!</span>
               <Play className="w-3.5 h-3.5" />
             </button>
           </div>

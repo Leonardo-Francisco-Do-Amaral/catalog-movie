@@ -890,308 +890,201 @@ export const CHARACTER_TIERS = [
 
 export const ALL_CINEMA_CLASSES = [
   {
-    id: 'monge_tres_casas',
-    className: 'O Monge das Três Casas Decimais',
-    classIcon: '⚖️',
-    titleFlavor: 'Balança Micrométrica & Inimigo da Nota Redonda',
-    archetype: 'Crítico Matemático',
-    lore: 'Acha um absurdo notas inteiras ou meias estrelas. O verdadeiro sentido da sua vida cinéfila é deliberar calmamente se um longa merece um 8.742 ou um 8.745 no banco de dados.',
-    favoriteMovie: '2001: Uma Odisseia no Espaço (1968) (rigorosamente avaliado com um 9.948 porque a perfeição absoluta de 10.000 não existe).',
-    passiveSkill: 'Balança Micrométrica (imune a notas infladas da imprensa; detecta a menor inconsistência de montagem e desconta 0.015 pontos na hora).',
-  },
-  {
-    id: 'carnical_grindhouse',
-    className: 'O Carniçal do Grindhouse (Necromante do Gore)',
-    classIcon: '🩸',
-    titleFlavor: 'Necromante do Gore & Práticas de Borracha',
-    archetype: 'Terror Visceral',
-    lore: 'Se não voarem pelo menos cinquenta litros de sangue falso de xarope de milho nos primeiros vinte minutos de projeção, ele considera a obra um drama familiar.',
-    favoriteMovie: 'Uma Noite Alucinante 2 (Evil Dead II, 1987) ou O ABC da Morte (2013).',
-    passiveSkill: 'Estômago de Titânio (consegue jantar uma pizza inteira enquanto assiste a cenas viscerais com mutilação prática de borracha).',
-  },
-  {
-    id: 'corsario_sete_mares',
-    className: 'O Corsário dos Sete Mares',
-    classIcon: '🏴‍☠️',
-    titleFlavor: 'Navegador de Servidores Ocultos & Fontes Alternativas',
-    archetype: 'Explorador da Nuvem',
-    lore: 'Navega por servidores ocultos, nuvens misteriosas e fontes alternativas sem pegar um único vírus no sistema.',
-    favoriteMovie: 'Piratas do Caribe: A Maldição do Pérola Negra (2003) (ou qualquer arquivo de 800 MB rodando direto na nuvem).',
-    passiveSkill: 'VPN Espiritual (imune a travamentos de buffer, legendas dessincronizadas e telas pretas na metade do clímax).',
-  },
-  {
-    id: 'cavaleiro_laser_azul',
-    className: 'O Cavaleiro do Laser Azul (Guardião da Mídia Física)',
-    classIcon: '💿',
-    titleFlavor: 'Guardião do Acrílico Sagrado & Pureza do Dolby Atmos',
-    archetype: 'Audiófilo & Purista',
-    lore: 'Trata estojos de acrílico, encartes com luva e edições especiais como se fossem relíquias sagradas de museu. Para ele, compressão de bitrate de streaming é um crime inafiançável.',
-    favoriteMovie: 'Mad Max: Estrada da Fúria (2015) (rodando direto no leitor de Blu-ray com áudio Dolby Atmos no talo).',
-    passiveSkill: 'Armadura Anti-Risco (detecta artefatos visuais de compressão a 5 metros de distância e ganha bônus de foco ao manusear discos sem encostar nos dados).',
-  },
-  {
-    id: 'bardo_herbert_richers',
-    className: 'O Bardo de Herbert Richers (Menestrel da Dublagem Clássica)',
-    classIcon: '🎙️',
-    titleFlavor: 'Menestrel da Versão Brasileira & Nostalgia dos Anos 80/90',
-    archetype: 'Guardião da Voz',
-    lore: 'Conhece o elenco de dubladores de cabeça e sente uma dor física profunda quando um clássico dos anos 80 ou 90 ganha redublagem moderna na TV.',
-    favoriteMovie: 'Curtindo a Vida Adoidado (1986) (estritamente com a primeira dublagem clássica).',
-    passiveSkill: 'Afinador de Cordas Vocais (identifica a voz de dubladores lendários na primeira sílaba e ignora qualquer dessincronia labial original).',
-  },
-  {
-    id: 'cartografo_195_reinos',
-    className: 'O Cartógrafo dos 195 Reinos',
-    classIcon: '🧭',
-    titleFlavor: 'Geopolítico dos Dramas Islandeses & Fronteiras Raras',
-    archetype: 'Diplomata Global',
-    lore: 'Para ele, cinema em língua inglesa é café com leite. Ele só fica satisfeito quando encontra um drama existencial islandês de duas horas e meia onde dois pescadores encaram o gelo em silêncio.',
-    favoriteMovie: 'Coração de Pedra (2016) (ou qualquer produção obscura do Leste Europeu com coprodução de 4 países).',
-    passiveSkill: 'Bússola Geopolítica (aponta a capital de qualquer país raro no mapa-múndi instantaneamente sem precisar consultar o Google).',
+    id: 'andarilho_setima_arte',
+    unlockPts: 0,
+    className: 'Andarilho da Sétima Arte',
+    classIcon: '🎒',
+    titleFlavor: 'Explorador Híbrido de Sessões & Camaleão Cinéfilo',
+    lore: 'Um aventureiro versátil que transita entre blockbusters barulhentos e jóias cult escondidas sem preconceito algum.',
+    favoriteMovie: 'Cinema Paradiso (1988).',
+    passiveSkill: 'Mente Aberta: Aprecia desde filmes B de monstros até dramas europeus intimistas.',
   },
   {
     id: 'barbaro_imax',
+    unlockPts: 35,
     className: 'O Bárbaro do IMAX & Pipoca Doce',
     classIcon: '🍿',
     titleFlavor: 'Destruidor de Roteiros & Adorador de Robôs Gigantes',
-    archetype: 'Velocista de Ação',
     lore: 'Não quer saber de metáforas, cinema cult ou desenvolvimento de personagem. Ele entra na sala com o maior balde de pipoca disponível apenas para ver prédios desabando e robôs gigantes trocando socos.',
     favoriteMovie: 'Godzilla vs. Kong (2021) ou qualquer produção de Michael Bay com explosões práticas em tela cheia.',
     passiveSkill: 'Cegueira Roteirística (ignora completamente qualquer furo lógico na narrativa desde que o som surround faça a poltrona do cinema tremer).',
   },
   {
-    id: 'vampiro_madrugada',
-    className: 'O Vampiro da Madrugada (Guardião da Sessão Coruja)',
-    classIcon: '🦇',
-    titleFlavor: 'Soberano da Luz Azul & Madrugadas Silenciosas',
-    archetype: 'Criatura Noturna',
-    lore: 'A tela da sua TV só ganha vida depois que todo mundo em casa já foi dormir. Sua luz natural é o brilho escuro do painel da televisão enquanto o relógio passa das duas da manhã.',
-    favoriteMovie: 'Taxi Driver (1976) ou Drive (2011).',
-    passiveSkill: 'Visão Noturna (não sente cansaço visual no escuro total e ganha bônus de foco se o filme terminar exatamente quando o sol começar a nascer).',
-  },
-  {
-    id: 'sacerdote_cinefilo',
-    className: 'O Sacerdote Cinéfilo',
-    classIcon: '✝️',
-    titleFlavor: 'Exorcista de Demônios nas Telas em 4K',
-    archetype: 'Caçador Sobrenatural',
-    lore: 'Ele exorciza demônios direto na tela da TV junto com o padre. Já decorou todas as rezas em latim dos créditos iniciais e não teme assombração nem de madrugada com a luz apagada!',
-    favoriteMovie: 'O Exorcista (1973) e um terço benzido com água benta.',
-    passiveSkill: 'Água Benta Crítica: Imune a sustos baratos e jumpscares previsíveis.',
-  },
-  {
-    id: 'cacador_trufas',
-    className: 'Caçador de Trufas & Obras Obscuras',
-    classIcon: '🍄',
-    titleFlavor: 'Farejador de VHS Perdidos & Filmes Raros',
-    archetype: 'Arqueólogo do Cinema',
-    lore: 'Ele sabe onde encontrar os filmes mais underground e desconhecidos do planeta nas profundezas da internet, mas não dá a mínima garantia de qualidade a ninguém!',
-    favoriteMovie: 'Jogos Mortais (2004) ou um trash romeno obscuro de 1982.',
-    passiveSkill: 'Faro Subterrâneo: +50% de tolerância a filmes com menos de 100 avaliações no mundo.',
-  },
-  {
     id: 'sicario_telonas',
+    unlockPts: 70,
     className: 'Sicário das Telonas',
     classIcon: '⚡',
     titleFlavor: 'Velocista dos Créditos & Maratona Contínua',
-    archetype: 'Velocista Ágil',
     lore: 'Ele é tão rápido que quando você começou a ler este texto ele já viu um filme, pulou a abertura e já foi pros pós-créditos! Sua vida é um speedrun ininterrupto de sessões.',
     favoriteMovie: 'Qualquer curta de animação ou John Wick sem respirar.',
     passiveSkill: 'Passo Sombrio: Consegue emendar 4 filmes em sequência num sábado chuvoso sem cansaço.',
   },
   {
+    id: 'bardo_herbert_richers',
+    unlockPts: 105,
+    className: 'O Bardo de Herbert Richers (Menestrel da Dublagem Clássica)',
+    classIcon: '🎙️',
+    titleFlavor: 'Menestrel da Versão Brasileira & Nostalgia dos Anos 80/90',
+    lore: 'Conhece o elenco de dubladores de cabeça e sente uma dor física profunda quando um clássico dos anos 80 ou 90 ganha redublagem moderna na TV.',
+    favoriteMovie: 'Curtindo a Vida Adoidado (1986) (estritamente com a primeira dublagem clássica).',
+    passiveSkill: 'Afinador de Cordas Vocais (identifica a voz de dubladores lendários na primeira sílaba e ignora qualquer dessincronia labial original).',
+  },
+  {
+    id: 'corsario_sete_mares',
+    unlockPts: 140,
+    className: 'O Corsário dos Sete Mares',
+    classIcon: '🏴‍☠️',
+    titleFlavor: 'Navegador de Servidores Ocultos & Fontes Alternativas',
+    lore: 'Navega por servidores ocultos, nuvens misteriosas e fontes alternativas sem pegar um único vírus no sistema.',
+    favoriteMovie: 'Piratas do Caribe: A Maldição do Pérola Negra (2003) (ou qualquer arquivo de 800 MB rodando direto na nuvem).',
+    passiveSkill: 'VPN Espiritual (imune a travamentos de buffer, legendas dessincronizadas e telas pretas na metade do clímax).',
+  },
+  {
+    id: 'vampiro_madrugada',
+    unlockPts: 180,
+    className: 'O Vampiro da Madrugada (Guardião da Sessão Coruja)',
+    classIcon: '🦇',
+    titleFlavor: 'Soberano da Luz Azul & Madrugadas Silenciosas',
+    lore: 'A tela da sua TV só ganha vida depois que todo mundo em casa já foi dormir. Sua luz natural é o brilho escuro do painel da televisão enquanto o relógio passa das duas da manhã.',
+    favoriteMovie: 'Taxi Driver (1976) ou Drive (2011).',
+    passiveSkill: 'Visão Noturna (não sente cansaço visual no escuro total e ganha bônus de foco se o filme terminar exatamente quando o sol começar a nascer).',
+  },
+  {
+    id: 'carnical_grindhouse',
+    unlockPts: 220,
+    className: 'O Carniçal do Grindhouse (Necromante do Gore)',
+    classIcon: '🩸',
+    titleFlavor: 'Necromante do Gore & Práticas de Borracha',
+    lore: 'Se não voarem pelo menos cinquenta litros de sangue falso de xarope de milho nos primeiros vinte minutos de projeção, ele considera a obra um drama familiar.',
+    favoriteMovie: 'Uma Noite Alucinante 2 (Evil Dead II, 1987) ou O ABC da Morte (2013).',
+    passiveSkill: 'Estômago de Titânio (consegue jantar uma pizza inteira enquanto assiste a cenas viscerais com mutilação prática de borracha).',
+  },
+  {
+    id: 'cacador_trufas',
+    unlockPts: 260,
+    className: 'Caçador de Trufas & Obras Obscuras',
+    classIcon: '🍄',
+    titleFlavor: 'Farejador de VHS Perdidos & Filmes Raros',
+    lore: 'Ele sabe onde encontrar os filmes mais underground e desconhecidos do planeta nas profundezas da internet, mas não dá a mínima garantia de qualidade a ninguém!',
+    favoriteMovie: 'Jogos Mortais (2004) ou um trash romeno obscuro de 1982.',
+    passiveSkill: 'Faro Subterrâneo: +50% de tolerância a filmes com menos de 100 avaliações no mundo.',
+  },
+  {
+    id: 'cartografo_195_reinos',
+    unlockPts: 300,
+    className: 'O Cartógrafo dos 195 Reinos',
+    classIcon: '🧭',
+    titleFlavor: 'Geopolítico dos Dramas Islandeses & Fronteiras Raras',
+    lore: 'Para ele, cinema em língua inglesa é café com leite. Ele só fica satisfeito quando encontra um drama existencial islandês de duas horas e meia onde dois pescadores encaram o gelo em silêncio.',
+    favoriteMovie: 'Coração de Pedra (2016) (ou qualquer produção obscura do Leste Europeu com coprodução de 4 países).',
+    passiveSkill: 'Bússola Geopolítica (aponta a capital de qualquer país raro no mapa-múndi instantaneamente sem precisar consultar o Google).',
+  },
+  {
+    id: 'sacerdote_cinefilo',
+    unlockPts: 330,
+    className: 'O Sacerdote Cinéfilo',
+    classIcon: '✝️',
+    titleFlavor: 'Exorcista de Demônios nas Telas em 4K',
+    lore: 'Ele exorciza demônios direto na tela da TV junto com o padre. Já decorou todas as rezas em latim dos créditos iniciais e não teme assombração nem de madrugada com a luz apagada!',
+    favoriteMovie: 'O Exorcista (1973) e um terço benzido com água benta.',
+    passiveSkill: 'Água Benta Crítica: Imune a sustos baratos e jumpscares previsíveis.',
+  },
+  {
+    id: 'monge_tres_casas',
+    unlockPts: 360,
+    className: 'O Monge das Três Casas Decimais',
+    classIcon: '⚖️',
+    titleFlavor: 'Balança Micrométrica & Inimigo da Nota Redonda',
+    lore: 'Acha um absurdo notas inteiras ou meias estrelas. O verdadeiro sentido da sua vida cinéfila é deliberar calmamente se um longa merece um 8.742 ou um 8.745 no banco de dados.',
+    favoriteMovie: '2001: Uma Odisseia no Espaço (1968) (rigorosamente avaliado com um 9.948 porque a perfeição absoluta de 10.000 não existe).',
+    passiveSkill: 'Balança Micrométrica (imune a notas infladas da imprensa; detecta a menor inconsistência de montagem e desconta 0.015 pontos na hora).',
+  },
+  {
+    id: 'cavaleiro_laser_azul',
+    unlockPts: 400,
+    className: 'O Cavaleiro do Laser Azul (Guardião da Mídia Física)',
+    classIcon: '💿',
+    titleFlavor: 'Guardião do Acrílico Sagrado & Pureza do Dolby Atmos',
+    lore: 'Trata estojos de acrílico, encartes com luva e edições especiais como se fossem relíquias sagradas de museu. Para ele, compressão de bitrate de streaming é um crime inafiançável.',
+    favoriteMovie: 'Mad Max: Estrada da Fúria (2015) (rodando direto no leitor de Blu-ray com áudio Dolby Atmos no talo).',
+    passiveSkill: 'Armadura Anti-Risco (detecta artefatos visuais de compressão a 5 metros de distância e ganha bônus de foco ao manusear discos sem encostar nos dados).',
+  },
+  {
     id: 'algoz_tomatometro',
+    unlockPts: 440,
     className: 'Algoz do Tomatômetro',
     classIcon: '🎯',
     titleFlavor: 'Julgamento Implacável do Selo Podre',
-    archetype: 'Crítico Feroz',
     lore: 'Possui uma precisão visual e crítica fora do comum. Se o microfone do boom aparecer por 1 frame no canto superior da tela, a nota da obra despenca sem dó!',
     favoriteMovie: 'Pulp Fiction (1994) e uma caneta bic vermelha de crítico.',
     passiveSkill: 'Golpe Crítico: Avaliações com exatidão milimétrica e tolerância zero a clichês de roteiro.',
   },
   {
+    id: 'gladiador_ps5',
+    unlockPts: 480,
+    className: 'Gladiador Platinador de Ferro',
+    classIcon: '🛡️',
+    titleFlavor: 'Colecionador de Notificações & Carrasco de Platina',
+    lore: 'Não assiste filmes apenas por lazer: assiste pelo som sagrado do troféu pipocando no canto da tela! Se faltar 1 filme para fechar a Trilogia ou a Categoria, ele não dorme.',
+    favoriteMovie: 'Qualquer filme que conceda troféu Mítico ou Ouro no catálogo.',
+    passiveSkill: 'Bexiga de Aço: Suporta maratonas de 4 horas sem pausar para ir ao banheiro.',
+  },
+  {
     id: 'arquimago_tempo',
+    unlockPts: 520,
     className: 'Arquimago da Máquina do Tempo',
     classIcon: '🧙‍♂️',
     titleFlavor: 'Manipulador do Continuum Espaço-Temporal',
-    archetype: 'Historiador Cósmico',
     lore: 'Capaz de transitar de 1920 até os lançamentos de 2027 como se pegasse o metrô. Já viu clássicos mudos soviéticos e discute direção de arte clássica com a calma de um sábio ancião!',
     favoriteMovie: 'De Volta Para o Futuro (1985) ou Metrópolis (1927).',
     passiveSkill: 'Teleporte Cronológico: +50% de sabedoria ao encarar filmes gravados antes da invenção da cor.',
   },
   {
     id: 'paladino_oscar',
+    unlockPts: 560,
     className: 'Paladino do Santo Oscar',
     classIcon: '👑',
     titleFlavor: 'Guardião Implacável das Obras-Primas Intocáveis',
-    archetype: 'Cavaleiro Dourado',
     lore: 'Ele só aperta o play se a fita vier abençoada por estatuetas douradas da Academia e nota pessoal 9.5+. Se o filme não for considerado arte suprema pela humanidade, ele nem clica!',
     favoriteMovie: 'O Poderoso Chefão (1972) com moldura dourada e água benta.',
     passiveSkill: 'Aura da Academia: +40% de pompa e solenidade em discussões cult de bar.',
   },
-  {
-    id: 'gladiador_ps5',
-    className: 'Gladiador Platinador de Ferro',
-    classIcon: '🛡️',
-    titleFlavor: 'Colecionador de Notificações & Carrasco de Platina',
-    archetype: 'Caçador de Conquistas',
-    lore: 'Não assiste filmes apenas por lazer: assiste pelo som sagrado do troféu pipocando no canto da tela! Se faltar 1 filme para fechar a Trilogia ou a Categoria, ele não dorme.',
-    favoriteMovie: 'Qualquer filme que conceda troféu Mítico ou Ouro no catálogo.',
-    passiveSkill: 'Bexiga de Aço: Suporta maratonas de 4 horas sem pausar para ir ao banheiro.',
-  },
-  {
-    id: 'andarilho_setima_arte',
-    className: 'Andarilho da Sétima Arte',
-    classIcon: '🎒',
-    titleFlavor: 'Explorador Híbrido de Sessões & Camaleão Cinéfilo',
-    archetype: 'Aventureiro Livre',
-    lore: 'Um aventureiro versátil que transita entre blockbusters barulhentos e jóias cult escondidas sem preconceito algum.',
-    favoriteMovie: 'Cinema Paradiso (1988).',
-    passiveSkill: 'Mente Aberta: Aprecia desde filmes B de monstros até dramas europeus intimistas.',
-  },
 ];
 
-export function determineCharacterClass(attributes = [], totalStats = 0, movies = []) {
-  const sorted = [...attributes].sort((a, b) => b.score - a.score);
-  const primary = sorted[0]?.key || 'SOR';
-  const secondary = sorted[1]?.key || 'FOR';
-  const statMap = Object.fromEntries(attributes.map((a) => [a.key, a.score]));
-
-  // Métricas extraídas do catálogo real
-  let threeDecimalsCount = 0;
-  let goreOrHorrorCount = 0;
-  let dubladoCount = 0;
-  let rareCountryCount = 0;
-  let physicalBluRayOrDolbyCount = 0;
-  let pirateOrAltSourceCount = 0;
-  let actionImaxBoomCount = 0;
-  let nightSessaoCorujaCount = 0;
-  let demonExorcismCount = 0;
-  let undergroundCount = 0;
-
-  movies.forEach((m) => {
-    const ur = Number(m.user_rating);
-    const urStr = String(m.user_rating || '');
-    if (urStr.includes('.') && urStr.split('.')[1]?.length >= 2) {
-      threeDecimalsCount++;
-    }
-
-    const tags = (m.tags || []).map((t) => String(t).toLowerCase());
-    const genres = (m.genres || []).map((g) => String(g).toLowerCase());
-    const title = String(m.title || '').toLowerCase();
-    const notes = String(m.notes || m.comments || m.review || '').toLowerCase();
-
-    // Gore / Grindhouse
-    if (
-      tags.some((t) => t.includes('gore') || t.includes('slasher') || t.includes('canibal') || t.includes('zumbi') || t.includes('trash') || t.includes('mutilação')) ||
-      (genres.includes('terror') && tags.some((t) => t.includes('sangue') || t.includes('visceral') || t.includes('morte'))) ||
-      title.includes('evil dead') || title.includes('abc da morte') || title.includes('jogos mortais')
-    ) {
-      goreOrHorrorCount++;
-    }
-
-    // Herbert Richers (Dublagem)
-    const audio = String(m.audio_track || m.audio || m.language || '').toLowerCase();
-    if (audio.includes('dublado') || audio.includes('pt-br') || audio.includes('português') || audio.includes('portugues')) {
-      dubladoCount++;
-    }
-
-    // Países raros fora de EUA, Brasil e Reino Unido
-    const countries = (m.production_countries || m.countries || []).map((c) => String(c).toLowerCase());
-    const isMainstreamCountry = countries.every((c) => c.includes('estados unidos') || c.includes('brasil') || c.includes('united states') || c.includes('reino unido'));
-    if (!isMainstreamCountry && countries.length > 0) {
-      rareCountryCount++;
-    }
-
-    // Cavaleiro do Laser Azul (Mídia física, 4K, Dolby Atmos, obras técnicas)
-    if (
-      notes.includes('blu-ray') || notes.includes('bluray') || notes.includes('mídia física') || notes.includes('4k') ||
-      notes.includes('dolby') || notes.includes('steelbook') || (genres.includes('ação') && ur >= 9.0)
-    ) {
-      physicalBluRayOrDolbyCount++;
-    }
-
-    // Corsário dos Sete Mares (Nuvens, servidores, fontes alternativas)
-    if (
-      notes.includes('drive') || notes.includes('nuvem') || notes.includes('torrent') || notes.includes('stremio') ||
-      notes.includes('servidor') || tags.includes('pirata') || title.includes('piratas do caribe')
-    ) {
-      pirateOrAltSourceCount++;
-    }
-
-    // Bárbaro do IMAX (Blockbusters, explosões, robôs)
-    if (
-      (genres.includes('ação') || genres.includes('ficção científica') || genres.includes('aventura')) &&
-      (tags.some((t) => t.includes('explosão') || t.includes('robô') || t.includes('monstro') || t.includes('herói') || t.includes('super-herói') || t.includes('kaiju')) ||
-      title.includes('godzilla') || title.includes('vingadores') || title.includes('kong') || title.includes('transformers'))
-    ) {
-      actionImaxBoomCount++;
-    }
-
-    // Vampiro da Madrugada (Suspense, Neo-Noir, Sessão Coruja, Drive, Taxi Driver)
-    if (
-      genres.includes('suspense') || genres.includes('crime') || tags.includes('noir') || tags.includes('neo-noir') ||
-      notes.includes('madrugada') || notes.includes('coruja') || title.includes('taxi driver') || title.includes('drive')
-    ) {
-      nightSessaoCorujaCount++;
-    }
-
-    // Sacerdote Cinéfilo (Demônio, exorcismo, fantasma)
-    if (
-      tags.includes('demônio') || tags.includes('demonio') || tags.includes('exorcismo') || tags.includes('fantasma') ||
-      (genres.includes('terror') && (tags.includes('sobrenatural') || tags.includes('bruxo'))) || title.includes('exorcista')
-    ) {
-      demonExorcismCount++;
-    }
-
-    // Caçador de Trufas (Obras raras com menos de 5000 votos)
-    if (Number(m.vote_count) > 0 && Number(m.vote_count) < 5000) {
-      undergroundCount++;
-    }
-  });
-
+export function determineCharacterClass(attributes = [], totalStats = 0, _movies = []) {
   // Graus de Evolução (Tiers)
-  const currentTier = CHARACTER_TIERS.find((t) => totalStats >= t.min && totalStats <= t.max) || CHARACTER_TIERS[CHARACTER_TIERS.length - 1];
+  const currentTier =
+    CHARACTER_TIERS.find((t) => totalStats >= t.min && totalStats <= t.max) ||
+    CHARACTER_TIERS[CHARACTER_TIERS.length - 1];
 
-  // Cálculo de afinidade detalhado para as 16 classes
-  const classAffinities = {
-    monge_tres_casas: Math.min(100, (threeDecimalsCount > 0 ? 55 : 0) + (threeDecimalsCount * 8) + Math.round((statMap.SOR || 0) * 0.35)),
-    carnical_grindhouse: Math.min(100, (goreOrHorrorCount * 22) + (statMap.AGI > 60 ? 15 : 0)),
-    corsario_sete_mares: Math.min(100, 35 + (pirateOrAltSourceCount * 25) + Math.round((statMap.SOR || 0) * 0.2)),
-    cavaleiro_laser_azul: Math.min(100, (physicalBluRayOrDolbyCount * 22) + Math.round((statMap.FOR || 0) * 0.35) + Math.round((statMap.AGI || 0) * 0.2)),
-    bardo_herbert_richers: Math.min(100, (dubladoCount > 0 ? 50 : 20) + (dubladoCount * 12) + Math.round((statMap.INT || 0) * 0.2)),
-    cartografo_195_reinos: Math.min(100, (rareCountryCount * 12) + Math.round((statMap.DES || 0) * 0.6)),
-    barbaro_imax: Math.min(100, (actionImaxBoomCount * 12) + Math.round((statMap.AGI || 0) * 0.45) + (primary === 'AGI' ? 20 : 0)),
-    vampiro_madrugada: Math.min(100, (nightSessaoCorujaCount * 10) + Math.round((statMap.SOR || 0) * 0.3) + 25),
-    sacerdote_cinefilo: Math.min(100, (demonExorcismCount * 25) + (primary === 'INT' || secondary === 'INT' ? 20 : 0)),
-    cacador_trufas: Math.min(100, (undergroundCount * 12) + Math.round((statMap.SOR || 0) * 0.4)),
-    sicario_telonas: Math.min(100, Math.round((statMap.AGI || 0) * 0.8) + (primary === 'AGI' ? 20 : 0)),
-    algoz_tomatometro: Math.min(100, Math.round((statMap.SOR || 0) * 0.6) + Math.round((statMap.FOR || 0) * 0.3)),
-    arquimago_tempo: Math.min(100, Math.round((statMap.INT || 0) * 0.75) + (primary === 'INT' ? 25 : 0)),
-    paladino_oscar: Math.min(100, Math.round((statMap.FOR || 0) * 0.75) + (primary === 'FOR' ? 25 : 0)),
-    gladiador_ps5: Math.min(100, Math.round((statMap.VIT || 0) * 0.8) + (primary === 'VIT' ? 20 : 0)),
-    andarilho_setima_arte: 40,
-  };
-
-  const rankedClasses = ALL_CINEMA_CLASSES.map((cls) => {
-    const affinity = classAffinities[cls.id] || 30;
+  // Avaliação do Desbloqueio Linear das Classes por Pontos Totais
+  const evaluatedClasses = ALL_CINEMA_CLASSES.map((cls, idx) => {
+    const isUnlocked = totalStats >= cls.unlockPts;
+    const ptsRemaining = Math.max(0, cls.unlockPts - totalStats);
     return {
       ...cls,
-      affinityPct: affinity,
+      orderIndex: idx + 1,
+      isUnlocked,
+      ptsRemaining,
     };
-  }).sort((a, b) => b.affinityPct - a.affinityPct);
+  });
 
-  const bestClass = rankedClasses[0] || ALL_CINEMA_CLASSES[0];
+  const unlockedList = evaluatedClasses.filter((c) => c.isUnlocked);
+  const highestUnlockedClass = unlockedList[unlockedList.length - 1] || evaluatedClasses[0];
+  const nextClassToUnlock = evaluatedClasses.find((c) => !c.isUnlocked) || null;
 
   return {
-    ...bestClass,
+    ...highestUnlockedClass,
     tierLabel: currentTier.label,
     tierGrade: currentTier.grade,
     nextTierName: currentTier.nextLabel,
     ptsToNextTier: currentTier.nextMin ? Math.max(0, currentTier.nextMin - totalStats) : 0,
     currentTierMin: currentTier.min,
     currentTierMax: currentTier.nextMin || currentTier.max,
-    allClasses: rankedClasses,
+    allClasses: evaluatedClasses,
+    unlockedClassesCount: unlockedList.length,
+    totalClassesCount: evaluatedClasses.length,
+    nextClassToUnlock,
     totalStats,
     maxPossibleStats: 594, // 6 atributos x 99
     statsProgressPct: Math.min(100, Math.round((totalStats / 594) * 100)),

@@ -56,6 +56,8 @@ function XPGainCard({ item, onDismiss }) {
     xpInCurrentLevel,
     xpNeededForNextLevel,
     tags = [],
+    statGains = [],
+    unlockedClass = null,
   } = event;
 
   const [barWidth, setBarWidth] = useState(Math.max(0, Math.min(100, prevPercentage || 0)));
@@ -102,7 +104,7 @@ function XPGainCard({ item, onDismiss }) {
     };
   }, [leveledUp, newLevel, newPercentage]);
 
-  const durationMs = leveledUp ? 8500 : 6200;
+  const durationMs = (leveledUp || unlockedClass) ? 9200 : 6200;
 
   return (
     <div
@@ -185,6 +187,27 @@ function XPGainCard({ item, onDismiss }) {
         </div>
       )}
 
+      {/* Banner Especial de Desbloqueio de Nova Classe RPG */}
+      {unlockedClass && (
+        <div
+          style={{ animation: 'xpLevelUpPop 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
+          className="relative z-10 mt-3 rounded-xl bg-gradient-to-r from-purple-950/70 via-amber-950/70 to-zinc-950 border border-amber-400/80 px-3.5 py-2.5 flex items-center gap-3 shadow-[0_0_25px_rgba(245,158,11,0.35)] ring-1 ring-amber-300/40"
+        >
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400/20 to-purple-500/20 border border-amber-400/50 flex items-center justify-center text-2xl shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+            {typeof unlockedClass === 'object' && unlockedClass.icon ? unlockedClass.icon : '👑'}
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="text-[10px] font-black uppercase tracking-widest text-amber-300 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-spin" />
+              VOCÊ DESBLOQUEOU UMA NOVA CLASSE!
+            </span>
+            <span className="text-sm font-black text-white truncate">
+              {typeof unlockedClass === 'object' ? unlockedClass.name : unlockedClass}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Tags detalhando o que somou no XP */}
       {tags.length > 0 && (
         <div className="relative z-10 mt-3 flex flex-wrap gap-1.5">
@@ -197,6 +220,24 @@ function XPGainCard({ item, onDismiss }) {
             >
               <span>{tg.icon}</span>
               <span>{tg.label}</span>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Ganhos de Pontos de Atributos (ex: +0.8 AGI, +1.0 INT) */}
+      {statGains.length > 0 && (
+        <div className="relative z-10 mt-2.5 flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-widest mr-0.5">
+            Atributos:
+          </span>
+          {statGains.map((sg, idx) => (
+            <span
+              key={`stat_${sg.key || idx}`}
+              className="inline-flex items-center gap-1 text-[10px] font-mono font-black px-2 py-0.5 rounded-lg bg-zinc-900/90 border border-amber-500/40 text-amber-300 shadow-sm"
+            >
+              <span>{sg.icon || '?'}</span>
+              <span>{sg.label || `${sg.gain} ${sg.key}`}</span>
             </span>
           ))}
         </div>
