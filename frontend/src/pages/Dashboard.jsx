@@ -830,7 +830,11 @@ export default function Dashboard() {
             <span className="text-zinc-500 text-sm font-semibold tracking-wider uppercase">Carregando Catálogo...</span>
           </div>
         ) : activeTab === 'analytics' ? (
-          <AnalyticsDashboard movies={allMovies} />
+          <AnalyticsDashboard
+            movies={allMovies}
+            xpStatus={xpStatus}
+            onNavigateTab={setActiveTab}
+          />
         ) : activeTab === 'challenge' ? (
           <WorldChallengePage
             movies={allMovies}
