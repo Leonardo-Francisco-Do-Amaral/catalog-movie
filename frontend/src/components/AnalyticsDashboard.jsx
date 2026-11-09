@@ -30,6 +30,8 @@ import {
   CheckCircle2,
   Save,
   Search,
+  BookOpen,
+  X,
 } from 'lucide-react';
 import { getCountryIsoFromName } from './InteractiveGlobe3D';
 import TrophyChecklistModal from './TrophyChecklistModal';
@@ -136,6 +138,9 @@ export default function AnalyticsDashboard({
   const [compareMode, setCompareMode] = useState('combined'); // 'combined' | 'grid' | 'table'
   const [showFullRoadmap, setShowFullRoadmap] = useState(false);
   const [inspectingTrophy, setInspectingTrophy] = useState(null);
+  const [isGrimoireOpen, setIsGrimoireOpen] = useState(false);
+  const [equippedClassId, setEquippedClassId] = useState(null);
+  const [grimoireSearch, setGrimoireSearch] = useState('');
 
   const [liveXp, setLiveXp] = useState(xpStatusProp);
   const [trophiesList, setTrophiesList] = useState([]);
@@ -376,6 +381,24 @@ export default function AnalyticsDashboard({
     trophyInsights,
     levelRoadmap,
   } = rpgData;
+
+  const activeDisplayClass = useMemo(() => {
+    if (equippedClassId && characterClass?.allClasses) {
+      const found = characterClass.allClasses.find((c) => c.id === equippedClassId);
+      if (found) {
+        return {
+          ...characterClass,
+          ...found,
+          isCustomEquipped: true,
+        };
+      }
+    }
+    return {
+      ...characterClass,
+      isCustomEquipped: false,
+    };
+  }, [equippedClassId, characterClass]);
+
   const xpSources = activeXp?.sources || {};
   const totalXp = Math.max(1, activeXp?.totalXp || 0);
 
@@ -1023,19 +1046,25 @@ export default function AnalyticsDashboard({
                 <div className="flex items-start justify-between gap-3 border-b border-zinc-800/80 pb-3">
                   <div className="flex items-center gap-3">
                     <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500/20 via-purple-500/15 to-cyan-500/20 border border-amber-400/50 flex items-center justify-center text-3xl shrink-0 shadow-[0_0_25px_rgba(245,158,11,0.2)]">
-                      {characterClass.classIcon}
+                      {activeDisplayClass.classIcon}
                     </div>
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/40">
-                          {characterClass.tierLabel}
+                          {activeDisplayClass.tierLabel}
                         </span>
-                        <span className="text-[10px] font-mono font-bold text-zinc-400">
-                          Classe Oficial
-                        </span>
+                        {activeDisplayClass.isCustomEquipped ? (
+                          <span className="text-[10px] font-mono font-bold text-amber-300 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30">
+                            Equipada Manual
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-mono font-bold text-emerald-300 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30">
+                            Build Ativa ({activeDisplayClass.affinityPct}% Afinidade)
+                          </span>
+                        )}
                       </div>
                       <h3 className="text-xl sm:text-2xl font-black text-white mt-0.5">
-                        {characterClass.className}
+                        {activeDisplayClass.className}
                       </h3>
                     </div>
                   </div>
@@ -1046,14 +1075,23 @@ export default function AnalyticsDashboard({
                 </div>
 
                 {/* Subtítulo / Título de Honra */}
-                <div className="text-xs font-bold text-cyan-300">
-                  {characterClass.titleFlavor}
+                <div className="text-xs font-bold text-cyan-300 flex items-center justify-between">
+                  <span>{activeDisplayClass.titleFlavor}</span>
+                  {activeDisplayClass.isCustomEquipped && (
+                    <button
+                      type="button"
+                      onClick={() => setEquippedClassId(null)}
+                      className="text-[10px] text-zinc-400 hover:text-amber-300 underline cursor-pointer"
+                    >
+                      Restaurar Automático
+                    </button>
+                  )}
                 </div>
 
                 {/* Lore / História Cômica */}
                 <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800/90 p-3.5 text-xs text-zinc-300 leading-relaxed italic relative">
                   <span className="text-amber-400 font-serif text-lg leading-none mr-1">“</span>
-                  {characterClass.lore}
+                  {activeDisplayClass.lore}
                   <span className="text-amber-400 font-serif text-lg leading-none ml-1">”</span>
                 </div>
 
@@ -1064,7 +1102,7 @@ export default function AnalyticsDashboard({
                       🎬 Filme Favorito / Relíquia:
                     </span>
                     <span className="text-xs font-bold text-white line-clamp-2">
-                      {characterClass.favoriteMovie}
+                      {activeDisplayClass.favoriteMovie}
                     </span>
                   </div>
 
@@ -1073,45 +1111,88 @@ export default function AnalyticsDashboard({
                       ✨ Habilidade Passiva:
                     </span>
                     <span className="text-xs text-zinc-300 line-clamp-2">
-                      {characterClass.passiveSkill}
+                      {activeDisplayClass.passiveSkill}
                     </span>
                   </div>
                 </div>
+
+                {/* Próximo Nível de Evolução de Classe */}
+                {activeDisplayClass.nextTierName && (
+                  <div className="rounded-2xl bg-purple-950/20 border border-purple-500/30 p-3 flex items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Zap className="w-4 h-4 text-purple-400 shrink-0" />
+                      <div className="truncate">
+                        <span className="text-zinc-400 text-[10px] uppercase font-bold block">
+                          Próximo Nível de Evolução:
+                        </span>
+                        <span className="text-purple-200 font-black truncate">
+                          {activeDisplayClass.nextTierName}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0 font-mono">
+                      <span className="text-amber-300 font-black">+{activeDisplayClass.ptsToNextTier} pts</span>
+                      <span className="text-zinc-500 text-[10px] block">para evoluir</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Barra de Pontos Totais de Atributo */}
-              <div className="relative z-10 pt-2 border-t border-zinc-800/80 flex flex-col gap-1.5">
+              {/* Barra de Pontos Totais de Atributo + Acesso ao Grimório */}
+              <div className="relative z-10 pt-2 border-t border-zinc-800/80 flex flex-col gap-2">
                 <div className="flex items-center justify-between text-[11px] font-mono">
                   <span className="text-zinc-400 font-bold">
                     Pontos Totais de Atributo Investidos:
                   </span>
                   <span className="text-amber-300 font-black">
-                    {totalStatPoints} / {characterClass.maxPossibleStats} pts ({characterClass.statsProgressPct}%)
+                    {totalStatPoints} / {activeDisplayClass.maxPossibleStats} pts ({activeDisplayClass.statsProgressPct}%)
                   </span>
                 </div>
                 <div className="w-full h-2 rounded-full bg-zinc-950 overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-amber-500 via-purple-400 to-cyan-400 rounded-full transition-all duration-700"
-                    style={{ width: `${characterClass.statsProgressPct}%` }}
+                    style={{ width: `${activeDisplayClass.statsProgressPct}%` }}
                   />
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsGrimoireOpen(true)}
+                  className="w-full py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-amber-500/40 text-xs font-black uppercase tracking-wider text-amber-200 hover:text-amber-100 flex items-center justify-center gap-2 cursor-pointer transition-all shadow-md group mt-1"
+                >
+                  <BookOpen className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+                  <span>📖 Grimório Completo das 16 Classes Cinéfilas</span>
+                </button>
               </div>
             </div>
 
             {/* Coluna da Direita (Os 6 Atributos em Linhas com Barra de XP - 6 colunas) */}
             <div className="xl:col-span-6 rounded-3xl bg-zinc-950/90 border border-zinc-800/90 p-5 sm:p-6 flex flex-col justify-between gap-3 shadow-xl">
-              <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800/80 pb-3">
                 <div>
                   <span className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-2">
                     ⚔️ Ficha de Atributos do Personagem
                   </span>
                   <p className="text-[11px] text-zinc-500 mt-0.5">
-                    Pontuação individual baseada nos feitos da sua jornada cinéfila
+                    Pontuação individual baseada nos feitos reais do seu acervo
                   </p>
                 </div>
-                <span className="text-[10px] font-mono font-bold text-zinc-400 px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-800">
-                  Build de Atributos
-                </span>
+                {/* Legenda de Ranks com SS+ e SS++ */}
+                <div className="flex items-center gap-1 font-mono text-[9px] font-black px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 flex-wrap">
+                  <span className="text-emerald-400" title="C: Iniciante">C</span>
+                  <span>•</span>
+                  <span className="text-cyan-400" title="B: Intermediário">B</span>
+                  <span>•</span>
+                  <span className="text-purple-400" title="A: Veterano">A</span>
+                  <span>•</span>
+                  <span className="text-amber-400" title="S: Lendário">S</span>
+                  <span>•</span>
+                  <span className="text-rose-400" title="SS: Supremo">SS</span>
+                  <span>•</span>
+                  <span className="text-fuchsia-300 font-extrabold" title="SS+: Cósmico">SS+</span>
+                  <span>•</span>
+                  <span className="text-yellow-200 font-extrabold animate-pulse" title="SS++: Mítico Supremo">SS++</span>
+                </div>
               </div>
 
               {/* Lista dos 6 Atributos na Ordem Clássica com Mini-Barras de XP */}
@@ -2360,6 +2441,155 @@ export default function AnalyticsDashboard({
           trophy={inspectingTrophy}
           onClose={() => setInspectingTrophy(null)}
         />
+      )}
+
+      {/* MODAL DO GRIMÓRIO DAS 16 CLASSES CINÉFILAS */}
+      {isGrimoireOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="relative w-full max-w-4xl max-h-[90vh] bg-zinc-950 border border-amber-500/40 rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+            {/* Topo do Modal */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900/60">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-xl">
+                  📖
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-white flex items-center gap-2">
+                    Grimório das 16 Classes Cinéfilas
+                  </h2>
+                  <p className="text-xs text-zinc-400">
+                    Classes exclusivas e cômicas calculadas com base na sua afinidade e hábitos de cinema
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsGrimoireOpen(false)}
+                className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 cursor-pointer transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Barra de Busca & Status de Equipamento */}
+            <div className="px-6 py-3 border-b border-zinc-800/80 bg-zinc-900/30 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="relative w-full sm:w-80">
+                <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={grimoireSearch}
+                  onChange={(e) => setGrimoireSearch(e.target.value)}
+                  placeholder="Buscar por classe, filme ou passiva..."
+                  className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400/60"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end text-xs">
+                {equippedClassId && (
+                  <button
+                    type="button"
+                    onClick={() => setEquippedClassId(null)}
+                    className="font-black text-amber-400 hover:text-amber-300 underline cursor-pointer"
+                  >
+                    Restaurar Classe Automática da Build
+                  </button>
+                )}
+                <span className="font-mono text-zinc-400">
+                  {characterClass.allClasses?.length || 16} Classes Descobertas
+                </span>
+              </div>
+            </div>
+
+            {/* Conteúdo do Grimório (Grid das 16 Classes) */}
+            <div className="p-4 sm:p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4">
+              {(characterClass.allClasses || [])
+                .filter((cls) => {
+                  if (!grimoireSearch) return true;
+                  const q = grimoireSearch.toLowerCase();
+                  return (
+                    cls.className.toLowerCase().includes(q) ||
+                    cls.titleFlavor.toLowerCase().includes(q) ||
+                    cls.lore.toLowerCase().includes(q) ||
+                    cls.favoriteMovie.toLowerCase().includes(q) ||
+                    cls.passiveSkill.toLowerCase().includes(q)
+                  );
+                })
+                .map((cls) => {
+                  const isEquipped = activeDisplayClass.id === cls.id;
+                  return (
+                    <div
+                      key={cls.id}
+                      className={`rounded-2xl p-4 border flex flex-col justify-between gap-3 transition-all ${
+                        isEquipped
+                          ? 'bg-amber-500/10 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
+                          : 'bg-zinc-900/60 border-zinc-800/80 hover:border-zinc-700'
+                      }`}
+                    >
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-2xl p-2 rounded-xl bg-zinc-950 border border-zinc-800">
+                              {cls.classIcon}
+                            </span>
+                            <div>
+                              <span className="text-[10px] font-mono uppercase text-zinc-400 font-bold">
+                                {cls.archetype}
+                              </span>
+                              <h4 className="text-sm font-black text-white leading-tight">
+                                {cls.className}
+                              </h4>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-400/30 shrink-0">
+                            {cls.affinityPct}% Afinidade
+                          </span>
+                        </div>
+
+                        <p className="text-[11px] font-bold text-amber-300">
+                          {cls.titleFlavor}
+                        </p>
+
+                        <p className="text-xs text-zinc-300 italic bg-zinc-950/60 rounded-xl p-2.5 border border-zinc-800/60">
+                          “{cls.lore}”
+                        </p>
+
+                        <div className="text-[11px] flex flex-col gap-1 text-zinc-300">
+                          <div>
+                            <strong className="text-amber-400">🎬 Filme Favorito:</strong>{' '}
+                            <span className="text-zinc-200">{cls.favoriteMovie}</span>
+                          </div>
+                          <div>
+                            <strong className="text-cyan-300">✨ Passiva:</strong>{' '}
+                            <span className="text-zinc-200">{cls.passiveSkill}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-zinc-500">
+                          {isEquipped ? '✅ Atualmente em Uso' : 'Disponível no Grimório'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEquippedClassId(cls.id);
+                            setIsGrimoireOpen(false);
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer transition-all ${
+                            isEquipped
+                              ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
+                              : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700'
+                          }`}
+                        >
+                          {isEquipped ? 'Equipada' : 'Equipar Classe'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
