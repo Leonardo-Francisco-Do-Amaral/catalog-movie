@@ -176,7 +176,19 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
 
   const hasGenreOrTag = (term) => {
     const search = term.toLowerCase().trim();
-    return genresList.some(g => g.includes(search)) || tagsList.some(t => t.includes(search));
+    // 1. Prioriza o gênero oficial do filme
+    if (genresList.some((g) => g.toLowerCase().includes(search))) {
+      return true;
+    }
+    // 2. Busca nas tags, prevenindo falsos positivos de tags temáticas compostas
+    return tagsList.some((t) => {
+      const lower = t.toLowerCase().trim();
+      // "Crime real" (caso real/fato verídico) não deve acionar o gênero ficcional de Crime/Policial
+      if (search === 'crime' && lower.includes('crime real')) return false;
+      // "Em Família" (sessão assistida em família) não deve acionar o gênero infantil de Família
+      if (search === 'família' && lower.includes('em família')) return false;
+      return lower === search || lower.includes(search);
+    });
   };
 
   const isOscarWinner = (Number(oscar_wins) || 0) > 0;
