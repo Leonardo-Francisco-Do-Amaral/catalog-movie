@@ -9,7 +9,7 @@ import {
   TIER_THEMES,
 } from './PS5TrophyToastContainer';
 import { evaluateTrophiesClientSide } from '../utils/trophyEngineClient';
-import { triggerXPGainToast, dispatchXpStatusUpdate } from '../utils/xpSystem';
+import { triggerXPGainToast, triggerTimeMachineUnlock, dispatchXpStatusUpdate } from '../utils/xpSystem';
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:5000/api';
@@ -210,6 +210,134 @@ export default function TrophyTestPanelModal({ trophies = [], movies = [], onSyn
         { type: 'movie', icon: '🎬', label: '+10 XP Filme Cadastrado', xp: 10 },
         { type: 'trophy', icon: '🥇', label: '+70 XP Troféu Ouro', xp: 70, rarityOrTier: 'gold' },
         { type: 'country', icon: '🟢', label: '+25 XP Bônus de Curadoria', xp: 25, rarityOrTier: 'common' },
+      ],
+    });
+  };
+
+  const simulateTimeMachinePortal = (presetKey = 'epic') => {
+    const presets = {
+      mythic: {
+        id: `sim_tm_mythic_${Date.now()}`,
+        kind: 'year',
+        year: 1941,
+        rarity: 'mythic',
+        xp: 200,
+        movieTitle: 'Cidadão Kane',
+        userRating: 9.65,
+      },
+      legendary: {
+        id: `sim_tm_legendary_${Date.now()}`,
+        kind: 'year',
+        year: 1968,
+        rarity: 'legendary',
+        xp: 90,
+        movieTitle: '2001: Uma Odisseia no Espaço',
+        userRating: 9.52,
+      },
+      epic: {
+        id: `sim_tm_epic_${Date.now()}`,
+        kind: 'year',
+        year: 1985,
+        rarity: 'epic',
+        xp: 55,
+        movieTitle: 'De Volta para o Futuro',
+        userRating: 9.78,
+      },
+      rare: {
+        id: `sim_tm_rare_${Date.now()}`,
+        kind: 'year',
+        year: 2008,
+        rarity: 'rare',
+        xp: 35,
+        movieTitle: 'Batman: O Cavaleiro das Trevas',
+        userRating: 9.81,
+      },
+      common: {
+        id: `sim_tm_common_${Date.now()}`,
+        kind: 'year',
+        year: 2024,
+        rarity: 'common',
+        xp: 20,
+        movieTitle: 'Duna: Parte Dois',
+        userRating: 9.44,
+      },
+      decade: {
+        id: `sim_tm_decade_${Date.now()}`,
+        kind: 'decade',
+        decadeId: '1990s',
+        decadeLabel: 'Anos 1990',
+        rarity: 'decade_relic',
+        xp: 100,
+      },
+    };
+    triggerTimeMachineUnlock([presets[presetKey] || presets.epic], true);
+  };
+
+  const simulateTripleSequence = () => {
+    // 1º ESTÁGIO: Troféus PS5 no canto superior direito
+    triggerTrophyBatch({
+      unlocked: [
+        {
+          id: `sim_triple_gold_${Date.now()}`,
+          tier: 'gold',
+          category: 'sessao_secreta',
+          title: 'Sessão Secreta: 88 Milhas por Hora!',
+          description: 'Conquistou um clássico imortal viajando na Máquina do Tempo!',
+          icon: '⚡',
+        },
+      ],
+      progressed: [
+        {
+          id: `sim_triple_prog_${Date.now()}`,
+          category: 'dna_cinefilo',
+          tier: 'silver',
+          title: 'DNA Cinéfilo: Viajante das Décadas',
+          description: 'Conquistar todos os anos dos Anos 1980.',
+          icon: '🕹️',
+          currentCount: 9,
+          targetCount: 10,
+          previousPercentage: 80,
+          progress_percentage: 90,
+          increasedBy: 1,
+        },
+      ],
+    });
+
+    // 2º ESTÁGIO: Portal da Máquina do Tempo (aguarda os troféus sumirem completamente!)
+    triggerTimeMachineUnlock([
+      {
+        id: `sim_triple_tm_${Date.now()}`,
+        kind: 'year',
+        year: 1985,
+        rarity: 'epic',
+        xp: 55,
+        movieTitle: 'De Volta para o Futuro',
+        userRating: 9.78,
+      },
+    ]);
+
+    // 3º ESTÁGIO: Barra de XP somando Filme + Ano + País + Troféu (só aparece após o Portal Temporal fechar!)
+    triggerXPGainToast({
+      gainedXp: 165,
+      prevTotalXp: 7300,
+      nextTotalXp: 7465,
+      prevLevel: 21,
+      newLevel: 21,
+      prevPercentage: 42,
+      newPercentage: 83,
+      leveledUp: false,
+      levelsGained: 0,
+      prevTitle: 'Quantas Armadilhas Você Fez para Chegar Aqui?',
+      newTitle: 'Quantas Armadilhas Você Fez para Chegar Aqui?',
+      titleChanged: false,
+      xpInCurrentLevel: 333,
+      xpNeededForNextLevel: 400,
+      xpRemaining: 67,
+      tags: [
+        { type: 'movie', icon: '🎬', label: '+10 XP Filme', xp: 10 },
+        { type: 'time_machine', icon: '⏳', label: '+55 XP Ano Era VHS & Cult (1985)', xp: 55, rarityOrTier: 'epic' },
+        { type: 'country', icon: '🟢', label: '+30 XP País Comum (EUA)', xp: 30, rarityOrTier: 'common' },
+        { type: 'trophy', icon: '🥇', label: '+70 XP Troféu Ouro', xp: 70, rarityOrTier: 'gold' },
       ],
     });
   };
@@ -523,8 +651,58 @@ export default function TrophyTestPanelModal({ trophies = [], movies = [], onSyn
             })}
           </div>
 
-          {/* Botão de Sequência Completa: Troféus Primeiro -> Barra de XP Somando Tudo Após */}
+          {/* Botão de Sequência Completa: Troféus -> Máquina do Tempo -> Barra de XP */}
           <div className="pt-2 border-t border-zinc-800/60 mt-1 flex flex-col gap-2">
+            {/* NOVO: Sequência Tripla Oficial */}
+            <button
+              type="button"
+              onClick={simulateTripleSequence}
+              className="p-3 rounded-xl border border-cyan-400/70 bg-gradient-to-r from-cyan-500/20 via-purple-500/15 to-amber-500/20 hover:from-cyan-500/30 hover:to-amber-500/30 text-cyan-100 text-xs font-black uppercase tracking-wider flex items-center justify-between transition-all cursor-pointer shadow-md group"
+            >
+              <div className="flex items-center gap-2.5 text-left">
+                <span className="text-lg">⏳</span>
+                <div>
+                  <div className="text-[12px] font-black text-cyan-200 leading-tight">
+                    Combo Triplo: Troféus → Máquina do Tempo → Barra de XP
+                  </div>
+                  <div className="text-[10px] font-mono text-zinc-300 font-normal">
+                    1º Troféus PS5 somem → 2º Portal 1985 abre/fecha → 3º Barra +165 XP!
+                  </div>
+                </div>
+              </div>
+              <Play className="w-4 h-4 text-cyan-300 group-hover:scale-110 transition-transform shrink-0" />
+            </button>
+
+            {/* Botões rápidos para testar apenas o Portal da Máquina do Tempo */}
+            <div className="bg-zinc-950/70 border border-cyan-500/25 rounded-xl p-2.5 flex flex-col gap-1.5">
+              <div className="text-[10px] font-black uppercase tracking-wider text-cyan-300 flex items-center justify-between">
+                <span>⏳ Testar Animação da Máquina do Tempo (Isolada)</span>
+                <span className="font-mono text-[9px] text-zinc-500">Odômetro + Som Flux</span>
+              </div>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                {[
+                  { key: 'mythic', icon: '💎', label: '1941', sub: '+200 XP', cls: 'border-rose-500/50 text-rose-200 hover:bg-rose-500/15' },
+                  { key: 'legendary', icon: '🥇', label: '1968', sub: '+90 XP', cls: 'border-amber-400/50 text-amber-200 hover:bg-amber-500/15' },
+                  { key: 'epic', icon: '💜', label: '1985', sub: '+55 XP', cls: 'border-purple-400/50 text-purple-200 hover:bg-purple-500/15' },
+                  { key: 'rare', icon: '🔵', label: '2008', sub: '+35 XP', cls: 'border-cyan-400/50 text-cyan-200 hover:bg-cyan-500/15' },
+                  { key: 'common', icon: '🟢', label: '2024', sub: '+20 XP', cls: 'border-emerald-400/50 text-emerald-200 hover:bg-emerald-500/15' },
+                  { key: 'decade', icon: '🕰️', label: '1990s', sub: '+100 XP', cls: 'border-amber-300/65 text-amber-100 hover:bg-amber-500/20' },
+                ].map((btn) => (
+                  <button
+                    key={btn.key}
+                    type="button"
+                    onClick={() => simulateTimeMachinePortal(btn.key)}
+                    className={`p-1.5 rounded-lg border bg-zinc-900/80 transition-all cursor-pointer flex flex-col items-center justify-center ${btn.cls}`}
+                  >
+                    <span className="text-xs font-mono font-black">
+                      {btn.icon} {btn.label}
+                    </span>
+                    <span className="text-[9px] font-mono opacity-80">{btn.sub}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <button
               type="button"
               onClick={simulateComboWithXp}
@@ -550,23 +728,24 @@ export default function TrophyTestPanelModal({ trophies = [], movies = [], onSyn
                 type="button"
               onClick={() =>
                 triggerXPGainToast({
-                  gainedXp: 80,
+                  gainedXp: 135,
                   prevTotalXp: 7300,
-                  nextTotalXp: 7380,
+                  nextTotalXp: 7435,
                   prevLevel: 21,
                   newLevel: 21,
                   prevPercentage: 42,
-                  newPercentage: 62,
+                  newPercentage: 76,
                   leveledUp: false,
                   levelsGained: 0,
                   prevTitle: 'Quantas Armadilhas Você Fez para Chegar Aqui?',
                   newTitle: 'Quantas Armadilhas Você Fez para Chegar Aqui?',
                   titleChanged: false,
-                  xpInCurrentLevel: 248,
+                  xpInCurrentLevel: 303,
                   xpNeededForNextLevel: 400,
-                  xpRemaining: 152,
+                  xpRemaining: 97,
                   tags: [
                     { type: 'movie', icon: '🎬', label: '+10 XP Filme', xp: 10 },
+                    { type: 'time_machine', icon: '⏳', label: '+55 XP Ano Era VHS & Cult (1994)', xp: 55, rarityOrTier: 'epic' },
                     { type: 'country', icon: '🔵', label: '+45 XP País Raro (Suécia)', xp: 45, rarityOrTier: 'rare' },
                     { type: 'trophy', icon: '🥈', label: '+25 XP Troféu Prata', xp: 25, rarityOrTier: 'silver' },
                   ],
@@ -574,7 +753,7 @@ export default function TrophyTestPanelModal({ trophies = [], movies = [], onSyn
               }
               className="p-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-[11px] font-black uppercase tracking-wider flex items-center justify-between cursor-pointer transition-all"
             >
-              <span>✨ Simular +80 XP (Barra)</span>
+              <span>✨ Simular +135 XP (Barra)</span>
               <Play className="w-3.5 h-3.5" />
             </button>
 

@@ -13,7 +13,7 @@ import {
   ChevronRight,
   AlertCircle,
 } from 'lucide-react';
-import { COUNTRY_RARITY_META, TROPHY_TIER_META } from '../utils/xpSystem';
+import { COUNTRY_RARITY_META, TROPHY_TIER_META, TIME_MACHINE_RARITY_META, DECADE_COMPLETION_XP } from '../utils/xpSystem';
 
 export default function LevelDetailsModal({
   isOpen,
@@ -58,6 +58,16 @@ export default function LevelDetailsModal({
     byTier: {},
     totalXp: 0,
   };
+  const timeMachineSource = sources?.timeMachine || {
+    totalConqueredYears: 0,
+    totalOfficialYears: 107,
+    completedDecades: {},
+    byRarity: {},
+    yearsXp: 0,
+    decadesXp: 0,
+    totalXp: 0,
+  };
+  const completedDecadesCount = Object.keys(timeMachineSource.completedDecades || {}).length;
 
   const tierKeys = ['platinum', 'mythic', 'gold', 'epic', 'silver', 'bronze'];
   const rarityKeys = ['mythic', 'legendary', 'epic', 'rare', 'common'];
@@ -442,6 +452,88 @@ export default function LevelDetailsModal({
                       </div>
                     );
                   })}
+                </div>
+              </div>
+
+              {/* Fonte 4: Máquina do Tempo (Anos Conquistados + Relíquias de Décadas) */}
+              <div className="bg-zinc-900/65 border border-cyan-500/25 rounded-2xl p-3.5 flex flex-col gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl select-none">⏳</span>
+                    <div>
+                      <div className="text-xs font-black text-zinc-100 uppercase tracking-wide flex items-center gap-2 flex-wrap">
+                        <span>XP da Máquina do Tempo (Século do Cinema)</span>
+                        <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.2 rounded-full">
+                          {timeMachineSource.totalConqueredYears}/{timeMachineSource.totalOfficialYears} anos restaurados
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-zinc-400">
+                        Cada ano inédito do cinema gera XP pela raridade histórica + {DECADE_COMPLETION_XP} XP por década completa.
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    {onNavigateTab && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onNavigateTab('time_machine');
+                          onClose();
+                        }}
+                        className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-cyan-500/15 text-cyan-300 border border-cyan-500/35 hover:bg-cyan-500/25 transition-colors cursor-pointer"
+                      >
+                        Abrir Linha do Tempo
+                      </button>
+                    )}
+                    <span className="font-mono text-sm font-black text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 px-3 py-1 rounded-xl">
+                      +{timeMachineSource.totalXp.toLocaleString('pt-BR')} XP
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                  {rarityKeys.map((rKey) => {
+                    const meta = TIME_MACHINE_RARITY_META[rKey];
+                    const st = timeMachineSource.byRarity?.[rKey] || {
+                      count: 0,
+                      total: 0,
+                      totalXp: 0,
+                    };
+                    return (
+                      <div
+                        key={`tm_${rKey}`}
+                        className="bg-zinc-950/80 border border-zinc-800 rounded-xl px-2.5 py-2 flex flex-col gap-0.5"
+                      >
+                        <div className="flex items-center justify-between text-[10px] font-black">
+                          <span className={meta.color}>
+                            {meta.icon} {meta.label}
+                          </span>
+                          <span className="font-mono text-zinc-400">
+                            {st.count}/{st.total}
+                          </span>
+                        </div>
+                        <div className="text-xs font-mono font-black text-zinc-100">
+                          +{st.totalXp.toLocaleString('pt-BR')} XP
+                        </div>
+                        <div className="text-[9px] text-zinc-500 font-mono">
+                          ({meta.xpEach} XP cada)
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  <div className="bg-zinc-950/80 border border-amber-500/30 rounded-xl px-2.5 py-2 flex flex-col gap-0.5">
+                    <div className="flex items-center justify-between text-[10px] font-black">
+                      <span className="text-amber-300">🕰️ Décadas</span>
+                      <span className="font-mono text-zinc-400">{completedDecadesCount}x</span>
+                    </div>
+                    <div className="text-xs font-mono font-black text-amber-200">
+                      +{(timeMachineSource.decadesXp || 0).toLocaleString('pt-BR')} XP
+                    </div>
+                    <div className="text-[9px] text-zinc-500 font-mono">
+                      ({DECADE_COMPLETION_XP} XP / 10 anos)
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

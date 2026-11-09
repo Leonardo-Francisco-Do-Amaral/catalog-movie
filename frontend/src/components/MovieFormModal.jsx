@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { X, Search, Film, Calendar, Globe, Star, Clock, AlertCircle, Sparkles, Check, Plus, RefreshCw, Volume2 } from 'lucide-react';
 import axios from 'axios';
 import { triggerPS5TrophyToast, triggerTrophyBatch } from './PS5TrophyToastContainer';
-import { triggerXPGainToast, dispatchXpStatusUpdate } from '../utils/xpSystem';
+import { triggerXPGainToast, triggerTimeMachineUnlock, dispatchXpStatusUpdate } from '../utils/xpSystem';
 
-export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags = [], initialSearchQuery = '' }) {
+export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags = [], initialSearchQuery = '', initialReleaseYear = '' }) {
   const isEditMode = !!movie;
 
   // Estados do formulário
@@ -113,7 +113,7 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
         setFormData({
           title: '',
           original_title: '',
-          release_year: '',
+          release_year: initialReleaseYear || '',
           runtime: '',
           synopsis: '',
           poster_url: '',
@@ -146,7 +146,7 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
       setCountrySearchQuery('');
       setTagSearchQuery('');
     }
-  }, [isOpen, movie, initialSearchQuery]);
+  }, [isOpen, movie, initialSearchQuery, initialReleaseYear]);
 
   // Busca na API TMDB do backend
   useEffect(() => {
@@ -369,8 +369,9 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
         if (res.data.success) {
           const newlyUnlocked = res.data.newlyUnlocked || [];
           const progressedTrophies = res.data.progressedTrophies || [];
+          const timeMachineUnlocks = res.data.timeMachineUnlocks || res.data.xpGain?.timeMachineUnlocks || [];
 
-          // Orquestra a exibição sequencial estilo PS5: Colecionáveis de progresso primeiro, Conquistados 100% no topo
+          // 1º Estágio: Troféus PS5 (Colecionáveis de progresso + Conquistados 100%)
           if (progressedTrophies.length > 0 || newlyUnlocked.length > 0) {
             triggerTrophyBatch({
               progressed: progressedTrophies,
@@ -383,6 +384,13 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
               trophyIds: newlyUnlocked.map((x) => x.id),
             }).catch(() => {});
           }
+
+          // 2º Estágio: Desbloqueio da Máquina do Tempo (aguarda troféus terminarem antes de abrir o portal!)
+          if (Array.isArray(timeMachineUnlocks) && timeMachineUnlocks.length > 0) {
+            triggerTimeMachineUnlock(timeMachineUnlocks);
+          }
+
+          // 3º Estágio: Barra de XP (aguarda troféus E Máquina do Tempo terminarem!)
           if (res.data.xpGain) {
             triggerXPGainToast(res.data.xpGain, res.data.xpStatus);
           } else if (res.data.xpStatus) {
@@ -397,8 +405,9 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
         if (res.data.success) {
           const newlyUnlocked = res.data.newlyUnlocked || [];
           const progressedTrophies = res.data.progressedTrophies || [];
+          const timeMachineUnlocks = res.data.timeMachineUnlocks || res.data.xpGain?.timeMachineUnlocks || [];
 
-          // Orquestra a exibição sequencial estilo PS5: Colecionáveis de progresso primeiro, Conquistados 100% no topo
+          // 1º Estágio: Troféus PS5 (Colecionáveis de progresso + Conquistados 100%)
           if (progressedTrophies.length > 0 || newlyUnlocked.length > 0) {
             triggerTrophyBatch({
               progressed: progressedTrophies,
@@ -411,6 +420,13 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
               trophyIds: newlyUnlocked.map((x) => x.id),
             }).catch(() => {});
           }
+
+          // 2º Estágio: Desbloqueio da Máquina do Tempo (aguarda troféus terminarem antes de abrir o portal!)
+          if (Array.isArray(timeMachineUnlocks) && timeMachineUnlocks.length > 0) {
+            triggerTimeMachineUnlock(timeMachineUnlocks);
+          }
+
+          // 3º Estágio: Barra de XP (aguarda troféus E Máquina do Tempo terminarem!)
           if (res.data.xpGain) {
             triggerXPGainToast(res.data.xpGain, res.data.xpStatus);
           } else if (res.data.xpStatus) {

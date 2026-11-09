@@ -358,3 +358,79 @@ export function playCollectibleChimeSound() {
     // Silencioso em bloqueios de autoplay ou exceções de áudio
   }
 }
+
+/**
+ * Efeito sonoro exclusivo da Máquina do Tempo ("Flux Capacitor / Portal Temporal")
+ * Combina um sweep ascendente de dobra temporal + cliques de odômetro + acorde cristalino.
+ */
+export function playTimeMachineSound(rarityOrKind = 'epic') {
+  try {
+    if (isAudioMuted()) return;
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const isHighRarity =
+      rarityOrKind === 'mythic' ||
+      rarityOrKind === 'legendary' ||
+      rarityOrKind === 'decade_relic';
+
+    // 1. Dobra Temporal (Sweep ascendente estilo DeLorean / Portal)
+    const sweepOsc = ctx.createOscillator();
+    const sweepGain = ctx.createGain();
+    sweepOsc.type = 'sine';
+    sweepOsc.frequency.setValueAtTime(196.0, now);
+    sweepOsc.frequency.exponentialRampToValueAtTime(isHighRarity ? 1174.66 : 880.0, now + 0.28);
+    sweepGain.gain.setValueAtTime(0.001, now);
+    sweepGain.gain.linearRampToValueAtTime(0.18, now + 0.09);
+    sweepGain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+    sweepOsc.connect(sweepGain);
+    sweepGain.connect(ctx.destination);
+    sweepOsc.start(now);
+    sweepOsc.stop(now + 0.34);
+
+    // 2. Micro-pulsos digitais do odômetro travando no ano (3 cliques rítmicos)
+    [0.06, 0.13, 0.2].forEach((offset, idx) => {
+      const tickOsc = ctx.createOscillator();
+      const tickGain = ctx.createGain();
+      tickOsc.type = 'triangle';
+      tickOsc.frequency.setValueAtTime(900 + idx * 240, now + offset);
+      tickGain.gain.setValueAtTime(0.08, now + offset);
+      tickGain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.045);
+      tickOsc.connect(tickGain);
+      tickGain.connect(ctx.destination);
+      tickOsc.start(now + offset);
+      tickOsc.stop(now + offset + 0.05);
+    });
+
+    // 3. Acorde de Ancoragem Temporal (pousando no ano conquistado)
+    const chord = isHighRarity
+      ? [
+          { f: 587.33, t: 0.26, d: 0.85, g: 0.16 }, // D5
+          { f: 880.0, t: 0.31, d: 0.9, g: 0.17 },   // A5
+          { f: 1108.73, t: 0.36, d: 1.0, g: 0.18 }, // C#6
+          { f: 1479.98, t: 0.42, d: 1.15, g: 0.16 }, // F#6
+        ]
+      : [
+          { f: 523.25, t: 0.25, d: 0.65, g: 0.14 }, // C5
+          { f: 783.99, t: 0.3, d: 0.72, g: 0.15 },  // G5
+          { f: 1174.66, t: 0.35, d: 0.85, g: 0.15 }, // D6
+        ];
+
+    chord.forEach(({ f, t, d, g }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, now + t);
+      gain.gain.setValueAtTime(0.0001, now + t);
+      gain.gain.linearRampToValueAtTime(g, now + t + 0.025);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + t + d);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + t);
+      osc.stop(now + t + d + 0.05);
+    });
+  } catch {
+    // Silencioso em bloqueios de autoplay
+  }
+}

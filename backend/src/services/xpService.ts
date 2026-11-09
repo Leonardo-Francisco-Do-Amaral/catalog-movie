@@ -2,6 +2,12 @@ import { query } from '../config/database';
 import { TrophyTier } from '../data/trophyDefinitions';
 import { CountryRarityTier, getCountryRarityTier, UN_COUNTRIES_195 } from '../data/unCountries195';
 import { buildWorldChallengePayload } from './worldChallengeService';
+import {
+  computeTimeMachineXpSummary,
+  TIME_MACHINE_RARITY_META,
+  TimeMachineRarityTier,
+  TimeMachineXpSummary,
+} from './timeMachineService';
 import type { EvaluatedTrophy, TrophiesSummaryResponse } from './trophyService';
 
 export type WorldChallengePayload = Awaited<ReturnType<typeof buildWorldChallengePayload>>;
@@ -182,15 +188,29 @@ export interface UserXpStatus extends LevelProgressInfo {
       >;
       totalXp: number;
     };
+    timeMachine: TimeMachineXpSummary;
   };
 }
 
 export interface XpGainTag {
-  type: 'movie' | 'country' | 'trophy';
+  type: 'movie' | 'country' | 'trophy' | 'time_machine' | 'time_decade';
   icon: string;
   label: string;
   xp: number;
   rarityOrTier?: string;
+}
+
+export interface TimeMachineUnlockNotification {
+  id: string;
+  kind: 'year' | 'decade';
+  year?: number;
+  decadeId?: string;
+  decadeLabel?: string;
+  rarity: TimeMachineRarityTier | 'decade_relic';
+  xp: number;
+  movieTitle?: string;
+  posterUrl?: string | null;
+  userRating?: number;
 }
 
 export interface XpGainEvent {
@@ -210,6 +230,7 @@ export interface XpGainEvent {
   xpNeededForNextLevel: number;
   xpRemaining: number;
   tags: XpGainTag[];
+  timeMachineUnlocks?: TimeMachineUnlockNotification[];
 }
 
 function isMovieCoproduction(m: any): boolean {
@@ -314,7 +335,10 @@ export function buildUserXpStatus(
     }
   }
 
-  const totalXp = moviesXp + countriesXp + trophiesXp;
+  // 4. XP da Máquina do Tempo (Anos Conquistados + Bônus de Décadas Completas)
+  const timeMachineSummary = computeTimeMachineXpSummary(worldData.catalogMovies || []);
+
+  const totalXp = moviesXp + countriesXp + trophiesXp + timeMachineSummary.totalXp;
   const levelInfo = calculateLevelFromXp(totalXp);
 
   return {
@@ -340,8 +364,57 @@ export function buildUserXpStatus(
         byTier,
         totalXp: trophiesXp,
       },
+      timeMachine: timeMachineSummary,
     },
   };
+}
+
+/**
+ * Detecta anos inéditos e décadas recém-completadas na Máquina do Tempo entre dois snapshots de XP.
+ */
+export function computeTimeMachineUnlocks(
+  prev: UserXpStatus | null | undefined,
+  next: UserXpStatus | null | undefined
+): TimeMachineUnlockNotification[] {
+  if (!prev || !next || !next.sources?.timeMachine) return [];
+
+  const prevYears = prev.sources?.timeMachine?.conqueredYears || {};
+  const nextYears = next.sources?.timeMachine?.conqueredYears || {};
+  const unlocks: TimeMachineUnlockNotification[] = [];
+
+  const newlyConqueredYears = Object.values(nextYears)
+    .filter((yInfo) => !prevYears[yInfo.year])
+    .sort((a, b) => a.year - b.year); // Mais antigos / raros primeiro
+
+  for (const yInfo of newlyConqueredYears) {
+    unlocks.push({
+      id: `tm_year_${yInfo.year}`,
+      kind: 'year',
+      year: yInfo.year,
+      rarity: yInfo.rarity,
+      xp: yInfo.xp,
+      movieTitle: yInfo.topMovieTitle,
+      posterUrl: yInfo.topMoviePoster,
+      userRating: yInfo.topUserRating,
+    });
+  }
+
+  const prevDecades = prev.sources?.timeMachine?.completedDecades || {};
+  const nextDecades = next.sources?.timeMachine?.completedDecades || {};
+  for (const [decId, decInfo] of Object.entries(nextDecades)) {
+    if (!prevDecades[decId]) {
+      unlocks.push({
+        id: `tm_decade_${decId}`,
+        kind: 'decade',
+        decadeId: decId,
+        decadeLabel: decInfo.label,
+        rarity: 'decade_relic',
+        xp: decInfo.xp,
+      });
+    }
+  }
+
+  return unlocks;
 }
 
 /**
@@ -432,7 +505,59 @@ export function computeXpGainEvent(
     }
   }
 
-  // 3. Tags de Troféus recém-desbloqueados
+  // 3. Tags da Máquina do Tempo (Anos inéditos + Relíquias de Décadas)
+  const timeMachineUnlocks = computeTimeMachineUnlocks(prev, next);
+  const newYearUnlocks = timeMachineUnlocks.filter((u) => u.kind === 'year');
+  const newDecadeUnlocks = timeMachineUnlocks.filter((u) => u.kind === 'decade');
+
+  if (newYearUnlocks.length > 0 && newYearUnlocks.length <= 2) {
+    for (const u of newYearUnlocks) {
+      const rKey = (u.rarity as TimeMachineRarityTier) || 'common';
+      const meta = TIME_MACHINE_RARITY_META[rKey] || TIME_MACHINE_RARITY_META.common;
+      tags.push({
+        type: 'time_machine',
+        icon: '⏳',
+        label: `+${u.xp} XP Ano ${meta.label} (${u.year})`,
+        xp: u.xp,
+        rarityOrTier: rKey,
+      });
+    }
+  } else if (newYearUnlocks.length > 2) {
+    const order: TimeMachineRarityTier[] = ['mythic', 'legendary', 'epic', 'rare', 'common'];
+    for (const r of order) {
+      const group = newYearUnlocks.filter((u) => u.rarity === r);
+      if (group.length > 0) {
+        const meta = TIME_MACHINE_RARITY_META[r];
+        const sumXp = group.reduce((acc, x) => acc + x.xp, 0);
+        tags.push({
+          type: 'time_machine',
+          icon: '⏳',
+          label:
+            group.length === 1
+              ? `+${sumXp} XP Ano ${meta.label} (${group[0].year})`
+              : `+${sumXp} XP ${group.length} Anos (${meta.pluralLabel})`,
+          xp: sumXp,
+          rarityOrTier: r,
+        });
+      }
+    }
+  }
+
+  if (newDecadeUnlocks.length > 0) {
+    const sumDecXp = newDecadeUnlocks.reduce((acc, d) => acc + d.xp, 0);
+    tags.push({
+      type: 'time_decade',
+      icon: '🕰️',
+      label:
+        newDecadeUnlocks.length === 1
+          ? `+${sumDecXp} XP Década Completa (${newDecadeUnlocks[0].decadeLabel})`
+          : `+${sumDecXp} XP ${newDecadeUnlocks.length} Décadas Completas`,
+      xp: sumDecXp,
+      rarityOrTier: 'legendary',
+    });
+  }
+
+  // 4. Tags de Troféus recém-desbloqueados
   const newTrophies: Array<{ id: string; title: string; tier: TrophyTier; xp: number }> = [];
   for (const [id, info] of Object.entries(next.sources.trophies.unlockedIds)) {
     if (!prev.sources.trophies.unlockedIds[id]) {
@@ -489,5 +614,6 @@ export function computeXpGainEvent(
     xpNeededForNextLevel: next.xpNeededForNextLevel,
     xpRemaining: next.xpRemaining,
     tags,
+    timeMachineUnlocks,
   };
 }

@@ -531,6 +531,20 @@ export default function TopNavbar({
             >
               🏆 Troféus
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('time_machine');
+                setOpenDropdown(null);
+              }}
+              className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer ${
+                activeTab === 'time_machine'
+                  ? 'bg-cyan-400 text-slate-950 shadow-md shadow-cyan-400/25'
+                  : 'text-cyan-300/90 hover:text-cyan-200 hover:bg-cyan-400/10'
+              }`}
+            >
+              ⏳ Máquina do Tempo
+            </button>
           </div>
         </div>
 

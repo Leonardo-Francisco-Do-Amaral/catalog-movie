@@ -6,14 +6,17 @@ import MovieFormModal from '../components/MovieFormModal';
 import SpreadsheetImportModal from '../components/SpreadsheetImportModal';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import WorldChallengePage from '../components/WorldChallengePage';
+import TimeMachinePage from '../components/TimeMachinePage';
 import TrophiesPage from './TrophiesPage';
 import PS5TrophyToastContainer, { triggerPS5TrophyToast, triggerTrophyBatch } from '../components/PS5TrophyToastContainer';
+import TimeMachineToastContainer from '../components/TimeMachineToastContainer';
 import XPGainToastContainer from '../components/XPGainToastContainer';
 import { evaluateTrophiesClientSide } from '../utils/trophyEngineClient';
 import {
   calculateClientXpStatus,
   computeXpGainEvent,
   triggerXPGainToast,
+  triggerTimeMachineUnlock,
   dispatchXpStatusUpdate,
 } from '../utils/xpSystem';
 import { Film, RefreshCw, AlertTriangle } from 'lucide-react';
@@ -206,6 +209,7 @@ export default function Dashboard() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMovie, setEditingMovie] = useState(null);
   const [reviewSearchQuery, setReviewSearchQuery] = useState('');
+  const [initialReleaseYear, setInitialReleaseYear] = useState('');
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [reviewedMovieIds, setReviewedMovieIds] = useState([]);
 
@@ -831,12 +835,23 @@ export default function Dashboard() {
             movies={allMovies}
             onOpenAddMovieForCountry={(_countryName, wishTitle) => {
               setEditingMovie(null);
+              setInitialReleaseYear('');
               setReviewSearchQuery(wishTitle || '');
               setIsFormOpen(true);
             }}
           />
         ) : activeTab === 'trophies' ? (
           <TrophiesPage movies={allMovies} />
+        ) : activeTab === 'time_machine' ? (
+          <TimeMachinePage
+            movies={allMovies}
+            onOpenAddMovieForYear={(yearNumber, wishTitle) => {
+              setEditingMovie(null);
+              setInitialReleaseYear(yearNumber ? String(yearNumber) : '');
+              setReviewSearchQuery(wishTitle || '');
+              setIsFormOpen(true);
+            }}
+          />
         ) : (
           /* Grelha Dinâmica Principal (Resultados de Busca / Todos os Filmes - 5 por linha no Desktop) */
           <div className="flex flex-col gap-6">
@@ -919,6 +934,9 @@ export default function Dashboard() {
           if (prevXp && nextXp) {
             const gain = computeXpGainEvent(prevXp, nextXp);
             if (gain) {
+              if (Array.isArray(gain.timeMachineUnlocks) && gain.timeMachineUnlocks.length > 0) {
+                triggerTimeMachineUnlock(gain.timeMachineUnlocks.slice(0, 4));
+              }
               triggerXPGainToast(gain, nextXp);
             }
           }
@@ -926,6 +944,7 @@ export default function Dashboard() {
         reviewedMovieIds={reviewedMovieIds}
         onReviewMovie={(movieToReview, rawTitle) => {
           setEditingMovie(movieToReview);
+          setInitialReleaseYear('');
           setReviewSearchQuery(rawTitle || movieToReview?.title || '');
           setIsFormOpen(true);
         }}
@@ -938,9 +957,11 @@ export default function Dashboard() {
           setIsFormOpen(false);
           setEditingMovie(null);
           setReviewSearchQuery('');
+          setInitialReleaseYear('');
         }}
         movie={editingMovie}
         initialSearchQuery={reviewSearchQuery}
+        initialReleaseYear={initialReleaseYear}
         allTags={allTags}
         onSave={(_newlyUnlocked, _savedMovie, updatedXpStatus) => {
           if (editingMovie?.movie_id) {
@@ -957,10 +978,13 @@ export default function Dashboard() {
         }}
       />
 
-      {/* Notificações de Troféus Estilo PlayStation 5 com Empilhamento Vertical */}
+      {/* 1º Estágio: Notificações de Troféus Estilo PlayStation 5 com Empilhamento Vertical */}
       <PS5TrophyToastContainer />
 
-      {/* Pop-up / HUD Animado de Ganho de XP e Level Up (Estilo RPG / PS5) */}
+      {/* 2º Estágio: Portal da Máquina do Tempo (Dispara após os troféus sumirem!) */}
+      <TimeMachineToastContainer />
+
+      {/* 3º Estágio: Pop-up / HUD Animado de Ganho de XP e Level Up (Dispara por último!) */}
       <XPGainToastContainer />
     </div>
   );

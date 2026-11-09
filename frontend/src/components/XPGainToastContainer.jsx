@@ -6,7 +6,7 @@ function getTagBadgeStyle(tag) {
   if (tag.type === 'movie') {
     return 'bg-amber-500/15 text-amber-300 border-amber-500/40';
   }
-  if (tag.type === 'country') {
+  if (tag.type === 'country' || tag.type === 'time_machine') {
     switch (tag.rarityOrTier) {
       case 'mythic':
         return 'bg-rose-500/20 text-rose-200 border-rose-500/50';
@@ -15,10 +15,13 @@ function getTagBadgeStyle(tag) {
       case 'epic':
         return 'bg-purple-500/20 text-purple-200 border-purple-400/50';
       case 'rare':
-        return 'bg-sky-500/20 text-sky-200 border-sky-400/50';
+        return 'bg-cyan-500/20 text-cyan-200 border-cyan-400/50';
       default:
         return 'bg-emerald-500/20 text-emerald-200 border-emerald-400/50';
     }
+  }
+  if (tag.type === 'time_decade') {
+    return 'bg-amber-500/25 text-amber-100 border-amber-300/65 shadow-[0_0_12px_rgba(245,158,11,0.25)]';
   }
   if (tag.type === 'trophy') {
     switch (tag.rarityOrTier) {

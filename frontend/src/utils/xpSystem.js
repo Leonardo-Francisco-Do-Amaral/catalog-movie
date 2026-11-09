@@ -3,6 +3,12 @@ import { getCountryRarityTier } from '../data/countryRarityTiers';
 import { evaluateTrophiesClientSide } from './trophyEngineClient';
 
 export const XP_PER_MOVIE = 10;
+export const MIN_TIME_MACHINE_YEAR = 1920;
+export const DECADE_COMPLETION_XP = 100;
+
+export function getMaxTimeMachineYear() {
+  return Math.max(2026, new Date().getFullYear());
+}
 
 export const TROPHY_XP_BY_TIER = {
   bronze: 15,
@@ -21,6 +27,14 @@ export const COUNTRY_XP_BY_RARITY = {
   mythic: 300,
 };
 
+export const TIME_MACHINE_XP_BY_RARITY = {
+  common: 20,
+  rare: 35,
+  epic: 55,
+  legendary: 90,
+  mythic: 200,
+};
+
 export const COUNTRY_RARITY_META = {
   common: { label: 'Comum', pluralLabel: 'Comuns', icon: '🟢', xpEach: 30, color: 'text-emerald-300', badge: 'bg-emerald-500/15 border-emerald-500/35 text-emerald-300' },
   rare: { label: 'Raro', pluralLabel: 'Raros', icon: '🔵', xpEach: 45, color: 'text-sky-300', badge: 'bg-sky-500/15 border-sky-400/40 text-sky-300' },
@@ -28,6 +42,121 @@ export const COUNTRY_RARITY_META = {
   legendary: { label: 'Lendário', pluralLabel: 'Lendários', icon: '🥇', xpEach: 100, color: 'text-amber-300', badge: 'bg-amber-500/15 border-amber-400/45 text-amber-300' },
   mythic: { label: 'Mítico', pluralLabel: 'Míticos', icon: '💎', xpEach: 300, color: 'text-rose-300', badge: 'bg-rose-500/20 border-rose-500/50 text-rose-300' },
 };
+
+export const TIME_MACHINE_RARITY_META = {
+  common: {
+    key: 'common',
+    label: 'Contemporâneo',
+    pluralLabel: 'Contemporâneos',
+    eraRangeLabel: '2015 – Hoje',
+    icon: '🟢',
+    xpEach: 20,
+    xp: 20,
+    color: 'text-emerald-300',
+    badge: 'bg-emerald-500/15 border-emerald-500/35 text-emerald-300',
+    borderGlow: 'border-emerald-500/50 shadow-[0_0_24px_rgba(16,185,129,0.22)]',
+    accentHex: '#10B981',
+  },
+  rare: {
+    key: 'rare',
+    label: 'Moderno',
+    pluralLabel: 'Modernos',
+    eraRangeLabel: '1995 – 2014',
+    icon: '🔵',
+    xpEach: 35,
+    xp: 35,
+    color: 'text-cyan-300',
+    badge: 'bg-cyan-500/15 border-cyan-400/40 text-cyan-300',
+    borderGlow: 'border-cyan-400/55 shadow-[0_0_26px_rgba(34,211,238,0.26)]',
+    accentHex: '#06B6D4',
+  },
+  epic: {
+    key: 'epic',
+    label: 'Era VHS & Cult',
+    pluralLabel: 'Era VHS & Cult',
+    eraRangeLabel: '1975 – 1994',
+    icon: '💜',
+    xpEach: 55,
+    xp: 55,
+    color: 'text-purple-300',
+    badge: 'bg-purple-500/15 border-purple-400/40 text-purple-300',
+    borderGlow: 'border-purple-400/55 shadow-[0_0_28px_rgba(168,85,247,0.3)]',
+    accentHex: '#A855F7',
+  },
+  legendary: {
+    key: 'legendary',
+    label: 'Era de Ouro',
+    pluralLabel: 'Era de Ouro',
+    eraRangeLabel: '1950 – 1974',
+    icon: '🥇',
+    xpEach: 90,
+    xp: 90,
+    color: 'text-amber-300',
+    badge: 'bg-amber-500/15 border-amber-400/45 text-amber-300',
+    borderGlow: 'border-amber-400/60 shadow-[0_0_32px_rgba(245,158,11,0.34)]',
+    accentHex: '#F59E0B',
+  },
+  mythic: {
+    key: 'mythic',
+    label: 'Relíquia P&B',
+    pluralLabel: 'Relíquias P&B',
+    eraRangeLabel: 'Pré-1950',
+    icon: '💎',
+    xpEach: 200,
+    xp: 200,
+    color: 'text-rose-300',
+    badge: 'bg-rose-500/20 border-rose-500/50 text-rose-300',
+    borderGlow: 'border-rose-500/65 shadow-[0_0_36px_rgba(244,63,94,0.4)]',
+    accentHex: '#F43F5E',
+  },
+};
+
+export const DECADE_META = {
+  '2020s': { id: '2020s', decadeStart: 2020, label: 'Anos 2020', subtitle: 'Novo Cinema Global, Multiversos & Retorno às Salas', badgeIcon: '🚀' },
+  '2010s': { id: '2010s', decadeStart: 2010, label: 'Anos 2010', subtitle: 'Revolução do Streaming, A24 & Sagas Épicas', badgeIcon: '📱' },
+  '2000s': { id: '2000s', decadeStart: 2000, label: 'Anos 2000', subtitle: 'Virada do Milênio, Era Digital & Trilogias Lendárias', badgeIcon: '💿' },
+  '1990s': { id: '1990s', decadeStart: 1990, label: 'Anos 1990', subtitle: 'Explosão Indie, Videolocadoras & Revolução CGI', badgeIcon: '📼' },
+  '1980s': { id: '1980s', decadeStart: 1980, label: 'Anos 1980', subtitle: 'Era dos Blockbusters, Synthwave & Aventura Clássica', badgeIcon: '🕹️' },
+  '1970s': { id: '1970s', decadeStart: 1970, label: 'Anos 1970', subtitle: 'Nova Hollywood, Cinema de Autor & Suspenses Políticos', badgeIcon: '🎞️' },
+  '1960s': { id: '1960s', decadeStart: 1960, label: 'Anos 1960', subtitle: 'Nouvelle Vague, Western Spaghetti & Contracultura', badgeIcon: '🕶️' },
+  '1950s': { id: '1950s', decadeStart: 1950, label: 'Anos 1950', subtitle: 'Esplendor Technicolor, CinemaScope & Mestres do Suspense', badgeIcon: '🎭' },
+  '1940s': { id: '1940s', decadeStart: 1940, label: 'Anos 1940', subtitle: 'Sombras do Film Noir, Neorrealismo & Clássicos Eternos', badgeIcon: '🕵️' },
+  '1930s': { id: '1930s', decadeStart: 1930, label: 'Anos 1930', subtitle: 'Triunfo do Cinema Falado, Monstros Clássicos & Era de Ouro', badgeIcon: '🎙️' },
+  '1920s': { id: '1920s', decadeStart: 1920, label: 'Anos 1920', subtitle: 'Apogeu do Cinema Mudo, Expressionismo & Montagem Soviética', badgeIcon: '🎩' },
+  pioneers: { id: 'pioneers', decadeStart: 1888, label: 'Era dos Pioneiros (< 1920)', subtitle: 'A Invenção da Sétima Arte, Lumière & Georges Méliès', badgeIcon: '🕯️' },
+};
+
+export function getYearRarityTier(year) {
+  const y = Number(year);
+  if (y >= 2015) return 'common';
+  if (y >= 1995) return 'rare';
+  if (y >= 1975) return 'epic';
+  if (y >= 1950) return 'legendary';
+  return 'mythic';
+}
+
+export function getDecadeKeyForYear(year) {
+  const y = Number(year);
+  if (y < MIN_TIME_MACHINE_YEAR) return 'pioneers';
+  const decadeStart = Math.floor(y / 10) * 10;
+  return `${decadeStart}s`;
+}
+
+export function compareTimeMachineCandidates(a, b) {
+  const rDiff = (Number(b?.user_rating) || 0) - (Number(a?.user_rating) || 0);
+  if (Math.abs(rDiff) > 0.0001) return rDiff;
+
+  const imdbDiff = (Number(b?.imdb_rating) || 0) - (Number(a?.imdb_rating) || 0);
+  if (Math.abs(imdbDiff) > 0.0001) return imdbDiff;
+
+  const ysDiff = (Number(b?.year_seen) || 0) - (Number(a?.year_seen) || 0);
+  if (ysDiff !== 0) return ysDiff;
+
+  const msDiff = (Number(b?.month_seen) || 0) - (Number(a?.month_seen) || 0);
+  if (msDiff !== 0) return msDiff;
+
+  return (Number(b?.movie_id || b?.id) || 0) - (Number(a?.movie_id || a?.id) || 0);
+}
 
 export const TROPHY_TIER_META = {
   platinum: { label: 'Platina', icon: '🏆', xpEach: 1000, color: 'text-blue-200', badge: 'bg-blue-950/60 border-blue-300/50 text-blue-200' },
@@ -135,6 +264,98 @@ export function isMovieCoproduction(m) {
   const coprodLen = Array.isArray(m?.coproductionCountries) ? m.coproductionCountries.length : 0;
   const rawLen = Array.isArray(m?.countries) ? m.countries.length : 0;
   return coprodLen > 1 || (rawLen > 1 && coprodLen >= 1);
+}
+
+export function computeClientTimeMachineXpSummary(uniqueMovies = []) {
+  const maxYear = getMaxTimeMachineYear();
+  const moviesByYear = new Map();
+
+  (uniqueMovies || []).forEach((m) => {
+    const y = Number(m.release_year);
+    if (!Number.isFinite(y) || y < 1888 || y > maxYear + 2) return;
+    if (!moviesByYear.has(y)) moviesByYear.set(y, []);
+    moviesByYear.get(y).push(m);
+  });
+
+  const rarityTotals = { common: 0, rare: 0, epic: 0, legendary: 0, mythic: 0 };
+  for (let y = MIN_TIME_MACHINE_YEAR; y <= maxYear; y++) {
+    const r = getYearRarityTier(y);
+    rarityTotals[r] += 1;
+  }
+  for (const y of moviesByYear.keys()) {
+    if (y < MIN_TIME_MACHINE_YEAR || y > maxYear) {
+      const r = getYearRarityTier(y);
+      rarityTotals[r] += 1;
+    }
+  }
+
+  const byRarity = {
+    common: { ...TIME_MACHINE_RARITY_META.common, count: 0, total: rarityTotals.common, totalXp: 0 },
+    rare: { ...TIME_MACHINE_RARITY_META.rare, count: 0, total: rarityTotals.rare, totalXp: 0 },
+    epic: { ...TIME_MACHINE_RARITY_META.epic, count: 0, total: rarityTotals.epic, totalXp: 0 },
+    legendary: { ...TIME_MACHINE_RARITY_META.legendary, count: 0, total: rarityTotals.legendary, totalXp: 0 },
+    mythic: { ...TIME_MACHINE_RARITY_META.mythic, count: 0, total: rarityTotals.mythic, totalXp: 0 },
+  };
+
+  const conqueredYears = {};
+  let yearsXp = 0;
+
+  Array.from(moviesByYear.keys())
+    .sort((a, b) => b - a)
+    .forEach((y) => {
+      const candidates = [...(moviesByYear.get(y) || [])].sort(compareTimeMachineCandidates);
+      if (candidates.length === 0) return;
+      const top = candidates[0];
+      const rarity = getYearRarityTier(y);
+      const xpVal = TIME_MACHINE_XP_BY_RARITY[rarity] || 20;
+
+      byRarity[rarity].count += 1;
+      byRarity[rarity].totalXp += xpVal;
+      yearsXp += xpVal;
+
+      conqueredYears[y] = {
+        year: y,
+        rarity,
+        xp: xpVal,
+        moviesCount: candidates.length,
+        topMovieTitle: String(top.title || ''),
+        topMoviePoster: top.poster_url || null,
+        topUserRating: Number(top.user_rating) || 0,
+      };
+    });
+
+  const completedDecades = {};
+  let decadesXp = 0;
+  for (let decStart = MIN_TIME_MACHINE_YEAR; decStart <= Math.floor(maxYear / 10) * 10; decStart += 10) {
+    const decKey = `${decStart}s`;
+    let allTen = true;
+    for (let y = decStart; y <= decStart + 9; y++) {
+      if (!conqueredYears[y]) {
+        allTen = false;
+        break;
+      }
+    }
+    if (allTen) {
+      const meta = DECADE_META[decKey] || { id: decKey, label: `Anos ${decStart}` };
+      completedDecades[decKey] = {
+        id: decKey,
+        label: meta.label,
+        xp: DECADE_COMPLETION_XP,
+      };
+      decadesXp += DECADE_COMPLETION_XP;
+    }
+  }
+
+  return {
+    totalConqueredYears: Object.keys(conqueredYears).length,
+    totalOfficialYears: maxYear - MIN_TIME_MACHINE_YEAR + 1,
+    conqueredYears,
+    completedDecades,
+    byRarity,
+    yearsXp,
+    decadesXp,
+    totalXp: yearsXp + decadesXp,
+  };
 }
 
 /**
@@ -264,7 +485,8 @@ export function calculateClientXpStatus(movies = [], trophiesOverride = null, lo
     }
   });
 
-  const totalXp = moviesXp + countriesXp + trophiesXp;
+  const timeMachineSummary = computeClientTimeMachineXpSummary(uniqueMovies);
+  const totalXp = moviesXp + countriesXp + trophiesXp + timeMachineSummary.totalXp;
   const levelInfo = calculateLevelFromXp(totalXp);
 
   return {
@@ -290,8 +512,50 @@ export function calculateClientXpStatus(movies = [], trophiesOverride = null, lo
         byTier,
         totalXp: trophiesXp,
       },
+      timeMachine: timeMachineSummary,
     },
   };
+}
+
+export function computeTimeMachineUnlocksClient(prev, next) {
+  if (!prev || !next || !next.sources?.timeMachine) return [];
+
+  const prevYears = prev.sources?.timeMachine?.conqueredYears || {};
+  const nextYears = next.sources?.timeMachine?.conqueredYears || {};
+  const unlocks = [];
+
+  Object.values(nextYears)
+    .filter((yInfo) => !prevYears[yInfo.year])
+    .sort((a, b) => a.year - b.year)
+    .forEach((yInfo) => {
+      unlocks.push({
+        id: `tm_year_${yInfo.year}`,
+        kind: 'year',
+        year: yInfo.year,
+        rarity: yInfo.rarity,
+        xp: yInfo.xp,
+        movieTitle: yInfo.topMovieTitle,
+        posterUrl: yInfo.topMoviePoster,
+        userRating: yInfo.topUserRating,
+      });
+    });
+
+  const prevDecades = prev.sources?.timeMachine?.completedDecades || {};
+  const nextDecades = next.sources?.timeMachine?.completedDecades || {};
+  Object.entries(nextDecades).forEach(([decId, decInfo]) => {
+    if (!prevDecades[decId]) {
+      unlocks.push({
+        id: `tm_decade_${decId}`,
+        kind: 'decade',
+        decadeId: decId,
+        decadeLabel: decInfo.label,
+        rarity: 'decade_relic',
+        xp: decInfo.xp,
+      });
+    }
+  });
+
+  return unlocks;
 }
 
 export function computeXpGainEvent(prev, next) {
@@ -352,6 +616,55 @@ export function computeXpGainEvent(prev, next) {
     });
   }
 
+  const timeMachineUnlocks = computeTimeMachineUnlocksClient(prev, next);
+  const newYearUnlocks = timeMachineUnlocks.filter((u) => u.kind === 'year');
+  const newDecadeUnlocks = timeMachineUnlocks.filter((u) => u.kind === 'decade');
+
+  if (newYearUnlocks.length > 0 && newYearUnlocks.length <= 2) {
+    newYearUnlocks.forEach((u) => {
+      const meta = TIME_MACHINE_RARITY_META[u.rarity] || TIME_MACHINE_RARITY_META.common;
+      tags.push({
+        type: 'time_machine',
+        icon: '⏳',
+        label: `+${u.xp} XP Ano ${meta.label} (${u.year})`,
+        xp: u.xp,
+        rarityOrTier: u.rarity,
+      });
+    });
+  } else if (newYearUnlocks.length > 2) {
+    ['mythic', 'legendary', 'epic', 'rare', 'common'].forEach((r) => {
+      const group = newYearUnlocks.filter((u) => u.rarity === r);
+      if (group.length > 0) {
+        const meta = TIME_MACHINE_RARITY_META[r];
+        const sumXp = group.reduce((acc, x) => acc + x.xp, 0);
+        tags.push({
+          type: 'time_machine',
+          icon: '⏳',
+          label:
+            group.length === 1
+              ? `+${sumXp} XP Ano ${meta.label} (${group[0].year})`
+              : `+${sumXp} XP ${group.length} Anos (${meta.pluralLabel})`,
+          xp: sumXp,
+          rarityOrTier: r,
+        });
+      }
+    });
+  }
+
+  if (newDecadeUnlocks.length > 0) {
+    const sumDecXp = newDecadeUnlocks.reduce((acc, d) => acc + d.xp, 0);
+    tags.push({
+      type: 'time_decade',
+      icon: '🕰️',
+      label:
+        newDecadeUnlocks.length === 1
+          ? `+${sumDecXp} XP Década Completa (${newDecadeUnlocks[0].decadeLabel})`
+          : `+${sumDecXp} XP ${newDecadeUnlocks.length} Décadas Completas`,
+      xp: sumDecXp,
+      rarityOrTier: 'legendary',
+    });
+  }
+
   const prevTrophies = prev.sources?.trophies?.unlockedIds || {};
   const nextTrophies = next.sources?.trophies?.unlockedIds || {};
   const newTrophies = [];
@@ -408,42 +721,122 @@ export function computeXpGainEvent(prev, next) {
     xpNeededForNextLevel: next.xpNeededForNextLevel,
     xpRemaining: next.xpRemaining,
     tags,
+    timeMachineUnlocks,
   };
 }
 
 /**
- * Gerenciamento de Buffer de XP sincronizado com o Sistema de Troféus PS5:
- * Quando troféus estão sendo exibidos na tela ou na fila de espera, o ganho de XP
- * é retido e somado, disparando a barra de XP apenas quando TODAS as notificações
- * de troféu tiverem terminado e saído da tela.
+ * ============================================================================
+ * ORQUESTRADOR DE 3 ESTÁGIOS DE NOTIFICAÇÕES:
+ * 1º Estágio: Troféus PS5 (PS5TrophyToastContainer) -> aparece e desaparece 100%
+ * 2º Estágio: Máquina do Tempo (TimeMachineToastContainer) -> aparece após troféus e desaparece 100%
+ * 3º Estágio: Barra de XP (XPGainToastContainer) -> aparece por último somando tudo!
+ * ============================================================================
  */
 let isTrophyActiveFlag = false;
 let activeTrophyToastsCount = 0;
+
+let isTimeMachineActiveFlag = false;
+let pendingTimeMachineQueue = [];
+
 let bufferedXpEvent = null;
 let bufferedXpStatus = null;
 let fallbackFlushTimer = null;
+
+function armSafetyFlushTimer() {
+  if (fallbackFlushTimer) clearTimeout(fallbackFlushTimer);
+  fallbackFlushTimer = setTimeout(() => {
+    if (pendingTimeMachineQueue.length > 0 || isTimeMachineActiveFlag || bufferedXpEvent) {
+      console.warn('[XP System] Fallback safety timer acionado para liberar fila pendente.');
+      isTrophyActiveFlag = false;
+      activeTrophyToastsCount = 0;
+      isTimeMachineActiveFlag = false;
+      pendingTimeMachineQueue = [];
+      flushBufferedXpGain();
+    }
+  }, 45000);
+}
 
 export function isTrophyToastActive() {
   return isTrophyActiveFlag || activeTrophyToastsCount > 0;
 }
 
+export function isTimeMachineToastActiveOrQueued() {
+  return isTimeMachineActiveFlag || pendingTimeMachineQueue.length > 0;
+}
+
+function shouldHoldXpBar() {
+  return isTrophyToastActive() || isTimeMachineToastActiveOrQueued();
+}
+
+function flushPendingTimeMachineUnlocks() {
+  if (typeof window === 'undefined' || pendingTimeMachineQueue.length === 0) return false;
+  const items = [...pendingTimeMachineQueue];
+  pendingTimeMachineQueue = [];
+  isTimeMachineActiveFlag = true;
+  armSafetyFlushTimer();
+  window.dispatchEvent(new CustomEvent('cine-time-machine-unlock', { detail: items }));
+  return true;
+}
+
 export function notifyTrophiesStarted() {
   isTrophyActiveFlag = true;
   activeTrophyToastsCount = Math.max(activeTrophyToastsCount, 1);
-
-  // Timer de segurança: caso nenhuma notificação seja removida por erro inesperado em 35s, libera o XP
-  if (fallbackFlushTimer) clearTimeout(fallbackFlushTimer);
-  fallbackFlushTimer = setTimeout(() => {
-    if (bufferedXpEvent) {
-      console.warn('[XP System] Fallback safety timer acionado para liberar XP pendente.');
-      flushBufferedXpGain();
-    }
-  }, 35000);
+  armSafetyFlushTimer();
 }
 
 export function notifyTrophiesCleared() {
   isTrophyActiveFlag = false;
   activeTrophyToastsCount = 0;
+
+  // Se houver desbloqueios da Máquina do Tempo aguardando os troféus sumirem, dispara agora (Estágio 2)!
+  if (pendingTimeMachineQueue.length > 0) {
+    flushPendingTimeMachineUnlocks();
+    return;
+  }
+
+  // Se a Máquina do Tempo ainda estiver animando na tela, aguarda ela terminar
+  if (isTimeMachineActiveFlag) {
+    return;
+  }
+
+  if (fallbackFlushTimer) {
+    clearTimeout(fallbackFlushTimer);
+    fallbackFlushTimer = null;
+  }
+  flushBufferedXpGain();
+}
+
+export function triggerTimeMachineUnlock(unlockItems, forceImmediate = false) {
+  if (typeof window === 'undefined') return;
+  const list = Array.isArray(unlockItems) ? unlockItems.filter(Boolean) : unlockItems ? [unlockItems] : [];
+  if (list.length === 0) return;
+
+  if (!forceImmediate && isTrophyToastActive()) {
+    pendingTimeMachineQueue.push(...list);
+    armSafetyFlushTimer();
+    return;
+  }
+
+  isTimeMachineActiveFlag = true;
+  armSafetyFlushTimer();
+  window.dispatchEvent(new CustomEvent('cine-time-machine-unlock', { detail: list }));
+}
+
+export function notifyTimeMachineStarted() {
+  isTimeMachineActiveFlag = true;
+  armSafetyFlushTimer();
+}
+
+export function notifyTimeMachineCleared() {
+  isTimeMachineActiveFlag = false;
+
+  if (isTrophyToastActive()) return;
+  if (pendingTimeMachineQueue.length > 0) {
+    flushPendingTimeMachineUnlocks();
+    return;
+  }
+
   if (fallbackFlushTimer) {
     clearTimeout(fallbackFlushTimer);
     fallbackFlushTimer = null;
@@ -452,7 +845,7 @@ export function notifyTrophiesCleared() {
 }
 
 /**
- * Mescla dois eventos de ganho de XP (ex: XP de filme + XP de múltiplos troféus desbloqueados em fila)
+ * Mescla dois eventos de ganho de XP (ex: XP de filme + XP de múltiplos troféus + Máquina do Tempo)
  * garantindo que o progresso inicial (prev) e o final (new) sejam preservados com a soma total do XP ganho.
  */
 export function mergeXpGainEvents(baseEvent, incomingEvent) {
@@ -472,7 +865,6 @@ export function mergeXpGainEvents(baseEvent, incomingEvent) {
   const newTitle = incomingEvent.newTitle || baseEvent.newTitle;
   const titleChanged = prevTitle !== newTitle;
 
-  // Mesclagem inteligente de tags de XP
   const mergedTags = [...(baseEvent.tags || [])];
   (incomingEvent.tags || []).forEach((inTag) => {
     const existingIndex = mergedTags.findIndex(
@@ -489,6 +881,11 @@ export function mergeXpGainEvents(baseEvent, incomingEvent) {
         label = `+${sumXp.toLocaleString('pt-BR')} XP Troféus ${tierName}`;
       } else if (inTag.type === 'country') {
         label = `+${sumXp.toLocaleString('pt-BR')} XP Países Desafio 195`;
+      } else if (inTag.type === 'time_machine') {
+        const tmName = inTag.rarityOrTier ? TIME_MACHINE_RARITY_META[inTag.rarityOrTier]?.pluralLabel || 'Máquina do Tempo' : 'Máquina do Tempo';
+        label = `+${sumXp.toLocaleString('pt-BR')} XP Anos (${tmName})`;
+      } else if (inTag.type === 'time_decade') {
+        label = `+${sumXp.toLocaleString('pt-BR')} XP Relíquias de Década`;
       }
       mergedTags[existingIndex] = {
         ...existing,
@@ -560,11 +957,9 @@ export function triggerXPGainToast(xpGainEvent, updatedXpStatus = null, forceImm
     return;
   }
 
-  // Se o sistema de troféus estiver ativo (notificações na tela ou na fila de espera)
-  // e não foi forçado um disparo explícito:
-  // Retém e soma o XP no buffer. A barra de XP só aparecerá
-  // quando TODAS as notificações de troféu terminarem e sumirem da tela!
-  if (!forceImmediate && isTrophyToastActive()) {
+  // Se houver troféus PS5 ou desbloqueio da Máquina do Tempo em exibição/fila,
+  // retém a barra de XP até que ambos os estágios anteriores tenham sumido 100%!
+  if (!forceImmediate && shouldHoldXpBar()) {
     bufferedXpEvent = mergeXpGainEvents(bufferedXpEvent, xpGainEvent);
     if (updatedXpStatus) {
       bufferedXpStatus = updatedXpStatus;
@@ -572,7 +967,6 @@ export function triggerXPGainToast(xpGainEvent, updatedXpStatus = null, forceImm
     return;
   }
 
-  // Se não há troféus em exibição ou fila, dispara a barra de XP imediatamente
   if (updatedXpStatus) {
     dispatchXpStatusUpdate(updatedXpStatus);
   }

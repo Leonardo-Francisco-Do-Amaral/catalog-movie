@@ -18,6 +18,12 @@ import {
   resolveTerritoryDescriptor,
 } from './services/worldChallengeService';
 import {
+  ensureTimeMachineTables,
+  buildTimeMachinePayload,
+  setManualYearPick,
+  setYearWishlistTarget,
+} from './services/timeMachineService';
+import {
   seedTrophies,
   evaluateTrophies,
   acknowledgeNewTrophies,
@@ -27,6 +33,7 @@ import {
 import {
   getQuickXpSnapshot,
   computeXpGainEvent,
+  computeTimeMachineUnlocks,
 } from './services/xpService';
 import multer from 'multer';
 import path from 'path';
@@ -606,7 +613,8 @@ app.post('/api/movies/add', upload.single('poster_file'), async (req: Request, r
       xpStatus = await getQuickXpSnapshot().catch(() => null);
     }
     const xpGain = computeXpGainEvent(prevXp, xpStatus);
-    return res.json({ success: true, movieId, newlyUnlocked, progressedTrophies, xpStatus, xpGain });
+    const timeMachineUnlocks = computeTimeMachineUnlocks(prevXp, xpStatus);
+    return res.json({ success: true, movieId, newlyUnlocked, progressedTrophies, timeMachineUnlocks, xpStatus, xpGain });
   } catch (err: any) {
     await dbClient.query('ROLLBACK');
     console.error('[Express] Erro ao adicionar filme:', err.message);
@@ -908,7 +916,8 @@ app.put('/api/movies/edit/:id', upload.single('poster_file'), async (req: Reques
       xpStatus = await getQuickXpSnapshot().catch(() => null);
     }
     const xpGain = computeXpGainEvent(prevXp, xpStatus);
-    return res.json({ success: true, newlyUnlocked, progressedTrophies, xpStatus, xpGain });
+    const timeMachineUnlocks = computeTimeMachineUnlocks(prevXp, xpStatus);
+    return res.json({ success: true, newlyUnlocked, progressedTrophies, timeMachineUnlocks, xpStatus, xpGain });
   } catch (err: any) {
     await dbClient.query('ROLLBACK');
     console.error('[Express] Erro ao editar filme:', err.message);
@@ -1259,6 +1268,49 @@ app.put('/api/challenge/world-195/wishlist/:countryCode', async (req: Request, r
 });
 
 // ============================================================================
+// ROTAS DA PÁGINA 5: "MÁQUINA DO TEMPO: O SÉCULO DO CINEMA"
+// ============================================================================
+
+// Rota: Obter panorama completo dos anos (1920..Hoje + Pioneiros), campeões por Maior Nota ou escolha manual, e décadas
+app.get('/api/challenge/time-machine', async (req: Request, res: Response) => {
+  try {
+    const data = await buildTimeMachinePayload();
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[TimeMachine] Erro ao carregar Máquina do Tempo:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Rota: Fixar manualmente (ou restaurar automático se movieId = null) o Filme Campeão de um ano
+app.put('/api/challenge/time-machine/pick/:year', async (req: Request, res: Response) => {
+  try {
+    const year = Number(req.params.year);
+    const { movieId } = req.body;
+    const parsedMovieId =
+      movieId === null || movieId === undefined || movieId === '' ? null : Number(movieId);
+    const data = await setManualYearPick(year, parsedMovieId);
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[TimeMachine] Erro ao salvar escolha manual do ano:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Rota: Salvar ou limpar Filme Alvo (Wishlist Temporal) para anos bloqueados
+app.put('/api/challenge/time-machine/wishlist/:year', async (req: Request, res: Response) => {
+  try {
+    const year = Number(req.params.year);
+    const { wishlist } = req.body;
+    const data = await setYearWishlistTarget(year, wishlist || null);
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[TimeMachine] Erro ao salvar alvo temporal do ano:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ============================================================================
 // ROTAS DO MOTOR DE TROFÉUS E CONQUISTAS (ESTILO PLAYSTATION PS5)
 // ============================================================================
 
@@ -1345,6 +1397,7 @@ app.listen(PORT, async () => {
   console.log(`[Server] Servidor backend rodando em http://localhost:${PORT}`);
   await testConnection();
   try {
+    await ensureTimeMachineTables();
     await seedTrophies();
     const initialTrophies = await evaluateTrophies({ markNew: false });
     console.log(
