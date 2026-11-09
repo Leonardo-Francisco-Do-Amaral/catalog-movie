@@ -1195,7 +1195,8 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
   let unlockedTrophiesCount = 0;
   if (trophiesList && trophiesList.length > 0) {
     trophiesList.forEach((t) => {
-      if (t.unlocked) {
+      const isUnlocked = Boolean(t.is_unlocked || t.unlocked);
+      if (isUnlocked) {
         unlockedTrophiesCount++;
         const tier = String(t.tier || '').toLowerCase();
         if (tier === 'platinum') vitSum += 3.0;
@@ -1215,6 +1216,18 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
     vitSum += (bt.mythic?.count || 0) * 1.0;
     vitSum += (bt.platinum?.count || 0) * 3.0;
     unlockedTrophiesCount = activeXp.sources.trophies.totalUnlocked || 0;
+  } else if (activeXp?.sources?.trophies?.unlockedIds) {
+    const ids = activeXp.sources.trophies.unlockedIds;
+    Object.values(ids).forEach((t) => {
+      unlockedTrophiesCount++;
+      const tier = String(t.tier || '').toLowerCase();
+      if (tier === 'platinum') vitSum += 3.0;
+      else if (tier === 'mythic') vitSum += 1.0;
+      else if (tier === 'gold') vitSum += 0.8;
+      else if (tier === 'epic') vitSum += 0.6;
+      else if (tier === 'silver') vitSum += 0.4;
+      else vitSum += 0.2;
+    });
   } else {
     unlockedTrophiesCount = activeXp?.sources?.trophies?.totalUnlocked || 0;
     vitSum = unlockedTrophiesCount * 0.4;
