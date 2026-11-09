@@ -557,7 +557,7 @@ export default function TopNavbar({
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
-                if (activeTab !== 'catalog' && e.target.value.trim()) {
+                if (activeTab !== 'catalog' && activeTab !== 'time_machine' && e.target.value.trim()) {
                   setActiveTab('catalog');
                 }
               }}

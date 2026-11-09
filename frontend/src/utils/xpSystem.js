@@ -7,7 +7,7 @@ export const MIN_TIME_MACHINE_YEAR = 1920;
 export const DECADE_COMPLETION_XP = 100;
 
 export function getMaxTimeMachineYear() {
-  return Math.max(2026, new Date().getFullYear());
+  return Math.max(2027, new Date().getFullYear());
 }
 
 export const TROPHY_XP_BY_TIER = {

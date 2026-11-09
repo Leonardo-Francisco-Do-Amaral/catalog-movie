@@ -16,11 +16,11 @@ import {
   RotateCcw,
   ArrowUpDown,
   FlaskConical,
-  Target,
   Zap,
   Calendar,
   TrendingUp,
   Layers,
+  LayoutGrid,
 } from 'lucide-react';
 import {
   MIN_TIME_MACHINE_YEAR,
@@ -110,7 +110,6 @@ function saveLocalTimeMachineState(state) {
  */
 function buildOfflineTimeMachinePayload(movies = [], localState = {}) {
   const manualPicks = localState.picks || {};
-  const wishlists = localState.wishlists || {};
   const maxYear = getMaxTimeMachineYear();
 
   const uniqueMap = new Map();
@@ -137,10 +136,6 @@ function buildOfflineTimeMachinePayload(movies = [], localState = {}) {
     allYearsSet.add(y);
   }
   for (const y of moviesByYear.keys()) allYearsSet.add(y);
-  Object.keys(wishlists).forEach((yk) => {
-    const y = Number(yk);
-    if (y >= 1888 && y <= maxYear + 2) allYearsSet.add(y);
-  });
 
   const sortedYearsDesc = Array.from(allYearsSet).sort((a, b) => b - a);
   const yearsEntries = [];
@@ -194,7 +189,6 @@ function buildOfflineTimeMachinePayload(movies = [], localState = {}) {
       yearsXp += xpReward;
     }
 
-    const w = wishlists[year];
     yearsEntries.push({
       year,
       decadeKey: getDecadeKeyForYear(year),
@@ -206,7 +200,6 @@ function buildOfflineTimeMachinePayload(movies = [], localState = {}) {
       champion,
       autoBestMovie,
       candidates: sortedCandidates,
-      wishlist: w && w.title ? w : null,
     });
   });
 
@@ -304,21 +297,56 @@ function buildOfflineTimeMachinePayload(movies = [], localState = {}) {
   };
 }
 
-export default function TimeMachinePage({ movies = [], onOpenAddMovieForYear }) {
+const normalizeStr = (s) =>
+  String(s || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+export default function TimeMachinePage({
+  movies = [],
+  navbarSearchQuery = '',
+  onOpenAddMovieForYear,
+}) {
   const [payload, setPayload] = useState(null);
   const [loading, setLoading] = useState(true);
   const [savingAction, setSavingAction] = useState(false);
 
   // Filtros e ordenação
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(navbarSearchQuery || '');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'conquered' | 'locked' | 'disputed' | 'manual'
   const [rarityFilter, setRarityFilter] = useState('all'); // 'all' | 'mythic' | 'legendary' | 'epic' | 'rare' | 'common'
   const [decadeFilter, setDecadeFilter] = useState('all'); // 'all' | '2020s' | ...
   const [chronoOrder, setChronoOrder] = useState('desc'); // 'desc' (Recentes->Antigos) | 'asc' (1920->Hoje)
 
+  // Densidade / Colunas por linha (5, 7 ou 10)
+  const [colsPerRow, setColsPerRow] = useState(() => {
+    try {
+      const saved = Number(localStorage.getItem('cine_time_machine_cols'));
+      return [5, 7, 10].includes(saved) ? saved : 7;
+    } catch {
+      return 7;
+    }
+  });
+
+  const handleColsChange = (num) => {
+    setColsPerRow(num);
+    try {
+      localStorage.setItem('cine_time_machine_cols', String(num));
+    } catch {
+      // ignore
+    }
+  };
+
+  // Sincroniza busca global da Navbar quando digitada
+  useEffect(() => {
+    if (navbarSearchQuery !== undefined) {
+      setSearchTerm(navbarSearchQuery);
+    }
+  }, [navbarSearchQuery]);
+
   // Modal de inspeção do ano & troca manual do Campeão
   const [selectedYearNumber, setSelectedYearNumber] = useState(null);
-  const [wishlistDraft, setWishlistDraft] = useState({ title: '', director: '', notes: '' });
 
   // Modal de Testes & Homologação
   const [isTestPanelOpen, setIsTestPanelOpen] = useState(false);
@@ -364,16 +392,6 @@ export default function TimeMachinePage({ movies = [], onOpenAddMovieForYear }) 
     return payload.years.find((y) => y.year === selectedYearNumber) || null;
   }, [selectedYearNumber, payload]);
 
-  useEffect(() => {
-    if (selectedYearEntry) {
-      setWishlistDraft({
-        title: selectedYearEntry.wishlist?.title || '',
-        director: selectedYearEntry.wishlist?.director || '',
-        notes: selectedYearEntry.wishlist?.notes || '',
-      });
-    }
-  }, [selectedYearEntry]);
-
   // Trocar manualmente o Campeão do Ano (ou voltar para Automático se movieId = null)
   const handleSelectChampion = async (year, movieId) => {
     setSavingAction(true);
@@ -406,55 +424,21 @@ export default function TimeMachinePage({ movies = [], onOpenAddMovieForYear }) 
     }
   };
 
-  // Salvar ou limpar Alvo Temporal (Wishlist) em anos ainda vazios
-  const handleSaveWishlist = async (year, clear = false) => {
-    setSavingAction(true);
-    const nextWish = clear
-      ? null
-      : {
-          title: wishlistDraft.title.trim(),
-          director: wishlistDraft.director.trim(),
-          notes: wishlistDraft.notes.trim(),
-        };
-
-    try {
-      const res = await axios.put(`${API_BASE_URL}/challenge/time-machine/wishlist/${year}`, {
-        wishlist: nextWish && nextWish.title ? nextWish : null,
-      });
-      if (res.data?.success && res.data?.data) {
-        setPayload(res.data.data);
-      }
-      const local = loadLocalTimeMachineState();
-      if (!nextWish || !nextWish.title) {
-        delete local.wishlists[year];
-      } else {
-        local.wishlists[year] = nextWish;
-      }
-      saveLocalTimeMachineState(local);
-    } catch {
-      const local = loadLocalTimeMachineState();
-      if (!nextWish || !nextWish.title) {
-        delete local.wishlists[year];
-      } else {
-        local.wishlists[year] = nextWish;
-      }
-      saveLocalTimeMachineState(local);
-      setPayload(buildOfflineTimeMachinePayload(movies, local));
-    } finally {
-      setSavingAction(false);
-    }
-  };
-
   // Filtragem inteligente das décadas e anos
   const filteredDecades = useMemo(() => {
     if (!payload?.decades) return [];
-    const q = searchTerm.trim().toLowerCase();
+    const rawQ = (searchTerm || navbarSearchQuery || '').trim();
+    const q = rawQ.toLowerCase();
+    const normQ = normalizeStr(rawQ);
+
+    // Quando o usuário digita uma busca (ex: 1994), pesquisa em TODAS as décadas
+    const effectiveDecadeFilter = q ? 'all' : decadeFilter;
 
     const baseDecades =
       chronoOrder === 'asc' ? [...payload.decades].reverse() : [...payload.decades];
 
     return baseDecades
-      .filter((dec) => decadeFilter === 'all' || dec.id === decadeFilter)
+      .filter((dec) => effectiveDecadeFilter === 'all' || dec.id === effectiveDecadeFilter)
       .map((dec) => {
         const orderedYears =
           chronoOrder === 'asc' ? [...dec.years].reverse() : [...dec.years];
@@ -466,17 +450,26 @@ export default function TimeMachinePage({ movies = [], onOpenAddMovieForYear }) 
           if (statusFilter === 'manual' && yEntry.selectionMode !== 'manual') return false;
           if (rarityFilter !== 'all' && yEntry.rarityTier !== rarityFilter) return false;
 
-          if (q) {
-            const matchYear = String(yEntry.year).includes(q);
-            const matchMovie = (yEntry.candidates || []).some(
-              (m) =>
-                String(m.title || '').toLowerCase().includes(q) ||
-                String(m.original_title || '').toLowerCase().includes(q) ||
-                (m.directors || []).some((d) => String(d).toLowerCase().includes(q))
-            );
-            const matchWish =
-              yEntry.wishlist?.title && yEntry.wishlist.title.toLowerCase().includes(q);
-            if (!matchYear && !matchMovie && !matchWish) return false;
+          if (normQ) {
+            const matchYear = String(yEntry.year).includes(normQ);
+            const matchCandidates = (yEntry.candidates || []).some((m) => {
+              const t1 = normalizeStr(m.title);
+              const t2 = normalizeStr(m.original_title);
+              const dirs = (m.directors || []).map(normalizeStr);
+              return (
+                t1.includes(normQ) ||
+                t2.includes(normQ) ||
+                dirs.some((d) => d.includes(normQ))
+              );
+            });
+            const matchChamp =
+              yEntry.champion &&
+              (normalizeStr(yEntry.champion.title).includes(normQ) ||
+                normalizeStr(yEntry.champion.original_title).includes(normQ));
+
+            if (!matchYear && !matchCandidates && !matchChamp) {
+              return false;
+            }
           }
 
           return true;
@@ -488,7 +481,15 @@ export default function TimeMachinePage({ movies = [], onOpenAddMovieForYear }) 
         };
       })
       .filter((dec) => dec.filteredYears.length > 0);
-  }, [payload, searchTerm, statusFilter, rarityFilter, decadeFilter, chronoOrder]);
+  }, [
+    payload,
+    searchTerm,
+    navbarSearchQuery,
+    statusFilter,
+    rarityFilter,
+    decadeFilter,
+    chronoOrder,
+  ]);
 
   if (loading || !payload) {
     return (
@@ -711,7 +712,7 @@ export default function TimeMachinePage({ movies = [], onOpenAddMovieForYear }) 
       {/* =====================================================================
           BARRA DE BUSCA, FILTROS E SALTO RÁPIDO POR DÉCADAS
          ===================================================================== */}
-      <section className="bg-zinc-900/70 border border-zinc-800/90 rounded-2xl p-4 flex flex-col gap-3.5 sticky top-[72px] z-30 backdrop-blur-xl shadow-xl">
+      <section className="bg-zinc-900/70 border border-zinc-800/90 rounded-2xl p-4 flex flex-col gap-3.5 backdrop-blur-xl shadow-xl">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           {/* Busca */}
           <div className="relative flex-1 max-w-md">
@@ -734,7 +735,7 @@ export default function TimeMachinePage({ movies = [], onOpenAddMovieForYear }) 
             )}
           </div>
 
-          {/* Botões de Status */}
+          {/* Botões de Status, Alternar Ordem e Seletor de Colunas */}
           <div className="flex items-center gap-1.5 flex-wrap">
             {[
               { id: 'all', label: 'Todos os Anos' },
@@ -765,8 +766,40 @@ export default function TimeMachinePage({ movies = [], onOpenAddMovieForYear }) 
               title="Inverter sentido da linha do tempo"
             >
               <ArrowUpDown className="w-3.5 h-3.5" />
-              <span>{chronoOrder === 'desc' ? '2026 ➔ 1920' : '1920 ➔ 2026'}</span>
+              <span>
+                {chronoOrder === 'desc'
+                  ? `${stats.maxOfficialYear} ➔ ${stats.minOfficialYear}`
+                  : `${stats.minOfficialYear} ➔ ${stats.maxOfficialYear}`}
+              </span>
             </button>
+
+            {/* Seletor de Densidade: 5, 7 ou 10 por linha */}
+            <div className="flex items-center gap-1 bg-zinc-950 border border-zinc-800 rounded-xl p-1">
+              <span className="text-[10px] font-black text-zinc-500 uppercase px-1.5 hidden sm:inline">
+                Linha:
+              </span>
+              {[
+                { count: 5, label: '5' },
+                { count: 7, label: '7' },
+                { count: 10, label: '10' },
+              ].map(({ count, label }) => (
+                <button
+                  key={count}
+                  type="button"
+                  onClick={() => handleColsChange(count)}
+                  className={`px-2 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer ${
+                    colsPerRow === count
+                      ? 'bg-cyan-500 text-slate-950 shadow-sm'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900'
+                  }`}
+                  title={`Exibir ${count} cards por linha ${
+                    count === 10 ? '(1 década inteira por linha!)' : ''
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -877,7 +910,7 @@ export default function TimeMachinePage({ movies = [], onOpenAddMovieForYear }) 
                         <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/90 border border-zinc-800 text-[11px] font-semibold text-zinc-400">
                           <Clock className="w-3.5 h-3.5 text-cyan-400" />
                           <span>
-                            Década em curso ({dec.conqueredCount}/10 para +{dec.relicXp} XP em 2029)
+                            Década em curso ({dec.conqueredCount}/10 para +{dec.relicXp} XP)
                           </span>
                         </div>
                       ) : (
@@ -893,8 +926,16 @@ export default function TimeMachinePage({ movies = [], onOpenAddMovieForYear }) 
                   )}
                 </div>
 
-                {/* Grade de Anos da Década (5 colunas no Desktop) */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {/* Grade de Anos da Década (5, 7 ou 10 por Linha) */}
+                <div
+                  className={
+                    colsPerRow === 10
+                      ? 'grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2'
+                      : colsPerRow === 7
+                      ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-2.5'
+                      : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5'
+                  }
+                >
                   {dec.filteredYears.map((yEntry) => {
                     const rMeta =
                       TIME_MACHINE_RARITY_META[yEntry.rarityTier] ||
@@ -903,6 +944,8 @@ export default function TimeMachinePage({ movies = [], onOpenAddMovieForYear }) 
                     const posterUrl = isConquered
                       ? resolvePosterUrl(yEntry.champion.poster_url)
                       : null;
+                    const isUltraDense = colsPerRow === 10;
+                    const isDense = colsPerRow === 7;
 
                     return (
                       <div
@@ -939,10 +982,20 @@ export default function TimeMachinePage({ movies = [], onOpenAddMovieForYear }) 
                         )}
 
                         {/* Topo do Card: Ano + Raridade + Indicador de Campeão */}
-                        <div className="relative z-10 p-2.5 flex items-start justify-between gap-1.5">
-                          <div className="flex flex-col gap-1">
+                        <div
+                          className={`relative z-10 flex items-start justify-between gap-1 ${
+                            isUltraDense ? 'p-1.5' : isDense ? 'p-2' : 'p-2.5'
+                          }`}
+                        >
+                          <div className="flex flex-col gap-0.5">
                             <span
-                              className={`font-mono text-xl sm:text-2xl font-black leading-none px-2 py-1 rounded-lg backdrop-blur-md border ${
+                              className={`font-mono font-black leading-none rounded-lg backdrop-blur-md border ${
+                                isUltraDense
+                                  ? 'text-sm sm:text-base px-1.5 py-0.5'
+                                  : isDense
+                                  ? 'text-base sm:text-lg px-2 py-0.5'
+                                  : 'text-xl sm:text-2xl px-2 py-1'
+                              } ${
                                 isConquered
                                   ? 'bg-black/70 text-white border-white/20 shadow-lg'
                                   : 'bg-zinc-900/90 text-zinc-400 border-zinc-800'
@@ -951,7 +1004,11 @@ export default function TimeMachinePage({ movies = [], onOpenAddMovieForYear }) 
                               {yEntry.year}
                             </span>
                             <span
-                              className={`inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded-md border backdrop-blur-md w-fit ${rMeta.badge}`}
+                              className={`inline-flex items-center gap-0.5 font-black rounded-md border backdrop-blur-md w-fit ${
+                                isUltraDense
+                                  ? 'text-[8px] px-1 py-0.5'
+                                  : 'text-[9px] px-1.5 py-0.5'
+                              } ${rMeta.badge}`}
                             >
                               <span>{rMeta.icon}</span>
                               <span>+{yEntry.xpReward} XP</span>
@@ -960,25 +1017,41 @@ export default function TimeMachinePage({ movies = [], onOpenAddMovieForYear }) 
 
                           {/* Badges de Disputa / Escolha Manual */}
                           {isConquered && (
-                            <div className="flex flex-col items-end gap-1">
+                            <div className="flex flex-col items-end gap-0.5">
                               {yEntry.selectionMode === 'manual' ? (
                                 <span
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/90 text-slate-950 text-[9px] font-black uppercase shadow"
+                                  className={`inline-flex items-center gap-0.5 rounded-md bg-amber-500/90 text-slate-950 font-black uppercase shadow ${
+                                    isUltraDense
+                                      ? 'text-[8px] px-1 py-0.5'
+                                      : 'text-[9px] px-1.5 py-0.5'
+                                  }`}
                                   title="Campeão fixado manualmente por você"
                                 >
-                                  <Pin className="w-2.5 h-2.5" /> Manual
+                                  <Pin className="w-2.5 h-2.5" />
+                                  {!isUltraDense && 'Manual'}
                                 </span>
                               ) : yEntry.moviesCount > 1 ? (
                                 <span
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/85 text-slate-950 text-[9px] font-black uppercase shadow"
+                                  className={`inline-flex items-center gap-0.5 rounded-md bg-emerald-500/85 text-slate-950 font-black uppercase shadow ${
+                                    isUltraDense
+                                      ? 'text-[8px] px-1 py-0.5'
+                                      : 'text-[9px] px-1.5 py-0.5'
+                                  }`}
                                   title="Selecionado automaticamente pela maior Minha Nota"
                                 >
-                                  <Crown className="w-2.5 h-2.5" /> Maior Nota
+                                  <Crown className="w-2.5 h-2.5" />
+                                  {!isUltraDense && 'Maior Nota'}
                                 </span>
                               ) : null}
 
                               {yEntry.moviesCount > 1 && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-black/75 border border-white/15 text-[10px] font-mono font-bold text-zinc-200 backdrop-blur-md">
+                                <span
+                                  className={`inline-flex items-center gap-0.5 rounded-md bg-black/75 border border-white/15 font-mono font-bold text-zinc-200 backdrop-blur-md ${
+                                    isUltraDense
+                                      ? 'text-[8px] px-1 py-0.2'
+                                      : 'text-[10px] px-1.5 py-0.5'
+                                  }`}
+                                >
                                   <Film className="w-2.5 h-2.5 text-cyan-300" />
                                   {yEntry.moviesCount}
                                 </span>
@@ -989,49 +1062,67 @@ export default function TimeMachinePage({ movies = [], onOpenAddMovieForYear }) 
 
                         {/* Centro para Anos Bloqueados */}
                         {!isConquered && (
-                          <div className="relative z-10 px-3 flex flex-col items-center text-center gap-1.5">
-                            {yEntry.wishlist?.title ? (
-                              <>
-                                <Target className="w-6 h-6 text-amber-400" />
-                                <span className="text-[10px] font-black uppercase tracking-wider text-amber-300">
-                                  Alvo Temporal
-                                </span>
-                                <p className="text-xs font-bold text-zinc-200 line-clamp-2">
-                                  {yEntry.wishlist.title}
-                                </p>
-                              </>
-                            ) : (
-                              <>
-                                <Lock className="w-6 h-6 text-zinc-700 group-hover:text-cyan-400 transition-colors" />
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 group-hover:text-zinc-400">
-                                  Vácuo Temporal
-                                </span>
-                              </>
-                            )}
+                          <div className="relative z-10 px-2 flex flex-col items-center text-center gap-1">
+                            <Lock
+                              className={`${
+                                isUltraDense ? 'w-4 h-4' : 'w-5 h-5 sm:w-6 sm:h-6'
+                              } text-zinc-700 group-hover:text-cyan-400 transition-colors`}
+                            />
+                            <span
+                              className={`${
+                                isUltraDense ? 'text-[8px]' : 'text-[9px] sm:text-[10px]'
+                              } font-bold uppercase tracking-wider text-zinc-600 group-hover:text-zinc-400`}
+                            >
+                              Vácuo Temporal
+                            </span>
                           </div>
                         )}
 
                         {/* Rodapé do Card */}
-                        <div className="relative z-10 p-3">
+                        <div
+                          className={`relative z-10 ${
+                            isUltraDense ? 'p-1.5' : isDense ? 'p-2' : 'p-3'
+                          }`}
+                        >
                           {isConquered ? (
-                            <div className="flex flex-col gap-1">
-                              <h3 className="text-xs sm:text-sm font-black text-white line-clamp-2 leading-snug drop-shadow">
+                            <div className="flex flex-col gap-0.5">
+                              <h3
+                                className={`font-black text-white leading-tight drop-shadow ${
+                                  isUltraDense
+                                    ? 'text-[11px] line-clamp-1'
+                                    : isDense
+                                    ? 'text-xs line-clamp-2'
+                                    : 'text-xs sm:text-sm line-clamp-2'
+                                }`}
+                              >
                                 {yEntry.champion.title}
                               </h3>
-                              <div className="flex items-center justify-between gap-2 mt-0.5">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-400/50 text-[11px] font-mono font-black text-amber-300">
-                                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                                  {Number(yEntry.champion.user_rating || 0).toFixed(3)}
+                              <div className="flex items-center justify-between gap-1 mt-0.5">
+                                <span
+                                  className={`inline-flex items-center gap-0.5 rounded-md bg-amber-500/20 border border-amber-400/50 font-mono font-black text-amber-300 ${
+                                    isUltraDense
+                                      ? 'text-[9px] px-1 py-0.5'
+                                      : 'text-[11px] px-1.5 py-0.5'
+                                  }`}
+                                >
+                                  <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                                  {Number(yEntry.champion.user_rating || 0).toFixed(
+                                    isUltraDense ? 1 : 3
+                                  )}
                                 </span>
-                                {Number(yEntry.champion.imdb_rating) > 0 && (
-                                  <span className="text-[10px] font-mono font-bold text-zinc-300">
+                                {Number(yEntry.champion.imdb_rating) > 0 && !isUltraDense && (
+                                  <span className="text-[10px] font-mono font-bold text-zinc-300 truncate">
                                     IMDb {Number(yEntry.champion.imdb_rating).toFixed(1)}
                                   </span>
                                 )}
                               </div>
                             </div>
                           ) : (
-                            <div className="w-full py-1.5 rounded-xl bg-zinc-900/90 group-hover:bg-cyan-500/20 border border-zinc-800 group-hover:border-cyan-400/50 text-[10px] font-black uppercase tracking-wider text-zinc-400 group-hover:text-cyan-200 text-center transition-colors">
+                            <div
+                              className={`w-full rounded-xl bg-zinc-900/90 group-hover:bg-cyan-500/20 border border-zinc-800 group-hover:border-cyan-400/50 font-black uppercase tracking-wider text-zinc-400 group-hover:text-cyan-200 text-center transition-colors ${
+                                isUltraDense ? 'text-[8px] py-1' : 'text-[10px] py-1.5'
+                              }`}
+                            >
                               + Explorar {yEntry.year}
                             </div>
                           )}
@@ -1234,85 +1325,59 @@ export default function TimeMachinePage({ movies = [], onOpenAddMovieForYear }) 
                         </div>
                       </>
                     ) : (
-                      /* Ano ainda bloqueado: CTA de Cadastro + Alvo Temporal */
+                      /* Ano ainda bloqueado: CTA Direto de Cadastro */
                       <div className="flex flex-col gap-4">
-                        <div className="rounded-2xl p-4 bg-cyan-950/20 border border-cyan-500/30 text-xs text-zinc-300 leading-relaxed">
-                          Você ainda não possui nenhum filme lançado em{' '}
-                          <strong className="text-white">{selectedYearEntry.year}</strong> no
-                          catálogo. Ao cadastrar o primeiro filme deste ano, o portal da{' '}
-                          <strong className="text-cyan-300">Máquina do Tempo</strong> será disparado
-                          e você receberá{' '}
-                          <strong className="text-amber-300">
-                            +{selectedYearEntry.xpReward} XP
-                          </strong>{' '}
-                          na barra de nível!
+                        <div className="rounded-2xl p-4 sm:p-5 bg-cyan-950/25 border border-cyan-500/35 text-xs sm:text-sm text-zinc-300 leading-relaxed flex flex-col gap-2">
+                          <p>
+                            Você ainda não possui nenhum filme lançado em{' '}
+                            <strong className="text-white text-base font-mono">
+                              {selectedYearEntry.year}
+                            </strong>{' '}
+                            no catálogo.
+                          </p>
+                          <p className="text-zinc-400">
+                            Ao cadastrar o primeiro filme deste ano, o portal da{' '}
+                            <strong className="text-cyan-300 font-bold">Máquina do Tempo</strong> será
+                            ativado e você receberá instantaneamente{' '}
+                            <strong className="text-amber-300 font-bold font-mono">
+                              +{selectedYearEntry.xpReward} XP
+                            </strong>{' '}
+                            na sua barra de nível!
+                          </p>
                         </div>
 
-                        {/* Planejador / Wishlist do Ano */}
-                        <div className="rounded-2xl p-4 bg-zinc-900/70 border border-zinc-800 flex flex-col gap-3">
-                          <div className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
-                            <Target className="w-4 h-4" /> Planejar Filme Alvo para{' '}
-                            {selectedYearEntry.year} (Opcional)
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                            <input
-                              type="text"
-                              value={wishlistDraft.title}
-                              onChange={(e) =>
-                                setWishlistDraft((prev) => ({ ...prev, title: e.target.value }))
-                              }
-                              placeholder="Título do filme que pretende assistir..."
-                              className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-amber-500/50"
-                            />
-                            <input
-                              type="text"
-                              value={wishlistDraft.director}
-                              onChange={(e) =>
-                                setWishlistDraft((prev) => ({ ...prev, director: e.target.value }))
-                              }
-                              placeholder="Diretor (opcional)"
-                              className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-amber-500/50"
-                            />
-                          </div>
-                          <div className="flex items-center justify-end gap-2">
-                            {selectedYearEntry.wishlist?.title && (
-                              <button
-                                type="button"
-                                disabled={savingAction}
-                                onClick={() => handleSaveWishlist(selectedYearEntry.year, true)}
-                                className="px-3 py-1.5 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold hover:bg-zinc-700 cursor-pointer"
-                              >
-                                Remover Alvo
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              disabled={savingAction || !wishlistDraft.title.trim()}
-                              onClick={() => handleSaveWishlist(selectedYearEntry.year, false)}
-                              className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-200 text-xs font-black disabled:opacity-40 cursor-pointer"
-                            >
-                              Salvar Alvo Temporal
-                            </button>
-                          </div>
-                        </div>
+                        {onOpenAddMovieForYear && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const yearToAdd = selectedYearEntry.year;
+                              setSelectedYearNumber(null);
+                              onOpenAddMovieForYear(yearToAdd, '');
+                            }}
+                            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-cyan-500 via-sky-400 to-amber-400 hover:from-cyan-400 hover:to-amber-300 text-slate-950 text-xs font-black uppercase tracking-wider shadow-xl cursor-pointer transition-all duration-200"
+                          >
+                            <Plus className="w-4 h-4 stroke-[3]" />
+                            Cadastrar Primeiro Filme de {selectedYearEntry.year} (+
+                            {selectedYearEntry.xpReward} XP)
+                          </button>
+                        )}
                       </div>
                     )}
 
-                    {/* Botão Rodapé: Cadastrar Filme deste Ano */}
-                    {onOpenAddMovieForYear && (
+                    {/* Botão Rodapé: Cadastrar Outro Filme deste Ano (se já conquistado) */}
+                    {isConquered && onOpenAddMovieForYear && (
                       <div className="pt-2 border-t border-zinc-800/80 flex justify-end">
                         <button
                           type="button"
                           onClick={() => {
                             const yearToAdd = selectedYearEntry.year;
-                            const wishTitle = selectedYearEntry.wishlist?.title || '';
                             setSelectedYearNumber(null);
-                            onOpenAddMovieForYear(yearToAdd, wishTitle);
+                            onOpenAddMovieForYear(yearToAdd, '');
                           }}
-                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-400 hover:from-cyan-400 hover:to-sky-300 text-slate-950 text-xs font-black uppercase tracking-wider shadow-lg cursor-pointer"
+                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-cyan-400/50 text-cyan-200 text-xs font-black uppercase tracking-wider shadow-lg cursor-pointer transition-all"
                         >
                           <Plus className="w-4 h-4" />
-                          Cadastrar Filme de {selectedYearEntry.year}
+                          Adicionar Mais um Filme de {selectedYearEntry.year}
                         </button>
                       </div>
                     )}

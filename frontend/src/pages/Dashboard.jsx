@@ -447,12 +447,13 @@ export default function Dashboard() {
   useEffect(() => {
     let result = [...allMovies];
 
-    // 1. Filtro por Busca Textual sem acentos (Título, Original, Diretor, Roteirista, Tag ou Gênero)
+    // 1. Filtro por Busca Textual sem acentos (Título, Original, Ano, Diretor, Roteirista, Tag ou Gênero)
     if (searchQuery.trim()) {
       const query = stripAccents(searchQuery.trim());
       result = result.filter(movie => 
         stripAccents(movie.title).includes(query) ||
         stripAccents(movie.original_title).includes(query) ||
+        String(movie.release_year || '').includes(query) ||
         movie.directors?.some(dir => stripAccents(dir).includes(query)) ||
         movie.writers?.some(wri => stripAccents(wri).includes(query)) ||
         movie.tags?.some(tag => stripAccents(tag).includes(query)) ||
@@ -845,6 +846,7 @@ export default function Dashboard() {
         ) : activeTab === 'time_machine' ? (
           <TimeMachinePage
             movies={allMovies}
+            navbarSearchQuery={searchQuery}
             onOpenAddMovieForYear={(yearNumber, wishTitle) => {
               setEditingMovie(null);
               setInitialReleaseYear(yearNumber ? String(yearNumber) : '');
