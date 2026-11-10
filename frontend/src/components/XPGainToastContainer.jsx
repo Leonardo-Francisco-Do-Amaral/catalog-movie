@@ -155,7 +155,11 @@ function XPGainCard({ item, onDismiss }) {
             </div>
 
             <div className="text-lg font-black tracking-tight bg-gradient-to-r from-amber-300 via-yellow-200 to-emerald-300 bg-clip-text text-transparent mt-0.5">
-              +{gainedXp.toLocaleString('pt-BR')} XP GANHOS!
+              {(gainedXp || 0) > 0
+                ? `+${gainedXp.toLocaleString('pt-BR')} XP GANHOS!`
+                : unlockedClass
+                  ? 'NOVA CLASSE DESBLOQUEADA!'
+                  : 'EVOLUÇÃO DE ATRIBUTOS!'}
             </div>
           </div>
         </div>
@@ -294,9 +298,14 @@ export default function XPGainToastContainer() {
 
   const pushXpEvent = useCallback(
     (xpEvent) => {
-      if (!xpEvent || !(xpEvent.gainedXp > 0)) return;
+      const hasContent =
+        xpEvent &&
+        ((xpEvent.gainedXp || 0) > 0 ||
+          Boolean(xpEvent.unlockedClass) ||
+          (Array.isArray(xpEvent.statGains) && xpEvent.statGains.length > 0));
+      if (!hasContent) return;
       const id = `xp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-      const durationMs = xpEvent.leveledUp ? 8500 : 6200;
+      const durationMs = (xpEvent.leveledUp || xpEvent.unlockedClass) ? 9200 : 6200;
 
       setItems((prev) => [{ id, event: xpEvent }, ...prev.slice(0, 2)]);
 

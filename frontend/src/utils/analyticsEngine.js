@@ -1542,6 +1542,121 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
   };
 }
 
+function splitCommaOrArray(value) {
+  if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
+  if (typeof value === 'string') return value.split(',').map((v) => v.trim()).filter(Boolean);
+  return [];
+}
+
+function normalizeMovieForRpg(movie) {
+  if (!movie) return {};
+  return {
+    ...movie,
+    runtime: Number(movie.runtime) || 0,
+    release_year: Number(movie.release_year) || 0,
+    user_rating: Number(movie.user_rating) || 0,
+    oscar_wins: Number(movie.oscar_wins) || 0,
+    oscar_nominations: Number(movie.oscar_nominations) || 0,
+    countries: splitCommaOrArray(movie.countries),
+    genres: splitCommaOrArray(movie.genres),
+  };
+}
+
+function computeSingleMovieRpgContrib(movie) {
+  const m = normalizeMovieForRpg(movie);
+  let agi = 0;
+  if (m.runtime > 170) agi = 1.0;
+  else if (m.runtime > 140) agi = 0.4;
+  else if (m.runtime > 120) agi = 0.2;
+
+  let intHist = 0;
+  if (m.release_year > 0) {
+    if (m.release_year < 1950) intHist = 0.7;
+    else if (m.release_year < 1980) intHist = 0.5;
+    else if (m.release_year < 2000) intHist = 0.3;
+  }
+
+  const isForeign = m.countries.some(
+    (c) => c && !c.toLowerCase().includes('brasil') && !c.toLowerCase().includes('estados unidos')
+  );
+  const desForeign = isForeign ? 0.2 : 0;
+
+  let sor = 0.2;
+  if (m.user_rating >= 9.5 || (m.user_rating > 0 && m.user_rating <= 4.0)) {
+    sor += 0.8;
+  }
+
+  const forPts = m.oscar_wins * 0.4 + m.oscar_nominations * 0.2;
+  return { agi, intHist, desForeign, sor, forPts };
+}
+
+function matchesMovieIdentity(existing, target) {
+  if (!existing || !target) return false;
+  if (target.movie_id != null && existing.movie_id != null) {
+    return String(existing.movie_id) === String(target.movie_id);
+  }
+  if (target.id != null && existing.id != null) {
+    return String(existing.id) === String(target.id);
+  }
+  return false;
+}
+
+function buildEffectivePrevXpStatus(prevXpStatus, nextXpStatus, newlyUnlocked, timeMachineUnlocks) {
+  if (prevXpStatus) return prevXpStatus;
+  if (!nextXpStatus) return null;
+
+  const tmYearsDelta = Array.isArray(timeMachineUnlocks)
+    ? timeMachineUnlocks.filter((u) => u && u.kind === 'year').length
+    : 0;
+  const prevTmYears = Math.max(0, (nextXpStatus?.sources?.timeMachine?.totalConqueredYears || 0) - tmYearsDelta);
+
+  const nextUnlockedIds = { ...(nextXpStatus?.sources?.trophies?.unlockedIds || {}) };
+  if (Array.isArray(newlyUnlocked)) {
+    newlyUnlocked.forEach((t) => {
+      if (t?.id != null) delete nextUnlockedIds[String(t.id)];
+    });
+  }
+
+  const tierDelta = { bronze: 0, silver: 0, epic: 0, gold: 0, mythic: 0, platinum: 0 };
+  if (Array.isArray(newlyUnlocked)) {
+    newlyUnlocked.forEach((t) => {
+      const k = String(t?.tier || 'bronze').toLowerCase();
+      if (k in tierDelta) tierDelta[k] += 1;
+      else tierDelta.bronze += 1;
+    });
+  }
+
+  const nextByTier = nextXpStatus?.sources?.trophies?.byTier;
+  const prevByTier = nextByTier
+    ? Object.fromEntries(
+        Object.entries(nextByTier).map(([tier, info]) => [
+          tier,
+          { ...info, count: Math.max(0, (info?.count || 0) - (tierDelta[tier] || 0)) },
+        ])
+      )
+    : undefined;
+
+  return {
+    ...nextXpStatus,
+    sources: {
+      ...nextXpStatus.sources,
+      timeMachine: {
+        ...nextXpStatus.sources?.timeMachine,
+        totalConqueredYears: prevTmYears,
+      },
+      trophies: {
+        ...nextXpStatus.sources?.trophies,
+        totalUnlocked: Math.max(
+          0,
+          (nextXpStatus.sources?.trophies?.totalUnlocked || 0) - (newlyUnlocked?.length || 0)
+        ),
+        unlockedIds: nextUnlockedIds,
+        ...(prevByTier ? { byTier: prevByTier } : {}),
+      },
+    },
+  };
+}
+
 /**
  * 6. Calcula os ganhos de atributos RPG e desbloqueio de classe ao cadastrar ou editar um filme
  */
@@ -1551,29 +1666,32 @@ export function computeMovieStatGains({
   _progressedTrophies = [],
   timeMachineUnlocks = [],
   existingMovies = [],
+  prevXpStatus = null,
+  nextXpStatus = null,
+  isEditMode = false,
 }) {
   const statGains = [];
-  const runtime = Number(movieData?.runtime) || 0;
-  const rating = Number(movieData?.user_rating) || 0;
-  const oscarWins = Number(movieData?.oscar_wins) || 0;
-  const oscarNominations = Number(movieData?.oscar_nominations) || 0;
-  const releaseYear = Number(movieData?.release_year) || 0;
-  const countries = Array.isArray(movieData?.countries)
-    ? movieData.countries
-    : typeof movieData?.countries === 'string'
-    ? movieData.countries.split(',').map((c) => c.trim()).filter(Boolean)
-    : [];
+  const normalizedMovie = normalizeMovieForRpg(movieData);
+  const effectivePrevXp = buildEffectivePrevXpStatus(
+    prevXpStatus,
+    nextXpStatus,
+    newlyUnlocked,
+    timeMachineUnlocks
+  );
 
-  // 1. Agilidade (AGI) - Vigor de Tela
-  // Regra: >120m (+0.2) | >140m (+0.4) | >170m (+1.0)
-  let agiGain = 0;
-  if (runtime > 170) {
-    agiGain = 1.0;
-  } else if (runtime > 140) {
-    agiGain = 0.4;
-  } else if (runtime > 120) {
-    agiGain = 0.2;
-  }
+  const prevMovie = isEditMode
+    ? (existingMovies || []).find((m) => matchesMovieIdentity(m, normalizedMovie))
+    : null;
+
+  const nextContrib = computeSingleMovieRpgContrib(normalizedMovie);
+  const prevContrib = prevMovie
+    ? computeSingleMovieRpgContrib(prevMovie)
+    : isEditMode
+    ? { ...nextContrib }
+    : { agi: 0, intHist: 0, desForeign: 0, sor: 0, forPts: 0 };
+
+  // 1. Agilidade (AGI) - Vigor de Tela (>120m: +0.2 | >140m: +0.4 | >170m: +1.0)
+  const agiGain = Math.round(Math.max(0, nextContrib.agi - prevContrib.agi) * 10) / 10;
   if (agiGain > 0) {
     statGains.push({
       key: 'AGI',
@@ -1583,20 +1701,19 @@ export function computeMovieStatGains({
     });
   }
 
-  // 2. Inteligência (INT) - Sabedoria Temporal
-  // Regra: Pré-2000 (+0.3) | Pré-1980 (+0.5) | Pré-1950 (+0.7) + Ano Inédito (+0.8) + Década (+1.5)
-  let intGain = 0;
-  if (releaseYear > 0) {
-    if (releaseYear < 1950) intGain += 0.7;
-    else if (releaseYear < 1980) intGain += 0.5;
-    else if (releaseYear < 2000) intGain += 0.3;
-  }
-  const hasNewYear = timeMachineUnlocks.some((u) => u.kind === 'year');
-  const hasNewDecade = timeMachineUnlocks.some((u) => u.kind === 'decade');
-  if (hasNewYear) intGain += 0.8;
-  if (hasNewDecade) intGain += 1.5;
+  // 2. Inteligência (INT) - Sabedoria Temporal (Pré-2000/1980/1950 + Ano Inédito: +0.8)
+  const tmYearsCount =
+    effectivePrevXp?.sources?.timeMachine?.totalConqueredYears != null &&
+    nextXpStatus?.sources?.timeMachine?.totalConqueredYears != null
+      ? Math.max(
+          0,
+          nextXpStatus.sources.timeMachine.totalConqueredYears -
+            effectivePrevXp.sources.timeMachine.totalConqueredYears
+        )
+      : (timeMachineUnlocks || []).filter((u) => u && u.kind === 'year').length;
 
-  const roundedInt = Math.round(intGain * 10) / 10;
+  const intHistGain = Math.max(0, nextContrib.intHist - prevContrib.intHist);
+  const roundedInt = Math.round((intHistGain + tmYearsCount * 0.8) * 10) / 10;
   if (roundedInt > 0) {
     statGains.push({
       key: 'INT',
@@ -1606,23 +1723,31 @@ export function computeMovieStatGains({
     });
   }
 
-  // 3. Destreza (DES) - Diplomacia Global
-  // Regra: Fora do eixo EUA/Brasil (+0.2) | Se expandir nação ONU (+1.0)
-  let desGain = 0;
-  const isForeign = countries.some(
-    (c) => c && !c.toLowerCase().includes('brasil') && !c.toLowerCase().includes('estados unidos')
-  );
-  if (isForeign) desGain += 0.2;
-
-  if (existingMovies && existingMovies.length > 0 && countries.length > 0) {
+  // 3. Destreza (DES) - Diplomacia Global (Fora EUA/BR: +0.2 | Nova Nação ONU: +1.0)
+  let newCountriesCount = 0;
+  if (
+    effectivePrevXp?.sources?.countries?.totalConqueredCount != null &&
+    nextXpStatus?.sources?.countries?.totalConqueredCount != null
+  ) {
+    newCountriesCount = Math.max(
+      0,
+      nextXpStatus.sources.countries.totalConqueredCount -
+        effectivePrevXp.sources.countries.totalConqueredCount
+    );
+  } else if (existingMovies && existingMovies.length > 0 && normalizedMovie.countries.length > 0) {
     const existingCountries = new Set();
     existingMovies.forEach((m) => {
+      if (isEditMode && matchesMovieIdentity(m, normalizedMovie)) return;
       (m.countries || []).forEach((c) => existingCountries.add(String(c).toLowerCase().trim()));
     });
-    const expandsNew = countries.some((c) => !existingCountries.has(String(c).toLowerCase().trim()));
-    if (expandsNew) desGain += 1.0;
+    const expandsNew = normalizedMovie.countries.some(
+      (c) => !existingCountries.has(String(c).toLowerCase().trim())
+    );
+    if (expandsNew) newCountriesCount = 1;
   }
-  const roundedDes = Math.round(desGain * 10) / 10;
+
+  const desForeignGain = Math.max(0, nextContrib.desForeign - prevContrib.desForeign);
+  const roundedDes = Math.round((desForeignGain + newCountriesCount * 1.0) * 10) / 10;
   if (roundedDes > 0) {
     statGains.push({
       key: 'DES',
@@ -1632,13 +1757,8 @@ export function computeMovieStatGains({
     });
   }
 
-  // 4. Sorte (SOR) - Olhar Clínico
-  // Regra: toda catalogação: +0.2 | nota extrema (>=9.5 ou <=4.0): +0.8
-  let sorGain = 0.2;
-  if (rating >= 9.5 || (rating > 0 && rating <= 4.0)) {
-    sorGain += 0.8;
-  }
-  const roundedSor = Math.round(sorGain * 10) / 10;
+  // 4. Sorte (SOR) - Olhar Clínico (+0.2 por catalogação | +0.8 nota extrema >=9.5 ou <=4.0)
+  const roundedSor = Math.round(Math.max(0, nextContrib.sor - prevContrib.sor) * 10) / 10;
   if (roundedSor > 0) {
     statGains.push({
       key: 'SOR',
@@ -1649,8 +1769,6 @@ export function computeMovieStatGains({
   }
 
   // 5. Vitalidade (VIT) - Caça-Troféus PS5
-  // Regra: SÓ ao desbloquear troféu:
-  // Bronze: 0.2 | Prata: 0.4 | Épico: 0.6 | Ouro: 0.8 | Mítico: 1.0 | Platina: 3.0
   let vitGain = 0;
   if (Array.isArray(newlyUnlocked) && newlyUnlocked.length > 0) {
     newlyUnlocked.forEach((t) => {
@@ -1660,7 +1778,7 @@ export function computeMovieStatGains({
       else if (tier === 'gold') vitGain += 0.8;
       else if (tier === 'epic') vitGain += 0.6;
       else if (tier === 'silver') vitGain += 0.4;
-      else vitGain += 0.2; // bronze
+      else vitGain += 0.2;
     });
   }
   const roundedVit = Math.round(vitGain * 10) / 10;
@@ -1673,12 +1791,8 @@ export function computeMovieStatGains({
     });
   }
 
-  // 6. Força (FOR) - Prestígio Áureo
-  // Regra: Indicado (+0.2) | Venceu (+0.4 por estatueta) (Sem critério de nota)
-  let forGain = 0;
-  if (oscarWins > 0) forGain += oscarWins * 0.4;
-  if (oscarNominations > 0) forGain += oscarNominations * 0.2;
-  const roundedFor = Math.round(forGain * 10) / 10;
+  // 6. Força (FOR) - Prestígio Áureo (Indicado: +0.2 | Venceu: +0.4)
+  const roundedFor = Math.round(Math.max(0, nextContrib.forPts - prevContrib.forPts) * 10) / 10;
   if (roundedFor > 0) {
     statGains.push({
       key: 'FOR',
@@ -1688,14 +1802,19 @@ export function computeMovieStatGains({
     });
   }
 
-  // Avaliação de Desbloqueio de Nova Classe
+  // Avaliação de Desbloqueio de Nova Classe usando o estado real antes e depois da gravação
   let unlockedClass = null;
-  if (existingMovies && existingMovies.length > 0) {
+  if (movieData) {
     try {
-      const prevStats = computeRpgAndGuilds(existingMovies, existingMovies);
+      const prevList = existingMovies || [];
+      const hasMatch = isEditMode && prevList.some((m) => matchesMovieIdentity(m, normalizedMovie));
+      const nextMovies = hasMatch
+        ? prevList.map((m) => (matchesMovieIdentity(m, normalizedMovie) ? { ...m, ...normalizedMovie } : m))
+        : [...prevList, normalizedMovie];
+
+      const prevStats = computeRpgAndGuilds(prevList, prevList, effectivePrevXp);
       const prevClass = prevStats.characterClass;
-      const nextMovies = [...existingMovies, movieData];
-      const nextStats = computeRpgAndGuilds(nextMovies, nextMovies);
+      const nextStats = computeRpgAndGuilds(nextMovies, nextMovies, nextXpStatus || effectivePrevXp);
       const nextClass = nextStats.characterClass;
 
       if (

@@ -1332,6 +1332,7 @@ export default function Dashboard() {
         allTags={allTags}
         allPlatforms={allPlatforms}
         existingMovies={allMovies}
+        prevXpStatus={xpStatus}
         onApiRefreshed={handleApplyApiRefreshPayload}
         onSave={(_newlyUnlocked, _savedMovie, updatedXpStatus) => {
           if (editingMovie?.movie_id) {

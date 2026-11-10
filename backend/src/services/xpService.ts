@@ -596,24 +596,19 @@ export function computeXpGainEvent(
     }
   }
 
-  // 5. Ganhos de Atributos RPG Cinéfilo (AGI, INT, DES, SOR, VIT, FOR)
+  // 5. Ganhos de Atributos RPG Cinéfilo baseados exclusivamente no que mudou neste evento de XP
   const statGains: XpStatGain[] = [];
   if (movieDiff > 0) {
-    statGains.push({
-      key: 'AGI',
-      icon: '⚡',
-      label: `+${(movieDiff * 0.4).toFixed(1)} AGI`,
-      gain: movieDiff * 0.4,
-    });
+    const sorPoints = Math.round(movieDiff * 0.2 * 10) / 10;
     statGains.push({
       key: 'SOR',
       icon: '🎯',
-      label: `+${(movieDiff * 0.3).toFixed(1)} SOR`,
-      gain: movieDiff * 0.3,
+      label: `+${sorPoints.toFixed(1)} SOR`,
+      gain: sorPoints,
     });
   }
-  if (newYearUnlocks.length > 0 || newDecadeUnlocks.length > 0) {
-    const intPoints = newYearUnlocks.length * 0.8 + newDecadeUnlocks.length * 1.5;
+  if (newYearUnlocks.length > 0) {
+    const intPoints = Math.round(newYearUnlocks.length * 0.8 * 10) / 10;
     statGains.push({
       key: 'INT',
       icon: '🧠',
@@ -622,7 +617,7 @@ export function computeXpGainEvent(
     });
   }
   if (newCountries.length > 0) {
-    const desPoints = newCountries.length * 1.2;
+    const desPoints = Math.round(newCountries.length * 1.0 * 10) / 10;
     statGains.push({
       key: 'DES',
       icon: '🌍',

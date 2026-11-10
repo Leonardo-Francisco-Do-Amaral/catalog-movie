@@ -62,6 +62,7 @@ export default function MovieFormModal({
   initialSearchQuery = '',
   initialReleaseYear = '',
   existingMovies = [],
+  prevXpStatus = null,
   onApiRefreshed = null
 }) {
   const isEditMode = !!movie;
@@ -603,111 +604,95 @@ export default function MovieFormModal({
       data.append('poster_file', posterFile);
     }
 
+    const handleSaveSuccess = (resData, savedMovie, edited) => {
+      const newlyUnlocked = resData.newlyUnlocked || [];
+      const progressedTrophies = resData.progressedTrophies || [];
+      const timeMachineUnlocks = resData.timeMachineUnlocks || resData.xpGain?.timeMachineUnlocks || [];
+
+      // 1º Estágio: Troféus PS5 (Colecionáveis de progresso + Conquistados 100%)
+      if (progressedTrophies.length > 0 || newlyUnlocked.length > 0) {
+        triggerTrophyBatch({
+          progressed: progressedTrophies,
+          unlocked: newlyUnlocked,
+        });
+      }
+
+      if (Array.isArray(newlyUnlocked) && newlyUnlocked.length > 0) {
+        axios.post('http://localhost:5000/api/trophies/ack-new', {
+          trophyIds: newlyUnlocked.map((x) => x.id),
+        }).catch(() => {});
+      }
+
+      // 2º Estágio: Desbloqueio da Máquina do Tempo (aguarda troféus terminarem antes de abrir o portal!)
+      if (Array.isArray(timeMachineUnlocks) && timeMachineUnlocks.length > 0) {
+        triggerTimeMachineUnlock(timeMachineUnlocks);
+      }
+
+      // 3º Estágio: Barra de XP, Atributos & Evolução de Classe RPG
+      const { statGains, unlockedClass } = computeMovieStatGains({
+        movieData: savedMovie,
+        newlyUnlocked,
+        _progressedTrophies: progressedTrophies,
+        timeMachineUnlocks,
+        existingMovies,
+        prevXpStatus,
+        nextXpStatus: resData.xpStatus || null,
+        isEditMode: edited,
+      });
+
+      const resolvedUnlockedClass = unlockedClass || resData.xpGain?.unlockedClass || null;
+      const xpSnapshot = resData.xpStatus || prevXpStatus;
+
+      if (resData.xpGain || resolvedUnlockedClass || statGains.length > 0) {
+        const baseXpGain = resData.xpGain || {
+          gainedXp: 0,
+          prevTotalXp: xpSnapshot?.totalXp || 0,
+          nextTotalXp: xpSnapshot?.totalXp || 0,
+          prevLevel: xpSnapshot?.level || 1,
+          newLevel: xpSnapshot?.level || 1,
+          prevPercentage: xpSnapshot?.progressPercentage || 0,
+          newPercentage: xpSnapshot?.progressPercentage || 0,
+          leveledUp: false,
+          levelsGained: 0,
+          prevTitle: xpSnapshot?.levelTitle || '',
+          newTitle: xpSnapshot?.levelTitle || '',
+          titleChanged: false,
+          xpInCurrentLevel: xpSnapshot?.xpInCurrentLevel || 0,
+          xpNeededForNextLevel: xpSnapshot?.xpNeededForNextLevel || 100,
+          xpRemaining: xpSnapshot?.xpRemaining || 100,
+          tags: [],
+        };
+
+        const enrichedXpGain = {
+          ...baseXpGain,
+          statGains: statGains.length > 0 ? statGains : baseXpGain.statGains,
+          unlockedClass: resolvedUnlockedClass,
+        };
+
+        triggerXPGainToast(enrichedXpGain, resData.xpStatus);
+      } else if (resData.xpStatus) {
+        dispatchXpStatusUpdate(resData.xpStatus);
+      }
+
+      onSave(newlyUnlocked, savedMovie, resData.xpStatus);
+      onClose();
+    };
+
     try {
       const headers = { 'Content-Type': 'multipart/form-data' };
       if (isEditMode) {
-        // PUT
         const res = await axios.put(`http://localhost:5000/api/movies/edit/${movie.movie_id}`, data, { headers });
         if (res.data.success) {
-          const newlyUnlocked = res.data.newlyUnlocked || [];
-          const progressedTrophies = res.data.progressedTrophies || [];
-          const timeMachineUnlocks = res.data.timeMachineUnlocks || res.data.xpGain?.timeMachineUnlocks || [];
-
-          // 1º Estágio: Troféus PS5 (Colecionáveis de progresso + Conquistados 100%)
-          if (progressedTrophies.length > 0 || newlyUnlocked.length > 0) {
-            triggerTrophyBatch({
-              progressed: progressedTrophies,
-              unlocked: newlyUnlocked,
-            });
-          }
-
-          if (Array.isArray(newlyUnlocked) && newlyUnlocked.length > 0) {
-            axios.post('http://localhost:5000/api/trophies/ack-new', {
-              trophyIds: newlyUnlocked.map((x) => x.id),
-            }).catch(() => {});
-          }
-
-          // 2º Estágio: Desbloqueio da Máquina do Tempo (aguarda troféus terminarem antes de abrir o portal!)
-          if (Array.isArray(timeMachineUnlocks) && timeMachineUnlocks.length > 0) {
-            triggerTimeMachineUnlock(timeMachineUnlocks);
-          }
-
-          // 3º Estágio: Barra de XP (aguarda troféus E Máquina do Tempo terminarem!)
-          if (res.data.xpGain) {
-            const { statGains, unlockedClass } = computeMovieStatGains({
-              movieData: { ...movie, ...formData },
-              newlyUnlocked,
-              progressedTrophies,
-              timeMachineUnlocks,
-              existingMovies,
-            });
-
-            const enrichedXpGain = {
-              ...res.data.xpGain,
-              statGains: (res.data.xpGain.statGains && res.data.xpGain.statGains.length > 0)
-                ? res.data.xpGain.statGains
-                : statGains,
-              unlockedClass: res.data.xpGain.unlockedClass || unlockedClass,
-            };
-
-            triggerXPGainToast(enrichedXpGain, res.data.xpStatus);
-          } else if (res.data.xpStatus) {
-            dispatchXpStatusUpdate(res.data.xpStatus);
-          }
-          onSave(newlyUnlocked, { ...movie, ...formData }, res.data.xpStatus);
-          onClose();
+          handleSaveSuccess(res.data, { ...movie, ...formData }, true);
         }
       } else {
-        // POST
         const res = await axios.post('http://localhost:5000/api/movies/add', data, { headers });
         if (res.data.success) {
-          const newlyUnlocked = res.data.newlyUnlocked || [];
-          const progressedTrophies = res.data.progressedTrophies || [];
-          const timeMachineUnlocks = res.data.timeMachineUnlocks || res.data.xpGain?.timeMachineUnlocks || [];
-
-          // 1º Estágio: Troféus PS5 (Colecionáveis de progresso + Conquistados 100%)
-          if (progressedTrophies.length > 0 || newlyUnlocked.length > 0) {
-            triggerTrophyBatch({
-              progressed: progressedTrophies,
-              unlocked: newlyUnlocked,
-            });
-          }
-
-          if (Array.isArray(newlyUnlocked) && newlyUnlocked.length > 0) {
-            axios.post('http://localhost:5000/api/trophies/ack-new', {
-              trophyIds: newlyUnlocked.map((x) => x.id),
-            }).catch(() => {});
-          }
-
-          // 2º Estágio: Desbloqueio da Máquina do Tempo (aguarda troféus terminarem antes de abrir o portal!)
-          if (Array.isArray(timeMachineUnlocks) && timeMachineUnlocks.length > 0) {
-            triggerTimeMachineUnlock(timeMachineUnlocks);
-          }
-
-          // 3º Estágio: Barra de XP (aguarda troféus E Máquina do Tempo terminarem!)
-          if (res.data.xpGain) {
-            const { statGains, unlockedClass } = computeMovieStatGains({
-              movieData: { id: res.data.movieId, ...formData },
-              newlyUnlocked,
-              progressedTrophies,
-              timeMachineUnlocks,
-              existingMovies,
-            });
-
-            const enrichedXpGain = {
-              ...res.data.xpGain,
-              statGains: (res.data.xpGain.statGains && res.data.xpGain.statGains.length > 0)
-                ? res.data.xpGain.statGains
-                : statGains,
-              unlockedClass: res.data.xpGain.unlockedClass || unlockedClass,
-            };
-
-            triggerXPGainToast(enrichedXpGain, res.data.xpStatus);
-          } else if (res.data.xpStatus) {
-            dispatchXpStatusUpdate(res.data.xpStatus);
-          }
-          onSave(newlyUnlocked, { id: res.data.movieId, ...formData }, res.data.xpStatus);
-          onClose();
+          handleSaveSuccess(
+            res.data,
+            { movie_id: res.data.movieId, id: res.data.movieId, ...formData },
+            false
+          );
         }
       }
     } catch (err) {

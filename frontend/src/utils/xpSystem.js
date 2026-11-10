@@ -940,6 +940,15 @@ export function mergeXpGainEvents(baseEvent, incomingEvent) {
   };
 }
 
+function hasMeaningfulXpFeedback(xpGainEvent) {
+  if (!xpGainEvent) return false;
+  return (
+    (xpGainEvent.gainedXp || 0) > 0 ||
+    Boolean(xpGainEvent.unlockedClass) ||
+    (Array.isArray(xpGainEvent.statGains) && xpGainEvent.statGains.length > 0)
+  );
+}
+
 export function flushBufferedXpGain() {
   if (!bufferedXpEvent) {
     if (bufferedXpStatus) {
@@ -957,7 +966,7 @@ export function flushBufferedXpGain() {
   if (statusToDispatch) {
     dispatchXpStatusUpdate(statusToDispatch);
   }
-  if (eventToDispatch && eventToDispatch.gainedXp > 0) {
+  if (hasMeaningfulXpFeedback(eventToDispatch)) {
     window.dispatchEvent(new CustomEvent('cine-xp-gain-toast', { detail: eventToDispatch }));
   }
 }
@@ -973,7 +982,7 @@ export function dispatchXpStatusUpdate(xpStatus) {
 export function triggerXPGainToast(xpGainEvent, updatedXpStatus = null, forceImmediate = false) {
   if (typeof window === 'undefined') return;
 
-  if (!xpGainEvent || !(xpGainEvent.gainedXp > 0)) {
+  if (!hasMeaningfulXpFeedback(xpGainEvent)) {
     if (updatedXpStatus) {
       dispatchXpStatusUpdate(updatedXpStatus);
     }
