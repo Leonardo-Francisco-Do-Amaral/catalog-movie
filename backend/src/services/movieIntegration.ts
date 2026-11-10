@@ -3,6 +3,7 @@ import * as dotenv from 'dotenv';
 import { 
   TMDBSearchResponse, 
   TMDBMovieDetails, 
+  TMDBPosterOption,
   OMDbMovieResponse, 
   ConsolidatedMovieData 
 } from '../types';
@@ -339,12 +340,13 @@ export async function fetchMovieDetailsByTitle(
     console.log(`[Integration] Usando ID TMDB: ${tmdbId}`);
   }
 
-  // 2. Busca de detalhes completos no TMDB (incluindo external_ids e credits)
+  // 2. Busca de detalhes completos no TMDB (incluindo external_ids, credits e images)
   let tmdbDetails: TMDBMovieDetails;
   try {
     const detailsResponse = await tmdbClient.get<TMDBMovieDetails>(`/movie/${tmdbId}`, {
       params: {
-        append_to_response: 'external_ids,credits',
+        append_to_response: 'external_ids,credits,images',
+        include_image_language: 'pt,en,null',
         language: 'pt-BR',
       },
     });
@@ -362,6 +364,56 @@ export async function fetchMovieDetailsByTitle(
   const posterUrl = tmdbDetails.poster_path 
     ? `https://image.tmdb.org/t/p/w500${tmdbDetails.poster_path}` 
     : null;
+
+  const rawPosters = tmdbDetails.images?.posters || [];
+  const seenPosterPaths = new Set<string>();
+  const posterOptions: TMDBPosterOption[] = [];
+
+  const pushPosterOption = (p: {
+    file_path: string;
+    iso_639_1?: string | null;
+    width?: number;
+    height?: number;
+    vote_average?: number;
+  }) => {
+    if (!p?.file_path || seenPosterPaths.has(p.file_path)) return;
+    seenPosterPaths.add(p.file_path);
+    posterOptions.push({
+      file_path: p.file_path,
+      url: `https://image.tmdb.org/t/p/w500${p.file_path}`,
+      thumb_url: `https://image.tmdb.org/t/p/w342${p.file_path}`,
+      iso_639_1: p.iso_639_1 || null,
+      width: p.width || 0,
+      height: p.height || 0,
+      vote_average: p.vote_average || 0,
+    });
+  };
+
+  if (tmdbDetails.poster_path) {
+    const matchedDefault = rawPosters.find((p) => p.file_path === tmdbDetails.poster_path);
+    pushPosterOption(
+      matchedDefault || {
+        file_path: tmdbDetails.poster_path,
+        iso_639_1: 'pt',
+      }
+    );
+  }
+
+  const posterLangRank = (iso?: string | null) => {
+    if (iso === 'pt') return 0;
+    if (iso === 'en') return 1;
+    if (!iso) return 2;
+    return 3;
+  };
+
+  [...rawPosters]
+    .sort((a, b) => {
+      const rankDiff = posterLangRank(a.iso_639_1) - posterLangRank(b.iso_639_1);
+      if (rankDiff !== 0) return rankDiff;
+      return (b.vote_average || 0) - (a.vote_average || 0);
+    })
+    .slice(0, 30)
+    .forEach(pushPosterOption);
 
   const countryCode = tmdbDetails.production_countries && tmdbDetails.production_countries.length > 0
     ? tmdbDetails.production_countries[0].iso_3166_1
@@ -505,9 +557,150 @@ export async function fetchMovieDetailsByTitle(
     oscar_nominations: detectedOscars.nominations,
     vote_count: voteCount,
     distributor: omdbData && omdbData.Production && omdbData.Production !== 'N/A' ? omdbData.Production : null,
+    available_posters: posterOptions,
+    images: {
+      posters: posterOptions,
+    },
     raw_api_data: {
       tmdb: tmdbDetails,
       omdb: omdbData,
     },
   };
+}
+
+export interface ExternalMetricsRefreshResult {
+  imdb_rating: number | null;
+  metacritic_score: number | null;
+  rotten_tomatoes_score: number | null;
+  omdb_vote_count: number | null;
+  tmdb_vote_count: number | null;
+  oscar_wins: number | null;
+  oscar_nominations: number | null;
+  omdb_found: boolean;
+}
+
+/**
+ * Busca EXCLUSIVAMENTE métricas externas (IMDb, Metacritic, RT, votos e Oscars) no OMDb/TMDB.
+ */
+export async function fetchExternalMetricsOnly(params: {
+  imdbId?: string | null;
+  tmdbId?: number | null;
+  title: string;
+  originalTitle?: string | null;
+  releaseYear?: number | null;
+}): Promise<ExternalMetricsRefreshResult> {
+  dotenv.config({ override: true });
+  const tmdbBearerToken = process.env.TMDB_BEARER_TOKEN;
+  const omdbApiKey = process.env.OMDB_API_KEY || 'trilogy';
+
+  const cleanImdbId = params.imdbId && params.imdbId.trim().startsWith('tt') ? params.imdbId.trim() : null;
+  const cleanTmdbId = params.tmdbId && Number(params.tmdbId) > 0 ? Number(params.tmdbId) : null;
+
+  let imdbRating: number | null = null;
+  let metacriticScore: number | null = null;
+  let rottenTomatoesScore: number | null = null;
+  let omdbVoteCount: number | null = null;
+  let tmdbVoteCount: number | null = null;
+  let oscarWins: number | null = null;
+  let oscarNominations: number | null = null;
+  let omdbFound = false;
+
+  // Se temos imdb_id válido, consultamos OMDb diretamente (rápido e exato)
+  if (cleanImdbId && omdbApiKey) {
+    try {
+      const omdbRes = await axios.get<OMDbMovieResponse>(`http://www.omdbapi.com/?i=${encodeURIComponent(cleanImdbId)}&apikey=${omdbApiKey}`);
+      const o = omdbRes.data;
+      if (o && o.Response === 'True') {
+        omdbFound = true;
+        if (o.imdbRating && o.imdbRating !== 'N/A') {
+          const parsed = parseFloat(o.imdbRating);
+          if (!Number.isNaN(parsed)) imdbRating = parsed;
+        }
+        if (o.Metascore && o.Metascore !== 'N/A') {
+          const parsed = parseInt(o.Metascore, 10);
+          if (!Number.isNaN(parsed)) metacriticScore = parsed;
+        }
+        if (o.Ratings && o.Ratings.length > 0) {
+          const rt = o.Ratings.find((r) => r.Source === 'Rotten Tomatoes');
+          if (rt && rt.Value) {
+            const match = rt.Value.match(/\d+/);
+            if (match) rottenTomatoesScore = parseInt(match[0], 10);
+          }
+        }
+        if (o.imdbVotes && o.imdbVotes !== 'N/A') {
+          const parsed = parseInt(o.imdbVotes.replace(/,/g, ''), 10);
+          if (!Number.isNaN(parsed)) omdbVoteCount = parsed;
+        }
+        if (o.Awards && o.Awards !== 'N/A') {
+          const oscars = parseOscarFromAwards(o.Awards);
+          oscarWins = oscars.wins;
+          oscarNominations = oscars.nominations;
+        }
+      }
+    } catch (err: any) {
+      console.warn(`[RefreshAPI] Falha OMDb para ${cleanImdbId}:`, err.message);
+    }
+  }
+
+  // Fallback / complemento via TMDB ou título original caso faltem dados ou não haja imdb_id
+  if (!cleanImdbId || !omdbFound || omdbVoteCount === null) {
+    try {
+      const consolidated = await fetchMovieDetailsByTitle(
+        params.originalTitle || params.title,
+        params.releaseYear || undefined,
+        cleanTmdbId || undefined,
+        cleanImdbId || undefined,
+        params.title
+      );
+      if (imdbRating === null && consolidated.imdb_rating !== null) imdbRating = consolidated.imdb_rating;
+      if (metacriticScore === null && consolidated.metacritic_score !== null) metacriticScore = consolidated.metacritic_score;
+      if (rottenTomatoesScore === null && consolidated.rotten_tomatoes_score !== null) rottenTomatoesScore = consolidated.rotten_tomatoes_score;
+      if (consolidated.raw_api_data?.omdb?.Response === 'True') {
+        omdbFound = true;
+        if (consolidated.raw_api_data.omdb.imdbVotes && consolidated.raw_api_data.omdb.imdbVotes !== 'N/A') {
+          const parsed = parseInt(consolidated.raw_api_data.omdb.imdbVotes.replace(/,/g, ''), 10);
+          if (!Number.isNaN(parsed)) omdbVoteCount = parsed;
+        }
+        if (oscarWins === null && consolidated.oscar_wins !== undefined) oscarWins = consolidated.oscar_wins;
+        if (oscarNominations === null && consolidated.oscar_nominations !== undefined) oscarNominations = consolidated.oscar_nominations;
+      }
+      if (consolidated.raw_api_data?.tmdb?.vote_count) {
+        tmdbVoteCount = Number(consolidated.raw_api_data.tmdb.vote_count) || null;
+      }
+    } catch (err: any) {
+      if (!omdbFound && !tmdbBearerToken) {
+        throw err;
+      }
+      console.warn('[RefreshAPI] Fallback TMDB indisponível:', err.message);
+    }
+  }
+
+  return {
+    imdb_rating: imdbRating,
+    metacritic_score: metacriticScore,
+    rotten_tomatoes_score: rottenTomatoesScore,
+    omdb_vote_count: omdbVoteCount,
+    tmdb_vote_count: tmdbVoteCount,
+    oscar_wins: oscarWins,
+    oscar_nominations: oscarNominations,
+    omdb_found: omdbFound,
+  };
+}
+
+/**
+ * Busca todas as opções de pôster disponíveis para um filme no TMDB.
+ */
+export async function fetchMoviePosters(params: {
+  tmdbId?: number | null;
+  imdbId?: string | null;
+  title?: string;
+  year?: number | null;
+}): Promise<TMDBPosterOption[]> {
+  const details = await fetchMovieDetailsByTitle(
+    params.title || '',
+    params.year || undefined,
+    params.tmdbId || undefined,
+    params.imdbId || undefined
+  );
+  return details.available_posters || [];
 }

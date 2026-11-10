@@ -1,11 +1,69 @@
-import React, { useState, useEffect } from 'react';
-import { X, Search, Film, Globe, Star, Sparkles, Check, Plus, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import {
+  X,
+  Search,
+  Film,
+  Globe,
+  Star,
+  Sparkles,
+  Check,
+  Plus,
+  RefreshCw,
+  Eye,
+  EyeOff,
+  ChevronDown,
+  Image as ImageIcon
+} from 'lucide-react';
 import axios from 'axios';
 import { triggerTrophyBatch } from './PS5TrophyToastContainer';
 import { triggerXPGainToast, triggerTimeMachineUnlock, dispatchXpStatusUpdate } from '../utils/xpSystem';
 import { computeMovieStatGains } from '../utils/analyticsEngine';
+import { UN_COUNTRIES_195, HISTORICAL_TERRITORIES } from '../data/unCountries195';
+import { triggerApiRefreshToast } from './ApiRefreshToastContainer';
 
-export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags = [], initialSearchQuery = '', initialReleaseYear = '', existingMovies = [] }) {
+const DEFAULT_PLATFORMS = [
+  'Cinema',
+  'Blu Ray',
+  'DVD',
+  'Netflix',
+  'Prime Video',
+  'HBO MAX',
+  'Disney +',
+  'Star +',
+  'Apple TV+',
+  'Internet',
+  'My Family Cine',
+  'Youtube'
+];
+
+const ALL_REFERENCE_COUNTRIES = [
+  ...UN_COUNTRIES_195.map((c) => ({ name: c.name, code: c.code })),
+  ...HISTORICAL_TERRITORIES.map((t) => ({ name: t.name, code: t.flagCode })),
+];
+
+const COUNTRY_CODE_MAP = ALL_REFERENCE_COUNTRIES.reduce((acc, item) => {
+  acc[item.name.toLowerCase().trim()] = item.code;
+  return acc;
+}, {});
+
+function getCountryFlagUrl(countryName) {
+  if (!countryName) return null;
+  const code = COUNTRY_CODE_MAP[countryName.toLowerCase().trim()];
+  return code ? `https://flagcdn.com/w20/${code.toLowerCase()}.png` : null;
+}
+
+export default function MovieFormModal({
+  isOpen,
+  onClose,
+  movie,
+  onSave,
+  allTags = [],
+  allPlatforms = [],
+  initialSearchQuery = '',
+  initialReleaseYear = '',
+  existingMovies = [],
+  onApiRefreshed = null
+}) {
   const isEditMode = !!movie;
 
   // Estados do formulário
@@ -44,17 +102,39 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
     review_notes: ''
   });
 
-  // Upload local do pôster
+  // Upload local do pôster e galeria da API
   const [posterFile, setPosterFile] = useState(null);
+  const [availablePosters, setAvailablePosters] = useState([]);
+  const [isPosterGalleryOpen, setIsPosterGalleryOpen] = useState(false);
 
-  // Países ativos do banco
+  // Países ativos do banco & Popover pesquisável
   const [activeCountries, setActiveCountries] = useState([]);
+  const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
+  const countryDropdownRef = useRef(null);
+
+  // Plataformas & Combobox customizável
+  const [savedCustomPlatforms, setSavedCustomPlatforms] = useState(() => {
+    try {
+      const saved = localStorage.getItem('cine_catalog_custom_platforms');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [isPlatformDropdownOpen, setIsPlatformDropdownOpen] = useState(false);
+  const [isAddingCustomPlatform, setIsAddingCustomPlatform] = useState(false);
+  const [customPlatformInput, setCustomPlatformInput] = useState('');
+  const platformDropdownRef = useRef(null);
+
+  // Acordeão da Sinopse
+  const [isSynopsisOpen, setIsSynopsisOpen] = useState(false);
 
   // Estados de busca preditiva na API
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [loadingApi, setLoadingApi] = useState(false);
+  const [refreshingSafeApi, setRefreshingSafeApi] = useState(false);
   const [newTagInput, setNewTagInput] = useState('');
   const [countrySearchQuery, setCountrySearchQuery] = useState('');
   const [tagSearchQuery, setTagSearchQuery] = useState('');
@@ -71,11 +151,56 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
     }
   };
 
+  // Fecha popovers internos ao clicar fora
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (countryDropdownRef.current && !countryDropdownRef.current.contains(e.target)) {
+        setIsCountryDropdownOpen(false);
+      }
+      if (platformDropdownRef.current && !platformDropdownRef.current.contains(e.target)) {
+        setIsPlatformDropdownOpen(false);
+        setIsAddingCustomPlatform(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  // Lista unificada e deduplicada de plataformas (Padrão + Banco + Customizadas locais)
+  const platformOptions = useMemo(() => {
+    const map = new Map();
+    DEFAULT_PLATFORMS.forEach((p) => {
+      map.set(p.toLowerCase().trim(), p);
+    });
+    [...(allPlatforms || []), ...(savedCustomPlatforms || [])].forEach((p) => {
+      const clean = String(p || '').trim();
+      if (!clean) return;
+      const key = clean.toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, clean);
+      }
+    });
+    if (formData.platform && formData.platform.trim()) {
+      const clean = formData.platform.trim();
+      if (!map.has(clean.toLowerCase())) {
+        map.set(clean.toLowerCase(), clean);
+      }
+    }
+    return Array.from(map.values());
+  }, [allPlatforms, savedCustomPlatforms, formData.platform]);
+
   // Sincronizar dados ao abrir/trocar de filme (Modo Edição)
   useEffect(() => {
+    let cancelled = false;
     if (isOpen) {
       loadActiveCountries();
       setPosterFile(null); // Reseta arquivo selecionado anterior
+      setIsPosterGalleryOpen(false);
+      setIsCountryDropdownOpen(false);
+      setIsPlatformDropdownOpen(false);
+      setIsAddingCustomPlatform(false);
+      setCustomPlatformInput('');
+      setIsSynopsisOpen(false);
 
       if (movie) {
         setFormData({
@@ -109,8 +234,41 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
           platform: movie.platform || '',
           review_notes: movie.review_notes || ''
         });
+
+        // Se já houver galeria salva ou tmdb_id/imdb_id, disponibiliza múltiplas capas do TMDB
+        const cachedPosters = movie.raw_api_data?.tmdb?.images?.posters;
+        if (Array.isArray(cachedPosters) && cachedPosters.length > 0) {
+          setAvailablePosters(
+            cachedPosters.map((p) => ({
+              file_path: p.file_path,
+              url: p.url || `https://image.tmdb.org/t/p/w500${p.file_path}`,
+              thumb_url: p.thumb_url || `https://image.tmdb.org/t/p/w342${p.file_path}`,
+              iso_639_1: p.iso_639_1 || null,
+            }))
+          );
+        } else {
+          setAvailablePosters([]);
+          if (movie.tmdb_id || movie.imdb_id) {
+            axios
+              .get('http://localhost:5000/api/movies/posters-api', {
+                params: {
+                  tmdb_id: movie.tmdb_id || undefined,
+                  imdb_id: movie.imdb_id || undefined,
+                  title: movie.original_title || movie.title,
+                  year: movie.release_year || undefined,
+                },
+              })
+              .then((res) => {
+                if (!cancelled && res.data?.success && Array.isArray(res.data.posters)) {
+                  setAvailablePosters(res.data.posters);
+                }
+              })
+              .catch(() => {});
+          }
+        }
       } else {
         // Modo de Cadastro Limpo
+        setAvailablePosters([]);
         setFormData({
           title: '',
           original_title: '',
@@ -147,6 +305,9 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
       setCountrySearchQuery('');
       setTagSearchQuery('');
     }
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen, movie, initialSearchQuery, initialReleaseYear]);
 
   // Busca na API TMDB do backend
@@ -181,6 +342,10 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
       const res = await axios.get(`http://localhost:5000/api/movies/details-api?id=${tmdbId}`);
       if (res.data.success) {
         const d = res.data.data;
+        const apiPosters = d.images?.posters || d.available_posters || [];
+        setAvailablePosters(apiPosters);
+        setIsPosterGalleryOpen(false);
+
         setFormData(prev => ({
           ...prev,
           tmdb_id: d.tmdb_id,
@@ -190,7 +355,7 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
           release_year: d.release_year || '',
           runtime: d.runtime || '',
           synopsis: d.synopsis || '',
-          poster_url: d.poster_url || '',
+          poster_url: d.poster_url || (apiPosters[0]?.url || ''),
           imdb_rating: d.imdb_rating || '',
           metacritic_score: d.metacritic_score || '',
           rotten_tomatoes_score: d.rotten_tomatoes_score || '',
@@ -237,6 +402,26 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
     });
   };
 
+  // Salva nova plataforma personalizada e seleciona no formulário
+  const handleSaveCustomPlatform = () => {
+    const clean = customPlatformInput.trim();
+    if (!clean) return;
+    setSavedCustomPlatforms((prev) => {
+      const exists = prev.some((p) => p.toLowerCase() === clean.toLowerCase());
+      const next = exists ? prev : [...prev, clean];
+      try {
+        localStorage.setItem('cine_catalog_custom_platforms', JSON.stringify(next));
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+    setFormData((prev) => ({ ...prev, platform: clean }));
+    setCustomPlatformInput('');
+    setIsAddingCustomPlatform(false);
+    setIsPlatformDropdownOpen(false);
+  };
+
   // Adiciona nova tag customizada no form
   const handleAddCustomTag = (e) => {
     e.preventDefault();
@@ -249,24 +434,25 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
     }
   };
 
-  // Cria dinamicamente um novo país no banco
-  const handleAddNewCountryPrompt = async () => {
-    const name = window.prompt('Digite o nome do novo país (ex: Japão):');
-    if (name && name.trim()) {
+  // Cria dinamicamente um novo país no banco (via nome direto ou prompt)
+  const handleAddNewCountry = async (explicitName) => {
+    const rawName = typeof explicitName === 'string'
+      ? explicitName
+      : window.prompt('Digite o nome do novo país (ex: Japão):');
+    if (rawName && rawName.trim()) {
       try {
-        const res = await axios.post('http://localhost:5000/api/countries/add', { name: name.trim() });
+        const res = await axios.post('http://localhost:5000/api/countries/add', { name: rawName.trim() });
         if (res.data.success) {
           const newCountry = res.data.data;
-          // Adiciona à lista de países ativos local se não existir
           setActiveCountries(prev => {
             if (prev.some(c => c.name.toLowerCase() === newCountry.name.toLowerCase())) return prev;
             return [...prev, newCountry].sort((a, b) => a.name.localeCompare(b.name));
           });
-          // Seleciona automaticamente
           setFormData(prev => ({
             ...prev,
             countries: prev.countries.includes(newCountry.name) ? prev.countries : [...prev.countries, newCountry.name]
           }));
+          setCountrySearchQuery('');
         }
       } catch (err) {
         console.error('Erro ao adicionar país:', err);
@@ -274,14 +460,46 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
     }
   };
 
-  // Sincroniza notas em tempo real via OMDb
-  const handleSyncRatings = async () => {
-    const { imdb_id, title } = formData;
-    if (!imdb_id && !title) {
-      alert('Preencha o Título ou o IMDb ID para buscar as notas nas APIs.');
+  // Atualização Seletiva de Métricas da API (Notas, Votos e Oscars APENAS - com Toast comparativo)
+  const handleRefreshApiMetricsSafe = async () => {
+    if (isEditMode && movie?.movie_id) {
+      setRefreshingSafeApi(true);
+      try {
+        const res = await axios.post(`http://localhost:5000/api/movies/${movie.movie_id}/refresh-api-metrics`);
+        if (res.data?.success) {
+          const m = res.data.metrics;
+          setFormData(prev => ({
+            ...prev,
+            imdb_rating: m.imdb_rating !== null && m.imdb_rating !== undefined ? m.imdb_rating : prev.imdb_rating,
+            metacritic_score: m.metacritic_score !== null && m.metacritic_score !== undefined ? m.metacritic_score : prev.metacritic_score,
+            rotten_tomatoes_score: m.rotten_tomatoes_score !== null && m.rotten_tomatoes_score !== undefined ? m.rotten_tomatoes_score : prev.rotten_tomatoes_score,
+            vote_count: m.vote_count !== null && m.vote_count !== undefined ? m.vote_count : prev.vote_count,
+            oscar_wins: m.oscar_wins !== null && m.oscar_wins !== undefined ? m.oscar_wins : prev.oscar_wins,
+            oscar_nominations: m.oscar_nominations !== null && m.oscar_nominations !== undefined ? m.oscar_nominations : prev.oscar_nominations,
+          }));
+          triggerApiRefreshToast(res.data);
+          if (onApiRefreshed) {
+            onApiRefreshed(res.data);
+          }
+        }
+      } catch (err) {
+        triggerApiRefreshToast({
+          title: formData.title || movie.title,
+          error: err.response?.data?.error || err.message,
+        });
+      } finally {
+        setRefreshingSafeApi(false);
+      }
       return;
     }
-    setLoadingApi(true);
+
+    // Fallback no modo Cadastro Novo (sem ID salvo no banco ainda): busca notas via OMDb e exibe comparativo
+    const { imdb_id, title } = formData;
+    if (!imdb_id && !title) {
+      alert('Preencha o Título ou o IMDb ID para buscar os dados nas APIs.');
+      return;
+    }
+    setRefreshingSafeApi(true);
     try {
       const params = {};
       if (imdb_id) params.imdb_id = imdb_id;
@@ -290,20 +508,43 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
       const res = await axios.get('http://localhost:5000/api/movies/fetch-external-ratings', { params });
       if (res.data.success) {
         const ratings = res.data.data;
+        const prevImdb = formData.imdb_rating ? Number(formData.imdb_rating) : null;
+        const prevMc = formData.metacritic_score ? Number(formData.metacritic_score) : null;
+        const prevRt = formData.rotten_tomatoes_score ? Number(formData.rotten_tomatoes_score) : null;
+        const prevVotes = formData.vote_count ? Number(formData.vote_count) : null;
+
+        const nextImdb = ratings.imdb_rating !== null ? ratings.imdb_rating : prevImdb;
+        const nextMc = ratings.metacritic_score !== null ? ratings.metacritic_score : prevMc;
+        const nextRt = ratings.rotten_tomatoes_score !== null ? ratings.rotten_tomatoes_score : prevRt;
+        const nextVotes = ratings.vote_count !== null ? ratings.vote_count : prevVotes;
+
         setFormData(prev => ({
           ...prev,
-          imdb_rating: ratings.imdb_rating !== null ? ratings.imdb_rating : prev.imdb_rating,
-          metacritic_score: ratings.metacritic_score !== null ? ratings.metacritic_score : prev.metacritic_score,
-          rotten_tomatoes_score: ratings.rotten_tomatoes_score !== null ? ratings.rotten_tomatoes_score : prev.rotten_tomatoes_score,
-          vote_count: ratings.vote_count !== null ? ratings.vote_count : prev.vote_count
+          imdb_rating: nextImdb !== null ? nextImdb : prev.imdb_rating,
+          metacritic_score: nextMc !== null ? nextMc : prev.metacritic_score,
+          rotten_tomatoes_score: nextRt !== null ? nextRt : prev.rotten_tomatoes_score,
+          vote_count: nextVotes !== null ? nextVotes : prev.vote_count
         }));
-        alert('Notas e quantidade de votos sincronizadas com sucesso a partir das APIs externas!');
+
+        triggerApiRefreshToast({
+          title: formData.title || 'Novo Filme',
+          changes: {
+            imdb_rating: { before: prevImdb, after: nextImdb, changed: prevImdb !== nextImdb },
+            metacritic_score: { before: prevMc, after: nextMc, changed: prevMc !== nextMc },
+            rotten_tomatoes_score: { before: prevRt, after: nextRt, changed: prevRt !== nextRt },
+            vote_count: { before: prevVotes, after: nextVotes, changed: prevVotes !== nextVotes },
+            oscar_wins: { before: Number(formData.oscar_wins) || 0, after: Number(formData.oscar_wins) || 0, changed: false },
+            oscar_nominations: { before: Number(formData.oscar_nominations) || 0, after: Number(formData.oscar_nominations) || 0, changed: false },
+          },
+        });
       }
     } catch (err) {
-      console.error('Erro ao sincronizar notas:', err);
-      alert('Erro ao buscar notas nas APIs: ' + (err.response?.data?.error || err.message));
+      triggerApiRefreshToast({
+        title: formData.title || 'Novo Filme',
+        error: err.response?.data?.error || err.message,
+      });
     } finally {
-      setLoadingApi(false);
+      setRefreshingSafeApi(false);
     }
   };
 
@@ -649,51 +890,148 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
                 </div>
               </div>
 
-              {/* Capa/Poster Duplo (Upload Local ou URL) */}
-              <div className="flex flex-col gap-2.5 bg-zinc-950/20 border border-zinc-850 p-3.5 rounded-xl">
-                <label className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Capa / Imagem do Pôster</label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Opção A: Cole URL Externa</span>
-                    <input
-                      type="text"
-                      name="poster_url"
-                      value={formData.poster_url}
-                      onChange={handleInputChange}
-                      placeholder="http://site.com/imagem.jpg"
-                      className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 outline-none focus:border-amber-500 placeholder:text-zinc-700"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Opção B: Upload do Computador</span>
-                    <div className="relative flex items-center justify-center bg-zinc-950 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3 py-2 text-xs text-zinc-400 cursor-pointer h-[38px] transition-colors duration-300">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => setPosterFile(e.target.files[0])}
-                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+              {/* Capa/Poster Duplo (Upload Local, URL e Galeria Múltipla TMDB) */}
+              <div className="flex flex-col gap-2.5 bg-zinc-950/20 border border-zinc-850 p-3.5 rounded-xl relative">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <label className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-amber-500" />
+                    Capa / Imagem do Pôster
+                  </label>
+
+                  {availablePosters.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setIsPosterGalleryOpen((prev) => !prev)}
+                      className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
+                    >
+                      <span>🖼️</span>
+                      <span>Escolher Outra Capa da API ({availablePosters.length} disponíveis)</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-start gap-3">
+                  {/* Mini pré-visualização da capa ativa */}
+                  {(posterFile || formData.poster_url) && (
+                    <div className="w-12 h-[72px] rounded-lg overflow-hidden border border-zinc-700/80 bg-zinc-950 shrink-0 shadow-md">
+                      <img
+                        src={
+                          posterFile
+                            ? URL.createObjectURL(posterFile)
+                            : formData.poster_url.startsWith('/')
+                              ? `http://localhost:5000${formData.poster_url}`
+                              : formData.poster_url
+                        }
+                        alt="Prévia da Capa"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
                       />
-                      <span className="truncate max-w-[180px] font-semibold">
-                        {posterFile ? posterFile.name : 'Selecionar arquivo (.png, .jpg, .webp)'}
-                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 min-w-0">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Opção A: Cole URL Externa</span>
+                      <input
+                        type="text"
+                        name="poster_url"
+                        value={formData.poster_url}
+                        onChange={handleInputChange}
+                        placeholder="http://site.com/imagem.jpg"
+                        className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 outline-none focus:border-amber-500 placeholder:text-zinc-700"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Opção B: Upload do Computador</span>
+                      <div className="relative flex items-center justify-center bg-zinc-950 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3 py-2 text-xs text-zinc-400 cursor-pointer h-[36px] transition-colors duration-300">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => setPosterFile(e.target.files[0])}
+                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                        />
+                        <span className="truncate max-w-[160px] font-semibold">
+                          {posterFile ? posterFile.name : 'Selecionar arquivo (.png, .jpg...)'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                {/* Popover / Galeria de Seleção de Múltiplos Pôsteres TMDB */}
+                {isPosterGalleryOpen && availablePosters.length > 1 && (
+                  <div className="mt-2 bg-zinc-950/98 border border-amber-500/40 rounded-xl p-3 shadow-2xl z-30">
+                    <div className="flex items-center justify-between border-b border-zinc-800 pb-2 mb-2.5">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                        🖼️ Capas Oficiais Disponíveis na API TMDB ({availablePosters.length})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIsPosterGalleryOpen(false)}
+                        className="text-zinc-400 hover:text-zinc-100 p-1 rounded hover:bg-zinc-800 transition-colors cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5 max-h-60 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-700">
+                      {availablePosters.map((posterOpt, idx) => {
+                        const isSelected = !posterFile && formData.poster_url === posterOpt.url;
+                        const langLabel = posterOpt.iso_639_1 ? posterOpt.iso_639_1.toUpperCase() : 'LIMPO';
+                        return (
+                          <button
+                            key={posterOpt.file_path || idx}
+                            type="button"
+                            onClick={() => {
+                              setPosterFile(null);
+                              setFormData((prev) => ({ ...prev, poster_url: posterOpt.url }));
+                              setIsPosterGalleryOpen(false);
+                            }}
+                            className={`group relative aspect-[2/3] rounded-lg overflow-hidden border transition-all cursor-pointer ${
+                              isSelected
+                                ? 'border-amber-400 ring-2 ring-amber-400/50 scale-[0.98]'
+                                : 'border-zinc-800 hover:border-amber-500/60 hover:scale-[1.03]'
+                            }`}
+                            title={`Selecionar capa (${langLabel})`}
+                          >
+                            <img
+                              src={posterOpt.thumb_url || posterOpt.url}
+                              alt={`Capa ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                            <span className="absolute bottom-1 left-1 bg-black/80 text-[8px] font-black uppercase px-1.5 py-0.5 rounded text-zinc-200 border border-zinc-700/60">
+                              {langLabel}
+                            </span>
+                            {isSelected && (
+                              <span className="absolute top-1 right-1 bg-amber-500 text-slate-950 rounded-full p-0.5 shadow">
+                                <Check className="w-3 h-3 stroke-[3]" />
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Notas Técnicas + Sincronizador OMDb */}
+              {/* Notas Técnicas + Sincronizador Seguro OMDb/TMDB */}
               <div className="flex flex-col gap-3 bg-zinc-950/30 border border-zinc-800/40 p-4 rounded-xl">
-                <div className="flex items-center justify-between border-b border-zinc-800/40 pb-1.5">
+                <div className="flex items-center justify-between border-b border-zinc-800/40 pb-1.5 gap-2 flex-wrap">
                   <span className="text-[10px] uppercase font-black text-zinc-400 tracking-widest flex items-center gap-1.5">
                     📈 Avaliações & Crítica Externa
                   </span>
                   <button
                     type="button"
-                    onClick={handleSyncRatings}
-                    className="flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-500 hover:text-amber-400 transition-colors"
+                    disabled={refreshingSafeApi}
+                    onClick={handleRefreshApiMetricsSafe}
+                    className="flex items-center gap-1.5 text-[10px] font-black uppercase bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/35 px-2.5 py-1 rounded-lg text-cyan-300 hover:text-cyan-200 transition-colors cursor-pointer disabled:opacity-60"
+                    title="Atualiza EXCLUSIVAMENTE notas externas, volume de votos e Oscars sem sobrescrever seus dados manuais"
                   >
-                    <RefreshCw className="w-3 h-3" />
-                    Buscar Notas das APIs 🔄
+                    <RefreshCw className={`w-3 h-3 ${refreshingSafeApi ? 'animate-spin' : ''}`} />
+                    <span>{refreshingSafeApi ? 'Sincronizando...' : '🔄 Atualizar Dados da API'}</span>
                   </button>
                 </div>
                 
@@ -773,98 +1111,160 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
                 </div>
               </div>
 
-              {/* Países (Badges + Regras Clicáveis + Busca Rápida) */}
-              <div className="flex flex-col gap-2.5">
-                <div className="flex items-center justify-between border-b border-zinc-800/40 pb-1">
+              {/* Países de Origem Reestruturado: Chips atribuídos + Popover pesquisável */}
+              <div ref={countryDropdownRef} className="flex flex-col gap-2 bg-zinc-950/20 border border-zinc-800/40 p-3.5 rounded-xl relative">
+                <div className="flex items-center justify-between gap-2">
                   <span className="text-[10px] uppercase font-black text-zinc-400 tracking-widest flex items-center gap-1.5">
                     <Globe className="w-3.5 h-3.5 text-amber-500" />
                     Países de Origem
                   </span>
+                  <span className="text-[10px] font-mono text-zinc-500">
+                    {formData.countries.length} {formData.countries.length === 1 ? 'país atribuído' : 'países atribuídos'}
+                  </span>
+                </div>
+
+                {/* Chips dos países atribuídos + botão limpo + Adicionar País */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {formData.countries.map((countryName) => {
+                    const flagUrl = getCountryFlagUrl(countryName);
+                    return (
+                      <span
+                        key={countryName}
+                        className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/35"
+                      >
+                        {flagUrl ? (
+                          <img
+                            src={flagUrl}
+                            alt={countryName}
+                            className="w-4 h-2.5 object-cover rounded-sm shrink-0"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <span className="text-[10px]">🌐</span>
+                        )}
+                        <span>{countryName}</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleCountry(countryName)}
+                          className="ml-0.5 text-amber-300/70 hover:text-rose-400 transition-colors cursor-pointer"
+                          title={`Remover ${countryName}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    );
+                  })}
+
                   <button
                     type="button"
-                    onClick={handleAddNewCountryPrompt}
-                    className="flex items-center gap-1 text-[10px] font-black uppercase text-amber-500 hover:text-amber-400 transition-colors cursor-pointer"
+                    onClick={() => setIsCountryDropdownOpen((prev) => !prev)}
+                    className="inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wider bg-zinc-900 hover:bg-zinc-800 text-amber-400 border border-amber-500/35 hover:border-amber-400/70 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    Adicionar País
+                    <span>Adicionar País</span>
                   </button>
                 </div>
 
-                {/* Campo de Pesquisa Rápida para Países */}
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500 pointer-events-none" />
-                  <input
-                    type="text"
-                    placeholder="🔍 Pesquisar país..."
-                    value={countrySearchQuery}
-                    onChange={(e) => setCountrySearchQuery(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-8 pr-7 py-1.5 text-xs text-zinc-200 outline-none focus:border-amber-500 placeholder:text-zinc-600 transition-colors"
-                  />
-                  {countrySearchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setCountrySearchQuery('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 text-xs cursor-pointer"
-                      title="Limpar busca de país"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-
-                {/* Grid de Badges de Países com Altura Expandida e Filtro em Tempo Real */}
-                <div className="flex flex-wrap gap-1.5 max-h-56 overflow-y-auto border border-zinc-800/40 p-3 rounded-xl bg-zinc-950/20 pr-1 scrollbar-thin scrollbar-thumb-zinc-800">
-                  {(() => {
-                    const mergedCountryNames = Array.from(
-                      new Set([
-                        ...(formData.countries || []),
-                        ...activeCountries.map((c) => c.name),
-                      ])
-                    ).sort((a, b) => a.localeCompare(b, 'pt'));
-
-                    if (mergedCountryNames.length === 0) {
-                      return (
-                        <span className="text-[10px] text-zinc-600 italic">
-                          Carregando países ativos...
-                        </span>
-                      );
-                    }
-
-                    const cleanSearch = countrySearchQuery.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-                    const filteredCountries = cleanSearch
-                      ? mergedCountryNames.filter((c) =>
-                          c.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(cleanSearch)
-                        )
-                      : mergedCountryNames;
-
-                    if (filteredCountries.length === 0) {
-                      return (
-                        <span className="text-[10px] text-zinc-500 italic py-1">
-                          Nenhum país encontrado para &quot;{countrySearchQuery}&quot;
-                        </span>
-                      );
-                    }
-
-                    return filteredCountries.map((countryName) => {
-                      const isSelected = formData.countries.includes(countryName);
-                      return (
+                {/* Popover Pesquisável de Países */}
+                {isCountryDropdownOpen && (
+                  <div className="mt-1 bg-zinc-950/98 border border-zinc-700/80 rounded-xl p-3 shadow-2xl z-30 flex flex-col gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500 pointer-events-none" />
+                      <input
+                        type="text"
+                        autoFocus
+                        placeholder="Pesquisar país para adicionar..."
+                        value={countrySearchQuery}
+                        onChange={(e) => setCountrySearchQuery(e.target.value)}
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-8 pr-7 py-1.5 text-xs text-zinc-200 outline-none focus:border-amber-500 placeholder:text-zinc-600"
+                      />
+                      {countrySearchQuery && (
                         <button
-                          key={countryName}
                           type="button"
-                          onClick={() => toggleCountry(countryName)}
-                          className={`text-[10px] font-bold px-2.5 py-1 rounded border uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
-                            isSelected
-                              ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                              : 'bg-zinc-900/40 text-zinc-500 border-zinc-800 hover:border-zinc-700 hover:text-zinc-300'
-                          }`}
+                          onClick={() => setCountrySearchQuery('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 text-xs cursor-pointer"
                         >
-                          {isSelected && <Check className="w-3 h-3 text-amber-400 shrink-0" />}
-                          {countryName}
+                          ✕
                         </button>
-                      );
-                    });
-                  })()}
-                </div>
+                      )}
+                    </div>
+
+                    <div className="max-h-48 overflow-y-auto flex flex-col gap-1 pr-1 scrollbar-thin scrollbar-thumb-zinc-700">
+                      {(() => {
+                        const mergedCountryNames = Array.from(
+                          new Set([
+                            ...(formData.countries || []),
+                            ...activeCountries.map((c) => c.name),
+                            ...ALL_REFERENCE_COUNTRIES.map((c) => c.name),
+                          ])
+                        ).sort((a, b) => a.localeCompare(b, 'pt'));
+
+                        const cleanSearch = countrySearchQuery.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+                        const filteredCountries = cleanSearch
+                          ? mergedCountryNames.filter((c) =>
+                              c.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(cleanSearch)
+                            )
+                          : mergedCountryNames;
+
+                        return (
+                          <>
+                            {filteredCountries.map((countryName) => {
+                              const isSelected = formData.countries.includes(countryName);
+                              const flagUrl = getCountryFlagUrl(countryName);
+                              return (
+                                <button
+                                  key={countryName}
+                                  type="button"
+                                  onClick={() => {
+                                    toggleCountry(countryName);
+                                    setCountrySearchQuery('');
+                                  }}
+                                  className={`text-xs px-2.5 py-1.5 rounded-lg border font-semibold flex items-center justify-between gap-2 transition-colors cursor-pointer text-left ${
+                                    isSelected
+                                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                      : 'bg-zinc-900/50 text-zinc-300 border-zinc-800/70 hover:bg-zinc-800/80 hover:text-zinc-100'
+                                  }`}
+                                >
+                                  <span className="flex items-center gap-2 truncate">
+                                    {flagUrl ? (
+                                      <img
+                                        src={flagUrl}
+                                        alt={countryName}
+                                        className="w-4 h-3 object-cover rounded-sm shrink-0"
+                                        onError={(e) => {
+                                          e.target.style.display = 'none';
+                                        }}
+                                      />
+                                    ) : (
+                                      <span className="text-xs shrink-0">🌐</span>
+                                    )}
+                                    <span className="truncate">{countryName}</span>
+                                  </span>
+                                  {isSelected && <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+                                </button>
+                              );
+                            })}
+                            {countrySearchQuery.trim() &&
+                              !mergedCountryNames.some(
+                                (c) => c.toLowerCase() === countrySearchQuery.trim().toLowerCase()
+                              ) && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddNewCountry(countrySearchQuery.trim())}
+                                  className="mt-1 text-xs px-2.5 py-2 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-bold flex items-center gap-1.5 cursor-pointer"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                  <span>Cadastrar novo país &quot;{countrySearchQuery.trim()}&quot;</span>
+                                </button>
+                              )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Gêneros, Diretores, Estúdios e Distribuidora */}
@@ -922,16 +1322,39 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
                 </div>
               </div>
 
-              {/* Sinopse */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] uppercase font-bold text-zinc-400">Sinopse do Filme</label>
-                <textarea
-                  name="synopsis"
-                  value={formData.synopsis}
-                  onChange={handleInputChange}
-                  rows="4"
-                  className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-zinc-200 outline-none focus:border-amber-500 resize-none"
-                />
+              {/* Sinopse Otimizada com Acordeão Toggle */}
+              <div className="flex flex-col gap-2 bg-zinc-950/20 border border-zinc-800/40 p-3 rounded-xl">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <label className="text-[10px] uppercase font-bold text-zinc-400">Sinopse do Filme</label>
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
+                      formData.synopsis?.trim()
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25'
+                        : 'bg-zinc-900 text-zinc-500 border border-zinc-800'
+                    }`}>
+                      {formData.synopsis?.trim() ? 'Preenchida' : 'Vazia'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsSynopsisOpen((prev) => !prev)}
+                    className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-amber-300 border border-zinc-700/70 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                  >
+                    {isSynopsisOpen ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                    <span>👁️ {isSynopsisOpen ? 'Ocultar Sinopse' : 'Ver / Editar Sinopse'}</span>
+                  </button>
+                </div>
+
+                {isSynopsisOpen && (
+                  <textarea
+                    name="synopsis"
+                    value={formData.synopsis}
+                    onChange={handleInputChange}
+                    rows="4"
+                    placeholder="Escreva ou edite a sinopse do filme..."
+                    className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-zinc-200 outline-none focus:border-amber-500 resize-none placeholder:text-zinc-700"
+                  />
+                )}
               </div>
             </div>
 
@@ -983,7 +1406,7 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
                 </div>
               </div>
 
-              {/* Áudio e Plataforma */}
+              {/* Áudio e Seletor Inteligente de Plataforma */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] uppercase font-bold text-zinc-400">Tipo de Áudio</label>
@@ -999,16 +1422,92 @@ export default function MovieFormModal({ isOpen, onClose, movie, onSave, allTags
                     <option value="Original">Original</option>
                   </select>
                 </div>
-                <div className="flex flex-col gap-1.5">
+                <div ref={platformDropdownRef} className="flex flex-col gap-1.5 relative">
                   <label className="text-[10px] uppercase font-bold text-zinc-400">Visto Em (Plataforma)</label>
-                  <input
-                    type="text"
-                    name="platform"
-                    value={formData.platform}
-                    onChange={handleInputChange}
-                    placeholder="Ex: Netflix, Prime Video, Cinema"
-                    className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-zinc-200 outline-none focus:border-amber-500"
-                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsPlatformDropdownOpen((prev) => !prev);
+                      setIsAddingCustomPlatform(false);
+                    }}
+                    className="w-full bg-zinc-950 border border-zinc-800 hover:border-zinc-700 focus:border-amber-500 rounded-xl px-3 py-2 text-sm text-left flex items-center justify-between gap-2 transition-colors cursor-pointer"
+                  >
+                    <span className={formData.platform ? 'text-zinc-200 font-medium truncate' : 'text-zinc-500 truncate'}>
+                      {formData.platform || 'Selecionar plataforma...'}
+                    </span>
+                    <ChevronDown
+                      className={`w-4 h-4 text-zinc-500 transition-transform shrink-0 ${
+                        isPlatformDropdownOpen ? 'rotate-180 text-amber-400' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {isPlatformDropdownOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1.5 bg-zinc-950/98 border border-zinc-700/80 rounded-xl p-2 shadow-2xl z-30 flex flex-col gap-1">
+                      <div className="max-h-52 overflow-y-auto flex flex-col gap-0.5 pr-1 scrollbar-thin scrollbar-thumb-zinc-700">
+                        {platformOptions.map((plat) => {
+                          const isSelected =
+                            formData.platform &&
+                            formData.platform.toLowerCase().trim() === plat.toLowerCase().trim();
+                          return (
+                            <button
+                              key={plat}
+                              type="button"
+                              onClick={() => {
+                                setFormData((prev) => ({ ...prev, platform: plat }));
+                                setIsPlatformDropdownOpen(false);
+                              }}
+                              className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                                isSelected
+                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                  : 'text-zinc-300 hover:bg-zinc-800/80 hover:text-zinc-100'
+                              }`}
+                            >
+                              <span>{plat}</span>
+                              {isSelected && <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="border-t border-zinc-800 pt-1.5 mt-0.5">
+                        {!isAddingCustomPlatform ? (
+                          <button
+                            type="button"
+                            onClick={() => setIsAddingCustomPlatform(true)}
+                            className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-black text-amber-400 hover:bg-amber-500/15 flex items-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Cadastrar Nova Plataforma...</span>
+                          </button>
+                        ) : (
+                          <div className="flex items-center gap-1.5 p-1">
+                            <input
+                              type="text"
+                              autoFocus
+                              value={customPlatformInput}
+                              onChange={(e) => setCustomPlatformInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleSaveCustomPlatform();
+                                }
+                              }}
+                              placeholder="Nome da plataforma..."
+                              className="flex-1 min-w-0 bg-zinc-900 border border-zinc-700 focus:border-amber-500 rounded-lg px-2.5 py-1 text-xs text-zinc-200 outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleSaveCustomPlatform}
+                              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[11px] px-2.5 py-1 rounded-lg transition-colors cursor-pointer shrink-0"
+                            >
+                              Salvar
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

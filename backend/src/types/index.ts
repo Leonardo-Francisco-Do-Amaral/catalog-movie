@@ -98,6 +98,16 @@ export interface TMDBMovieDetails {
       department: string;
     }>;
   };
+  images?: {
+    posters?: Array<{
+      file_path: string;
+      iso_639_1: string | null;
+      width: number;
+      height: number;
+      vote_average: number;
+      vote_count: number;
+    }>;
+  };
 }
 
 // OMDb - Movie Details Response
@@ -116,6 +126,16 @@ export interface OMDbMovieResponse {
   Production?: string;
   Response: string; // "True" ou "False"
   Error?: string;
+}
+
+export interface TMDBPosterOption {
+  file_path: string;
+  url: string;
+  thumb_url: string;
+  iso_639_1: string | null;
+  width: number;
+  height: number;
+  vote_average: number;
 }
 
 // Objeto de dados consolidado retornado pelo serviço de integração
@@ -141,6 +161,10 @@ export interface ConsolidatedMovieData {
   oscar_nominations?: number;
   vote_count?: number | null;
   distributor?: string | null;
+  available_posters?: TMDBPosterOption[];
+  images?: {
+    posters: TMDBPosterOption[];
+  };
   raw_api_data: {
     tmdb: any;
     omdb: any;

@@ -12,6 +12,7 @@ import AvatarLabPage from './AvatarLabPage';
 import PS5TrophyToastContainer, { triggerPS5TrophyToast, triggerTrophyBatch } from '../components/PS5TrophyToastContainer';
 import TimeMachineToastContainer from '../components/TimeMachineToastContainer';
 import XPGainToastContainer from '../components/XPGainToastContainer';
+import ApiRefreshToastContainer, { triggerApiRefreshToast } from '../components/ApiRefreshToastContainer';
 import { evaluateTrophiesClientSide } from '../utils/trophyEngineClient';
 import {
   calculateClientXpStatus,
@@ -274,6 +275,54 @@ export default function Dashboard() {
   const [allAudios, setAllAudios] = useState([]);
   const [allPlatforms, setAllPlatforms] = useState([]);
   const [sortBy, setSortBy] = useState('seen_desc');
+  const [gridCols, setGridCols] = useState(() => {
+    try {
+      const saved = Number(localStorage.getItem('cine_catalog_grid_columns'));
+      return [5, 7, 10].includes(saved) ? saved : 5;
+    } catch {
+      return 5;
+    }
+  });
+
+  const handleSelectGridCols = (cols) => {
+    setGridCols(cols);
+    try {
+      localStorage.setItem('cine_catalog_grid_columns', String(cols));
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  // Contagens por filme único para Tags, Gêneros e Países nos dropdowns de filtros
+  const { tagCounts, genreCounts, countryCounts } = useMemo(() => {
+    const tCounts = {};
+    const gCounts = {};
+    const cCounts = {};
+
+    allMovies.forEach((movie) => {
+      new Set(movie.tags || []).forEach((tag) => {
+        if (tag) tCounts[tag] = (tCounts[tag] || 0) + 1;
+      });
+      new Set(movie.genres || []).forEach((genre) => {
+        if (genre) gCounts[genre] = (gCounts[genre] || 0) + 1;
+      });
+      if (movie.countries && movie.countries.length > 0) {
+        new Set(movie.countries.map((c) => c.trim()).filter(Boolean)).forEach((country) => {
+          cCounts[country] = (cCounts[country] || 0) + 1;
+        });
+      } else {
+        cCounts['Desconhecido'] = (cCounts['Desconhecido'] || 0) + 1;
+      }
+    });
+
+    systemTags.forEach((tag) => {
+      if (tag && tCounts[tag] === undefined) {
+        tCounts[tag] = 0;
+      }
+    });
+
+    return { tagCounts: tCounts, genreCounts: gCounts, countryCounts: cCounts };
+  }, [allMovies, systemTags]);
 
   const [loading, setLoading] = useState(true);
   const [usingMock, setUsingMock] = useState(false);
@@ -763,6 +812,75 @@ export default function Dashboard() {
     }
   };
 
+  // Aplica atualização seletiva de métricas no estado local sem sobrescrever campos manuais
+  const handleApplyApiRefreshPayload = useCallback(
+    (payload) => {
+      if (!payload?.success || !payload?.movieId || !payload?.metrics) return;
+      const m = payload.metrics;
+      setAllMovies((prev) =>
+        prev.map((item) =>
+          (item.movie_id || item.id) === payload.movieId
+            ? {
+                ...item,
+                imdb_rating: m.imdb_rating,
+                metacritic_score: m.metacritic_score,
+                rotten_tomatoes_score: m.rotten_tomatoes_score,
+                vote_count: m.vote_count,
+                oscar_wins: m.oscar_wins,
+                oscar_nominations: m.oscar_nominations,
+              }
+            : item
+        )
+      );
+
+      const newlyUnlocked = payload.newlyUnlocked || [];
+      const progressedTrophies = payload.progressedTrophies || [];
+      if (progressedTrophies.length > 0 || newlyUnlocked.length > 0) {
+        triggerTrophyBatch({
+          progressed: progressedTrophies,
+          unlocked: newlyUnlocked,
+        });
+      }
+      if (Array.isArray(newlyUnlocked) && newlyUnlocked.length > 0) {
+        axios
+          .post(`${API_BASE_URL}/trophies/ack-new`, {
+            trophyIds: newlyUnlocked.map((x) => x.id),
+          })
+          .catch(() => {});
+      }
+      if (Array.isArray(payload.timeMachineUnlocks) && payload.timeMachineUnlocks.length > 0) {
+        triggerTimeMachineUnlock(payload.timeMachineUnlocks);
+      }
+      if (payload.xpGain && payload.xpGain.gainedXp > 0) {
+        triggerXPGainToast(payload.xpGain, payload.xpStatus);
+      } else if (payload.xpStatus) {
+        applyXpStatus(payload.xpStatus);
+      }
+    },
+    [applyXpStatus]
+  );
+
+  // Acionado direto do Card no Catálogo: atualiza APENAS notas externas, votos e Oscars
+  const handleRefreshMovieApiMetrics = useCallback(
+    async (movie) => {
+      const targetMovieId = movie.movie_id || movie.id;
+      try {
+        const res = await axios.post(`${API_BASE_URL}/movies/${targetMovieId}/refresh-api-metrics`);
+        if (res.data?.success) {
+          handleApplyApiRefreshPayload(res.data);
+          triggerApiRefreshToast(res.data);
+        }
+      } catch (err) {
+        console.error('[Dashboard] Erro ao atualizar métricas externas:', err);
+        triggerApiRefreshToast({
+          title: movie.title,
+          error: err.response?.data?.error || err.message,
+        });
+      }
+    },
+    [handleApplyApiRefreshPayload]
+  );
+
   return (
     <div className="flex flex-col min-h-screen bg-zinc-950 text-zinc-100 font-sans">
       
@@ -822,6 +940,9 @@ export default function Dashboard() {
         setActiveTab={setActiveTab}
         movies={allMovies}
         xpStatus={xpStatus}
+        tagCounts={tagCounts}
+        genreCounts={genreCounts}
+        countryCounts={countryCounts}
       />
 
       {/* Painel Central e Conteúdo da Grelha em Largura Total */}
@@ -888,7 +1009,29 @@ export default function Dashboard() {
                 </h2>
               </div>
 
-              <div className="flex flex-wrap items-center gap-4">
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Seletor de Exibição em Grade (5 / 7 / 10 por linha) */}
+                <div className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800/80 rounded-lg px-2.5 py-1 text-xs font-semibold text-zinc-300">
+                  <span className="text-zinc-500 text-[11px]">Exibir:</span>
+                  <div className="flex items-center gap-1">
+                    {[5, 7, 10].map((cols) => (
+                      <button
+                        key={cols}
+                        type="button"
+                        onClick={() => handleSelectGridCols(cols)}
+                        className={`px-2 py-0.5 rounded font-black text-[11px] transition-all cursor-pointer ${
+                          gridCols === cols
+                            ? 'bg-amber-500 text-slate-950 shadow-sm'
+                            : 'bg-zinc-950/60 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800'
+                        }`}
+                      >
+                        {cols}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-zinc-500 text-[11px] hidden sm:inline">por linha</span>
+                </div>
+
                 {/* Seletor de Ordenação */}
                 <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800/80 rounded-lg px-3 py-1.5 text-xs font-semibold text-zinc-300">
                   <span className="text-zinc-500">Ordenar por:</span>
@@ -929,17 +1072,27 @@ export default function Dashboard() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 xl:gap-7">
+              <div
+                className={
+                  gridCols === 10
+                    ? 'grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-2.5 xl:gap-3'
+                    : gridCols === 7
+                      ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3.5 xl:gap-4'
+                      : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 xl:gap-7'
+                }
+              >
                 {filteredMovies.map((movie) => (
                   <MovieCard 
                     key={movie.id} 
-                    movie={movie} 
+                    movie={movie}
+                    gridCols={gridCols}
                     onEdit={(m) => {
                       setEditingMovie(m);
                       setReviewSearchQuery('');
                       setIsFormOpen(true);
                     }}
                     onDelete={handleDeleteMovie}
+                    onRefreshApiMetrics={handleRefreshMovieApiMetrics}
                   />
                 ))}
               </div>
@@ -988,7 +1141,9 @@ export default function Dashboard() {
         initialSearchQuery={reviewSearchQuery}
         initialReleaseYear={initialReleaseYear}
         allTags={allTags}
+        allPlatforms={allPlatforms}
         existingMovies={allMovies}
+        onApiRefreshed={handleApplyApiRefreshPayload}
         onSave={(_newlyUnlocked, _savedMovie, updatedXpStatus) => {
           if (editingMovie?.movie_id) {
             setReviewedMovieIds((prev) =>
@@ -1003,6 +1158,9 @@ export default function Dashboard() {
           fetchData({ runTrophyScan: !updatedXpStatus });
         }}
       />
+
+      {/* Toast Comparativo de Atualização Seletiva de Métricas da API */}
+      <ApiRefreshToastContainer />
 
       {/* 1º Estágio: Notificações de Troféus Estilo PlayStation 5 com Empilhamento Vertical */}
       <PS5TrophyToastContainer />

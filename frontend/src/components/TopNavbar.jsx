@@ -139,14 +139,38 @@ export default function TopNavbar({
   activeTab = 'catalog',
   setActiveTab = () => {},
   movies = [],
-  xpStatus = null
+  xpStatus = null,
+  tagCounts = {},
+  genreCounts = {},
+  countryCounts = {}
 }) {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [dropdownSearch, setDropdownSearch] = useState('');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [isLevelModalOpen, setIsLevelModalOpen] = useState(false);
   const [liveXpStatus, setLiveXpStatus] = useState(xpStatus);
+  const [filterSortModes, setFilterSortModes] = useState(() => {
+    try {
+      const saved = localStorage.getItem('cine_catalog_filter_sort_modes');
+      if (saved) return { tags: 'alpha', genres: 'alpha', countries: 'alpha', ...JSON.parse(saved) };
+    } catch {
+      // ignore storage errors
+    }
+    return { tags: 'alpha', genres: 'alpha', countries: 'alpha' };
+  });
   const navRef = useRef(null);
+
+  const setCategorySortMode = (catKey, mode) => {
+    setFilterSortModes((prev) => {
+      const next = { ...prev, [catKey]: mode };
+      try {
+        localStorage.setItem('cine_catalog_filter_sort_modes', JSON.stringify(next));
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (xpStatus) {
@@ -311,7 +335,9 @@ export default function TopNavbar({
       selected: selectedTags,
       onToggle: toggleTag,
       hint: 'Combina as selecionadas',
-      align: 'left'
+      align: 'left',
+      supportsSortToggle: true,
+      countsMap: tagCounts
     },
     {
       key: 'genres',
@@ -322,7 +348,9 @@ export default function TopNavbar({
       selected: selectedGenres,
       onToggle: toggleGenre,
       hint: 'Combina os selecionados',
-      align: 'left'
+      align: 'left',
+      supportsSortToggle: true,
+      countsMap: genreCounts
     },
     {
       key: 'countries',
@@ -334,7 +362,9 @@ export default function TopNavbar({
       onToggle: toggleCountry,
       hint: 'Combina os selecionados',
       isCountry: true,
-      align: 'left'
+      align: 'left',
+      supportsSortToggle: true,
+      countsMap: countryCounts
     },
     {
       key: 'directors',
@@ -700,11 +730,27 @@ export default function TopNavbar({
               const count = cat.selected.length;
               const isActive = count > 0;
 
+              const activeSortMode = cat.supportsSortToggle ? (filterSortModes[cat.key] || 'alpha') : 'alpha';
+
+              const baseOptions = cat.supportsSortToggle
+                ? [...cat.options].sort((a, b) => {
+                    if (activeSortMode === 'freq' && cat.countsMap) {
+                      const diff = (cat.countsMap[b] || 0) - (cat.countsMap[a] || 0);
+                      if (diff !== 0) return diff;
+                    }
+                    if (cat.isCountry) {
+                      if (a === 'Desconhecido') return 1;
+                      if (b === 'Desconhecido') return -1;
+                    }
+                    return a.localeCompare(b, 'pt');
+                  })
+                : cat.options;
+
               const filteredOptions = dropdownSearch.trim()
-                ? cat.options.filter((opt) =>
+                ? baseOptions.filter((opt) =>
                     opt.toLowerCase().includes(dropdownSearch.toLowerCase().trim())
                   )
-                : cat.options;
+                : baseOptions;
 
               return (
                 <div key={cat.key} className="relative">
@@ -759,6 +805,36 @@ export default function TopNavbar({
                         )}
                       </div>
 
+                      {/* Alternância de Ordenação Interna: [ 🔤 A-Z ] / [ 🔥 Mais Frequentes ] */}
+                      {cat.supportsSortToggle && (
+                        <div className="grid grid-cols-2 gap-1 bg-zinc-900/90 p-1 rounded-xl border border-zinc-800/80">
+                          <button
+                            type="button"
+                            onClick={() => setCategorySortMode(cat.key, 'alpha')}
+                            className={`text-[10px] font-bold py-1 px-2 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                              activeSortMode === 'alpha'
+                                ? 'bg-amber-500 text-slate-950 font-black shadow-sm'
+                                : 'text-zinc-400 hover:text-zinc-200'
+                            }`}
+                          >
+                            <span>🔤</span>
+                            <span>A-Z</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCategorySortMode(cat.key, 'freq')}
+                            className={`text-[10px] font-bold py-1 px-2 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                              activeSortMode === 'freq'
+                                ? 'bg-amber-500 text-slate-950 font-black shadow-sm'
+                                : 'text-zinc-400 hover:text-zinc-200'
+                            }`}
+                          >
+                            <span>🔥</span>
+                            <span>Mais Frequentes</span>
+                          </button>
+                        </div>
+                      )}
+
                       {/* Busca rápida interna quando houver mais de 8 itens */}
                       {cat.options.length > 8 && (
                         <div className="relative">
@@ -785,6 +861,7 @@ export default function TopNavbar({
                             {filteredOptions.map((countryName) => {
                               const isSelected = cat.selected.includes(countryName);
                               const flagUrl = getFlagUrl(countryName);
+                              const itemCount = cat.countsMap ? (cat.countsMap[countryName] ?? 0) : null;
                               return (
                                 <button
                                   key={countryName}
@@ -796,7 +873,7 @@ export default function TopNavbar({
                                       : 'bg-zinc-900/50 text-zinc-300 border-zinc-800/80 hover:border-zinc-700 hover:text-zinc-100'
                                   }`}
                                 >
-                                  <span className="flex items-center gap-2 truncate">
+                                  <span className="flex items-center gap-2 min-w-0 truncate">
                                     {countryName === 'Desconhecido' || !flagUrl ? (
                                       <span className="text-xs shrink-0">🌐</span>
                                     ) : (
@@ -811,7 +888,20 @@ export default function TopNavbar({
                                     )}
                                     <span className="truncate">{countryName}</span>
                                   </span>
-                                  {isSelected && <Check className="w-3.5 h-3.5 shrink-0" />}
+                                  <span className="flex items-center gap-1.5 shrink-0">
+                                    {itemCount !== null && (
+                                      <span
+                                        className={`text-[10px] font-mono px-1.5 py-0.2 rounded ${
+                                          isSelected
+                                            ? 'bg-slate-950/15 text-slate-950 font-black'
+                                            : 'bg-zinc-800/70 text-zinc-400'
+                                        }`}
+                                      >
+                                        ({itemCount})
+                                      </span>
+                                    )}
+                                    {isSelected && <Check className="w-3.5 h-3.5 shrink-0" />}
+                                  </span>
                                 </button>
                               );
                             })}
@@ -820,6 +910,7 @@ export default function TopNavbar({
                           <div className="flex flex-wrap gap-1.5">
                             {filteredOptions.map((item) => {
                               const isSelected = cat.selected.includes(item);
+                              const itemCount = cat.countsMap ? (cat.countsMap[item] ?? 0) : null;
                               return (
                                 <button
                                   key={item}
@@ -833,6 +924,15 @@ export default function TopNavbar({
                                 >
                                   {isSelected && <Check className="w-3 h-3 shrink-0" />}
                                   <span>{item}</span>
+                                  {itemCount !== null && (
+                                    <span
+                                      className={`text-[10px] font-mono ${
+                                        isSelected ? 'text-slate-950/80 font-black' : 'text-zinc-500'
+                                      }`}
+                                    >
+                                      ({itemCount})
+                                    </span>
+                                  )}
                                 </button>
                               );
                             })}

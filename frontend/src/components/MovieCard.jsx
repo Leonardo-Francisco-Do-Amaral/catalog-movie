@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Edit3, Trash2 } from 'lucide-react';
+import { Edit3, Trash2, RefreshCw } from 'lucide-react';
 
 const COUNTRY_TO_ISO = {
   'estados unidos': 'us',
@@ -71,7 +71,10 @@ const formatVotes = (num) => {
   return cleanNum.toString();
 };
 
-export default function MovieCard({ movie, onEdit, onDelete }) {
+export default function MovieCard({ movie, onEdit, onDelete, onRefreshApiMetrics, gridCols = 5 }) {
+  const isCompact7 = gridCols === 7;
+  const isCompact10 = gridCols === 10;
+  const [isRefreshingApi, setIsRefreshingApi] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [mouseHearts, setMouseHearts] = useState([]);
   const [clickHearts, setClickHearts] = useState([]);
@@ -194,6 +197,29 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
   const isOscarWinner = (Number(oscar_wins) || 0) > 0;
   const isOscarNominee = (Number(oscar_nominations) || 0) > 0;
 
+  // Detecta Documentário, Biografia e História respeitando a ordem exata listada nos gêneros
+  const stripGenreAccents = (s) =>
+    String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
+  const realityGenresOrdered = [];
+  genresList.forEach((g) => {
+    const clean = stripGenreAccents(g);
+    if (clean.includes('documentario') && !realityGenresOrdered.includes('documentario')) {
+      realityGenresOrdered.push('documentario');
+    } else if (clean.includes('biografia') && !realityGenresOrdered.includes('biografia')) {
+      realityGenresOrdered.push('biografia');
+    } else if (clean.includes('historia') && !realityGenresOrdered.includes('historia')) {
+      realityGenresOrdered.push('historia');
+    }
+  });
+  if (realityGenresOrdered.length === 0) {
+    if (hasGenreOrTag('documentário') || hasGenreOrTag('documentario')) realityGenresOrdered.push('documentario');
+    if (hasGenreOrTag('biografia')) realityGenresOrdered.push('biografia');
+    if (hasGenreOrTag('história') || hasGenreOrTag('historia')) realityGenresOrdered.push('historia');
+  }
+  const primaryRealityGenre = realityGenresOrdered[0] || null;
+  const secondaryRealityGenre = realityGenresOrdered[1] || null;
+
   // Filmes abaixo de 50 minutos são considerados Curtas automaticamente
   const runtimeNum = Number(runtime);
   const isShortFilm = (runtimeNum > 0 && runtimeNum < 50) || hasGenreOrTag('curta');
@@ -218,9 +244,9 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
   } else if (isShortFilm) {
     cardTheme = 'curta';
 
-  // 📝 ARQUÉTIPO A: CRÔNICAS DA REALIDADE ('biografia', 'documentário', 'história')
-  } else if (hasGenreOrTag('biografia') || hasGenreOrTag('documentário') || hasGenreOrTag('história')) {
-    cardTheme = 'arquetipo-realidade';
+  // 📝 ARQUÉTIPO A: CRÔNICAS DA REALIDADE ('documentario', 'biografia', 'historia' por ordem de precedência)
+  } else if (primaryRealityGenre) {
+    cardTheme = primaryRealityGenre;
 
   // 🍿 ARQUÉTIPO B: POP E LÚDICO (Modo Família/Aconchego)
   } else if (hasGenreOrTag('animação') || hasGenreOrTag('comédia') || hasGenreOrTag('família') || hasGenreOrTag('música') || hasGenreOrTag('musical')) {
@@ -284,6 +310,9 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
       case 'terror': return 'text-red-500 border-red-500/60 shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse';
       case 'romance': return 'text-pink-400 border-pink-400/60 shadow-[0_0_8px_rgba(244,114,182,0.6)]';
       case 'curta': return 'text-orange-400 border-orange-500/60 shadow-[0_0_8px_rgba(249,115,22,0.6)]';
+      case 'documentario': return 'text-cyan-300 border-cyan-400/60 shadow-[0_0_8px_rgba(34,211,238,0.5)]';
+      case 'biografia': return 'text-amber-300 border-amber-300/60 shadow-[0_0_8px_rgba(251,191,36,0.55)]';
+      case 'historia': return 'text-amber-500 border-amber-600/60 shadow-[0_0_8px_rgba(217,119,6,0.5)]';
       case 'arquetipo-pop': return 'text-fuchsia-400 border-fuchsia-500/60 shadow-[0_0_8px_rgba(217,70,239,0.6)]';
       case 'arquetipo-adrenalina': return 'text-cyan-400 border-cyan-400/60 shadow-[0_0_8px_rgba(34,211,238,0.6)]';
       case 'arquetipo-conflito': return 'text-red-400 border-red-700/60 shadow-[0_0_8px_rgba(185,28,28,0.6)]';
@@ -294,6 +323,12 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
   };
 
   const getVotesBadgeClass = () => {
+    if (isCompact10) {
+      return "absolute top-1.5 right-1.5 z-30 bg-black/75 backdrop-blur-md border border-zinc-700/50 rounded-full px-1.5 py-0.5 flex items-center gap-0.5 text-[8.5px] font-mono tracking-tight text-zinc-200 shadow-lg group-hover:opacity-0 transition-opacity duration-300 pointer-events-none select-none";
+    }
+    if (isCompact7) {
+      return "absolute top-2 right-2 z-30 bg-black/75 backdrop-blur-md border border-zinc-700/50 rounded-full px-2 py-0.5 flex items-center gap-1 text-[9.5px] font-mono tracking-wide text-zinc-200 shadow-lg group-hover:opacity-0 transition-opacity duration-300 pointer-events-none select-none";
+    }
     return "absolute top-3 right-3 z-30 bg-black/70 backdrop-blur-md border border-zinc-700/50 rounded-full px-2.5 py-0.5 flex items-center gap-1.5 text-[11px] font-mono tracking-wider text-zinc-300 shadow-lg group-hover:opacity-0 transition-opacity duration-300 pointer-events-none select-none";
   };
 
@@ -473,8 +508,12 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
     borderGlowClasses = `border-pink-500/20 border-2 ${isHovered ? 'animate-romantic-rgb' : ''}`;
   } else if (cardTheme === 'curta') {
     borderGlowClasses = `border-orange-500/25 border-2 hover:border-orange-500 ${isHovered ? 'hover:shadow-[0_0_20px_#f97316,_inset_0_0_10px_rgba(249,115,22,0.3)]' : ''}`;
-  } else if (cardTheme === 'arquetipo-realidade') {
-    borderGlowClasses = `border-zinc-400/20 border-2 hover:border-zinc-400 ${isHovered ? 'hover:shadow-[0_0_15px_rgba(161,161,170,0.5),_inset_0_0_8px_rgba(161,161,170,0.3)]' : ''}`;
+  } else if (cardTheme === 'documentario') {
+    borderGlowClasses = `border-cyan-400/20 border-2 hover:border-cyan-300/80 ${isHovered ? 'hover:shadow-[0_0_22px_rgba(34,211,238,0.45),_inset_0_0_12px_rgba(34,211,238,0.2)]' : ''}`;
+  } else if (cardTheme === 'biografia') {
+    borderGlowClasses = `border-amber-300/25 border-2 hover:border-amber-300 ${isHovered ? 'hover-bio-satin' : ''}`;
+  } else if (cardTheme === 'historia') {
+    borderGlowClasses = `border-amber-700/25 border-2 hover:border-amber-500/80 ${isHovered ? 'hover:shadow-[0_0_24px_rgba(217,119,6,0.45),_inset_0_0_18px_rgba(180,83,9,0.38)]' : ''}`;
   } else if (cardTheme === 'arquetipo-pop') {
     borderGlowClasses = `border-fuchsia-500/20 border-2 hover:border-fuchsia-500 ${isHovered ? 'hover:shadow-[0_0_20px_#d946ef,_inset_0_0_10px_rgba(217,70,239,0.3)]' : ''}`;
   } else if (cardTheme === 'arquetipo-adrenalina') {
@@ -497,8 +536,12 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
     hoverBgClass = 'bg-[radial-gradient(circle_at_center,_#450a0a_0%,_#09090b_100%)]';
   } else if (cardTheme === 'romance' || cardTheme === 'curta') {
     hoverBgClass = 'bg-zinc-955/98';
-  } else if (cardTheme === 'arquetipo-realidade') {
-    hoverBgClass = 'bg-[#141416]/98';
+  } else if (cardTheme === 'documentario') {
+    hoverBgClass = 'bg-[radial-gradient(circle_at_center,_rgba(8,47,73,0.75)_0%,_#09090b_100%)]';
+  } else if (cardTheme === 'biografia') {
+    hoverBgClass = 'bg-[radial-gradient(ellipse_at_top,_rgba(245,158,11,0.2)_0%,_rgba(24,24,27,0.92)_60%,_#09090b_100%)]';
+  } else if (cardTheme === 'historia') {
+    hoverBgClass = 'bg-[radial-gradient(circle_at_center,_rgba(120,53,15,0.3)_0%,_rgba(24,13,5,0.96)_100%)]';
   } else if (cardTheme === 'arquetipo-pop') {
     hoverBgClass = 'bg-[radial-gradient(circle_at_center,_rgba(245,158,11,0.12)_0%,_#09090b_100%)]';
   } else if (cardTheme === 'arquetipo-adrenalina') {
@@ -849,7 +892,7 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
           return (
             <div 
               key={i} 
-              className={`flex-1 h-1.5 rounded-[1px] transition-all duration-150 ease-out ${
+              className={`flex-1 ${(isCompact10 || isCompact7) ? 'h-1' : 'h-1.5'} rounded-[1px] transition-all duration-150 ease-out ${
                 iLit 
                   ? activeColorClass 
                   : 'bg-zinc-800'
@@ -986,6 +1029,148 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
     );
   };
 
+  // Renderiza efeitos temáticos de Documentário, Biografia e História (com precedência e combinação suave)
+  const renderRealityGenreEffects = () => {
+    if (!isHovered || !primaryRealityGenre || cardTheme === 'terror') return null;
+
+    const showDoc = primaryRealityGenre === 'documentario';
+    const showBio = primaryRealityGenre === 'biografia';
+    const showHist = primaryRealityGenre === 'historia';
+
+    return (
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
+        {/* 1. DOCUMENTÁRIO: Viewfinder / Lente de Gravação */}
+        {showDoc && (
+          <>
+            {/* Linha suave de scanline / investigação descendo */}
+            <div
+              className="absolute inset-x-0 h-10 bg-gradient-to-b from-transparent via-cyan-400/20 to-cyan-300/60 border-b border-cyan-300/80 shadow-[0_0_12px_rgba(34,211,238,0.65)] animate-doc-scanline"
+            />
+            {/* Retícula sutil central */}
+            <div className="absolute inset-0 flex items-center justify-center opacity-20">
+              <div className="w-8 h-8 relative">
+                <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-zinc-200 -translate-y-1/2" />
+                <div className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-zinc-200 -translate-x-1/2" />
+              </div>
+            </div>
+            {/* Cantoneiras digitais do visor nos 4 cantos */}
+            <div className={`absolute ${isCompact10 ? 'inset-1.5' : 'inset-2'} pointer-events-none`}>
+              <span className="absolute top-0 left-0 w-3.5 h-3.5 border-t-2 border-l-2 border-cyan-300/90 rounded-tl-[2px] shadow-[0_0_6px_rgba(34,211,238,0.5)]" />
+              <span className="absolute top-0 right-0 w-3.5 h-3.5 border-t-2 border-r-2 border-cyan-300/90 rounded-tr-[2px] shadow-[0_0_6px_rgba(34,211,238,0.5)]" />
+              <span className="absolute bottom-0 left-0 w-3.5 h-3.5 border-b-2 border-l-2 border-cyan-300/90 rounded-bl-[2px] shadow-[0_0_6px_rgba(34,211,238,0.5)]" />
+              <span className="absolute bottom-0 right-0 w-3.5 h-3.5 border-b-2 border-r-2 border-cyan-300/90 rounded-br-[2px] shadow-[0_0_6px_rgba(34,211,238,0.5)]" />
+            </div>
+            {/* Marca discreta piscando no topo direito: 🔴 REC */}
+            <div className={`absolute ${isCompact10 ? 'top-2 right-2.5 text-[7px] px-1 py-0.2' : 'top-2.5 right-3 text-[9px] px-1.5 py-0.5'} bg-black/75 border border-red-500/40 rounded font-mono font-black tracking-widest text-red-400 flex items-center gap-1 shadow-md`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+              <span className="text-red-400">REC</span>
+            </div>
+          </>
+        )}
+
+        {/* 2. BIOGRAFIA: Feixe Cônico Dourado (Spotlight / Calçada da Fama) */}
+        {showBio && (
+          <>
+            {/* Borda dourada acetinada */}
+            <div className="absolute inset-0 rounded-xl border border-amber-300/55 shadow-[inset_0_0_24px_rgba(251,191,36,0.28)]" />
+            {/* Feixe cônico de luz dourada suave vindo do topo */}
+            <div
+              className="absolute inset-x-0 top-0 h-full bg-gradient-to-b from-amber-200/35 via-yellow-400/15 to-transparent blur-[5px] animate-bio-spotlight origin-top"
+              style={{ clipPath: 'polygon(35% 0%, 65% 0%, 96% 100%, 4% 100%)' }}
+            />
+            <div
+              className="absolute inset-x-0 top-0 h-3/4 bg-gradient-to-b from-amber-100/25 via-amber-400/10 to-transparent blur-[2px] origin-top"
+              style={{ clipPath: 'polygon(44% 0%, 56% 0%, 76% 100%, 24% 100%)' }}
+            />
+            {/* Micropartículas brilhantes douradas */}
+            {[
+              { left: '14%', bottom: '12%', size: 'w-1 h-1', delay: '0s', dur: '3.4s' },
+              { left: '26%', bottom: '28%', size: 'w-1.5 h-1.5', delay: '0.7s', dur: '4.1s' },
+              { left: '39%', bottom: '10%', size: 'w-1 h-1', delay: '1.3s', dur: '3.6s' },
+              { left: '51%', bottom: '22%', size: 'w-1.5 h-1.5', delay: '0.3s', dur: '4.5s' },
+              { left: '63%', bottom: '15%', size: 'w-1 h-1', delay: '1.9s', dur: '3.8s' },
+              { left: '76%', bottom: '26%', size: 'w-1.5 h-1.5', delay: '0.9s', dur: '4.2s' },
+              { left: '88%', bottom: '12%', size: 'w-1 h-1', delay: '1.5s', dur: '3.5s' },
+              { left: '44%', bottom: '5%', size: 'w-1 h-1', delay: '2.2s', dur: '4.0s' },
+            ].map((p, idx) => (
+              <span
+                key={`bio-spark-${idx}`}
+                className={`absolute ${p.size} rounded-full bg-amber-200 shadow-[0_0_8px_#fde047] animate-floatUp`}
+                style={{ left: p.left, bottom: p.bottom, animationDelay: p.delay, animationDuration: p.dur }}
+              />
+            ))}
+          </>
+        )}
+
+        {/* 3. HISTÓRIA: Pergaminho Envelhecido / Cinzas do Tempo */}
+        {showHist && (
+          <>
+            {/* Vinheta sépia/âmbar envelhecida */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background: 'radial-gradient(circle at center, rgba(217,119,6,0.06) 20%, rgba(120,53,15,0.48) 72%, rgba(22,11,4,0.9) 100%)',
+              }}
+            />
+            {/* Textura sutil de papel antigo + moldura de pergaminho */}
+            <div
+              className="absolute inset-0 opacity-20 mix-blend-overlay"
+              style={{
+                backgroundImage:
+                  'repeating-linear-gradient(0deg, rgba(245,158,11,0.12) 0px, transparent 1px, transparent 4px), repeating-linear-gradient(90deg, rgba(180,83,9,0.1) 0px, transparent 1px, transparent 6px)',
+              }}
+            />
+            <div className="absolute inset-2 rounded-lg border border-amber-500/25 shadow-[inset_0_0_18px_rgba(146,64,14,0.45)]" />
+            {/* Faíscas / cinzas quentes flutuando suavemente para cima */}
+            {[
+              { left: '12%', bottom: '6%', size: 'w-1.5 h-1.5', color: 'bg-amber-400/80', delay: '0s', dur: '4.4s' },
+              { left: '25%', bottom: '10%', size: 'w-1 h-1', color: 'bg-orange-400/75', delay: '0.8s', dur: '3.9s' },
+              { left: '38%', bottom: '4%', size: 'w-1.5 h-1.5', color: 'bg-amber-200/70', delay: '1.6s', dur: '4.8s' },
+              { left: '53%', bottom: '8%', size: 'w-1 h-1', color: 'bg-orange-300/80', delay: '0.4s', dur: '4.2s' },
+              { left: '66%', bottom: '5%', size: 'w-1.5 h-1.5', color: 'bg-amber-500/75', delay: '1.2s', dur: '4.6s' },
+              { left: '79%', bottom: '12%', size: 'w-1 h-1', color: 'bg-orange-400/70', delay: '2.0s', dur: '3.7s' },
+              { left: '90%', bottom: '7%', size: 'w-1.5 h-1.5', color: 'bg-amber-300/75', delay: '0.6s', dur: '4.5s' },
+            ].map((ash, idx) => (
+              <span
+                key={`hist-ash-${idx}`}
+                className={`absolute ${ash.size} rounded-full ${ash.color} blur-[0.3px] shadow-[0_0_6px_rgba(245,158,11,0.65)] animate-history-ash`}
+                style={{ left: ash.left, bottom: ash.bottom, animationDelay: ash.delay, animationDuration: ash.dur }}
+              />
+            ))}
+          </>
+        )}
+
+        {/* Combinação suave de iluminação caso haja um segundo gênero de realidade listado */}
+        {secondaryRealityGenre === 'historia' && !showHist && (
+          <>
+            <div
+              className="absolute inset-0 opacity-60"
+              style={{
+                background: 'radial-gradient(circle at center, transparent 45%, rgba(120,53,15,0.45) 100%)',
+              }}
+            />
+            <span className="absolute bottom-3 left-[22%] w-1 h-1 rounded-full bg-orange-400/70 shadow-[0_0_5px_#f97316] animate-history-ash" style={{ animationDelay: '0.4s', animationDuration: '4.2s' }} />
+            <span className="absolute bottom-4 left-[72%] w-1 h-1 rounded-full bg-amber-300/70 shadow-[0_0_5px_#fbbf24] animate-history-ash" style={{ animationDelay: '1.3s', animationDuration: '4.6s' }} />
+          </>
+        )}
+        {secondaryRealityGenre === 'biografia' && !showBio && (
+          <div
+            className="absolute inset-x-0 top-0 h-2/3 opacity-50 bg-gradient-to-b from-amber-200/20 via-amber-400/5 to-transparent blur-[4px]"
+            style={{ clipPath: 'polygon(38% 0%, 62% 0%, 88% 100%, 12% 100%)' }}
+          />
+        )}
+        {secondaryRealityGenre === 'documentario' && !showDoc && (
+          <div className="absolute inset-2 opacity-50">
+            <span className="absolute top-0 left-0 w-2.5 h-2.5 border-t border-l border-cyan-300/80" />
+            <span className="absolute top-0 right-0 w-2.5 h-2.5 border-t border-r border-cyan-300/80" />
+            <span className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b border-l border-cyan-300/80" />
+            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b border-r border-cyan-300/80" />
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Renderiza poeira mágica e calor aconchegante para arquetipo-pop (Família) no Hover
   const renderPopHoverEffects = () => {
     if (!isHovered || cardTheme !== 'arquetipo-pop') return null;
@@ -1021,8 +1206,12 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
     if (isHovered) {
       classes += " group-hover:blur-[2px]";
       
-      if (cardTheme === 'arquetipo-realidade') {
-        classes += " sepia-[0.35] brightness-[0.85] contrast-[1.05]";
+      if (cardTheme === 'documentario') {
+        classes += " contrast-[1.12] brightness-[0.82] saturate-[0.85]";
+      } else if (cardTheme === 'biografia') {
+        classes += " sepia-[0.2] contrast-[1.08] brightness-[0.88]";
+      } else if (cardTheme === 'historia') {
+        classes += " sepia-[0.55] brightness-[0.82] contrast-[1.1]";
       } else if (cardTheme === 'arquetipo-enigma') {
         // Modo Hover Normal: Melancólico Azul (Refletindo tristeza/lágrimas)
         classes += " sepia-[0.4] hue-rotate-[190deg] saturate-[2] brightness-[0.7] contrast-[1.25]";
@@ -1444,6 +1633,44 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
           animation: kineticLine 1.5s infinite linear;
         }
 
+        /* 📽️ DOCUMENTÁRIO: Viewfinder Scanline passando de cima para baixo */
+        @keyframes docViewfinderScan {
+          0% { top: -18%; opacity: 0.1; }
+          15% { opacity: 0.9; }
+          85% { opacity: 0.9; }
+          100% { top: 105%; opacity: 0.1; }
+        }
+        .animate-doc-scanline {
+          animation: docViewfinderScan 2.8s infinite linear;
+        }
+
+        /* 🌟 BIOGRAFIA: Feixe de Spotlight & Borda Dourada Acetinada */
+        @keyframes bioSpotlightSway {
+          0%, 100% { transform: rotate(-4deg) scaleX(0.95); opacity: 0.72; }
+          50% { transform: rotate(4deg) scaleX(1.06); opacity: 0.98; }
+        }
+        .animate-bio-spotlight {
+          animation: bioSpotlightSway 5s infinite ease-in-out;
+        }
+        @keyframes bioSatinGlow {
+          0%, 100% { border-color: rgba(252, 211, 77, 0.75); box-shadow: 0 0 18px rgba(251, 191, 36, 0.4), inset 0 0 14px rgba(253, 224, 71, 0.25); }
+          50% { border-color: rgba(254, 240, 138, 0.95); box-shadow: 0 0 28px rgba(251, 191, 36, 0.65), inset 0 0 20px rgba(253, 224, 71, 0.4); }
+        }
+        .hover-bio-satin {
+          animation: bioSatinGlow 2.4s infinite ease-in-out !important;
+        }
+
+        /* 📜 HISTÓRIA: Faíscas / Cinzas do Tempo flutuando suavemente para cima */
+        @keyframes historyAshRise {
+          0% { transform: translateY(0) translateX(0) scale(0.7); opacity: 0; }
+          18% { opacity: 0.85; }
+          55% { transform: translateY(-95px) translateX(10px) scale(1); opacity: 0.75; }
+          100% { transform: translateY(-190px) translateX(-8px) scale(0.4); opacity: 0; }
+        }
+        .animate-history-ash {
+          animation: historyAshRise 4.2s infinite ease-out;
+        }
+
         .animate-shine {
           position: absolute;
           top: 0;
@@ -1502,13 +1729,13 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
 
       {/* Medalha do Oscar (Selo de Conquista) no Pôster */}
       {(isOscarWinner || isOscarNominee) && (
-        <div className="absolute top-2.5 left-2.5 z-20 group-hover:opacity-0 transition-opacity duration-300 pointer-events-none select-none">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center border shadow-lg ${
+        <div className={`absolute ${isCompact10 ? 'top-1.5 left-1.5' : isCompact7 ? 'top-2 left-2' : 'top-2.5 left-2.5'} z-20 group-hover:opacity-0 transition-opacity duration-300 pointer-events-none select-none`}>
+          <div className={`${isCompact10 ? 'w-5 h-5' : isCompact7 ? 'w-6 h-6' : 'w-8 h-8'} rounded-full flex items-center justify-center border shadow-lg ${
             isOscarWinner 
               ? 'bg-gradient-to-b from-amber-300 via-amber-500 to-amber-600 border-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.35)]' 
               : 'bg-gradient-to-b from-zinc-400 to-zinc-655 border-zinc-400'
           }`}>
-            <span className="text-[12px] drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+            <span className={`${isCompact10 ? 'text-[9px]' : isCompact7 ? 'text-[10px]' : 'text-[12px]'} drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]`}>
               {isOscarWinner ? '🏆' : '🎬'}
             </span>
           </div>
@@ -1518,7 +1745,7 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
       {/* Rating Badge */}
       <div className={getVotesBadgeClass()}>
         <span>⭐</span>
-        <span>NOTA: {formattedUserRating}</span>
+        <span>{isCompact10 ? formattedUserRating : `NOTA: ${formattedUserRating}`}</span>
       </div>
 
       {/* Letterbox Widescreen Bars para o arquetipo-enigma (Drama) ao Clicar (z-30) */}
@@ -1533,31 +1760,38 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
       <div className="bg-gradient-to-t from-black/95 via-black/45 to-transparent absolute bottom-0 inset-x-0 h-1/3 z-10 pointer-events-none group-hover:opacity-0 transition-opacity duration-300" />
 
       {/* HUD da Frente - Canto Inferior Esquerdo (Bandeiras) e Direito (Qtd Votos) */}
-      <div className="absolute bottom-2.5 inset-x-2.5 z-20 flex justify-between items-center group-hover:opacity-0 transition-opacity duration-300 pointer-events-none select-none">
+      <div className={`absolute ${isCompact10 ? 'bottom-1.5 inset-x-1.5' : isCompact7 ? 'bottom-2 inset-x-2' : 'bottom-2.5 inset-x-2.5'} z-20 flex justify-between items-center group-hover:opacity-0 transition-opacity duration-300 pointer-events-none select-none`}>
         
         {/* Fila de Bandeiras */}
-        <div className="flex gap-1 bg-black/60 backdrop-blur-sm border border-zinc-800/80 rounded px-1.5 py-0.5 items-center min-h-[22px]">
+        <div className={`flex ${isCompact10 ? 'gap-0.5 px-1 py-0.5 min-h-[16px]' : isCompact7 ? 'gap-1 px-1 py-0.5 min-h-[18px]' : 'gap-1 px-1.5 py-0.5 min-h-[22px]'} bg-black/60 backdrop-blur-sm border border-zinc-800/80 rounded items-center`}>
           {countries.length > 0 ? (
-            countries.map((country, idx) => {
-              const url = getFlagUrl(country);
-              if (country === 'Desconhecido' || !url) return <span key={idx} className="text-[9px]">🌐</span>;
-              return (
-                <img 
-                  key={idx}
-                  src={url} 
-                  alt={country} 
-                  className="w-4 h-2.5 object-cover rounded-sm border border-zinc-900/50 shrink-0"
-                  onError={(e) => { e.target.style.display = 'none'; }}
-                />
-              );
-            })
+            <>
+              {(isCompact10 ? countries.slice(0, 2) : isCompact7 ? countries.slice(0, 3) : countries).map((country, idx) => {
+                const url = getFlagUrl(country);
+                if (country === 'Desconhecido' || !url) return <span key={idx} className={isCompact10 ? 'text-[7px]' : 'text-[9px]'}>🌐</span>;
+                return (
+                  <img 
+                    key={idx}
+                    src={url} 
+                    alt={country} 
+                    className={`${isCompact10 ? 'w-3 h-2' : isCompact7 ? 'w-3.5 h-2' : 'w-4 h-2.5'} object-cover rounded-sm border border-zinc-900/50 shrink-0`}
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                );
+              })}
+              {((isCompact10 && countries.length > 2) || (isCompact7 && countries.length > 3)) && (
+                <span className="text-[7px] text-zinc-400 font-bold">
+                  +{countries.length - (isCompact10 ? 2 : 3)}
+                </span>
+              )}
+            </>
           ) : (
-            <span className="text-[9px]">🌐</span>
+            <span className={isCompact10 ? 'text-[7px]' : 'text-[9px]'}>🌐</span>
           )}
         </div>
 
         {/* Qtd Votos Pílula */}
-        <div className="bg-black/60 backdrop-blur-sm border border-zinc-800/80 rounded px-2 py-0.5 text-amber-400 font-mono font-bold text-xs tracking-wider flex items-center gap-1">
+        <div className={`bg-black/60 backdrop-blur-sm border border-zinc-800/80 rounded ${isCompact10 ? 'px-1 py-0.5 text-[8.5px] gap-0.5' : isCompact7 ? 'px-1.5 py-0.5 text-[10px] gap-1' : 'px-2 py-0.5 text-xs gap-1'} text-amber-400 font-mono font-bold tracking-wider flex items-center`}>
           <span>👥</span>
           <span>{formatVotes(movie.vote_count)}</span>
         </div>
@@ -1622,10 +1856,8 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
         {cardTheme === 'terror' && renderVisceralBloodAndIcons()}
         {cardTheme === 'romance' && renderRomanceEffects()}
 
-        {/* EFEITOS ADICIONAIS DE ARQUÉTIPOS (z-10) */}
-        {cardTheme === 'arquetipo-realidade' && isHovered && (
-          <div className="absolute inset-0 bg-[radial-gradient(circle,_transparent_30%,_black_90%)] opacity-30 z-10 pointer-events-none" />
-        )}
+        {/* Efeitos Temáticos de Documentário, Biografia e História (z-10) */}
+        {renderRealityGenreEffects()}
         {cardTheme === 'arquetipo-pop' && renderPopHoverEffects()}
         
         {/* 🍿 MODO H (Família): Holograma Silhueta do Sofá (z-0, atrás do texto) */}
@@ -1889,55 +2121,79 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
         ))}
 
         {/* Conteúdo Principal de Texto (z-20) */}
-        <div className="relative w-full h-full p-4 flex flex-col justify-between text-white font-mono z-20">
+        <div className={`relative w-full h-full flex flex-col justify-between text-white font-mono z-20 overflow-y-auto scrollbar-hide ${
+          isCompact10 ? 'p-2' : isCompact7 ? 'p-2.5' : 'p-4'
+        } ${primaryRealityGenre === 'documentario' && cardTheme !== 'terror' ? (isCompact10 ? 'pt-5' : 'pt-6') : ''}`}>
           
           {/* Topo - Título Branco Puro e Botões de Ação */}
-          <div className="flex flex-col gap-1.5 text-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
-            <div className="flex justify-between items-start gap-2 w-full">
-              <div>
-                <h3 className={`text-sm font-black text-white uppercase tracking-wide line-clamp-2 pr-1 leading-tight font-sans ${
+          <div className={`flex flex-col ${isCompact10 ? 'gap-0.5' : 'gap-1.5'} text-shadow-[0_1px_3px_rgba(0,0,0,0.9)]`}>
+            <div className="flex justify-between items-start gap-1 w-full">
+              <div className="min-w-0">
+                <h3 className={`${isCompact10 ? 'text-[10px] line-clamp-1' : isCompact7 ? 'text-xs line-clamp-2' : 'text-sm line-clamp-2'} font-black text-white uppercase tracking-wide pr-0.5 leading-tight font-sans ${
                   cardTheme === 'terror' && isHovered ? 'animate-violent-shake text-red-500' : ''
                 }`}>
                   {title}
                 </h3>
                 
                 {/* Ping, FPS e outros status do jogo abaixo do nome no hover (Ação) */}
-                {cardTheme === 'arquetipo-adrenalina' && isHovered && (
-                  <div className="flex gap-1.5 mt-1 select-none font-mono text-[8px] tracking-wider text-cyan-400">
-                    <span className="bg-cyan-955/80 border border-cyan-500/35 rounded px-1.5 py-0.5 shadow-md">
+                {cardTheme === 'arquetipo-adrenalina' && isHovered && !isCompact10 && (
+                  <div className={`flex gap-1 mt-1 select-none font-mono ${isCompact7 ? 'text-[7px]' : 'text-[8px]'} tracking-wider text-cyan-400`}>
+                    <span className="bg-cyan-955/80 border border-cyan-500/35 rounded px-1 py-0.5 shadow-md">
                       📶 {ping}ms
                     </span>
-                    <span className="bg-cyan-955/80 border border-cyan-500/35 rounded px-1.5 py-0.5 shadow-md">
+                    <span className="bg-cyan-955/80 border border-cyan-500/35 rounded px-1 py-0.5 shadow-md">
                       🎮 {fps} FPS
                     </span>
-                    <span className="bg-cyan-955/80 border border-cyan-500/35 rounded px-1.5 py-0.5 shadow-md animate-pulse">
-                      🟢 ONLINE
-                    </span>
+                    {!isCompact7 && (
+                      <span className="bg-cyan-955/80 border border-cyan-500/35 rounded px-1.5 py-0.5 shadow-md animate-pulse">
+                        🟢 ONLINE
+                      </span>
+                    )}
                   </div>
                 )}
 
                 {/* Cronômetro do Curta-metragem abaixo do nome no hover (Fundo Preto com Glow) */}
-                {cardTheme === 'curta' && isHovered && (
+                {cardTheme === 'curta' && isHovered && !isCompact10 && (
                   <div className="flex mt-1 select-none font-mono tracking-wider">
-                    <span className="bg-black border border-orange-500 rounded px-2.5 py-0.5 shadow-[0_0_8px_rgba(249,115,22,0.65)] text-orange-400 font-bold text-[9px]">
+                    <span className={`bg-black border border-orange-500 rounded ${isCompact7 ? 'px-1.5 py-0.2 text-[8px]' : 'px-2.5 py-0.5 text-[9px]'} shadow-[0_0_8px_rgba(249,115,22,0.65)] text-orange-400 font-bold`}>
                       ⏱️ {speedrunTime}
                     </span>
                   </div>
                 )}
               </div>
               
-              {/* Controles de Ação (Sem o DEV Menu) */}
-              <div className="flex items-center gap-1.5 shrink-0">
+              {/* Controles de Ação: Atualizar API, Editar e Excluir */}
+              <div className={`flex items-center ${isCompact10 ? 'gap-0.5' : isCompact7 ? 'gap-1' : 'gap-1.5'} shrink-0`}>
+                {onRefreshApiMetrics && (
+                  <button
+                    type="button"
+                    disabled={isRefreshingApi}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (isRefreshingApi) return;
+                      setIsRefreshingApi(true);
+                      try {
+                        await onRefreshApiMetrics(movie);
+                      } finally {
+                        setIsRefreshingApi(false);
+                      }
+                    }}
+                    className={`${isCompact10 ? 'p-1' : isCompact7 ? 'p-1' : 'p-1.5'} rounded bg-black/60 hover:bg-cyan-950/70 border border-zinc-700/50 hover:border-cyan-500/50 text-zinc-300 hover:text-cyan-300 transition-colors cursor-pointer disabled:opacity-60`}
+                    title="Atualizar Dados da API (Notas, Votos e Oscars)"
+                  >
+                    <RefreshCw className={`${isCompact10 ? 'w-2.5 h-2.5' : isCompact7 ? 'w-3 h-3' : 'w-3.5 h-3.5'} ${isRefreshingApi ? 'animate-spin text-cyan-400' : ''}`} />
+                  </button>
+                )}
                 {onEdit && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       onEdit(movie);
                     }}
-                    className="p-1.5 rounded bg-black/60 hover:bg-zinc-800 border border-zinc-700/50 text-zinc-300 hover:text-amber-400 transition-colors"
+                    className={`${isCompact10 ? 'p-1' : isCompact7 ? 'p-1' : 'p-1.5'} rounded bg-black/60 hover:bg-zinc-800 border border-zinc-700/50 text-zinc-300 hover:text-amber-400 transition-colors cursor-pointer`}
                     title="Editar Filme"
                   >
-                    <Edit3 className="w-3.5 h-3.5" />
+                    <Edit3 className={`${isCompact10 ? 'w-2.5 h-2.5' : isCompact7 ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
                   </button>
                 )}
                 {onDelete && (
@@ -1948,10 +2204,10 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
                         onDelete(movie.movie_id || movie.id);
                       }
                     }}
-                    className="p-1.5 rounded bg-black/60 hover:bg-red-955/60 border border-zinc-700/50 text-zinc-300 hover:text-red-400 transition-colors"
+                    className={`${isCompact10 ? 'p-1' : isCompact7 ? 'p-1' : 'p-1.5'} rounded bg-black/60 hover:bg-red-955/60 border border-zinc-700/50 text-zinc-300 hover:text-red-400 transition-colors cursor-pointer`}
                     title="Excluir Filme"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className={`${isCompact10 ? 'w-2.5 h-2.5' : isCompact7 ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
                   </button>
                 )}
               </div>
@@ -1959,40 +2215,40 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
 
             {/* Placar de Conquistas do Oscar */}
             {cardTheme === 'oscar-winner' && (
-              <div className="bg-amber-955/40 border border-amber-500/40 rounded-lg px-3 py-1 flex items-center gap-3 text-[10px] font-mono tracking-wider text-amber-400 select-none mt-1 shrink-0 w-fit">
-                <span>🏆 {oscar_wins} VITÓRIAS / {oscar_nominations} INDICAÇÕES</span>
+              <div className={`bg-amber-955/40 border border-amber-500/40 rounded-lg ${isCompact10 ? 'px-1.5 py-0.5 text-[7px]' : isCompact7 ? 'px-2 py-0.5 text-[8.5px]' : 'px-3 py-1 text-[10px]'} flex items-center gap-2 font-mono tracking-wider text-amber-400 select-none mt-0.5 shrink-0 w-fit`}>
+                <span>🏆 {oscar_wins} {isCompact10 ? 'W' : 'VITÓRIAS'} / {oscar_nominations} {isCompact10 ? 'N' : 'INDICAÇÕES'}</span>
               </div>
             )}
             {cardTheme === 'oscar-nominee' && (
-              <div className="bg-blue-955/40 border border-blue-500/40 rounded-lg px-3 py-1 flex items-center gap-2 text-[10px] font-mono tracking-wider text-blue-300 select-none mt-1 shrink-0 w-fit">
-                <span>🎬 {oscar_nominations} INDICAÇÕES AO OSCAR</span>
+              <div className={`bg-blue-955/40 border border-blue-500/40 rounded-lg ${isCompact10 ? 'px-1.5 py-0.5 text-[7px]' : isCompact7 ? 'px-2 py-0.5 text-[8.5px]' : 'px-3 py-1 text-[10px]'} flex items-center gap-1.5 font-mono tracking-wider text-blue-300 select-none mt-0.5 shrink-0 w-fit`}>
+                <span>🎬 {oscar_nominations} {isCompact10 ? 'IND.' : 'INDICAÇÕES AO OSCAR'}</span>
               </div>
             )}
 
             {/* Global Reviews Stats */}
-            {isHovered && (
-              <div className="text-[8px] text-zinc-400 font-bold select-none uppercase tracking-wider mt-1.5 flex items-center gap-1.5">
-                <span>📈 STATS:</span>
+            {isHovered && !isCompact10 && (
+              <div className={`${isCompact7 ? 'text-[7px] mt-0.5' : 'text-[8px] mt-1.5'} text-zinc-400 font-bold select-none uppercase tracking-wider flex items-center gap-1`}>
+                <span>📈 {isCompact7 ? '' : 'STATS:'}</span>
                 <span className={getVotesBadgeColor().split(' ')[0]}>{formatVotes(movie.vote_count)}</span>
-                <span>GLOBAL REVIEWS</span>
+                <span>{isCompact7 ? 'VOTOS' : 'GLOBAL REVIEWS'}</span>
               </div>
             )}
           </div>
 
           {/* Centro - HUD Medidor Segmentado */}
-          <div className="flex flex-col gap-2.5 py-1">
+          <div className={`flex flex-col ${isCompact10 ? 'gap-1 py-0.5' : isCompact7 ? 'gap-1.5 py-0.5' : 'gap-2.5 py-1'}`}>
             {/* Minha Nota - ROXO GAMER */}
             <div className="flex flex-col gap-0.5 select-none text-purple-400">
-              <div className="flex justify-between items-center text-[10px] font-mono font-black bg-black/80 px-1.5 py-0.5 rounded">
-                <span className="tracking-wider">MINHA NOTA</span>
-                <span className="tracking-widest text-xs font-bold">{formattedUserRating}</span>
+              <div className={`flex justify-between items-center ${isCompact10 ? 'text-[7.5px] px-1 py-0' : isCompact7 ? 'text-[8.5px] px-1.5 py-0.2' : 'text-[10px] px-1.5 py-0.5'} font-mono font-black bg-black/80 rounded`}>
+                <span className="tracking-wider">{isCompact10 ? 'NOTA' : 'MINHA NOTA'}</span>
+                <span className={`${isCompact10 ? 'text-[8px]' : isCompact7 ? 'text-[9.5px]' : 'text-xs'} tracking-wider font-bold`}>{formattedUserRating}</span>
               </div>
               {renderSegmentedBar(user_rating, 10, 'bg-purple-500 shadow-[0_0_10px_#a855f7]')}
             </div>
 
             {/* IMDb Bar - AMARELO IMDb */}
             <div className="flex flex-col gap-0.5 select-none text-[#F5C518]">
-              <div className="flex justify-between items-center text-[9px] font-mono font-bold bg-black/80 px-1.5 py-0.5 rounded">
+              <div className={`flex justify-between items-center ${isCompact10 ? 'text-[7px] px-1 py-0' : isCompact7 ? 'text-[8px] px-1.5 py-0.2' : 'text-[9px] px-1.5 py-0.5'} font-mono font-bold bg-black/80 rounded`}>
                 <span>IMDb</span>
                 <span className="font-bold">{formattedImdbRating}</span>
               </div>
@@ -2001,8 +2257,8 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
 
             {/* Metacritic Bar */}
             <div className="flex flex-col gap-0.5 select-none text-emerald-400">
-              <div className="flex justify-between items-center text-[9px] font-mono font-bold bg-black/80 px-1.5 py-0.5 rounded">
-                <span>Metacritic</span>
+              <div className={`flex justify-between items-center ${isCompact10 ? 'text-[7px] px-1 py-0' : isCompact7 ? 'text-[8px] px-1.5 py-0.2' : 'text-[9px] px-1.5 py-0.5'} font-mono font-bold bg-black/80 rounded`}>
+                <span>{isCompact10 ? 'MC' : 'Metacritic'}</span>
                 <span className={getMetacriticTextColor(formattedMetacritic)}>{formattedMetacritic}</span>
               </div>
               {renderSegmentedBar(metacritic_score, 100, 'bg-emerald-500 shadow-[0_0_8px_#10b981]')}
@@ -2010,8 +2266,8 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
 
             {/* Rotten Tomatoes Bar */}
             <div className="flex flex-col gap-0.5 select-none text-red-500">
-              <div className="flex justify-between items-center text-[9px] font-mono font-bold bg-black/80 px-1.5 py-0.5 rounded">
-                <span>Rotten Tomatoes</span>
+              <div className={`flex justify-between items-center ${isCompact10 ? 'text-[7px] px-1 py-0' : isCompact7 ? 'text-[8px] px-1.5 py-0.2' : 'text-[9px] px-1.5 py-0.5'} font-mono font-bold bg-black/80 rounded`}>
+                <span>{isCompact10 ? 'RT' : isCompact7 ? 'Rotten' : 'Rotten Tomatoes'}</span>
                 <span className="font-bold">{rotten_tomatoes_score ? `${rotten_tomatoes_score}%` : 'N/A'}</span>
               </div>
               {renderSegmentedBar(rotten_tomatoes_score, 100, 'bg-red-500 shadow-[0_0_8px_#ef4444]')}
@@ -2019,54 +2275,59 @@ export default function MovieCard({ movie, onEdit, onDelete }) {
           </div>
 
           {/* Rodapé - Metadados e Atributos de Alto Contraste */}
-          <div className="w-full flex flex-col gap-2 border-t border-zinc-800/80 pt-2 font-mono text-[9px]">
+          <div className={`w-full flex flex-col ${isCompact10 ? 'gap-1 pt-1 text-[7px]' : isCompact7 ? 'gap-1.5 pt-1.5 text-[8px]' : 'gap-2 pt-2 text-[9px]'} border-t border-zinc-800/80 font-mono`}>
             
             {/* Linha 1: Badges de Status */}
-            <div className="flex items-center gap-1.5 text-[8.5px] font-bold select-none text-zinc-200 uppercase">
-              <span className="bg-black/60 border border-zinc-700/50 px-1.5 py-0.5 rounded flex items-center gap-1">
+            <div className={`flex items-center flex-wrap ${isCompact10 ? 'gap-0.5 text-[6.5px]' : isCompact7 ? 'gap-1 text-[7.5px]' : 'gap-1.5 text-[8.5px]'} font-bold select-none text-zinc-200 uppercase`}>
+              <span className={`bg-black/60 border border-zinc-700/50 ${isCompact10 ? 'px-1 py-0' : 'px-1.5 py-0.5'} rounded flex items-center gap-0.5`}>
                 📅 {release_year || 'N/A'}
               </span>
+              {!isCompact10 && (
+                <>
+                  <span className="text-zinc-700">|</span>
+                  <span className="bg-black/60 border border-zinc-700/50 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                    👁️ {year_seen || 'N/A'}
+                  </span>
+                </>
+              )}
               <span className="text-zinc-700">|</span>
-              <span className="bg-black/60 border border-zinc-700/50 px-1.5 py-0.5 rounded flex items-center gap-1">
-                👁️ {year_seen || 'N/A'}
-              </span>
-              <span className="text-zinc-700">|</span>
-              <span className="bg-black/60 border border-zinc-700/50 px-1.5 py-0.5 rounded flex items-center gap-1">
-                ⏳ {runtime ? `${runtime} min` : 'N/A'}
+              <span className={`bg-black/60 border border-zinc-700/50 ${isCompact10 ? 'px-1 py-0' : 'px-1.5 py-0.5'} rounded flex items-center gap-0.5`}>
+                ⏳ {runtime ? `${runtime}m` : 'N/A'}
               </span>
             </div>
 
             {/* Linha 2: Gênero | Áudio | Plataforma */}
-            <div className={`bg-black/85 px-2 py-1 rounded border border-zinc-800/40 text-zinc-300 font-medium text-[9px] break-words leading-tight ${
+            <div className={`bg-black/85 ${isCompact10 ? 'px-1 py-0.5 text-[6.5px] truncate' : isCompact7 ? 'px-1.5 py-0.5 text-[7.5px] line-clamp-1' : 'px-2 py-1 text-[9px] break-words'} rounded border border-zinc-800/40 text-zinc-300 font-medium leading-tight ${
               cardTheme === 'arquetipo-enigma' ? 'font-serif italic tracking-wide' : ''
             }`}>
-              {genres.length > 0 ? genres.join('/') : 'N/A'} • {audio_type || 'N/A'} • {platform || 'N/A'}
+              {genres.length > 0 ? genres.join('/') : 'N/A'}{isCompact10 ? '' : ` • ${audio_type || 'N/A'} • ${platform || 'N/A'}`}
             </div>
-
 
             {/* Linha 3: Tags Customizadas e botão Jogar Arcade para Especulativo */}
-            <div className="flex flex-col gap-1.5 mt-1">
-              {tags.length > 0 && (
-                <div className={`bg-black/85 px-2 py-1 rounded border border-zinc-800/40 text-zinc-400 font-semibold text-[8px] tracking-wide break-words leading-normal ${
-                  cardTheme === 'arquetipo-enigma' ? 'font-serif italic tracking-wide' : ''
-                }`}>
-                  Tags: {tags.join(' • ')}
-                </div>
-              )}
+            {!isCompact10 && (
+              <div className="flex flex-col gap-1 mt-0.5">
+                {tags.length > 0 && (
+                  <div className={`bg-black/85 ${isCompact7 ? 'px-1.5 py-0.5 text-[7px] line-clamp-2' : 'px-2 py-1 text-[8px] break-words'} rounded border border-zinc-800/40 text-zinc-400 font-semibold tracking-wide leading-normal ${
+                    cardTheme === 'arquetipo-enigma' ? 'font-serif italic tracking-wide' : ''
+                  }`}>
+                    Tags: {tags.join(' • ')}
+                  </div>
+                )}
 
-              {cardTheme === 'arquetipo-especulativo' && isHovered && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsGameActive(true);
-                    startSpaceInvaders();
-                  }}
-                  className="w-full py-1 bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-500/40 rounded text-emerald-400 text-[10px] font-bold tracking-widest uppercase transition-colors flex items-center justify-center gap-1.5 shadow-[0_0_8px_rgba(16,185,129,0.2)]"
-                >
-                  👾 JOGAR RETRO ARCADE
-                </button>
-              )}
-            </div>
+                {cardTheme === 'arquetipo-especulativo' && isHovered && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsGameActive(true);
+                      startSpaceInvaders();
+                    }}
+                    className={`w-full py-1 bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-500/40 rounded text-emerald-400 ${isCompact7 ? 'text-[8px]' : 'text-[10px]'} font-bold tracking-widest uppercase transition-colors flex items-center justify-center gap-1 shadow-[0_0_8px_rgba(16,185,129,0.2)]`}
+                  >
+                    👾 JOGAR RETRO ARCADE
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
         </div>
