@@ -194,6 +194,7 @@ export function getTrophyLadderKey(t: ProgressedTrophy): string {
     case 'oscar_nominations':
       return `oscar_nominations`;
     case 'director_count':
+    case 'hollywood_director_count':
       return `director_${meta.director}`;
     case 'rating_rule':
       return `rating_${meta.ruleKey}`;

@@ -145,6 +145,8 @@ export default function AnalyticsDashboard({
 
   const [liveXp, setLiveXp] = useState(xpStatusProp);
   const [trophiesList, setTrophiesList] = useState([]);
+  const [worldOriginMap, setWorldOriginMap] = useState({});
+  const [countryViewMode, setCountryViewMode] = useState('coproductions'); // 'coproductions' | 'origin'
 
   const isYearFilterActive = selectedYear !== 'Geral';
 
@@ -185,13 +187,29 @@ export default function AnalyticsDashboard({
     let mounted = true;
     const loadServerInsights = async () => {
       try {
-        const [xpRes, trRes] = await Promise.allSettled([
+        const [xpRes, trRes, worldRes] = await Promise.allSettled([
           axios.get(`${API_BASE_URL}/xp`),
           axios.get(`${API_BASE_URL}/trophies`),
+          axios.get(`${API_BASE_URL}/challenge/world-195`),
         ]);
         if (!mounted) return;
         if (xpRes.status === 'fulfilled' && xpRes.value.data?.success && xpRes.value.data?.data) {
           setLiveXp(xpRes.value.data.data);
+        }
+        if (worldRes.status === 'fulfilled' && worldRes.value.data?.success && worldRes.value.data?.data?.catalogMovies) {
+          const originLookup = {};
+          worldRes.value.data.data.catalogMovies.forEach((cm) => {
+            if (cm?.movie_id == null) return;
+            const matchedRef = (cm.coproductionCountries || []).find(
+              (ref) => ref.code === cm.primaryCountryCode
+            );
+            originLookup[String(cm.movie_id)] = {
+              name: cm.primaryCountryName || null,
+              code: cm.primaryCountryCode || null,
+              iso: matchedRef?.flagCode || cm.primaryCountryCode || null,
+            };
+          });
+          setWorldOriginMap(originLookup);
         }
         if (trRes.status === 'fulfilled' && trRes.value.data?.success && trRes.value.data?.data?.trophies) {
           setTrophiesList(trRes.value.data.data.trophies);
@@ -263,7 +281,17 @@ export default function AnalyticsDashboard({
   );
 
   // Dados de gráficos temporais e geográficos
-  const { monthlyData, monthlyComparisonData, ratingDistData, decadesChartData, countryCounts, topCountriesList } =
+  const {
+    monthlyData,
+    monthlyComparisonData,
+    ratingDistData,
+    decadesChartData,
+    countryCounts,
+    topCountriesList,
+    originCountryCounts,
+    originCountriesList,
+    pendingOriginCount,
+  } =
     useMemo(() => {
       // 1. Mensal simples
       const mData = MONTH_NAMES.map((name) => ({
@@ -344,9 +372,15 @@ export default function AnalyticsDashboard({
       });
       const decChart = Object.entries(decBuckets).map(([name, quantidade]) => ({ name, quantidade }));
 
-      // 5. Países
+      // 5. Países (Modo Co-Produções = todas as participações | Modo País de Origem = produção real única via Desafio 195)
       const cCounts = {};
+      const oCounts = {};
+      const oIsoHints = {};
+      const seenOriginMovieIds = new Set();
+      let pendingOrigins = 0;
+
       filteredMovies.forEach((m) => {
+        // 5A. Co-produções (mantido exatamente como antes)
         (m.countries || []).forEach((c) => {
           if (c && c.trim()) {
             const clean = c.trim();
@@ -355,9 +389,41 @@ export default function AnalyticsDashboard({
             }
           }
         });
+
+        // 5B. País de Origem Único (1 país por filme via Desafio 195)
+        const mKey = m.movie_id != null ? String(m.movie_id) : `${m.id}_${m.title || ''}`;
+        if (seenOriginMovieIds.has(mKey)) return;
+        seenOriginMovieIds.add(mKey);
+
+        const mappedOrigin = m.movie_id != null ? worldOriginMap[String(m.movie_id)] : null;
+        if (mappedOrigin) {
+          if (mappedOrigin.name) {
+            oCounts[mappedOrigin.name] = (oCounts[mappedOrigin.name] || 0) + 1;
+            if (mappedOrigin.iso && !oIsoHints[mappedOrigin.name]) {
+              oIsoHints[mappedOrigin.name] = mappedOrigin.iso;
+            }
+          } else {
+            pendingOrigins += 1;
+          }
+        } else {
+          // Fallback local (caso world-195 ainda esteja carregando ou em modo offline)
+          const rawCountries = (m.countries || []).map((c) => String(c || '').trim()).filter(Boolean);
+          if (rawCountries.length === 1) {
+            const single = rawCountries[0];
+            oCounts[single] = (oCounts[single] || 0) + 1;
+          } else if (rawCountries.length > 1) {
+            pendingOrigins += 1;
+          }
+        }
       });
+
       const topCountries = Object.entries(cCounts)
         .map(([name, count]) => ({ name, count, iso: getCountryIsoFromName(name) }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      const topOriginCountries = Object.entries(oCounts)
+        .map(([name, count]) => ({ name, count, iso: getCountryIsoFromName(name) || oIsoHints[name] || null }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 10);
 
@@ -368,8 +434,11 @@ export default function AnalyticsDashboard({
         decadesChartData: decChart,
         countryCounts: cCounts,
         topCountriesList: topCountries,
+        originCountryCounts: oCounts,
+        originCountriesList: topOriginCountries,
+        pendingOriginCount: pendingOrigins,
       };
-    }, [filteredMovies, movies, availableYears]);
+    }, [filteredMovies, movies, availableYears, worldOriginMap]);
 
   const {
     activeXp,
@@ -2362,55 +2431,113 @@ export default function AnalyticsDashboard({
               )}
             </div>
 
-            {/* Coluna 2: Top 10 Países Mais Assistidos */}
+            {/* Coluna 2: Top 10 Países Mais Assistidos (Co-Produções vs País de Origem Real) */}
             <div className="rounded-3xl bg-zinc-950/90 border border-zinc-800/90 p-5 sm:p-6 flex flex-col justify-between gap-3 shadow-xl">
-              <div className="border-b border-zinc-800/80 pb-3 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-cyan-300">
-                    🌍 Geografia Cinematográfica
+              <div className="border-b border-zinc-800/80 pb-3 flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span
+                      className={`text-[10px] font-black uppercase tracking-widest ${
+                        countryViewMode === 'origin' ? 'text-emerald-300' : 'text-cyan-300'
+                      }`}
+                    >
+                      🌍 Geografia Cinematográfica
+                    </span>
+                    <h3 className="text-lg font-black text-white mt-0.5">
+                      Top 10 Países Mais Assistidos
+                    </h3>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-zinc-400 px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-800 shrink-0">
+                    {countryViewMode === 'origin'
+                      ? `${Object.keys(originCountryCounts).length} produtores`
+                      : `${Object.keys(countryCounts).length} territórios`}
                   </span>
-                  <h3 className="text-lg font-black text-white mt-0.5">
-                    Top 10 Países Mais Assistidos
-                  </h3>
                 </div>
-                <span className="text-xs font-mono font-bold text-zinc-400 px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-800">
-                  {Object.keys(countryCounts).length} territórios
-                </span>
+
+                {/* Seletor Co-Produções vs País de Origem (Desafio 195) */}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="inline-flex items-center gap-1 bg-zinc-900/90 border border-zinc-800 p-1 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setCountryViewMode('coproductions')}
+                      className={`px-2.5 py-1.5 rounded-lg text-[11px] font-black transition-all cursor-pointer ${
+                        countryViewMode === 'coproductions'
+                          ? 'bg-cyan-400 text-slate-950 shadow-md'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      🤝 Co-Produções
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCountryViewMode('origin')}
+                      className={`px-2.5 py-1.5 rounded-lg text-[11px] font-black transition-all cursor-pointer ${
+                        countryViewMode === 'origin'
+                          ? 'bg-emerald-400 text-slate-950 shadow-md'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      🎯 País de Origem
+                    </button>
+                  </div>
+
+                  <span className="text-[10px] font-semibold text-zinc-400">
+                    {countryViewMode === 'origin'
+                      ? pendingOriginCount > 0
+                        ? `1 país único por filme (Desafio 195) • ${pendingOriginCount} pendente(s)`
+                        : '1 país de origem real por filme (Desafio 195)'
+                      : 'Inclui todas as co-produções creditadas'}
+                  </span>
+                </div>
               </div>
 
               <div className="flex flex-col gap-2 max-h-72 overflow-y-auto pr-1">
-                {topCountriesList.map((c, idx) => {
-                  const maxCountryCount = topCountriesList[0]?.count || 1;
-                  const pct = Math.round((c.count / maxCountryCount) * 100);
-                  return (
-                    <div
-                      key={c.name}
-                      className="rounded-xl bg-zinc-900/70 border border-zinc-800/80 px-3.5 py-2 flex flex-col gap-1"
-                    >
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="font-mono text-zinc-500 font-bold w-5">#{idx + 1}</span>
-                          {c.iso ? (
-                            <img
-                              src={`https://flagcdn.com/w40/${c.iso}.png`}
-                              alt={c.name}
-                              className="w-5 h-3.5 object-cover rounded border border-zinc-700 shrink-0"
-                            />
-                          ) : (
-                            <span>🏳️</span>
-                          )}
-                          <span className="font-bold text-zinc-100 truncate">{c.name}</span>
+                {(() => {
+                  const activeCountries = countryViewMode === 'origin' ? originCountriesList : topCountriesList;
+                  const maxCountryCount = activeCountries[0]?.count || 1;
+                  const countTextCls = countryViewMode === 'origin' ? 'text-emerald-300' : 'text-cyan-300';
+                  const barBgCls = countryViewMode === 'origin' ? 'bg-emerald-400/80' : 'bg-cyan-400/80';
+
+                  if (activeCountries.length === 0) {
+                    return (
+                      <div className="text-xs text-zinc-500 italic py-8 text-center">
+                        Nenhum país registrado neste recorte.
+                      </div>
+                    );
+                  }
+
+                  return activeCountries.map((c, idx) => {
+                    const pct = Math.round((c.count / maxCountryCount) * 100);
+                    return (
+                      <div
+                        key={`${countryViewMode}_${c.name}`}
+                        className="rounded-xl bg-zinc-900/70 border border-zinc-800/80 px-3.5 py-2 flex flex-col gap-1"
+                      >
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="font-mono text-zinc-500 font-bold w-5">#{idx + 1}</span>
+                            {c.iso ? (
+                              <img
+                                src={`https://flagcdn.com/w40/${c.iso}.png`}
+                                alt={c.name}
+                                className="w-5 h-3.5 object-cover rounded border border-zinc-700 shrink-0"
+                              />
+                            ) : (
+                              <span>🏳️</span>
+                            )}
+                            <span className="font-bold text-zinc-100 truncate">{c.name}</span>
+                          </div>
+                          <span className={`font-mono font-black shrink-0 ${countTextCls}`}>
+                            {c.count}x
+                          </span>
                         </div>
-                        <span className="font-mono font-black text-cyan-300 shrink-0">
-                          {c.count}x
-                        </span>
+                        <div className="w-full h-1 rounded-full bg-zinc-950 overflow-hidden">
+                          <div className={`h-full ${barBgCls} rounded-full`} style={{ width: `${pct}%` }} />
+                        </div>
                       </div>
-                      <div className="w-full h-1 rounded-full bg-zinc-950 overflow-hidden">
-                        <div className="h-full bg-cyan-400/80 rounded-full" style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  });
+                })()}
               </div>
             </div>
           </div>

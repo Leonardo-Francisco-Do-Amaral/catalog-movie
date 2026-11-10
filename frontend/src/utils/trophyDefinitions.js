@@ -20713,6 +20713,54 @@ export const TROPHY_DEFINITIONS = [
     "requiredMusicGenreCount": 15
   },
   "sort_order": 801
+},
+{
+  "id": "mafia_dir_hirokazu_koreeda_5",
+  "category": "mafia_hollywood",
+  "categories": [
+    "mafia_hollywood"
+  ],
+  "tier": "epic",
+  "title": "A Máfia de Hollywood: Quem É o Monstro Aqui? (A Poesia Silenciosa de Kore-eda)",
+  "description": "Conquistar 5 filmes dirigidos por Hirokazu Kore-eda (5 filmes).",
+  "icon": "👹",
+  "target_type": "hollywood_director_count",
+  "target_value": 5,
+  "target_metadata": {
+    "director": "Hirokazu Kore-eda",
+    "patterns": [
+      "hirokazu kore-eda",
+      "hirokazu koreeda",
+      "kore-eda hirokazu",
+      "kore-eda",
+      "koreeda"
+    ]
+  },
+  "sort_order": 802
+},
+{
+  "id": "mafia_dir_hirokazu_koreeda_10",
+  "category": "mafia_hollywood",
+  "categories": [
+    "mafia_hollywood"
+  ],
+  "tier": "gold",
+  "title": "A Máfia de Hollywood: O Arquiteto dos Laços Invisíveis (Filmografia de Hirokazu Kore-eda)",
+  "description": "Conquistar 10 filmes dirigidos por Hirokazu Kore-eda (10 filmes).",
+  "icon": "🏮",
+  "target_type": "hollywood_director_count",
+  "target_value": 10,
+  "target_metadata": {
+    "director": "Hirokazu Kore-eda",
+    "patterns": [
+      "hirokazu kore-eda",
+      "hirokazu koreeda",
+      "kore-eda hirokazu",
+      "kore-eda",
+      "koreeda"
+    ]
+  },
+  "sort_order": 803
 }
 ];
 
