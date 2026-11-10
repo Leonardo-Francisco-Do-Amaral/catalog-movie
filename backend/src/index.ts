@@ -625,7 +625,13 @@ app.post('/api/movies/add', upload.single('poster_file'), async (req: Request, r
     let progressedTrophies: any[] = [];
     let xpStatus: any = null;
     try {
-      const trophyResult = await evaluateTrophies({ markNew: true });
+      const trophyResult = await evaluateTrophies({
+        markNew: true,
+        recordLastMovie: {
+          movieId,
+          title: String(title || original_title || 'Último filme cadastrado'),
+        },
+      });
       newlyUnlocked = trophyResult.newlyUnlocked || [];
       progressedTrophies = trophyResult.progressedTrophies || [];
       xpStatus = trophyResult.xpStatus || null;

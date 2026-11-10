@@ -39,6 +39,14 @@ export async function ensureTrophyTables(): Promise<void> {
       test_override BOOLEAN DEFAULT NULL,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS trophy_last_activity (
+      id INTEGER PRIMARY KEY,
+      movie_id INTEGER NULL,
+      movie_title VARCHAR(255) NULL,
+      recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      entries JSONB NOT NULL DEFAULT '[]'::jsonb
+    );
   `);
   await query('ALTER TABLE trophies ADD COLUMN IF NOT EXISTS categories JSONB DEFAULT \'[]\'::jsonb;');
   tablesEnsured = true;
@@ -145,6 +153,21 @@ export interface TrophyTierStats {
   percentage: number;
 }
 
+export interface TrophyLastActivityEntry {
+  trophyId: string;
+  previousCount: number;
+  currentCount: number;
+  increasedBy: number;
+  unlockedNow: boolean;
+}
+
+export interface TrophyLastActivity {
+  movieId: number | null;
+  movieTitle: string | null;
+  recordedAt: string | null;
+  entries: TrophyLastActivityEntry[];
+}
+
 export interface TrophiesSummaryResponse {
   totalTrophies: number;
   unlockedCount: number;
@@ -156,6 +179,7 @@ export interface TrophiesSummaryResponse {
   newlyUnlocked: EvaluatedTrophy[];
   progressedTrophies?: ProgressedTrophy[];
   xpStatus?: UserXpStatus;
+  lastActivity?: TrophyLastActivity | null;
 }
 
 /**
@@ -1919,20 +1943,89 @@ function evaluateMultiRitualMovie(
   }
 }
 
-export async function evaluateTrophies(options: { markNew?: boolean } = {}): Promise<TrophiesSummaryResponse> {
-  await seedTrophies();
+type PreviousTrophyStateMap = Map<
+  string,
+  {
+    is_unlocked: boolean;
+    unlocked_at: string | null;
+    test_override: boolean | null;
+    progress_current: number;
+    progress_target: number;
+    progress_percentage: number;
+  }
+>;
 
-  const markNew = options.markNew ?? true;
+type WorldChallengePayload = Awaited<ReturnType<typeof buildWorldChallengePayload>>;
 
-  // 1. Obtém dados consolidados do desafio mundial e catálogo
-  const worldData = await buildWorldChallengePayload();
+function cloneWorldDataWithoutMovie(
+  worldData: WorldChallengePayload,
+  excludedMovieId: number
+): WorldChallengePayload {
+  const nextCatalogMovies = (worldData.catalogMovies || []).filter(
+    (m) => Number(m.movie_id) !== Number(excludedMovieId)
+  );
+  const nextCountries = (worldData.countries || []).map((c) => {
+    const nextCandidates = (c.candidates || []).filter(
+      (m) => Number(m.movie_id) !== Number(excludedMovieId)
+    );
+    const championRemoved = c.champion && Number(c.champion.movie_id) === Number(excludedMovieId);
+    const nextChampion = championRemoved ? nextCandidates[0] || null : c.champion;
+    const nextStatus: 'conquered' | 'wishlist' | 'unconquered' = nextChampion
+      ? 'conquered'
+      : c.wishlist
+      ? 'wishlist'
+      : 'unconquered';
+    return {
+      ...c,
+      candidates: nextCandidates,
+      totalCandidates: nextCandidates.length,
+      champion: nextChampion,
+      status: nextStatus,
+    };
+  });
+  return {
+    ...worldData,
+    catalogMovies: nextCatalogMovies,
+    countries: nextCountries,
+  };
+}
+
+function buildLastActivityEntries(
+  getPrev: (id: string) => { is_unlocked?: boolean; progress_current?: number } | undefined,
+  evaluatedTrophies: EvaluatedTrophy[]
+): TrophyLastActivityEntry[] {
+  const entries: TrophyLastActivityEntry[] = [];
+  for (const ev of evaluatedTrophies) {
+    if (ev.test_override !== null) continue;
+    const prev = getPrev(ev.id);
+    const prevCount = prev?.progress_current || 0;
+    const wasUnlocked = Boolean(prev?.is_unlocked);
+    const unlockedNow = !wasUnlocked && Boolean(ev.is_unlocked);
+    const diff = Math.max(0, ev.progress_current - prevCount);
+    if (unlockedNow || diff > 0) {
+      entries.push({
+        trophyId: ev.id,
+        previousCount: prevCount,
+        currentCount: ev.progress_current,
+        increasedBy: diff > 0 ? diff : 1,
+        unlockedNow,
+      });
+    }
+  }
+  return entries;
+}
+
+function evaluateDefinitionsFromWorldData(
+  worldData: WorldChallengePayload,
+  previousStateMap: PreviousTrophyStateMap,
+  markNew: boolean
+): { evaluatedTrophies: EvaluatedTrophy[]; progressedTrophiesRaw: ProgressedTrophy[] } {
   const unCountriesMap = new Map<string, ChallengeCountryEntry>();
   worldData.countries.forEach((c) => unCountriesMap.set(c.code.toLowerCase(), c));
 
   // Mapa de países oficiais para metadados (nome, continente, etc.)
   const unCountryDefMap = new Map(UN_COUNTRIES_195.map((c) => [c.code.toLowerCase(), c]));
 
-  // 2. Consulta contagem real de filmes vinculados por país no banco (considerando normalizações)
   // Monta mapa de filmes por país a partir de catalogMovies do worldChallengeService
   const moviesByCountryCode = new Map<string, any[]>();
   const catalogMovies = worldData.catalogMovies;
@@ -1940,11 +2033,9 @@ export async function evaluateTrophies(options: { markNew?: boolean } = {}): Pro
 
   for (const movie of worldData.catalogMovies) {
     const matchedCodes = new Set<string>();
-    // Prioriza origem cultural consagrada
     if (movie.primaryCountryCode) {
       matchedCodes.add(movie.primaryCountryCode.toLowerCase());
     }
-    // Inclui coproduções
     if (Array.isArray(movie.coproductionCountries)) {
       for (const coprod of movie.coproductionCountries) {
         if (coprod.code) {
@@ -1961,32 +2052,7 @@ export async function evaluateTrophies(options: { markNew?: boolean } = {}): Pro
     }
   }
 
-  // 3. Lê o estado atual salvo de user_trophies para comparar desbloqueios anteriores e evolução de progresso
-  const userTrophiesRes = await query(`
-    SELECT trophy_id, is_unlocked, unlocked_at, test_override, progress_current, progress_target, progress_percentage
-    FROM user_trophies
-  `);
-  const previousStateMap = new Map<string, {
-    is_unlocked: boolean;
-    unlocked_at: string | null;
-    test_override: boolean | null;
-    progress_current: number;
-    progress_target: number;
-    progress_percentage: number;
-  }>();
-  userTrophiesRes.rows.forEach((r) => {
-    previousStateMap.set(r.trophy_id, {
-      is_unlocked: Boolean(r.is_unlocked),
-      unlocked_at: r.unlocked_at ? new Date(r.unlocked_at).toISOString() : null,
-      test_override: r.test_override === null ? null : Boolean(r.test_override),
-      progress_current: Number(r.progress_current) || 0,
-      progress_target: Number(r.progress_target) || 1,
-      progress_percentage: Number(r.progress_percentage) || 0,
-    });
-  });
-
   const evaluatedTrophies: EvaluatedTrophy[] = [];
-  const newlyUnlocked: EvaluatedTrophy[] = [];
   const progressedTrophiesRaw: ProgressedTrophy[] = [];
 
   // Helper para buscar filme representativo do país
@@ -6585,6 +6651,119 @@ export async function evaluateTrophies(options: { markNew?: boolean } = {}): Pro
     });
   }
 
+  return { evaluatedTrophies, progressedTrophiesRaw };
+}
+
+export async function evaluateTrophies(
+  options: { markNew?: boolean; recordLastMovie?: { movieId: number; title: string } } = {}
+): Promise<TrophiesSummaryResponse> {
+  await seedTrophies();
+
+  const markNew = options.markNew ?? true;
+
+  // 1. Obtém dados consolidados do desafio mundial e catálogo
+  const worldData = await buildWorldChallengePayload();
+
+  // 2. Lê o estado atual salvo de user_trophies e a última atividade registrada
+  const [userTrophiesRes, lastActRes] = await Promise.all([
+    query(`
+      SELECT trophy_id, is_unlocked, unlocked_at, test_override, progress_current, progress_target, progress_percentage
+      FROM user_trophies
+    `),
+    query(`SELECT movie_id, movie_title, recorded_at, entries FROM trophy_last_activity WHERE id = 1`),
+  ]);
+
+  const previousStateMap: PreviousTrophyStateMap = new Map();
+  userTrophiesRes.rows.forEach((r) => {
+    previousStateMap.set(r.trophy_id, {
+      is_unlocked: Boolean(r.is_unlocked),
+      unlocked_at: r.unlocked_at ? new Date(r.unlocked_at).toISOString() : null,
+      test_override: r.test_override === null ? null : Boolean(r.test_override),
+      progress_current: Number(r.progress_current) || 0,
+      progress_target: Number(r.progress_target) || 1,
+      progress_percentage: Number(r.progress_percentage) || 0,
+    });
+  });
+
+  const { evaluatedTrophies, progressedTrophiesRaw } = evaluateDefinitionsFromWorldData(
+    worldData,
+    previousStateMap,
+    markNew
+  );
+  const newlyUnlocked: EvaluatedTrophy[] = [];
+
+  // 3. Registra (ou inicializa na 1ª carga) quais troféus evoluíram com o último filme cadastrado
+  let lastActivity: TrophyLastActivity | null = null;
+  if (lastActRes.rows.length > 0) {
+    const row = lastActRes.rows[0];
+    lastActivity = {
+      movieId: row.movie_id ? Number(row.movie_id) : null,
+      movieTitle: row.movie_title || null,
+      recordedAt: row.recorded_at ? new Date(row.recorded_at).toISOString() : null,
+      entries: Array.isArray(row.entries) ? row.entries : [],
+    };
+  }
+
+  if (options.recordLastMovie) {
+    const entries = buildLastActivityEntries((id) => previousStateMap.get(id), evaluatedTrophies);
+    const nowIso = new Date().toISOString();
+    lastActivity = {
+      movieId: options.recordLastMovie.movieId,
+      movieTitle: options.recordLastMovie.title,
+      recordedAt: nowIso,
+      entries,
+    };
+    await query(
+      `
+      INSERT INTO trophy_last_activity (id, movie_id, movie_title, recorded_at, entries)
+      VALUES (1, $1, $2, CURRENT_TIMESTAMP, $3)
+      ON CONFLICT (id) DO UPDATE SET
+        movie_id = EXCLUDED.movie_id,
+        movie_title = EXCLUDED.movie_title,
+        recorded_at = CURRENT_TIMESTAMP,
+        entries = EXCLUDED.entries;
+      `,
+      [options.recordLastMovie.movieId, options.recordLastMovie.title, JSON.stringify(entries)]
+    );
+  } else if (!lastActivity && Array.isArray(worldData.catalogMovies) && worldData.catalogMovies.length > 0) {
+    const latestMovie = [...worldData.catalogMovies].sort(
+      (a, b) => Number(b.movie_id) - Number(a.movie_id)
+    )[0];
+    if (latestMovie) {
+      const overrideOnlyMap: PreviousTrophyStateMap = new Map();
+      previousStateMap.forEach((st, id) => {
+        if (st.test_override !== null) {
+          overrideOnlyMap.set(id, { ...st, progress_current: 0, progress_percentage: 0 });
+        }
+      });
+      const prevEval = evaluateDefinitionsFromWorldData(
+        cloneWorldDataWithoutMovie(worldData, Number(latestMovie.movie_id)),
+        overrideOnlyMap,
+        false
+      ).evaluatedTrophies;
+      const prevEvalMap = new Map(prevEval.map((e) => [e.id, e]));
+      const entries = buildLastActivityEntries((id) => prevEvalMap.get(id), evaluatedTrophies);
+      const nowIso = new Date().toISOString();
+      lastActivity = {
+        movieId: Number(latestMovie.movie_id),
+        movieTitle: String(latestMovie.title || latestMovie.original_title || 'Último filme cadastrado'),
+        recordedAt: nowIso,
+        entries,
+      };
+      await query(
+        `
+        INSERT INTO trophy_last_activity (id, movie_id, movie_title, recorded_at, entries)
+        VALUES (1, $1, $2, CURRENT_TIMESTAMP, $3)
+        ON CONFLICT (id) DO UPDATE SET
+          movie_id = EXCLUDED.movie_id,
+          movie_title = EXCLUDED.movie_title,
+          recorded_at = CURRENT_TIMESTAMP,
+          entries = EXCLUDED.entries;
+        `,
+        [lastActivity.movieId, lastActivity.movieTitle, JSON.stringify(entries)]
+      );
+    }
+  }
 
   // 5. Salva estado avaliado no banco de dados
   for (const ev of evaluatedTrophies) {
@@ -6681,6 +6860,7 @@ export async function evaluateTrophies(options: { markNew?: boolean } = {}): Pro
     newlyUnlocked,
     progressedTrophies,
     xpStatus,
+    lastActivity,
   };
 }
 

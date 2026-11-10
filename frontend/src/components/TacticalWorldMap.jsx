@@ -57,56 +57,6 @@ function geometryToSvgPath(geometry) {
   return parts.join(' ').trim();
 }
 
-// Calcula o centroide visual da maior massa terrestre de um GeoJSON em coordenadas SVG (evita ilhas remotas e cruzamento ±180°)
-function computeFeatureLabelCenter(geometry) {
-  if (!geometry || !geometry.coordinates) return null;
-  const polygons =
-    geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
-
-  let best = null;
-  for (const poly of polygons) {
-    const outerRing = poly?.[0];
-    if (!outerRing || outerRing.length < 3) continue;
-
-    let minLon = Infinity;
-    let maxLon = -Infinity;
-    let minX = Infinity;
-    let maxX = -Infinity;
-    let minY = Infinity;
-    let maxY = -Infinity;
-    let sumX = 0;
-    let sumY = 0;
-    let count = 0;
-
-    for (let i = 0; i < outerRing.length; i++) {
-      const [lon, lat] = outerRing[i];
-      if (lat < -62) continue;
-      const [x, y] = projectPoint(lon, lat);
-      if (lon < minLon) minLon = lon;
-      if (lon > maxLon) maxLon = lon;
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
-      sumX += x;
-      sumY += y;
-      count++;
-    }
-
-    if (count < 3 || maxLon - minLon > 130) continue;
-    const area = (maxX - minX) * (maxY - minY);
-    if (!best || area > best.area) {
-      best = {
-        x: sumX / count,
-        y: sumY / count,
-        area,
-      };
-    }
-  }
-
-  return best;
-}
-
 const removeAccents = (str) =>
   str
     ? String(str)
@@ -153,7 +103,6 @@ export default function TacticalWorldMap({
   const [camera, setCamera] = useState(CONTINENT_CAMERAS.Todos);
   const [hoveredInfo, setHoveredInfo] = useState(null);
   const [cursorCoords, setCursorCoords] = useState(null);
-  const [showMovieCounts, setShowMovieCounts] = useState(true);
 
   const containerRef = useRef(null);
   const dragRef = useRef({
@@ -277,26 +226,16 @@ export default function TacticalWorldMap({
     setCamera(preset);
   }, [selectedContinent]);
 
-  // Pré-calcula os paths SVG, quais países possuem polígono e seus centros visuais
-  const { renderedPaths, polygonCodes, labelCenters } = useMemo(() => {
+  // Pré-calcula os paths SVG e quais países possuem polígono mapeado
+  const { renderedPaths, polygonCodes } = useMemo(() => {
     const paths = [];
     const matched = new Set();
-    const centers = new Map();
 
     geoFeatures.forEach((feat, idx) => {
       const d = geometryToSvgPath(feat.geometry);
       if (!d) return;
       const code = geoLookup(feat.properties);
-      if (code) {
-        matched.add(code);
-        const c = computeFeatureLabelCenter(feat.geometry);
-        if (c) {
-          const prev = centers.get(code);
-          if (!prev || c.area > prev.area) {
-            centers.set(code, c);
-          }
-        }
-      }
+      if (code) matched.add(code);
       paths.push({
         id: `geo-${idx}-${code || 'neutral'}`,
         d,
@@ -304,7 +243,7 @@ export default function TacticalWorldMap({
       });
     });
 
-    return { renderedPaths: paths, polygonCodes: matched, labelCenters: centers };
+    return { renderedPaths: paths, polygonCodes: matched };
   }, [geoFeatures, geoLookup]);
 
   // Beacons táticos para microestados ou países insulares sem polígono grande na escala atual
@@ -313,51 +252,6 @@ export default function TacticalWorldMap({
       (c) => MICROSTATE_CODES.has(c.code) || !polygonCodes.has(c.code)
     );
   }, [countries, polygonCodes]);
-
-  // Selos numéricos com a contagem de filmes diretamente no Mapa-Múndi (sem sobreposição ao dar zoom)
-  const mapCountBadges = useMemo(() => {
-    if (!showMovieCounts) return [];
-
-    const scale = 1 / Math.pow(camera.zoom, 0.72);
-    const candidates = countries
-      .filter((c) => c.status === 'conquered' && (c.totalCandidates ?? c.candidates?.length ?? 0) > 0)
-      .map((c) => {
-        const count = c.totalCandidates ?? c.candidates?.length ?? 0;
-        const label = String(count);
-        const center = labelCenters.get(c.code);
-        const isBeaconOnly = !center;
-        const [bx, by] = center ? [center.x, center.y] : projectPoint(c.lon, c.lat);
-        const w = (10 + label.length * 4.9) * scale;
-        const h = 11.5 * scale;
-        return {
-          country: c,
-          count,
-          label,
-          x: bx,
-          y: isBeaconOnly ? by - 7.5 * scale : by,
-          w,
-          h,
-          scale,
-        };
-      })
-      .sort((a, b) => b.count - a.count);
-
-    const placed = [];
-    for (const item of candidates) {
-      const isFilteredIn = !visibleCodesSet || visibleCodesSet.has(item.country.code);
-      if (!isFilteredIn && selectedContinent !== 'Todos') continue;
-
-      const overlaps = placed.some(
-        (p) =>
-          Math.abs(p.x - item.x) < (p.w + item.w) * 0.52 &&
-          Math.abs(p.y - item.y) < (p.h + item.h) * 0.65
-      );
-      if (!overlaps) {
-        placed.push({ ...item, isFilteredIn });
-      }
-    }
-    return placed;
-  }, [showMovieCounts, countries, labelCenters, camera.zoom, visibleCodesSet, selectedContinent]);
 
   // Calcula viewBox atual a partir de camera { cx, cy, zoom }
   const viewW = MAP_W / camera.zoom;
@@ -543,21 +437,8 @@ export default function TacticalWorldMap({
         )}
       </div>
 
-      {/* Controles Exclusivos de Zoom (+ / -), Reset e Contadores (Topo Direito) */}
+      {/* Controles Exclusivos de Zoom (+ / -) e Reset (Topo Direito) */}
       <div className="absolute top-4 right-5 z-20 flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={() => setShowMovieCounts((prev) => !prev)}
-          title="Mostrar ou ocultar quantidade de filmes em cada país no mapa"
-          className={`px-2.5 py-2 rounded-xl border text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer shadow-lg ${
-            showMovieCounts
-              ? 'bg-cyan-500/20 border-cyan-400/70 text-cyan-200 hover:bg-cyan-500/30'
-              : 'bg-zinc-950/90 border-zinc-700/90 text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          <Film className="w-3.5 h-3.5 text-cyan-300" />
-          <span className="hidden sm:inline">Qtd</span>
-        </button>
         <button
           type="button"
           onClick={() => handleZoom(1.35)}
@@ -728,54 +609,6 @@ export default function TacticalWorldMap({
             );
           })}
         </g>
-
-        {/* Contadores numéricos de filmes sobre cada país conquistado no mapa */}
-        {showMovieCounts && mapCountBadges.length > 0 && (
-          <g>
-            {mapCountBadges.map(({ country, label, x, y, w, h, scale, isFilteredIn }) => {
-              const isHovered = hoveredInfo === country.code;
-              const rx = 3.2 * scale;
-              const fontSize = 6.8 * scale;
-              return (
-                <g
-                  key={`count-${country.code}`}
-                  transform={`translate(${x}, ${y})`}
-                  opacity={isFilteredIn ? (isHovered ? 1 : 0.92) : 0.2}
-                  className="cursor-pointer"
-                  onMouseEnter={() => setHoveredInfo(country.code)}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (dragRef.current.moved) return;
-                    if (onSelectCountry) onSelectCountry(country);
-                  }}
-                >
-                  <rect
-                    x={-w / 2}
-                    y={-h / 2}
-                    width={w}
-                    height={h}
-                    rx={rx}
-                    fill={isHovered ? '#082f49' : 'rgba(9, 9, 11, 0.88)'}
-                    stroke={isHovered ? '#67e8f9' : 'rgba(56, 189, 248, 0.55)'}
-                    strokeWidth={(isHovered ? 1.1 : 0.7) * scale}
-                  />
-                  <text
-                    x={0}
-                    y={fontSize * 0.35}
-                    textAnchor="middle"
-                    fill="#67e8f9"
-                    fontSize={fontSize}
-                    fontWeight="900"
-                    fontFamily="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
-                    style={{ pointerEvents: 'none' }}
-                  >
-                    {label}
-                  </text>
-                </g>
-              );
-            })}
-          </g>
-        )}
       </svg>
 
       {/* Loader Inicial da Malha */}

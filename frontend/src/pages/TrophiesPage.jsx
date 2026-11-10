@@ -32,12 +32,39 @@ const VALID_DISPLAY_COUNTS = [3, 5, 7, 10];
 
 const SORT_OPTIONS = [
   { id: 'recent', label: 'Mais Recentes', icon: '🕒' },
+  { id: 'newest', label: 'Recém-Criados', icon: '🆕' },
+  { id: 'last_movie', label: 'Último Filme', icon: '🎬' },
   { id: 'rarity', label: 'Mais Raros', icon: '💎' },
   { id: 'progress', label: 'Maior Progresso', icon: '🎯' },
   { id: 'az', label: 'A-Z', icon: '🔤' },
 ];
 
 const TIER_ORDER = ['platinum', 'mythic', 'gold', 'epic', 'silver', 'bronze'];
+
+function LastMovieProgressPill({ lastAct, compact = false }) {
+  if (!lastAct) return null;
+  const text = lastAct.unlockedNow
+    ? compact
+      ? '✨ Desbloqueado!'
+      : '✨ Desbloqueado nesse filme!'
+    : compact
+    ? `📈 +${lastAct.increasedBy}`
+    : `📈 +${lastAct.increasedBy} (${lastAct.previousCount} → ${lastAct.currentCount})`;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded border font-mono font-black ${
+        compact ? 'text-[8px] px-1 py-0.5' : 'text-[10px] px-1.5 py-0.5'
+      } ${
+        lastAct.unlockedNow
+          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/50'
+          : 'bg-cyan-500/20 text-cyan-200 border-cyan-400/45'
+      }`}
+    >
+      {text}
+    </span>
+  );
+}
 
 export const CATEGORY_NAMES = {
   volta_ao_mundo: 'Volta ao Mundo',
@@ -82,7 +109,9 @@ export default function TrophiesPage({ movies = [] }) {
   const [sortBy, setSortBy] = useState(() => {
     if (typeof window === 'undefined') return 'recent';
     const saved = localStorage.getItem(STORAGE_KEY_SORT_BY);
-    return ['recent', 'rarity', 'progress', 'az'].includes(saved) ? saved : 'recent';
+    return ['recent', 'newest', 'last_movie', 'rarity', 'progress', 'az'].includes(saved)
+      ? saved
+      : 'recent';
   });
 
   const handleSortChange = (newSort) => {
@@ -192,6 +221,19 @@ export default function TrophiesPage({ movies = [] }) {
     return { total, unlocked, percentage };
   }, [categoryTrophies]);
 
+  const lastActivityMap = useMemo(() => {
+    const map = new Map();
+    const entries = data?.lastActivity?.entries;
+    if (Array.isArray(entries)) {
+      entries.forEach((entry) => {
+        if (entry?.trophyId) {
+          map.set(entry.trophyId, entry);
+        }
+      });
+    }
+    return map;
+  }, [data]);
+
   // Filtragem final e Ordenação Obrigatória PS5
   const filteredTrophies = useMemo(() => {
     let list = [...categoryTrophies];
@@ -235,9 +277,11 @@ export default function TrophiesPage({ movies = [] }) {
     // =========================================================================
     // SISTEMA DE ORDENAÇÃO SELECIONÁVEL
     // 1. [ 🕒 Mais Recentes ]: Desbloqueados por unlocked_at DESC (desempate: Raridade DESC); depois Bloqueados por % DESC
-    // 2. [ 💎 Mais Raros ]: Desbloqueados (Raridade DESC) -> Bloqueados (Raridade DESC priorizando maior progresso)
-    // 3. [ 🎯 Maior Progresso ]: Bloqueados com progresso no topo (% DESC) -> Bloqueados 0% -> Conquistados
-    // 4. [ 🔤 A-Z ]: Ordem alfabética pelo título limpo do troféu
+    // 2. [ 🆕 Recém-Criados ]: Troféus adicionados mais recentemente no catálogo (sort_order DESC)
+    // 3. [ 🎬 Último Filme ]: Somente troféus que ganharam progresso ou desbloquearam no último cadastro
+    // 4. [ 💎 Mais Raros ]: Desbloqueados (Raridade DESC) -> Bloqueados (Raridade DESC priorizando maior progresso)
+    // 5. [ 🎯 Maior Progresso ]: Bloqueados com progresso no topo (% DESC) -> Bloqueados 0% -> Conquistados
+    // 6. [ 🔤 A-Z ]: Ordem alfabética pelo título limpo do troféu
     // =========================================================================
     const TIER_WEIGHT = {
       platinum: 6,
@@ -247,6 +291,34 @@ export default function TrophiesPage({ movies = [] }) {
       silver: 2,
       bronze: 1,
     };
+
+    if (sortBy === 'newest') {
+      list.sort((a, b) => (b.sort_order || 0) - (a.sort_order || 0));
+      return list;
+    }
+
+    if (sortBy === 'last_movie') {
+      list = list.filter((t) => lastActivityMap.has(t.id));
+      list.sort((a, b) => {
+        const actA = lastActivityMap.get(a.id);
+        const actB = lastActivityMap.get(b.id);
+        const unlA = actA?.unlockedNow ? 1 : 0;
+        const unlB = actB?.unlockedNow ? 1 : 0;
+        if (unlB !== unlA) return unlB - unlA;
+
+        const incDiff = (actB?.increasedBy || 0) - (actA?.increasedBy || 0);
+        if (incDiff !== 0) return incDiff;
+
+        const pctDiff = (Number(b.progress_percentage) || 0) - (Number(a.progress_percentage) || 0);
+        if (pctDiff !== 0) return pctDiff;
+
+        const tierDiff = (TIER_WEIGHT[b.tier?.toLowerCase()] || 0) - (TIER_WEIGHT[a.tier?.toLowerCase()] || 0);
+        if (tierDiff !== 0) return tierDiff;
+
+        return (a.sort_order || 0) - (b.sort_order || 0);
+      });
+      return list;
+    }
 
     if (sortBy === 'az') {
       list.sort((a, b) => {
@@ -380,7 +452,7 @@ export default function TrophiesPage({ movies = [] }) {
     });
 
     return list;
-  }, [categoryTrophies, selectedTier, selectedStatus, searchQuery, sortBy]);
+  }, [categoryTrophies, selectedTier, selectedStatus, searchQuery, sortBy, lastActivityMap]);
 
   return (
     <div className="w-full flex flex-col gap-6 animate-fadeIn pb-16">
@@ -805,8 +877,8 @@ export default function TrophiesPage({ movies = [] }) {
         </div>
 
         {/* Linha 2: Ferramentas (Exibir por Linha, Filtro de Status e Busca Rápida) */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 pt-2 border-t border-zinc-800/60">
-          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 pt-2 border-t border-zinc-800/60">
+          <div className="flex items-center gap-2.5 flex-wrap">
             {/* Seletor de Quantidade de Troféus por Linha */}
             <div className="flex items-center gap-1 bg-zinc-900/80 border border-zinc-800 rounded-xl p-1 shrink-0">
               <span className="px-2 text-[10px] font-black uppercase tracking-wider text-zinc-500 select-none">
@@ -853,7 +925,7 @@ export default function TrophiesPage({ movies = [] }) {
             </div>
 
             {/* Seletor de Ordenação */}
-            <div className="flex items-center gap-1 bg-zinc-900/80 border border-zinc-800 rounded-xl p-1 shrink-0">
+            <div className="flex flex-wrap items-center gap-1 bg-zinc-900/80 border border-zinc-800 rounded-xl p-1">
               <span className="px-2 text-[10px] font-black uppercase tracking-wider text-zinc-500 select-none">
                 Ordenar:
               </span>
@@ -890,6 +962,30 @@ export default function TrophiesPage({ movies = [] }) {
         </div>
       </section>
 
+      {/* Banner de destaque quando em modo "Último Filme" */}
+      {sortBy === 'last_movie' && (
+        <div className="rounded-2xl bg-gradient-to-r from-cyan-950/60 via-zinc-950/90 to-amber-950/40 border border-cyan-500/35 px-4 py-3 flex flex-wrap items-center justify-between gap-2 shadow-lg">
+          <div className="flex items-center gap-2.5 text-xs">
+            <span className="text-base">🎬</span>
+            {data?.lastActivity?.movieTitle ? (
+              <span className="text-zinc-300">
+                Troféus que evoluíram ou desbloquearam no último cadastro:{' '}
+                <strong className="text-cyan-300 font-black">{data.lastActivity.movieTitle}</strong>
+              </span>
+            ) : (
+              <span className="text-zinc-400">
+                Cadastre um filme para listar aqui os troféus que avançaram ou foram desbloqueados com ele.
+              </span>
+            )}
+          </div>
+          {data?.lastActivity?.movieTitle && (
+            <span className="text-[11px] font-mono font-black px-2.5 py-1 rounded-xl bg-cyan-500/15 border border-cyan-400/40 text-cyan-200">
+              {filteredTrophies.length} troféu{filteredTrophies.length === 1 ? '' : 's'}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* =========================================================================
           3. CARDS DE TROFÉUS (ESTILO PSN / WAR ROOM RPG — DENSIDADE 3, 5, 7 ou 10)
          ========================================================================= */}
@@ -904,14 +1000,22 @@ export default function TrophiesPage({ movies = [] }) {
         <div className="min-h-[35vh] flex flex-col items-center justify-center gap-3 bg-zinc-950/60 border border-zinc-800 rounded-3xl p-8 text-center">
           <Trophy className="w-10 h-10 text-zinc-600" />
           <h3 className="text-sm font-black text-zinc-300 uppercase tracking-wider">
-            Nenhum troféu encontrado para os filtros atuais
+            {sortBy === 'last_movie'
+              ? 'Nenhum troféu deste recorte avançou no último filme'
+              : 'Nenhum troféu encontrado para os filtros atuais'}
           </h3>
           <p className="text-xs text-zinc-500 max-w-sm">
-            Tente redefinir o campo de busca ou selecionar outro Tier / Status acima.
+            {sortBy === 'last_movie'
+              ? 'Limpe os filtros de Categoria/Tier/Status para ver todos os troféus impactados pelo último filme cadastrado.'
+              : 'Tente redefinir o campo de busca ou selecionar outro Tier / Status acima.'}
           </p>
           <button
             type="button"
             onClick={() => {
+              if (sortBy === 'last_movie') {
+                setSelectedCategory('all');
+                setOnlyMultiCategory(false);
+              }
               setSelectedTier('all');
               setSelectedStatus('all');
               setSearchQuery('');
@@ -941,6 +1045,7 @@ export default function TrophiesPage({ movies = [] }) {
             const xpReward = TROPHY_XP_BY_TIER[tierKey] || 15;
             const curProg = Math.min(trophy.progress_current || 0, trophy.progress_target || 1);
             const pctProg = Math.min(100, trophy.progress_percentage || 0);
+            const lastAct = lastActivityMap.get(trophy.id) || null;
 
             const cats =
               Array.isArray(trophy.categories) && trophy.categories.length > 0
@@ -1026,6 +1131,9 @@ export default function TrophiesPage({ movies = [] }) {
 
                   {/* Rodapé: Progresso Ultra-Compacto */}
                   <div className="mt-2 pt-1.5 border-t border-zinc-800/70 flex flex-col gap-1 relative z-10">
+                    {sortBy === 'last_movie' && lastAct && (
+                      <LastMovieProgressPill lastAct={lastAct} compact />
+                    )}
                     <div className="flex items-center justify-between text-[9px] font-mono">
                       <span className="font-bold text-zinc-300">
                         {curProg}/{trophy.progress_target}
@@ -1127,6 +1235,9 @@ export default function TrophiesPage({ movies = [] }) {
 
                   {/* Rodapé: Status + Progresso */}
                   <div className="mt-2.5 pt-2 border-t border-zinc-800/70 flex flex-col gap-1.5 relative z-10">
+                    {sortBy === 'last_movie' && lastAct && (
+                      <LastMovieProgressPill lastAct={lastAct} />
+                    )}
                     <div className="flex items-center justify-between text-[10px] font-mono">
                       <span
                         className={
@@ -1251,6 +1362,9 @@ export default function TrophiesPage({ movies = [] }) {
                   </div>
 
                   <div className="mt-3 pt-2.5 border-t border-zinc-800/70 flex flex-col gap-1.5 relative z-10">
+                    {sortBy === 'last_movie' && lastAct && (
+                      <LastMovieProgressPill lastAct={lastAct} />
+                    )}
                     <div className="flex items-center justify-between text-[10px] font-mono">
                       <span className="text-amber-400/90 font-bold">+{xpReward} XP</span>
                       <span className="font-bold text-zinc-300">
@@ -1351,6 +1465,9 @@ export default function TrophiesPage({ movies = [] }) {
 
                 {/* Linha Inferior: Barra de Progresso + Botão de Checklist */}
                 <div className="mt-4 pt-3 border-t border-zinc-800/70 flex flex-col gap-2 relative z-10">
+                  {sortBy === 'last_movie' && lastAct && (
+                    <LastMovieProgressPill lastAct={lastAct} />
+                  )}
                   <div className="flex items-center justify-between text-[11px] font-mono">
                     <span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">
                       {isUnlocked ? 'Requisitos Cumpridos' : 'Progresso Atual'}
