@@ -48,6 +48,7 @@ async function main() {
       }
       const statusIcon = trophy.is_unlocked ? '✅ CONQUISTADO' : '🔒 PENDENTE';
       console.log(`\n${trophy.icon} [${trophy.tier.toUpperCase()}] "${trophy.title}" (${trophy.id})`);
+      console.log(`   Descrição: "${trophy.description}"`);
       console.log(`   Status: ${statusIcon} | Progresso: ${trophy.progress_current}/${trophy.progress_target} (${trophy.progress_percentage}%)`);
       console.log(`   Categorias: [${trophy.categories.join(', ')}]`);
       if (trophy.checklist && trophy.checklist.length > 0) {

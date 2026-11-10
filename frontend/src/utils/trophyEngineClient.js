@@ -4429,9 +4429,10 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
           movie_title: musicMovies[0]?.title || null,
           movie_year: musicMovies[0]?.release_year || null,
           poster_url: musicMovies[0]?.poster_url || null,
+          rule_desc: 'Ter pelo menos 15 filmes cadastrados com o gênero oficial Música no catálogo',
           extra_info: isMusicGlobalMet
-            ? `✅ Cumprida (${musicCount}/15 filmes com gênero Música)`
-            : `🔒 Pendente (${musicCount}/15 filmes com gênero Música)`,
+            ? `✅ Cumprida (${musicCount}/15 filmes) • Requisito: Ter pelo menos 15 filmes com o gênero Música`
+            : `🔒 Pendente (${musicCount}/15 filmes) • Requisito: Ter pelo menos 15 filmes com o gênero Música`,
         });
 
         // 15 Faixas Cronológicas
@@ -4572,7 +4573,8 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
               movie_year: matchedMovie.release_year,
               poster_url: matchedMovie.poster_url || null,
               flag: matchedMovie.primaryCountryCode ? matchedMovie.primaryCountryCode.toLowerCase() : null,
-              extra_info: `✅ Cumprida (${matchedMovie.title})`,
+              rule_desc: trk.ruleDesc,
+              extra_info: `✅ Cumprida (${matchedMovie.title}) • Requisito: ${trk.ruleDesc}`,
             });
           } else {
             checklist.push({
@@ -4585,7 +4587,8 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
               movie_year: null,
               poster_url: null,
               flag: null,
-              extra_info: '🔒 Pendente',
+              rule_desc: trk.ruleDesc,
+              extra_info: `🔒 Pendente • Requisito: ${trk.ruleDesc}`,
             });
           }
         });

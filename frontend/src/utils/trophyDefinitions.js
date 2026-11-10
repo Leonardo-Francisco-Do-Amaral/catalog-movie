@@ -20626,7 +20626,7 @@ export const TROPHY_DEFINITIONS = [
   ],
   "tier": "epic",
   "title": "Universos & Sagas: Hee-Hee! O Rei do Pop nas Telonas (Coleção Completa)",
-  "description": "Conquistar os 5 filmes da coleção cinematográfica oficial de Michael Jackson (5 de 5 filmes - 100%).",
+  "description": "Conquistar os 5 filmes da coleção cinematográfica oficial de Michael Jackson.",
   "icon": "🕺",
   "target_type": "franchise_movie_list",
   "target_value": 5,

@@ -194,7 +194,7 @@ export default function TrophyChecklistModal({ trophy, onClose }) {
                       )}
 
                       {item.extra_info && (
-                        <span className="text-[10px] text-zinc-500 font-mono mt-0.5">
+                        <span className="text-[11px] text-zinc-400 mt-0.5 leading-snug">
                           {item.extra_info}
                         </span>
                       )}
