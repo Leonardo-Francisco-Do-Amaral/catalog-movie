@@ -22,7 +22,9 @@ const NEW_TROPHY_IDS = [
   'tc_rush_b_acao_max_90_min',
   'tc_e_verdade_esse_bilete_fatos_reais_nota_lt6',
   'tc_ray_tracing_bomba_2021_ficcao_acao_reviews_500k',
-  'tc_achou_que_nao_ia_ter_cinema_fev_mar_set'
+  'tc_achou_que_nao_ia_ter_cinema_fev_mar_set',
+  'us_michael_jackson_collection',
+  'multi_michael_jackson_ultimate_anthology'
 ];
 
 async function main() {

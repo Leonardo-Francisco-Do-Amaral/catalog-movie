@@ -20637,5 +20637,101 @@ export const TROPHY_DEFINITIONS: TrophyDefinition[] = [
     "months": [2, 3, 9]
   },
   "sort_order": 799
+},
+{
+  "id": "us_michael_jackson_collection",
+  "category": "universos_sagas",
+  "categories": [
+    "universos_sagas"
+  ],
+  "tier": "epic",
+  "title": "Universos & Sagas: Hee-Hee! O Rei do Pop nas Telonas (Coleção Completa)",
+  "description": "Conquistar os 5 filmes da coleção cinematográfica oficial de Michael Jackson (5 de 5 filmes - 100%).",
+  "icon": "🕺",
+  "target_type": "franchise_movie_list",
+  "target_value": 5,
+  "target_metadata": {
+    "franchise": "Michael Jackson",
+    "requireAll": true,
+    "movies": [
+      {
+        "name": "Moonwalker (1988)",
+        "patterns": [
+          "Moonwalker"
+        ],
+        "year": 1988
+      },
+      {
+        "name": "Michael Jackson: This Is It (2009)",
+        "patterns": [
+          "This Is It",
+          "Michael Jackson: This Is It",
+          "Michael Jackson's This Is It"
+        ],
+        "year": 2009
+      },
+      {
+        "name": "Michael (2025/2026 — Cinebiografia Oficial)",
+        "patterns": [
+          "Michael",
+          "Michael Jackson"
+        ],
+        "year": 2025,
+        "exclude": [
+          "Michael Clayton",
+          "Michael Collins",
+          "George Michael"
+        ]
+      },
+      {
+        "name": "Michael Jackson's Ghosts (1996)",
+        "patterns": [
+          "Ghosts",
+          "Michael Jackson's Ghosts",
+          "Michael Jackson: Ghosts"
+        ],
+        "year": 1996,
+        "exclude": [
+          "Ghost - Do Outro Lado",
+          "Ghostbusters",
+          "Ghost in the Shell",
+          "Ghost Rider"
+        ]
+      },
+      {
+        "name": "Thriller 40 (2023) ou Bad 25 (2012)",
+        "patterns": [
+          "Thriller 40",
+          "Bad 25",
+          "Michael Jackson: Thriller 40",
+          "Michael Jackson's Thriller 40",
+          "Michael Jackson Bad 25",
+          "Michael Jackson: Bad 25"
+        ]
+      }
+    ]
+  },
+  "sort_order": 800
+},
+{
+  "id": "multi_michael_jackson_ultimate_anthology",
+  "category": "multi",
+  "categories": [
+    "dna_cinefilo",
+    "anatomia_cinema",
+    "volta_ao_mundo"
+  ],
+  "tier": "mythic",
+  "title": "The Ultimate Anthology: O Disco de Diamante (15 Faixas + 15 Sons)",
+  "description": "Conquistar 15 filmes com o gênero Música + o checklist das 15 faixas cronológicas do Rei do Pop (16 marcos).",
+  "icon": "💿",
+  "target_type": "michael_jackson_anthology",
+  "target_value": 16,
+  "target_metadata": {
+    "isHybrid": true,
+    "totalTracks": 15,
+    "requiredMusicGenreCount": 15
+  },
+  "sort_order": 801
 }
 ];

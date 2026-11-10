@@ -289,6 +289,12 @@ function cleanTag(str: string): string {
   if (s.includes('viagem no tempo')) return 'viagem no tempo';
   if (s.includes('final epico')) return 'final epico';
   if (s.includes('preto e branco')) return 'preto e branco';
+  if (s.includes('em familia')) return 'em familia';
+  if (s.includes('emocionante')) return 'emocionante';
+  if (s.includes('tragico')) return 'tragico';
+  if (s.includes('lobisomem')) return 'lobisomem';
+  if (s.includes('zumbi')) return 'zumbi';
+  if (s.includes('fantasma')) return 'fantasma';
   if (s === 'x-men' || s === 'x-man') return 'x-men';
   return s;
 }
@@ -4636,6 +4642,191 @@ export async function evaluateTrophies(options: { markNew?: boolean } = {}): Pro
           `Pendente: Filme < 50k Reviews, Nota >= 8.500 e 1+ Tag (Total: 8+ países diferentes)`
         );
         checklist.push(...res.checklist);
+        break;
+      }
+
+      case 'michael_jackson_anthology': {
+        progressTarget = 16;
+        let countMet = 0;
+
+        // Marco 0: Meta Global - 15 filmes do gênero Música
+        const musicMovies = catalogMovies.filter((m: any) => movieHasGenre(m, 'Música'));
+        const musicCount = musicMovies.length;
+        const isMusicGlobalMet = musicCount >= 15;
+        if (isMusicGlobalMet) countMet++;
+
+        checklist.push({
+          id: 'track_00_music_genre',
+          name: 'Meta Global: Conquistar 15 Filmes com o Gênero Música',
+          required: 15,
+          current: Math.min(15, musicCount),
+          conquered: isMusicGlobalMet,
+          movie_title: musicMovies[0]?.title || null,
+          movie_year: musicMovies[0]?.release_year || null,
+          poster_url: musicMovies[0]?.poster_url || null,
+          extra_info: isMusicGlobalMet
+            ? `✅ Cumprida (${musicCount}/15 filmes com gênero Música)`
+            : `🔒 Pendente (${musicCount}/15 filmes com gênero Música)`,
+        });
+
+        // 15 Faixas Cronológicas
+        const trackDefinitions = [
+          {
+            id: 'track_01_abc',
+            name: 'Faixa 01: [ABC] (1970) — The Jackson 5',
+            ruleDesc: '1 filme lançado em 1970 com a tag "Colegio/Escola" OU tag "Em Família"',
+            match: (m: any) =>
+              Number(m.release_year) === 1970 &&
+              (movieHasTag(m, 'Colegio/Escola') || movieHasTag(m, 'Em Família')),
+          },
+          {
+            id: 'track_02_beat_it',
+            name: 'Faixa 02: [Beat It] (1983)',
+            ruleDesc: '1 filme lançado em 1983 com o gênero "Ação"',
+            match: (m: any) =>
+              Number(m.release_year) === 1983 &&
+              movieHasGenre(m, 'Ação'),
+          },
+          {
+            id: 'track_03_billie_jean',
+            name: 'Faixa 03: [Billie Jean] (1983)',
+            ruleDesc: '1 filme lançado em 1983 com a tag "Trágico" OU gênero "Suspense"',
+            match: (m: any) =>
+              Number(m.release_year) === 1983 &&
+              (movieHasTag(m, 'Trágico') || movieHasGenre(m, 'Suspense')),
+          },
+          {
+            id: 'track_04_thriller',
+            name: 'Faixa 04: [Thriller] (1984)',
+            ruleDesc: '1 filme lançado em 1984 com a tag "Lobisomem" OU tag "Zumbi"',
+            match: (m: any) =>
+              Number(m.release_year) === 1984 &&
+              (movieHasTag(m, 'Lobisomem') || movieHasTag(m, 'Zumbi')),
+          },
+          {
+            id: 'track_05_bad',
+            name: 'Faixa 05: [Bad] (1987)',
+            ruleDesc: '1 filme lançado em 1987 com a tag "Criança Malvada"',
+            match: (m: any) =>
+              Number(m.release_year) === 1987 &&
+              movieHasTag(m, 'Criança Malvada'),
+          },
+          {
+            id: 'track_06_smooth_criminal',
+            name: 'Faixa 06: [Smooth Criminal] (1988)',
+            ruleDesc: '1 filme lançado em 1988 com a tag "Crime real" OU gênero "Policial"',
+            match: (m: any) =>
+              Number(m.release_year) === 1988 &&
+              (movieHasTag(m, 'Crime real') || movieHasGenre(m, 'Policial') || movieHasGenre(m, 'Crime')),
+          },
+          {
+            id: 'track_07_black_or_white',
+            name: 'Faixa 07: [Black or White] (1991)',
+            ruleDesc: '1 filme lançado em 1991 com a tag "Preto e branco" OU tag "Em Família"',
+            match: (m: any) =>
+              Number(m.release_year) === 1991 &&
+              (movieHasTag(m, 'Preto e branco') || movieHasTag(m, 'Em Família')),
+          },
+          {
+            id: 'track_08_heal_the_world',
+            name: 'Faixa 08: [Heal the World] (1991)',
+            ruleDesc: '1 filme lançado em 1991 com a tag "Emocionante" OU tag "Fatos Reais"',
+            match: (m: any) =>
+              Number(m.release_year) === 1991 &&
+              (movieHasTag(m, 'Emocionante') || movieHasTag(m, 'Fatos Reais')),
+          },
+          {
+            id: 'track_09_remember_the_time',
+            name: 'Faixa 09: [Remember the Time] (1992)',
+            ruleDesc: '1 filme lançado em 1992 com a tag "Viagem no Tempo"',
+            match: (m: any) =>
+              Number(m.release_year) === 1992 &&
+              movieHasTag(m, 'Viagem no Tempo'),
+          },
+          {
+            id: 'track_10_you_are_not_alone',
+            name: 'Faixa 10: [You Are Not Alone] (1995)',
+            ruleDesc: '1 filme lançado em 1995 com a tag "Em Família" OU gênero "Romance"',
+            match: (m: any) =>
+              Number(m.release_year) === 1995 &&
+              (movieHasTag(m, 'Em Família') || movieHasGenre(m, 'Romance')),
+          },
+          {
+            id: 'track_11_earth_song',
+            name: 'Faixa 11: [Earth Song] (1995)',
+            ruleDesc: '1 filme lançado em 1995 com a tag "Trágico" OU gênero "Documentário"',
+            match: (m: any) =>
+              Number(m.release_year) === 1995 &&
+              (movieHasTag(m, 'Trágico') || movieHasGenre(m, 'Documentário')),
+          },
+          {
+            id: 'track_12_they_dont_care_about_us',
+            name: "Faixa 12: [They Don't Care About Us] (1996)",
+            ruleDesc: '1 filme lançado em 1996 produzido/gravado no Brasil',
+            match: (m: any) =>
+              Number(m.release_year) === 1996 &&
+              movieHasCountry(m, 'br', unCountryDefMap),
+          },
+          {
+            id: 'track_13_ghosts',
+            name: 'Faixa 13: [Ghosts] (1996)',
+            ruleDesc: '1 filme lançado em 1996 com a tag "Fantasma"',
+            match: (m: any) =>
+              Number(m.release_year) === 1996 &&
+              movieHasTag(m, 'Fantasma'),
+          },
+          {
+            id: 'track_14_blood_on_the_dance_floor',
+            name: 'Faixa 14: [Blood on the Dance Floor] (1997)',
+            ruleDesc: '1 filme lançado em 1997 com a tag "Gore"',
+            match: (m: any) =>
+              Number(m.release_year) === 1997 &&
+              movieHasTag(m, 'Gore'),
+          },
+          {
+            id: 'track_15_love_never_felt_so_good',
+            name: 'Faixa 15: [Love Never Felt So Good] (2014) — feat. Justin Timberlake',
+            ruleDesc: '1 filme lançado em 2014 com a tag "Em Família" OU tag "Emocionante"',
+            match: (m: any) =>
+              Number(m.release_year) === 2014 &&
+              (movieHasTag(m, 'Em Família') || movieHasTag(m, 'Emocionante')),
+          },
+        ];
+
+        trackDefinitions.forEach((trk) => {
+          const matchedMovie = catalogMovies.find(trk.match);
+          if (matchedMovie) {
+            countMet++;
+            checklist.push({
+              id: trk.id,
+              name: trk.name,
+              required: 1,
+              current: 1,
+              conquered: true,
+              movie_title: matchedMovie.title,
+              movie_year: matchedMovie.release_year,
+              poster_url: matchedMovie.poster_url || null,
+              flag: matchedMovie.primaryCountryCode ? matchedMovie.primaryCountryCode.toLowerCase() : null,
+              extra_info: `✅ Cumprida (${matchedMovie.title})`,
+            });
+          } else {
+            checklist.push({
+              id: trk.id,
+              name: trk.name,
+              required: 1,
+              current: 0,
+              conquered: false,
+              movie_title: null,
+              movie_year: null,
+              poster_url: null,
+              flag: null,
+              extra_info: '🔒 Pendente',
+            });
+          }
+        });
+
+        progressCurrent = countMet;
+        isMet = progressCurrent >= progressTarget;
         break;
       }
 
