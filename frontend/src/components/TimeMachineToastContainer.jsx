@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Clock, Sparkles, X, Film, Star, Award, Zap } from 'lucide-react';
-import { playTimeMachineSound } from '../utils/trophyAudio';
+import { Clock, Sparkles, X, Film, Star, Award, Zap, Swords, Crown, Ghost } from 'lucide-react';
+import { playTimeMachineSound, playDethroneSound } from '../utils/trophyAudio';
 import {
   TIME_MACHINE_RARITY_META,
   notifyTimeMachineStarted,
@@ -85,13 +85,24 @@ function TimeMachinePortalCard({ item, onRemove }) {
   const [lockedIn, setLockedIn] = useState(item.kind !== 'year');
   const removedRef = useRef(false);
 
+  const isDethrone = item.kind === 'year_dethrone';
   const rarityKey = item.kind === 'decade' ? 'decade_relic' : item.rarity || 'epic';
-  const theme = RARITY_PORTAL_THEMES[rarityKey] || RARITY_PORTAL_THEMES.epic;
+  const baseTheme = RARITY_PORTAL_THEMES[rarityKey] || RARITY_PORTAL_THEMES.epic;
+  const theme = isDethrone
+    ? {
+        ...baseTheme,
+        border: 'border-amber-400/80',
+        glow: 'shadow-[0_22px_70px_rgba(245,158,11,0.48),0_0_36px_rgba(244,63,94,0.32)]',
+        bgGrad: 'from-zinc-950/95 via-amber-950/55 to-rose-950/45',
+        beam: 'from-amber-400 via-yellow-200 to-rose-400',
+        barColor: '#F59E0B',
+      }
+    : baseTheme;
   const rarityMeta = TIME_MACHINE_RARITY_META[item.rarity] || TIME_MACHINE_RARITY_META.epic;
 
   // Odômetro digital girando rapidamente até travar no ano conquistado (efeito DeLorean!)
   useEffect(() => {
-    if (item.kind !== 'year' || !item.year) {
+    if ((item.kind !== 'year' && item.kind !== 'year_dethrone') || !item.year) {
       setLockedIn(true);
       return;
     }
@@ -122,7 +133,12 @@ function TimeMachinePortalCard({ item, onRemove }) {
   }, [item.toastId, onRemove]);
 
   const posterSrc = resolvePosterUrl(item.posterUrl);
-  const durationMs = item.kind === 'decade' ? 5400 : 4800;
+  const oldPosterSrc = resolvePosterUrl(item.previousPosterUrl);
+  const durationMs = item.kind === 'decade' || isDethrone ? 5600 : 4800;
+  const ratingDiff =
+    isDethrone && Number(item.userRating) > Number(item.previousUserRating || 0)
+      ? Number(item.userRating) - Number(item.previousUserRating || 0)
+      : 0;
 
   return (
     <div
@@ -159,39 +175,47 @@ function TimeMachinePortalCard({ item, onRemove }) {
       )}
 
       <div className="relative z-10 px-4 py-3.5 flex items-center gap-4">
-        {/* Esquerda: Pôster / Núcleo do Capacitor de Fluxo */}
-        <div className="relative shrink-0">
-          {/* Anel giratório holográfico */}
-          <div
-            className={`absolute -inset-1.5 rounded-xl border border-dashed ${theme.border} opacity-60 pointer-events-none`}
-            style={{ animation: 'tmSpinSlow 9s linear infinite' }}
-          />
-          {item.kind === 'decade' ? (
-            <div className="w-14 h-20 rounded-xl bg-gradient-to-br from-amber-500/30 via-amber-900/40 to-cyan-900/40 border border-amber-300/60 flex flex-col items-center justify-center shadow-inner">
-              <Award className="w-7 h-7 text-amber-300 animate-bounce" />
-              <span className="text-[9px] font-black font-mono text-amber-200 mt-1">10/10</span>
-            </div>
-          ) : posterSrc ? (
-            <img
-              src={posterSrc}
-              alt={item.movieTitle || `Ano ${item.year}`}
-              className="w-14 h-20 object-cover rounded-xl border border-white/20 shadow-lg"
+        {/* Esquerda: Pôster / Núcleo do Capacitor de Fluxo (oculto em Duelo pois há Arena VS) */}
+        {!isDethrone && (
+          <div className="relative shrink-0">
+            <div
+              className={`absolute -inset-1.5 rounded-xl border border-dashed ${theme.border} opacity-60 pointer-events-none`}
+              style={{ animation: 'tmSpinSlow 9s linear infinite' }}
             />
-          ) : (
-            <div className="w-14 h-20 rounded-xl bg-zinc-900/90 border border-cyan-400/40 flex flex-col items-center justify-center">
-              <Clock className={`w-6 h-6 ${theme.accentText} animate-spin`} style={{ animationDuration: '4s' }} />
-              <Film className="w-3.5 h-3.5 text-zinc-400 mt-1" />
-            </div>
-          )}
-        </div>
+            {item.kind === 'decade' ? (
+              <div className="w-14 h-20 rounded-xl bg-gradient-to-br from-amber-500/30 via-amber-900/40 to-cyan-900/40 border border-amber-300/60 flex flex-col items-center justify-center shadow-inner">
+                <Award className="w-7 h-7 text-amber-300 animate-bounce" />
+                <span className="text-[9px] font-black font-mono text-amber-200 mt-1">10/10</span>
+              </div>
+            ) : posterSrc ? (
+              <img
+                src={posterSrc}
+                alt={item.movieTitle || `Ano ${item.year}`}
+                className="w-14 h-20 object-cover rounded-xl border border-white/20 shadow-lg"
+              />
+            ) : (
+              <div className="w-14 h-20 rounded-xl bg-zinc-900/90 border border-cyan-400/40 flex flex-col items-center justify-center">
+                <Clock className={`w-6 h-6 ${theme.accentText} animate-spin`} style={{ animationDuration: '4s' }} />
+                <Film className="w-3.5 h-3.5 text-zinc-400 mt-1" />
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Centro: Odômetro do Ano + Detalhes da Conquista Temporal */}
+        {/* Centro: Odômetro do Ano + Detalhes / Arena de Duelo */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap mb-1">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-400/40 text-[9px] font-black uppercase tracking-widest text-cyan-200">
-              <Zap className="w-2.5 h-2.5 text-amber-300" />
-              {item.kind === 'decade' ? 'RELÍQUIA DA DÉCADA' : 'MÁQUINA DO TEMPO'}
-            </span>
+          <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+            {isDethrone ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-400/55 text-[9px] font-black uppercase tracking-widest text-amber-200">
+                <Swords className="w-2.5 h-2.5 text-amber-300" />
+                TOMADA DE TRONO TEMPORAL
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-400/40 text-[9px] font-black uppercase tracking-widest text-cyan-200">
+                <Zap className="w-2.5 h-2.5 text-amber-300" />
+                {item.kind === 'decade' ? 'RELÍQUIA DA DÉCADA' : 'MÁQUINA DO TEMPO'}
+              </span>
+            )}
 
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider ${theme.pill}`}>
               {item.kind === 'decade' ? (
@@ -204,48 +228,144 @@ function TimeMachinePortalCard({ item, onRemove }) {
               )}
             </span>
 
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-400/50 text-[10px] font-mono font-black text-amber-200 shadow-sm">
-              <Sparkles className="w-2.5 h-2.5 text-amber-300" />+{item.xp} XP
-            </span>
+            {item.xp > 0 && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-400/50 text-[10px] font-mono font-black text-amber-200 shadow-sm">
+                <Sparkles className="w-2.5 h-2.5 text-amber-300" />+{item.xp} XP
+              </span>
+            )}
+
+            {isDethrone && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/20 border border-rose-400/45 text-[9px] font-mono font-black text-rose-200">
+                {ratingDiff > 0 ? `+${ratingDiff.toFixed(2)} nota` : 'Desempate Técnico'}
+              </span>
+            )}
+
+            {item.isGhost && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-violet-500/25 border border-violet-400/55 text-[9px] font-black uppercase tracking-wider text-violet-200">
+                <Ghost className="w-2.5 h-2.5" /> Fantasma
+              </span>
+            )}
           </div>
 
-          {/* Linha Principal com Odômetro LED */}
-          <div className="flex items-baseline gap-3">
-            <span
-              className={`font-mono text-3xl sm:text-4xl font-black tracking-tighter leading-none ${theme.yearText} ${
-                lockedIn ? 'scale-100' : 'scale-95 opacity-85'
-              } transition-transform duration-150`}
-            >
-              {item.kind === 'decade' ? item.decadeId || 'DÉCADA' : displayYear}
-            </span>
-
-            <div className="min-w-0 flex-1">
-              <p className="text-xs sm:text-sm font-black text-white truncate">
-                {item.kind === 'decade'
-                  ? `${item.decadeLabel || 'Década'} Restaurada Completa!`
-                  : item.movieTitle || `Ano ${item.year} Desbloqueado!`}
-              </p>
-              <div className="flex items-center gap-2 text-[11px] text-zinc-300/90 mt-0.5">
-                {item.kind === 'decade' ? (
-                  <span className="text-amber-300/95 font-semibold">
-                    Todos os 10 anos da década foram conquistados no catálogo!
+          {isDethrone ? (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-baseline gap-2.5 min-w-0">
+                  <span
+                    className={`font-mono text-2xl sm:text-3xl font-black tracking-tighter leading-none ${theme.yearText} ${
+                      lockedIn ? 'scale-100' : 'scale-95 opacity-85'
+                    } transition-transform duration-150`}
+                  >
+                    {displayYear}
                   </span>
-                ) : (
-                  <>
-                    <span className="text-cyan-300/90 font-semibold">
-                      Linha do Tempo sincronizada
+                  <span className="text-xs sm:text-sm font-black text-white truncate flex items-center gap-1.5">
+                    <Crown className="w-4 h-4 text-amber-300 animate-bounce shrink-0" />
+                    Novo Rei de {item.year}!
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 bg-zinc-950/75 border border-zinc-800/80 rounded-xl p-2">
+                {/* Destronado */}
+                <div className="flex items-center gap-2 min-w-0 opacity-65">
+                  {oldPosterSrc ? (
+                    <img
+                      src={oldPosterSrc}
+                      alt={item.previousMovieTitle || 'Campeão anterior'}
+                      className="w-9 h-13 object-cover rounded-lg border border-zinc-700 grayscale shrink-0"
+                    />
+                  ) : (
+                    <div className="w-9 h-13 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
+                      <Film className="w-3.5 h-3.5 text-zinc-600" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex flex-col">
+                    <span className="text-[8px] font-black uppercase tracking-wider text-rose-300">
+                      Destronado
                     </span>
-                    {Number(item.userRating) > 0 && (
-                      <span className="inline-flex items-center gap-0.5 font-mono font-bold text-amber-300">
-                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                        {Number(item.userRating).toFixed(3)}
-                      </span>
-                    )}
-                  </>
-                )}
+                    <span className="text-[11px] font-bold text-zinc-300 truncate line-through">
+                      {item.previousMovieTitle || 'Anterior'}
+                    </span>
+                    <span className="text-[10px] font-mono text-zinc-400 line-through">
+                      ★ {Number(item.previousUserRating || 0).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* VS Centro */}
+                <div className="flex flex-col items-center justify-center px-1">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400/25 to-rose-500/25 border border-amber-400/60 flex items-center justify-center shadow-[0_0_14px_rgba(245,158,11,0.35)]">
+                    <Crown className="w-3.5 h-3.5 text-amber-300" />
+                  </div>
+                </div>
+
+                {/* Novo Campeão */}
+                <div className="flex items-center gap-2 min-w-0 justify-end text-right">
+                  <div className="min-w-0 flex flex-col items-end">
+                    <span className="text-[8px] font-black uppercase tracking-wider text-emerald-300">
+                      Novo Rei 👑
+                    </span>
+                    <span className="text-xs font-black text-white truncate max-w-full">
+                      {item.movieTitle}
+                    </span>
+                    <span className="inline-flex items-center gap-0.5 text-[10px] font-mono font-black text-amber-300">
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      {Number(item.userRating || 0).toFixed(2)}
+                    </span>
+                  </div>
+                  {posterSrc ? (
+                    <img
+                      src={posterSrc}
+                      alt={item.movieTitle}
+                      className="w-10 h-14 object-cover rounded-lg border-2 border-amber-400/85 shadow-[0_0_14px_rgba(245,158,11,0.35)] shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-14 rounded-lg bg-zinc-900 border-2 border-amber-400/70 flex items-center justify-center shrink-0">
+                      <Crown className="w-4 h-4 text-amber-300" />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            /* Linha Principal com Odômetro LED */
+            <div className="flex items-baseline gap-3">
+              <span
+                className={`font-mono text-3xl sm:text-4xl font-black tracking-tighter leading-none ${theme.yearText} ${
+                  lockedIn ? 'scale-100' : 'scale-95 opacity-85'
+                } transition-transform duration-150`}
+              >
+                {item.kind === 'decade' ? item.decadeId || 'DÉCADA' : displayYear}
+              </span>
+
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-black text-white truncate">
+                  {item.kind === 'decade'
+                    ? `${item.decadeLabel || 'Década'} Restaurada Completa!`
+                    : item.movieTitle || `Ano ${item.year} Desbloqueado!`}
+                </p>
+                <div className="flex items-center gap-2 text-[11px] text-zinc-300/90 mt-0.5">
+                  {item.kind === 'decade' ? (
+                    <span className="text-amber-300/95 font-semibold">
+                      Todos os 10 anos da década foram conquistados no catálogo!
+                    </span>
+                  ) : (
+                    <>
+                      <span className="text-cyan-300/90 font-semibold">
+                        Linha do Tempo sincronizada
+                      </span>
+                      {Number(item.userRating) > 0 && (
+                        <span className="inline-flex items-center gap-0.5 font-mono font-bold text-amber-300">
+                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                          {Number(item.userRating).toFixed(3)}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Botão Fechar */}
@@ -320,7 +440,8 @@ export default function TimeMachineToastContainer() {
 
         toShow.forEach((item, i) => {
           setTimeout(() => {
-            playTimeMachineSound(item.kind === 'decade' ? 'decade_relic' : item.rarity);
+            if (item.kind === 'year_dethrone') playDethroneSound();
+            else playTimeMachineSound(item.kind === 'decade' ? 'decade_relic' : item.rarity);
           }, i * 180);
         });
 
@@ -345,7 +466,8 @@ export default function TimeMachineToastContainer() {
       if (nextVisible.length < MAX_VISIBLE_PORTALS && prev.queue.length > 0) {
         const [nextItem, ...restQueue] = prev.queue;
         setTimeout(() => {
-          playTimeMachineSound(nextItem.kind === 'decade' ? 'decade_relic' : nextItem.rarity);
+          if (nextItem.kind === 'year_dethrone') playDethroneSound();
+          else playTimeMachineSound(nextItem.kind === 'decade' ? 'decade_relic' : nextItem.rarity);
         }, 100);
         return {
           visible: [...nextVisible, nextItem],

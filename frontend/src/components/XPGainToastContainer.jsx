@@ -152,6 +152,11 @@ function XPGainCard({ item, onDismiss }) {
               <span className="text-[10px] font-mono font-black text-zinc-400">
                 LVL {displayedLevel}
               </span>
+              {event.isGhost && (
+                <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-violet-500/25 text-violet-200 border border-violet-400/50">
+                  👻 Modo Fantasma
+                </span>
+              )}
             </div>
 
             <div className="text-lg font-black tracking-tight bg-gradient-to-r from-amber-300 via-yellow-200 to-emerald-300 bg-clip-text text-transparent mt-0.5">

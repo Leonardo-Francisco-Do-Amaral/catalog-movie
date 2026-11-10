@@ -434,3 +434,124 @@ export function playTimeMachineSound(rarityOrKind = 'epic') {
     // Silencioso em bloqueios de autoplay
   }
 }
+
+/**
+ * Efeito sonoro dramático de "Tomada de Trono / Duelo Vencido" (choque de aço + coroação).
+ */
+export function playDethroneSound() {
+  try {
+    if (isAudioMuted()) return;
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    // 1. Impacto grave + golpe metálico rápido
+    const subOsc = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    subOsc.type = 'triangle';
+    subOsc.frequency.setValueAtTime(190, now);
+    subOsc.frequency.exponentialRampToValueAtTime(52, now + 0.24);
+    subGain.gain.setValueAtTime(0.28, now);
+    subGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.26);
+    subOsc.connect(subGain);
+    subGain.connect(ctx.destination);
+    subOsc.start(now);
+    subOsc.stop(now + 0.28);
+
+    const clashOsc = ctx.createOscillator();
+    const clashGain = ctx.createGain();
+    clashOsc.type = 'sawtooth';
+    clashOsc.frequency.setValueAtTime(1650, now + 0.02);
+    clashOsc.frequency.exponentialRampToValueAtTime(620, now + 0.16);
+    clashGain.gain.setValueAtTime(0.11, now + 0.02);
+    clashGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+    clashOsc.connect(clashGain);
+    clashGain.connect(ctx.destination);
+    clashOsc.start(now + 0.02);
+    clashOsc.stop(now + 0.2);
+
+    // 2. Fanfarra ascendente da Coroa assumindo o trono
+    const crownNotes = [
+      { f: 440.0, t: 0.14, d: 0.22, g: 0.14 },  // A4
+      { f: 554.37, t: 0.21, d: 0.25, g: 0.15 }, // C#5
+      { f: 659.25, t: 0.28, d: 0.35, g: 0.16 }, // E5
+      { f: 880.0, t: 0.36, d: 0.95, g: 0.19 },  // A5
+    ];
+    crownNotes.forEach(({ f, t, d, g }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(f, now + t);
+      gain.gain.setValueAtTime(0.0001, now + t);
+      gain.gain.linearRampToValueAtTime(g, now + t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + t + d);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + t);
+      osc.stop(now + t + d + 0.04);
+    });
+  } catch {
+    // Silencioso em bloqueios de autoplay
+  }
+}
+
+/**
+ * Efeito sonoro de Desbloqueio / Conquista Territorial do Desafio 195 (Passaporte + Radar).
+ */
+export function playWorldConquestSound(rarity = 'common', isDethrone = false) {
+  if (isDethrone) {
+    playDethroneSound();
+    return;
+  }
+  try {
+    if (isAudioMuted()) return;
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const isRareOrHigher = rarity === 'mythic' || rarity === 'legendary' || rarity === 'epic';
+
+    // Carimbo/Radar inicial
+    const pingOsc = ctx.createOscillator();
+    const pingGain = ctx.createGain();
+    pingOsc.type = 'sine';
+    pingOsc.frequency.setValueAtTime(740, now);
+    pingOsc.frequency.exponentialRampToValueAtTime(1108.73, now + 0.14);
+    pingGain.gain.setValueAtTime(0.14, now);
+    pingGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+    pingOsc.connect(pingGain);
+    pingGain.connect(ctx.destination);
+    pingOsc.start(now);
+    pingOsc.stop(now + 0.2);
+
+    const fanfare = isRareOrHigher
+      ? [
+          { f: 523.25, t: 0.12, d: 0.45, g: 0.14 },
+          { f: 659.25, t: 0.18, d: 0.55, g: 0.15 },
+          { f: 783.99, t: 0.24, d: 0.7, g: 0.16 },
+          { f: 1046.5, t: 0.31, d: 1.0, g: 0.17 },
+        ]
+      : [
+          { f: 523.25, t: 0.12, d: 0.35, g: 0.13 },
+          { f: 783.99, t: 0.19, d: 0.65, g: 0.15 },
+          { f: 1046.5, t: 0.27, d: 0.75, g: 0.15 },
+        ];
+
+    fanfare.forEach(({ f, t, d, g }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, now + t);
+      gain.gain.setValueAtTime(0.0001, now + t);
+      gain.gain.linearRampToValueAtTime(g, now + t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + t + d);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + t);
+      osc.stop(now + t + d + 0.04);
+    });
+  } catch {
+    // Silencioso em bloqueios de autoplay
+  }
+}

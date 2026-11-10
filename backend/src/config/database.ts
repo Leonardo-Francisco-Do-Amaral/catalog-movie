@@ -1,4 +1,5 @@
-import { Pool } from 'pg';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { Pool, PoolClient } from 'pg';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
@@ -18,8 +19,19 @@ const pool = new Pool({
   database: process.env.DB_NAME || 'movie_catalog',
 });
 
-// Helper genérico para queries
+const transactionClientStorage = new AsyncLocalStorage<PoolClient>();
+
+export const runWithTransactionClient = <T>(
+  client: PoolClient,
+  fn: () => Promise<T>
+): Promise<T> => transactionClientStorage.run(client, fn);
+
+// Helper genérico para queries (roteia automaticamente para a transação ativa em simulações/dry-run)
 export const query = (text: string, params?: any[]) => {
+  const activeClient = transactionClientStorage.getStore();
+  if (activeClient) {
+    return activeClient.query(text, params);
+  }
   return pool.query(text, params);
 };
 

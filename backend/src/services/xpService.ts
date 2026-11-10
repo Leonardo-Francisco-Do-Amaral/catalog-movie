@@ -3,6 +3,7 @@ import { TrophyTier } from '../data/trophyDefinitions';
 import { CountryRarityTier, getCountryRarityTier, UN_COUNTRIES_195 } from '../data/unCountries195';
 import { buildWorldChallengePayload } from './worldChallengeService';
 import {
+  buildTimeMachinePayload,
   computeTimeMachineXpSummary,
   TIME_MACHINE_RARITY_META,
   TimeMachineRarityTier,
@@ -11,6 +12,7 @@ import {
 import type { EvaluatedTrophy, TrophiesSummaryResponse } from './trophyService';
 
 export type WorldChallengePayload = Awaited<ReturnType<typeof buildWorldChallengePayload>>;
+export type TimeMachinePayload = Awaited<ReturnType<typeof buildTimeMachinePayload>>;
 
 export const XP_PER_MOVIE = 10;
 
@@ -202,15 +204,42 @@ export interface XpGainTag {
 
 export interface TimeMachineUnlockNotification {
   id: string;
-  kind: 'year' | 'decade';
+  kind: 'year' | 'decade' | 'year_dethrone';
   year?: number;
   decadeId?: string;
   decadeLabel?: string;
   rarity: TimeMachineRarityTier | 'decade_relic';
   xp: number;
+  movieId?: number;
   movieTitle?: string;
   posterUrl?: string | null;
   userRating?: number;
+  previousMovieId?: number;
+  previousMovieTitle?: string;
+  previousPosterUrl?: string | null;
+  previousUserRating?: number;
+  winReason?: 'higher_rating' | 'tiebreak' | 'manual';
+  isGhost?: boolean;
+}
+
+export interface WorldChallengeNotification {
+  id: string;
+  kind: 'country_unlock' | 'country_dethrone';
+  countryCode: string;
+  countryName: string;
+  rarity: CountryRarityTier;
+  xp: number;
+  movieId?: number;
+  movieTitle: string;
+  posterUrl?: string | null;
+  userRating?: number;
+  previousMovieId?: number;
+  previousMovieTitle?: string;
+  previousPosterUrl?: string | null;
+  previousUserRating?: number;
+  winReason?: 'higher_rating' | 'tiebreak' | 'manual';
+  sourceTrigger?: 'movie_add' | 'movie_edit' | 'coproduction_curate' | 'country_pick';
+  isGhost?: boolean;
 }
 
 export interface XpStatGain {
@@ -424,6 +453,159 @@ export function computeTimeMachineUnlocks(
   }
 
   return unlocks;
+}
+
+/**
+ * Detecta conquistas inéditas (anos + décadas) E Tomadas de Trono Temporais (novo filme
+ * assumindo o #1 de um ano que já possuía campeão automático).
+ */
+export function computeTimeMachineEvents(
+  prevTm: TimeMachinePayload | null | undefined,
+  nextTm: TimeMachinePayload | null | undefined,
+  prevXp: UserXpStatus | null | undefined,
+  nextXp: UserXpStatus | null | undefined,
+  options: { movieId?: number; isGhost?: boolean } = {}
+): TimeMachineUnlockNotification[] {
+  const baseUnlocks = computeTimeMachineUnlocks(prevXp, nextXp).map((u) =>
+    options.isGhost ? { ...u, isGhost: true } : u
+  );
+
+  if (!prevTm?.years || !nextTm?.years) {
+    return baseUnlocks;
+  }
+
+  const unlockedYears = new Set(
+    baseUnlocks.filter((u) => u.kind === 'year' && u.year != null).map((u) => Number(u.year))
+  );
+  const prevByYear = new Map(prevTm.years.map((y) => [Number(y.year), y]));
+  const dethrones: TimeMachineUnlockNotification[] = [];
+
+  for (const nextEntry of nextTm.years) {
+    const yr = Number(nextEntry.year);
+    if (unlockedYears.has(yr)) continue;
+
+    const prevEntry = prevByYear.get(yr);
+    if (
+      !prevEntry ||
+      prevEntry.status !== 'conquered' ||
+      !prevEntry.champion ||
+      !nextEntry.champion ||
+      nextEntry.selectionMode !== 'auto'
+    ) {
+      continue;
+    }
+
+    const prevId = Number(prevEntry.champion.movie_id);
+    const nextId = Number(nextEntry.champion.movie_id);
+    if (nextId === prevId) continue;
+    if (options.movieId && nextId !== Number(options.movieId)) continue;
+
+    const prevRating = Number(prevEntry.champion.user_rating) || 0;
+    const nextRating = Number(nextEntry.champion.user_rating) || 0;
+
+    dethrones.push({
+      id: `tm_dethrone_${yr}_${nextId}`,
+      kind: 'year_dethrone',
+      year: yr,
+      rarity: nextEntry.rarityTier,
+      xp: 0,
+      movieId: nextId,
+      movieTitle: String(nextEntry.champion.title || ''),
+      posterUrl: nextEntry.champion.poster_url || null,
+      userRating: nextRating,
+      previousMovieId: prevId,
+      previousMovieTitle: String(prevEntry.champion.title || ''),
+      previousPosterUrl: prevEntry.champion.poster_url || null,
+      previousUserRating: prevRating,
+      winReason: nextRating > prevRating ? 'higher_rating' : 'tiebreak',
+      isGhost: Boolean(options.isGhost),
+    });
+  }
+
+  return [...baseUnlocks, ...dethrones];
+}
+
+/**
+ * Detecta conquistas inéditas de países no Desafio 195 e Duelos pelo Trono do País
+ * (inclusive quando acionado via Central de Curadoria de Coproduções ou escolha manual).
+ */
+export function computeWorldChallengeEvents(
+  prevWorld: WorldChallengePayload | null | undefined,
+  nextWorld: WorldChallengePayload | null | undefined,
+  options: {
+    sourceTrigger?: 'movie_add' | 'movie_edit' | 'coproduction_curate' | 'country_pick';
+    movieId?: number;
+    isGhost?: boolean;
+  } = {}
+): WorldChallengeNotification[] {
+  if (!prevWorld?.countries || !nextWorld?.countries) return [];
+
+  const prevByCode = new Map(prevWorld.countries.map((c) => [c.code.toLowerCase(), c]));
+  const events: WorldChallengeNotification[] = [];
+
+  for (const nextCountry of nextWorld.countries) {
+    const code = nextCountry.code.toLowerCase();
+    const prevCountry = prevByCode.get(code);
+    const rarity: CountryRarityTier = nextCountry.rarityTier || getCountryRarityTier(code);
+
+    if ((!prevCountry || prevCountry.status !== 'conquered') && nextCountry.status === 'conquered' && nextCountry.champion) {
+      events.push({
+        id: `wc_unlock_${code}_${nextCountry.champion.movie_id}`,
+        kind: 'country_unlock',
+        countryCode: nextCountry.code,
+        countryName: nextCountry.name,
+        rarity,
+        xp: COUNTRY_XP_BY_RARITY[rarity] || 30,
+        movieId: Number(nextCountry.champion.movie_id),
+        movieTitle: String(nextCountry.champion.title || ''),
+        posterUrl: nextCountry.champion.poster_url || null,
+        userRating: Number(nextCountry.champion.user_rating) || 0,
+        sourceTrigger: options.sourceTrigger,
+        isGhost: Boolean(options.isGhost),
+      });
+      continue;
+    }
+
+    if (
+      prevCountry?.status === 'conquered' &&
+      prevCountry.champion &&
+      nextCountry.champion &&
+      Number(nextCountry.champion.movie_id) !== Number(prevCountry.champion.movie_id)
+    ) {
+      const prevId = Number(prevCountry.champion.movie_id);
+      const nextId = Number(nextCountry.champion.movie_id);
+      const isPick = options.sourceTrigger === 'country_pick';
+      if (!isPick) {
+        if (nextCountry.selectionMode !== 'auto') continue;
+        if (options.movieId && nextId !== Number(options.movieId)) continue;
+      }
+
+      const prevRating = Number(prevCountry.champion.user_rating) || 0;
+      const nextRating = Number(nextCountry.champion.user_rating) || 0;
+
+      events.push({
+        id: `wc_dethrone_${code}_${nextId}`,
+        kind: 'country_dethrone',
+        countryCode: nextCountry.code,
+        countryName: nextCountry.name,
+        rarity,
+        xp: 0,
+        movieId: nextId,
+        movieTitle: String(nextCountry.champion.title || ''),
+        posterUrl: nextCountry.champion.poster_url || null,
+        userRating: nextRating,
+        previousMovieId: prevId,
+        previousMovieTitle: String(prevCountry.champion.title || ''),
+        previousPosterUrl: prevCountry.champion.poster_url || null,
+        previousUserRating: prevRating,
+        winReason: isPick ? 'manual' : nextRating > prevRating ? 'higher_rating' : 'tiebreak',
+        sourceTrigger: options.sourceTrigger,
+        isGhost: Boolean(options.isGhost),
+      });
+    }
+  }
+
+  return events;
 }
 
 /**

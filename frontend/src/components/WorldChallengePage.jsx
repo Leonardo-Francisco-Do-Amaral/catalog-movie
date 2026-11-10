@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
-import { triggerPS5TrophyToast } from './PS5TrophyToastContainer';
+import { triggerTrophyBatch } from './PS5TrophyToastContainer';
 import {
   triggerXPGainToast,
+  triggerWorldChallengeUnlock,
   dispatchXpStatusUpdate,
   calculateClientXpStatus,
   computeXpGainEvent
@@ -611,6 +612,32 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
       });
   }, [allCoproductionMovies, coprodValidationFilter, selectedContinent, searchQuery]);
 
+  const dispatchWorldResponseFeedback = (resData) => {
+    const newlyUnlocked = resData.newlyUnlocked || [];
+    const progressedTrophies = resData.progressedTrophies || [];
+    const worldChallengeUnlocks = resData.worldChallengeUnlocks || [];
+
+    if (progressedTrophies.length > 0 || newlyUnlocked.length > 0) {
+      triggerTrophyBatch({
+        progressed: progressedTrophies,
+        unlocked: newlyUnlocked,
+      });
+    }
+    if (Array.isArray(newlyUnlocked) && newlyUnlocked.length > 0) {
+      axios.post(`${API_BASE_URL}/trophies/ack-new`, {
+        trophyIds: newlyUnlocked.map((x) => x.id),
+      }).catch(() => {});
+    }
+    if (Array.isArray(worldChallengeUnlocks) && worldChallengeUnlocks.length > 0) {
+      triggerWorldChallengeUnlock(worldChallengeUnlocks);
+    }
+    if (resData.xpGain) {
+      triggerXPGainToast(resData.xpGain, resData.xpStatus);
+    } else if (resData.xpStatus) {
+      dispatchXpStatusUpdate(resData.xpStatus);
+    }
+  };
+
   // ============================================================================
   // HANDLERS DE CURADORIA E DISPUTA DE FRONTEIRA (SEM RECARREGAR A TELA)
   // ============================================================================
@@ -626,22 +653,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
         });
         if (res.data?.success && res.data?.data) {
           setChallengeData(res.data.data);
-          const newlyUnlocked = res.data.newlyUnlocked || [];
-          if (Array.isArray(newlyUnlocked) && newlyUnlocked.length > 0) {
-            newlyUnlocked.forEach((t, i) => {
-              setTimeout(() => {
-                triggerPS5TrophyToast(t);
-              }, i * 650);
-            });
-            axios.post(`${API_BASE_URL}/trophies/ack-new`, {
-              trophyIds: newlyUnlocked.map((x) => x.id),
-            }).catch(() => {});
-          }
-          if (res.data.xpGain) {
-            triggerXPGainToast(res.data.xpGain, res.data.xpStatus);
-          } else if (res.data.xpStatus) {
-            dispatchXpStatusUpdate(res.data.xpStatus);
-          }
+          dispatchWorldResponseFeedback(res.data);
           showToast(
             movieId
               ? `Campeão fixado em ${targetCountry.name}! Fronteiras sincronizadas.`
@@ -693,22 +705,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
         );
         if (res.data?.success && res.data?.data) {
           setChallengeData(res.data.data);
-          const newlyUnlocked = res.data.newlyUnlocked || [];
-          if (Array.isArray(newlyUnlocked) && newlyUnlocked.length > 0) {
-            newlyUnlocked.forEach((t, i) => {
-              setTimeout(() => {
-                triggerPS5TrophyToast(t);
-              }, i * 650);
-            });
-            axios.post(`${API_BASE_URL}/trophies/ack-new`, {
-              trophyIds: newlyUnlocked.map((x) => x.id),
-            }).catch(() => {});
-          }
-          if (res.data.xpGain) {
-            triggerXPGainToast(res.data.xpGain, res.data.xpStatus);
-          } else if (res.data.xpStatus) {
-            dispatchXpStatusUpdate(res.data.xpStatus);
-          }
+          dispatchWorldResponseFeedback(res.data);
           showToast(
             targetCountryCode
               ? `"${movieObj.title}" validado em ${targetCountryName}! Desafio 195 e XP atualizados.`

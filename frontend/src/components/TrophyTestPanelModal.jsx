@@ -9,7 +9,12 @@ import {
   TIER_THEMES,
 } from './PS5TrophyToastContainer';
 import { evaluateTrophiesClientSide } from '../utils/trophyEngineClient';
-import { triggerXPGainToast, triggerTimeMachineUnlock, dispatchXpStatusUpdate } from '../utils/xpSystem';
+import {
+  triggerXPGainToast,
+  triggerTimeMachineUnlock,
+  triggerWorldChallengeUnlock,
+  dispatchXpStatusUpdate,
+} from '../utils/xpSystem';
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:5000/api';
@@ -289,8 +294,51 @@ export default function TrophyTestPanelModal({
         rarity: 'decade_relic',
         xp: 100,
       },
+      year_dethrone: {
+        id: `sim_tm_dethrone_${Date.now()}`,
+        kind: 'year_dethrone',
+        year: 1999,
+        rarity: 'rare',
+        xp: 0,
+        movieTitle: 'Matrix',
+        userRating: 9.65,
+        previousMovieTitle: 'Clube da Luta',
+        previousUserRating: 8.95,
+        winReason: 'higher_rating',
+      },
     };
     triggerTimeMachineUnlock([presets[presetKey] || presets.epic], true);
+  };
+
+  const simulateWorldChallengeCard = (kind = 'country_unlock') => {
+    const sample =
+      kind === 'country_dethrone'
+        ? {
+            id: `sim_wc_dethrone_${Date.now()}`,
+            kind: 'country_dethrone',
+            countryCode: 'jp',
+            countryName: 'Japão',
+            rarity: 'common',
+            xp: 0,
+            movieTitle: 'Monster',
+            userRating: 9.73,
+            previousMovieTitle: 'Ninguém Pode Saber',
+            previousUserRating: 9.01,
+            winReason: 'higher_rating',
+            sourceTrigger: 'coproduction_curate',
+          }
+        : {
+            id: `sim_wc_unlock_${Date.now()}`,
+            kind: 'country_unlock',
+            countryCode: 'ma',
+            countryName: 'Marrocos',
+            rarity: 'epic',
+            xp: 65,
+            movieTitle: 'O Caçador de Pipas (Exemplo)',
+            userRating: 9.2,
+            sourceTrigger: 'movie_add',
+          };
+    triggerWorldChallengeUnlock([sample], true);
   };
 
   const simulateTripleSequence = () => {
@@ -726,6 +774,29 @@ export default function TrophyTestPanelModal({
                     <span className="text-[9px] font-mono opacity-80">{btn.sub}</span>
                   </button>
                 ))}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 pt-1 border-t border-zinc-800/70">
+                <button
+                  type="button"
+                  onClick={() => simulateTimeMachinePortal('year_dethrone')}
+                  className="p-1.5 rounded-lg border border-amber-400/55 bg-amber-500/10 hover:bg-amber-500/20 text-amber-200 text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                >
+                  <span>⚔️ Duelo de Ano (1999)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => simulateWorldChallengeCard('country_unlock')}
+                  className="p-1.5 rounded-lg border border-emerald-400/55 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-200 text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                >
+                  <span>🏴 País Inédito (195)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => simulateWorldChallengeCard('country_dethrone')}
+                  className="p-1.5 rounded-lg border border-rose-400/55 bg-rose-500/10 hover:bg-rose-500/20 text-rose-200 text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                >
+                  <span>👑 Duelo de País (195)</span>
+                </button>
               </div>
             </div>
 

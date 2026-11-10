@@ -727,10 +727,11 @@ export function computeXpGainEvent(prev, next) {
 
 /**
  * ============================================================================
- * ORQUESTRADOR DE 3 ESTÁGIOS DE NOTIFICAÇÕES:
+ * ORQUESTRADOR DE 4 ESTÁGIOS DE NOTIFICAÇÕES:
  * 1º Estágio: Troféus PS5 (PS5TrophyToastContainer) -> aparece e desaparece 100%
- * 2º Estágio: Máquina do Tempo (TimeMachineToastContainer) -> aparece após troféus e desaparece 100%
- * 3º Estágio: Barra de XP (XPGainToastContainer) -> aparece por último somando tudo!
+ * 2º Estágio: Máquina do Tempo (TimeMachineToastContainer) -> anos/décadas inéditos e duelos de ano
+ * 3º Estágio: Desafio 195 Países (WorldChallengeToastContainer) -> países inéditos e duelos pelo trono do país
+ * 4º Estágio: Barra de XP (XPGainToastContainer) -> aparece por último somando tudo + atributos + classe!
  * ============================================================================
  */
 let isTrophyActiveFlag = false;
@@ -739,6 +740,9 @@ let activeTrophyToastsCount = 0;
 let isTimeMachineActiveFlag = false;
 let pendingTimeMachineQueue = [];
 
+let isWorldChallengeActiveFlag = false;
+let pendingWorldChallengeQueue = [];
+
 let bufferedXpEvent = null;
 let bufferedXpStatus = null;
 let fallbackFlushTimer = null;
@@ -746,15 +750,23 @@ let fallbackFlushTimer = null;
 function armSafetyFlushTimer() {
   if (fallbackFlushTimer) clearTimeout(fallbackFlushTimer);
   fallbackFlushTimer = setTimeout(() => {
-    if (pendingTimeMachineQueue.length > 0 || isTimeMachineActiveFlag || bufferedXpEvent) {
+    if (
+      pendingTimeMachineQueue.length > 0 ||
+      isTimeMachineActiveFlag ||
+      pendingWorldChallengeQueue.length > 0 ||
+      isWorldChallengeActiveFlag ||
+      bufferedXpEvent
+    ) {
       console.warn('[XP System] Fallback safety timer acionado para liberar fila pendente.');
       isTrophyActiveFlag = false;
       activeTrophyToastsCount = 0;
       isTimeMachineActiveFlag = false;
       pendingTimeMachineQueue = [];
+      isWorldChallengeActiveFlag = false;
+      pendingWorldChallengeQueue = [];
       flushBufferedXpGain();
     }
-  }, 45000);
+  }, 55000);
 }
 
 export function isTrophyToastActive() {
@@ -765,8 +777,16 @@ export function isTimeMachineToastActiveOrQueued() {
   return isTimeMachineActiveFlag || pendingTimeMachineQueue.length > 0;
 }
 
+export function isWorldChallengeToastActiveOrQueued() {
+  return isWorldChallengeActiveFlag || pendingWorldChallengeQueue.length > 0;
+}
+
 function shouldHoldXpBar() {
-  return isTrophyToastActive() || isTimeMachineToastActiveOrQueued();
+  return (
+    isTrophyToastActive() ||
+    isTimeMachineToastActiveOrQueued() ||
+    isWorldChallengeToastActiveOrQueued()
+  );
 }
 
 function flushPendingTimeMachineUnlocks() {
@@ -776,6 +796,16 @@ function flushPendingTimeMachineUnlocks() {
   isTimeMachineActiveFlag = true;
   armSafetyFlushTimer();
   window.dispatchEvent(new CustomEvent('cine-time-machine-unlock', { detail: items }));
+  return true;
+}
+
+function flushPendingWorldChallengeUnlocks() {
+  if (typeof window === 'undefined' || pendingWorldChallengeQueue.length === 0) return false;
+  const items = [...pendingWorldChallengeQueue];
+  pendingWorldChallengeQueue = [];
+  isWorldChallengeActiveFlag = true;
+  armSafetyFlushTimer();
+  window.dispatchEvent(new CustomEvent('cine-world-challenge-unlock', { detail: items }));
   return true;
 }
 
@@ -789,14 +819,21 @@ export function notifyTrophiesCleared() {
   isTrophyActiveFlag = false;
   activeTrophyToastsCount = 0;
 
-  // Se houver desbloqueios da Máquina do Tempo aguardando os troféus sumirem, dispara agora (Estágio 2)!
+  // Estágio 2: Máquina do Tempo
   if (pendingTimeMachineQueue.length > 0) {
     flushPendingTimeMachineUnlocks();
     return;
   }
-
-  // Se a Máquina do Tempo ainda estiver animando na tela, aguarda ela terminar
   if (isTimeMachineActiveFlag) {
+    return;
+  }
+
+  // Estágio 3: Desafio 195 Países
+  if (pendingWorldChallengeQueue.length > 0) {
+    flushPendingWorldChallengeUnlocks();
+    return;
+  }
+  if (isWorldChallengeActiveFlag) {
     return;
   }
 
@@ -834,6 +871,51 @@ export function notifyTimeMachineCleared() {
   if (isTrophyToastActive()) return;
   if (pendingTimeMachineQueue.length > 0) {
     flushPendingTimeMachineUnlocks();
+    return;
+  }
+
+  if (pendingWorldChallengeQueue.length > 0) {
+    flushPendingWorldChallengeUnlocks();
+    return;
+  }
+  if (isWorldChallengeActiveFlag) {
+    return;
+  }
+
+  if (fallbackFlushTimer) {
+    clearTimeout(fallbackFlushTimer);
+    fallbackFlushTimer = null;
+  }
+  flushBufferedXpGain();
+}
+
+export function triggerWorldChallengeUnlock(unlockItems, forceImmediate = false) {
+  if (typeof window === 'undefined') return;
+  const list = Array.isArray(unlockItems) ? unlockItems.filter(Boolean) : unlockItems ? [unlockItems] : [];
+  if (list.length === 0) return;
+
+  if (!forceImmediate && (isTrophyToastActive() || isTimeMachineToastActiveOrQueued())) {
+    pendingWorldChallengeQueue.push(...list);
+    armSafetyFlushTimer();
+    return;
+  }
+
+  isWorldChallengeActiveFlag = true;
+  armSafetyFlushTimer();
+  window.dispatchEvent(new CustomEvent('cine-world-challenge-unlock', { detail: list }));
+}
+
+export function notifyWorldChallengeStarted() {
+  isWorldChallengeActiveFlag = true;
+  armSafetyFlushTimer();
+}
+
+export function notifyWorldChallengeCleared() {
+  isWorldChallengeActiveFlag = false;
+
+  if (isTrophyToastActive() || isTimeMachineToastActiveOrQueued()) return;
+  if (pendingWorldChallengeQueue.length > 0) {
+    flushPendingWorldChallengeUnlocks();
     return;
   }
 
@@ -937,6 +1019,7 @@ export function mergeXpGainEvents(baseEvent, incomingEvent) {
     tags: mergedTags,
     statGains: mergedStatGains.length > 0 ? mergedStatGains : undefined,
     unlockedClass,
+    isGhost: Boolean(incomingEvent.isGhost || baseEvent.isGhost),
   };
 }
 

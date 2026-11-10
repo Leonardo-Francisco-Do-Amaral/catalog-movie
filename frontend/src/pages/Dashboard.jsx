@@ -11,6 +11,7 @@ import TrophiesPage from './TrophiesPage';
 import AvatarLabPage from './AvatarLabPage';
 import PS5TrophyToastContainer, { triggerPS5TrophyToast, triggerTrophyBatch } from '../components/PS5TrophyToastContainer';
 import TimeMachineToastContainer from '../components/TimeMachineToastContainer';
+import WorldChallengeToastContainer from '../components/WorldChallengeToastContainer';
 import XPGainToastContainer from '../components/XPGainToastContainer';
 import ApiRefreshToastContainer, { triggerApiRefreshToast } from '../components/ApiRefreshToastContainer';
 import { evaluateTrophiesClientSide } from '../utils/trophyEngineClient';
@@ -1358,7 +1359,10 @@ export default function Dashboard() {
       {/* 2º Estágio: Portal da Máquina do Tempo (Dispara após os troféus sumirem!) */}
       <TimeMachineToastContainer />
 
-      {/* 3º Estágio: Pop-up / HUD Animado de Ganho de XP e Level Up (Dispara por último!) */}
+      {/* 3º Estágio: Conquistas Territoriais & Duelos do Desafio 195 */}
+      <WorldChallengeToastContainer />
+
+      {/* 4º Estágio: Pop-up / HUD Animado de Ganho de XP e Level Up (Dispara por último!) */}
       <XPGainToastContainer />
     </div>
   );

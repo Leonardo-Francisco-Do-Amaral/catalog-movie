@@ -6655,9 +6655,18 @@ function evaluateDefinitionsFromWorldData(
 }
 
 export async function evaluateTrophies(
-  options: { markNew?: boolean; recordLastMovie?: { movieId: number; title: string } } = {}
+  options: {
+    markNew?: boolean;
+    dryRun?: boolean;
+    recordLastMovie?: { movieId: number; title: string };
+  } = {}
 ): Promise<TrophiesSummaryResponse> {
-  await seedTrophies();
+  const dryRun = Boolean(options.dryRun);
+  if (!dryRun) {
+    await seedTrophies();
+  } else {
+    await ensureTrophyTables();
+  }
 
   const markNew = options.markNew ?? true;
 
@@ -6704,7 +6713,7 @@ export async function evaluateTrophies(
     };
   }
 
-  if (options.recordLastMovie) {
+  if (options.recordLastMovie && !dryRun) {
     const entries = buildLastActivityEntries((id) => previousStateMap.get(id), evaluatedTrophies);
     const nowIso = new Date().toISOString();
     lastActivity = {
@@ -6725,7 +6734,7 @@ export async function evaluateTrophies(
       `,
       [options.recordLastMovie.movieId, options.recordLastMovie.title, JSON.stringify(entries)]
     );
-  } else if (!lastActivity && Array.isArray(worldData.catalogMovies) && worldData.catalogMovies.length > 0) {
+  } else if (!dryRun && !lastActivity && Array.isArray(worldData.catalogMovies) && worldData.catalogMovies.length > 0) {
     const latestMovie = [...worldData.catalogMovies].sort(
       (a, b) => Number(b.movie_id) - Number(a.movie_id)
     )[0];
@@ -6765,10 +6774,14 @@ export async function evaluateTrophies(
     }
   }
 
-  // 5. Salva estado avaliado no banco de dados
+  // 5. Salva estado avaliado no banco de dados (ignorado em modo dryRun / Filme Fantasma)
   for (const ev of evaluatedTrophies) {
     if (ev.is_new) {
       newlyUnlocked.push(ev);
+    }
+
+    if (dryRun) {
+      continue;
     }
 
     await query(

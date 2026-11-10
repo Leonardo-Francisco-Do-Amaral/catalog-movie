@@ -373,6 +373,11 @@ function PS5ToastCard({ toast, onRemove, settings }) {
                 <CheckCircle2 className="w-3 h-3" /> Conquistado!
               </span>
             )}
+            {trophy.isGhost && (
+              <span className="text-[9px] uppercase font-black tracking-wider px-2 py-0.5 rounded-md bg-violet-500/20 border border-violet-400/50 text-violet-200">
+                👻 Fantasma
+              </span>
+            )}
           </div>
 
           <h4 className="text-sm font-black text-zinc-100 truncate tracking-tight">

@@ -12,11 +12,17 @@ import {
   Eye,
   EyeOff,
   ChevronDown,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Ghost
 } from 'lucide-react';
 import axios from 'axios';
 import { triggerTrophyBatch } from './PS5TrophyToastContainer';
-import { triggerXPGainToast, triggerTimeMachineUnlock, dispatchXpStatusUpdate } from '../utils/xpSystem';
+import {
+  triggerXPGainToast,
+  triggerTimeMachineUnlock,
+  triggerWorldChallengeUnlock,
+  dispatchXpStatusUpdate,
+} from '../utils/xpSystem';
 import { computeMovieStatGains } from '../utils/analyticsEngine';
 import { UN_COUNTRIES_195, HISTORICAL_TERRITORIES } from '../data/unCountries195';
 import { triggerApiRefreshToast } from './ApiRefreshToastContainer';
@@ -127,8 +133,9 @@ export default function MovieFormModal({
   const [customPlatformInput, setCustomPlatformInput] = useState('');
   const platformDropdownRef = useRef(null);
 
-  // Acordeão da Sinopse
+  // Acordeão da Sinopse & Modo Filme Fantasma (Dry-Run)
   const [isSynopsisOpen, setIsSynopsisOpen] = useState(false);
+  const [isGhostMode, setIsGhostMode] = useState(false);
 
   // Estados de busca preditiva na API
   const [searchQuery, setSearchQuery] = useState('');
@@ -202,6 +209,7 @@ export default function MovieFormModal({
       setIsAddingCustomPlatform(false);
       setCustomPlatformInput('');
       setIsSynopsisOpen(false);
+      setIsGhostMode(false);
 
       if (movie) {
         setFormData({
@@ -579,6 +587,11 @@ export default function MovieFormModal({
     data.append('vote_count', String(formData.vote_count || 0));
     data.append('is_custom', 'true'); // Gravação manual sempre ativa a permanência
 
+    const isGhostRun = !isEditMode && isGhostMode;
+    if (isGhostRun) {
+      data.append('is_ghost', 'true');
+    }
+
     // Anexa arrays serializados em string JSON para robustez
     data.append('countries', JSON.stringify(formData.countries));
     data.append('genres', JSON.stringify(splitList(formData.genres)));
@@ -599,15 +612,29 @@ export default function MovieFormModal({
     data.append('platform', formData.platform);
     data.append('review_notes', formData.review_notes);
 
-    // Anexa arquivo se presente
-    if (posterFile) {
+    const ghostPreviewUrl = isGhostRun && posterFile ? URL.createObjectURL(posterFile) : (formData.poster_url || '');
+
+    // Anexa arquivo se presente (em modo fantasma não precisa enviar binário para o disco)
+    if (posterFile && !isGhostRun) {
       data.append('poster_file', posterFile);
     }
 
-    const handleSaveSuccess = (resData, savedMovie, edited) => {
-      const newlyUnlocked = resData.newlyUnlocked || [];
-      const progressedTrophies = resData.progressedTrophies || [];
-      const timeMachineUnlocks = resData.timeMachineUnlocks || resData.xpGain?.timeMachineUnlocks || [];
+    const handleSaveSuccess = (resData, savedMovie, edited, ghostRun = false) => {
+      const tagGhost = (item) => (ghostRun ? { ...item, isGhost: true } : item);
+      const tagGhostEvent = (item) => (
+        ghostRun
+          ? { ...item, isGhost: true, posterUrl: item.posterUrl || ghostPreviewUrl || null }
+          : item
+      );
+
+      const newlyUnlocked = (resData.newlyUnlocked || []).map(tagGhost);
+      const progressedTrophies = (resData.progressedTrophies || []).map(tagGhost);
+      const timeMachineUnlocks = (
+        resData.timeMachineUnlocks || resData.xpGain?.timeMachineUnlocks || []
+      ).map(tagGhostEvent);
+      const worldChallengeUnlocks = (
+        resData.worldChallengeUnlocks || resData.xpGain?.worldChallengeUnlocks || []
+      ).map(tagGhostEvent);
 
       // 1º Estágio: Troféus PS5 (Colecionáveis de progresso + Conquistados 100%)
       if (progressedTrophies.length > 0 || newlyUnlocked.length > 0) {
@@ -617,18 +644,23 @@ export default function MovieFormModal({
         });
       }
 
-      if (Array.isArray(newlyUnlocked) && newlyUnlocked.length > 0) {
+      if (!ghostRun && Array.isArray(newlyUnlocked) && newlyUnlocked.length > 0) {
         axios.post('http://localhost:5000/api/trophies/ack-new', {
           trophyIds: newlyUnlocked.map((x) => x.id),
         }).catch(() => {});
       }
 
-      // 2º Estágio: Desbloqueio da Máquina do Tempo (aguarda troféus terminarem antes de abrir o portal!)
+      // 2º Estágio: Desbloqueio / Duelo da Máquina do Tempo
       if (Array.isArray(timeMachineUnlocks) && timeMachineUnlocks.length > 0) {
         triggerTimeMachineUnlock(timeMachineUnlocks);
       }
 
-      // 3º Estágio: Barra de XP, Atributos & Evolução de Classe RPG
+      // 3º Estágio: Desafio 195 Países (País Inédito & Duelo de Trono)
+      if (Array.isArray(worldChallengeUnlocks) && worldChallengeUnlocks.length > 0) {
+        triggerWorldChallengeUnlock(worldChallengeUnlocks);
+      }
+
+      // 4º Estágio: Barra de XP, Atributos & Evolução de Classe RPG
       const { statGains, unlockedClass } = computeMovieStatGains({
         movieData: savedMovie,
         newlyUnlocked,
@@ -665,16 +697,19 @@ export default function MovieFormModal({
 
         const enrichedXpGain = {
           ...baseXpGain,
+          isGhost: ghostRun,
           statGains: statGains.length > 0 ? statGains : baseXpGain.statGains,
           unlockedClass: resolvedUnlockedClass,
         };
 
-        triggerXPGainToast(enrichedXpGain, resData.xpStatus);
-      } else if (resData.xpStatus) {
+        triggerXPGainToast(enrichedXpGain, ghostRun ? null : resData.xpStatus);
+      } else if (!ghostRun && resData.xpStatus) {
         dispatchXpStatusUpdate(resData.xpStatus);
       }
 
-      onSave(newlyUnlocked, savedMovie, resData.xpStatus);
+      if (!ghostRun) {
+        onSave(newlyUnlocked, savedMovie, resData.xpStatus);
+      }
       onClose();
     };
 
@@ -683,15 +718,22 @@ export default function MovieFormModal({
       if (isEditMode) {
         const res = await axios.put(`http://localhost:5000/api/movies/edit/${movie.movie_id}`, data, { headers });
         if (res.data.success) {
-          handleSaveSuccess(res.data, { ...movie, ...formData }, true);
+          handleSaveSuccess(res.data, { ...movie, ...formData }, true, false);
         }
       } else {
         const res = await axios.post('http://localhost:5000/api/movies/add', data, { headers });
         if (res.data.success) {
+          const effectiveMovieId = isGhostRun ? -Date.now() : res.data.movieId;
           handleSaveSuccess(
             res.data,
-            { movie_id: res.data.movieId, id: res.data.movieId, ...formData },
-            false
+            {
+              ...formData,
+              movie_id: effectiveMovieId,
+              id: effectiveMovieId,
+              poster_url: isGhostRun ? ghostPreviewUrl : formData.poster_url,
+            },
+            false,
+            isGhostRun
           );
         }
       }
@@ -1628,7 +1670,32 @@ export default function MovieFormModal({
           </div>
 
           {/* Botões de Ação no Rodapé do Form */}
-          <div className="flex items-center justify-end gap-3 mt-8 pt-5 border-t border-zinc-800/80">
+          <div className="flex flex-wrap items-center justify-end gap-3 mt-8 pt-5 border-t border-zinc-800/80">
+            {!isEditMode && (
+              <button
+                type="button"
+                onClick={() => setIsGhostMode((prev) => !prev)}
+                title="Simula todos os troféus, duelos da Máquina do Tempo, Desafio 195 e XP usando os dados deste formulário e depois apaga tudo automaticamente (ROLLBACK no banco)."
+                className={`mr-auto inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-bold transition-all duration-300 ${
+                  isGhostMode
+                    ? 'bg-gradient-to-r from-violet-950/90 to-cyan-950/80 border-violet-400/70 text-violet-200 shadow-lg shadow-violet-500/20'
+                    : 'bg-zinc-950 hover:bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-violet-300'
+                }`}
+              >
+                <Ghost className={`w-4 h-4 ${isGhostMode ? 'text-violet-300 animate-pulse' : 'text-zinc-500'}`} />
+                <span>Modo Filme Fantasma</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase ${
+                    isGhostMode
+                      ? 'bg-violet-500/30 text-violet-200 border border-violet-400/40'
+                      : 'bg-zinc-900 text-zinc-500 border border-zinc-800'
+                  }`}
+                >
+                  {isGhostMode ? 'ATIVO (NÃO SALVA)' : 'TESTE'}
+                </span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={onClose}
@@ -1638,9 +1705,17 @@ export default function MovieFormModal({
             </button>
             <button
               type="submit"
-              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-8 py-2.5 rounded-xl transition-all duration-300 text-xs shadow-lg shadow-amber-500/10"
+              className={`font-black px-8 py-2.5 rounded-xl transition-all duration-300 text-xs shadow-lg ${
+                !isEditMode && isGhostMode
+                  ? 'bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500 hover:brightness-110 text-white shadow-violet-500/25'
+                  : 'bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-amber-500/10'
+              }`}
             >
-              {isEditMode ? 'Salvar Alterações' : 'Cadastrar Filme'}
+              {isEditMode
+                ? 'Salvar Alterações'
+                : isGhostMode
+                  ? '👻 Simular Filme Fantasma'
+                  : 'Cadastrar Filme'}
             </button>
           </div>
         </form>

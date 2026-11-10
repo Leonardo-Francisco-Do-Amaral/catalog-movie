@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import * as dotenv from 'dotenv';
 import axios from 'axios';
-import pool, { query, testConnection } from './config/database';
+import pool, { query, runWithTransactionClient, testConnection } from './config/database';
 import { fetchMovieDetailsByTitle, fetchMoviePosters, normalizeGenre } from './services/movieIntegration';
 import {
   refreshSingleMovieExternalMetrics,
@@ -40,6 +40,8 @@ import {
   getQuickXpSnapshot,
   computeXpGainEvent,
   computeTimeMachineUnlocks,
+  computeTimeMachineEvents,
+  computeWorldChallengeEvents,
 } from './services/xpService';
 import multer from 'multer';
 import path from 'path';
@@ -393,9 +395,78 @@ app.get('/api/movies/posters-api', async (req: Request, res: Response) => {
   }
 });
 
-// Rota: Adicionar Filme (Multipart com Multer)
+async function evaluatePostMovieSaveEvents(params: {
+  prevXp: any;
+  prevWorld: any;
+  prevTm: any;
+  movieId: number;
+  movieTitle: string;
+  sourceTrigger: 'movie_add' | 'movie_edit';
+  isGhost?: boolean;
+}) {
+  const { prevXp, prevWorld, prevTm, movieId, movieTitle, sourceTrigger, isGhost = false } = params;
+  let newlyUnlocked: any[] = [];
+  let progressedTrophies: any[] = [];
+  let xpStatus: any = null;
+  try {
+    const trophyResult = await evaluateTrophies({
+      markNew: true,
+      dryRun: isGhost,
+      recordLastMovie:
+        isGhost || sourceTrigger !== 'movie_add' ? undefined : { movieId, title: movieTitle },
+    });
+    newlyUnlocked = trophyResult.newlyUnlocked || [];
+    progressedTrophies = trophyResult.progressedTrophies || [];
+    xpStatus = trophyResult.xpStatus || null;
+  } catch (e: any) {
+    console.error(`[Trophies] Erro na auto-avaliação (${sourceTrigger}):`, e.message);
+  }
+
+  const nextWorld = await buildWorldChallengePayload().catch(() => null);
+  const nextTm = nextWorld ? await buildTimeMachinePayload(nextWorld).catch(() => null) : null;
+  if (!xpStatus) {
+    xpStatus = await getQuickXpSnapshot().catch(() => null);
+  }
+  const xpGain = computeXpGainEvent(prevXp, xpStatus);
+  const timeMachineUnlocks = computeTimeMachineEvents(prevTm, nextTm, prevXp, xpStatus, {
+    movieId,
+    isGhost,
+  });
+  const worldChallengeUnlocks = computeWorldChallengeEvents(prevWorld, nextWorld, {
+    sourceTrigger,
+    movieId,
+    isGhost,
+  });
+
+  return {
+    newlyUnlocked,
+    progressedTrophies,
+    timeMachineUnlocks,
+    worldChallengeUnlocks,
+    xpStatus,
+    xpGain,
+  };
+}
+
+// Rota: Adicionar Filme (Multipart com Multer — suporta is_ghost para simulação via ROLLBACK)
 app.post('/api/movies/add', upload.single('poster_file'), async (req: Request, res: Response) => {
-  const prevXp = await getQuickXpSnapshot().catch(() => null);
+  const isGhost = req.body.is_ghost === 'true' || req.body.is_ghost === true;
+  const [prevXp, prevWorld] = await Promise.all([
+    getQuickXpSnapshot().catch(() => null),
+    buildWorldChallengePayload().catch(() => null),
+  ]);
+  const prevTm = prevWorld ? await buildTimeMachinePayload(prevWorld).catch(() => null) : null;
+
+  const cleanupGhostUpload = () => {
+    if (isGhost && req.file?.path && fs.existsSync(req.file.path)) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch {
+        // ignore temp cleanup errors
+      }
+    }
+  };
+
   const dbClient = await pool.connect();
   try {
     await dbClient.query('BEGIN');
@@ -414,7 +485,7 @@ app.post('/api/movies/add', upload.single('poster_file'), async (req: Request, r
       is_custom,
       oscar_wins,
       oscar_nominations,
-      
+
       // Relacionamentos
       countries,
       genres,
@@ -422,7 +493,7 @@ app.post('/api/movies/add', upload.single('poster_file'), async (req: Request, r
       writers,
       studios,
       tags,
-      
+
       // Visualização
       view_id,
       user_rating,
@@ -441,7 +512,7 @@ app.post('/api/movies/add', upload.single('poster_file'), async (req: Request, r
 
     // Configura pôster de upload local se presente, senão usa URL externa
     let finalPosterUrl = poster_url || null;
-    if (req.file) {
+    if (req.file && !isGhost) {
       finalPosterUrl = `/uploads/${req.file.filename}`;
     }
 
@@ -452,33 +523,40 @@ app.post('/api/movies/add', upload.single('poster_file'), async (req: Request, r
     const parsedStudios = parseListField(studios);
     const parsedTags = parseListField(tags);
 
-    // Verificar duplicidade de ID IMDb / TMDB antes de inserir
-    if (imdb_id && imdb_id.trim()) {
+    let effectiveImdbId: string | null = imdb_id && imdb_id.trim() ? imdb_id.trim() : null;
+    let effectiveTmdbId: number | null = parseNullableNumeric(tmdb_id);
+
+    // Verificar duplicidade de ID IMDb / TMDB antes de inserir (no modo Fantasma evita conflito mantendo simulação)
+    if (effectiveImdbId) {
       const existingRes = await dbClient.query(
         'SELECT title FROM movies WHERE imdb_id = $1',
-        [imdb_id.trim()]
+        [effectiveImdbId]
       );
       if (existingRes.rows.length > 0) {
-        await dbClient.query('ROLLBACK');
-        dbClient.release();
-        return res.status(400).json({
-          success: false,
-          error: `Já existe um filme cadastrado com este IMDb ID (${imdb_id.trim()}) chamado "${existingRes.rows[0].title}". Tente pesquisar por ele no catálogo.`
-        });
+        if (!isGhost) {
+          await dbClient.query('ROLLBACK');
+          return res.status(400).json({
+            success: false,
+            error: `Já existe um filme cadastrado com este IMDb ID (${effectiveImdbId}) chamado "${existingRes.rows[0].title}". Tente pesquisar por ele no catálogo.`
+          });
+        }
+        effectiveImdbId = null;
       }
     }
-    if (tmdb_id) {
+    if (effectiveTmdbId !== null) {
       const existingRes = await dbClient.query(
         'SELECT title FROM movies WHERE tmdb_id = $1',
-        [Number(tmdb_id)]
+        [effectiveTmdbId]
       );
       if (existingRes.rows.length > 0) {
-        await dbClient.query('ROLLBACK');
-        dbClient.release();
-        return res.status(400).json({
-          success: false,
-          error: `Já existe um filme cadastrado com este TMDB ID (${tmdb_id}) chamado "${existingRes.rows[0].title}". Tente pesquisar por ele no catálogo.`
-        });
+        if (!isGhost) {
+          await dbClient.query('ROLLBACK');
+          return res.status(400).json({
+            success: false,
+            error: `Já existe um filme cadastrado com este TMDB ID (${tmdb_id}) chamado "${existingRes.rows[0].title}". Tente pesquisar por ele no catálogo.`
+          });
+        }
+        effectiveTmdbId = null;
       }
     }
 
@@ -487,8 +565,8 @@ app.post('/api/movies/add', upload.single('poster_file'), async (req: Request, r
       `INSERT INTO movies (imdb_id, tmdb_id, title, original_title, release_year, runtime, synopsis, poster_url, imdb_rating, metacritic_score, rotten_tomatoes_score, is_custom, oscar_wins, oscar_nominations, vote_count, distributor)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING id`,
       [
-        imdb_id || null,
-        parseNullableNumeric(tmdb_id),
+        effectiveImdbId,
+        effectiveTmdbId,
         title,
         original_title || null,
         parseNullableNumeric(release_year),
@@ -619,33 +697,43 @@ app.post('/api/movies/add', upload.single('poster_file'), async (req: Request, r
       ]
     );
 
-    await dbClient.query('COMMIT');
-    // Avalia troféus imediatamente e calcula delta oficial de XP
-    let newlyUnlocked: any[] = [];
-    let progressedTrophies: any[] = [];
-    let xpStatus: any = null;
-    try {
-      const trophyResult = await evaluateTrophies({
-        markNew: true,
-        recordLastMovie: {
+    const movieTitle = String(title || original_title || 'Último filme cadastrado');
+    if (isGhost) {
+      const ghostEvents = await runWithTransactionClient(dbClient, () =>
+        evaluatePostMovieSaveEvents({
+          prevXp,
+          prevWorld,
+          prevTm,
           movieId,
-          title: String(title || original_title || 'Último filme cadastrado'),
-        },
+          movieTitle,
+          sourceTrigger: 'movie_add',
+          isGhost: true,
+        })
+      );
+      await dbClient.query('ROLLBACK');
+      cleanupGhostUpload();
+      return res.json({
+        success: true,
+        isGhost: true,
+        movieId: null,
+        ...ghostEvents,
       });
-      newlyUnlocked = trophyResult.newlyUnlocked || [];
-      progressedTrophies = trophyResult.progressedTrophies || [];
-      xpStatus = trophyResult.xpStatus || null;
-    } catch (e: any) {
-      console.error('[Trophies] Erro na auto-avaliação pós-insert:', e.message);
     }
-    if (!xpStatus) {
-      xpStatus = await getQuickXpSnapshot().catch(() => null);
-    }
-    const xpGain = computeXpGainEvent(prevXp, xpStatus);
-    const timeMachineUnlocks = computeTimeMachineUnlocks(prevXp, xpStatus);
-    return res.json({ success: true, movieId, newlyUnlocked, progressedTrophies, timeMachineUnlocks, xpStatus, xpGain });
+
+    await dbClient.query('COMMIT');
+    const savedEvents = await evaluatePostMovieSaveEvents({
+      prevXp,
+      prevWorld,
+      prevTm,
+      movieId,
+      movieTitle,
+      sourceTrigger: 'movie_add',
+      isGhost: false,
+    });
+    return res.json({ success: true, isGhost: false, movieId, ...savedEvents });
   } catch (err: any) {
     await dbClient.query('ROLLBACK');
+    cleanupGhostUpload();
     console.error('[Express] Erro ao adicionar filme:', err.message);
     return res.status(500).json({ success: false, error: err.message });
   } finally {
@@ -656,7 +744,11 @@ app.post('/api/movies/add', upload.single('poster_file'), async (req: Request, r
 // Rota: Editar Filme (Multipart com Multer)
 app.put('/api/movies/edit/:id', upload.single('poster_file'), async (req: Request, res: Response) => {
   const movieId = Number(req.params.id);
-  const prevXp = await getQuickXpSnapshot().catch(() => null);
+  const [prevXp, prevWorld] = await Promise.all([
+    getQuickXpSnapshot().catch(() => null),
+    buildWorldChallengePayload().catch(() => null),
+  ]);
+  const prevTm = prevWorld ? await buildTimeMachinePayload(prevWorld).catch(() => null) : null;
   const dbClient = await pool.connect();
   try {
     await dbClient.query('BEGIN');
@@ -929,24 +1021,16 @@ app.put('/api/movies/edit/:id', upload.single('poster_file'), async (req: Reques
     }
 
     await dbClient.query('COMMIT');
-    // Avalia troféus imediatamente e calcula delta oficial de XP
-    let newlyUnlocked: any[] = [];
-    let progressedTrophies: any[] = [];
-    let xpStatus: any = null;
-    try {
-      const trophyResult = await evaluateTrophies({ markNew: true });
-      newlyUnlocked = trophyResult.newlyUnlocked || [];
-      progressedTrophies = trophyResult.progressedTrophies || [];
-      xpStatus = trophyResult.xpStatus || null;
-    } catch (e: any) {
-      console.error('[Trophies] Erro na auto-avaliação pós-update:', e.message);
-    }
-    if (!xpStatus) {
-      xpStatus = await getQuickXpSnapshot().catch(() => null);
-    }
-    const xpGain = computeXpGainEvent(prevXp, xpStatus);
-    const timeMachineUnlocks = computeTimeMachineUnlocks(prevXp, xpStatus);
-    return res.json({ success: true, newlyUnlocked, progressedTrophies, timeMachineUnlocks, xpStatus, xpGain });
+    const savedEvents = await evaluatePostMovieSaveEvents({
+      prevXp,
+      prevWorld,
+      prevTm,
+      movieId: activeMovieId,
+      movieTitle: String(title || original_title || 'Filme editado'),
+      sourceTrigger: 'movie_edit',
+      isGhost: false,
+    });
+    return res.json({ success: true, ...savedEvents });
   } catch (err: any) {
     await dbClient.query('ROLLBACK');
     console.error('[Express] Erro ao editar filme:', err.message);
@@ -1297,10 +1381,42 @@ app.get('/api/challenge/world-195', async (req: Request, res: Response) => {
   }
 });
 
+async function evaluateWorldActionFeedback(
+  prevXp: any,
+  prevWorld: any,
+  nextWorld: any,
+  sourceTrigger: 'country_pick' | 'coproduction_curate',
+  movieId?: number
+) {
+  let newlyUnlocked: any[] = [];
+  let progressedTrophies: any[] = [];
+  let xpStatus: any = null;
+  try {
+    const trophyResult = await evaluateTrophies({ markNew: true });
+    newlyUnlocked = trophyResult.newlyUnlocked || [];
+    progressedTrophies = trophyResult.progressedTrophies || [];
+    xpStatus = trophyResult.xpStatus || null;
+  } catch (e: any) {
+    console.error(`[Trophies] Erro pós-${sourceTrigger}:`, e.message);
+  }
+  if (!xpStatus) {
+    xpStatus = await getQuickXpSnapshot().catch(() => null);
+  }
+  const xpGain = computeXpGainEvent(prevXp, xpStatus);
+  const worldChallengeUnlocks = computeWorldChallengeEvents(prevWorld, nextWorld, {
+    sourceTrigger,
+    movieId,
+  });
+  return { newlyUnlocked, progressedTrophies, xpStatus, xpGain, worldChallengeUnlocks };
+}
+
 // Rota: Fixar (ou restaurar automático se movieId = null) o Filme Campeão de um país
 app.put('/api/challenge/world-195/pick/:countryCode', async (req: Request, res: Response) => {
   try {
-    const prevXp = await getQuickXpSnapshot().catch(() => null);
+    const [prevXp, prevWorld] = await Promise.all([
+      getQuickXpSnapshot().catch(() => null),
+      buildWorldChallengePayload().catch(() => null),
+    ]);
     const countryCode = String(req.params.countryCode);
     const { countryName, movieId, lockExclusiveOrigin } = req.body;
     const parsedMovieId =
@@ -1312,22 +1428,14 @@ app.put('/api/challenge/world-195/pick/:countryCode', async (req: Request, res: 
       parsedMovieId,
       Boolean(lockExclusiveOrigin)
     );
-    let newlyUnlocked: any[] = [];
-    let progressedTrophies: any[] = [];
-    let xpStatus: any = null;
-    try {
-      const trophyResult = await evaluateTrophies({ markNew: true });
-      newlyUnlocked = trophyResult.newlyUnlocked || [];
-      progressedTrophies = trophyResult.progressedTrophies || [];
-      xpStatus = trophyResult.xpStatus || null;
-    } catch (e: any) {
-      console.error('[Trophies] Erro pós-set-champion:', e.message);
-    }
-    if (!xpStatus) {
-      xpStatus = await getQuickXpSnapshot().catch(() => null);
-    }
-    const xpGain = computeXpGainEvent(prevXp, xpStatus);
-    return res.json({ success: true, data, newlyUnlocked, progressedTrophies, xpStatus, xpGain });
+    const feedback = await evaluateWorldActionFeedback(
+      prevXp,
+      prevWorld,
+      data,
+      'country_pick',
+      parsedMovieId ?? undefined
+    );
+    return res.json({ success: true, data, ...feedback });
   } catch (err: any) {
     console.error('[WorldChallenge] Erro ao salvar escolha manual:', err.message);
     return res.status(500).json({ success: false, error: err.message });
@@ -1337,27 +1445,22 @@ app.put('/api/challenge/world-195/pick/:countryCode', async (req: Request, res: 
 // Rota: Consagrar (ou liberar) Origem Cultural Exclusiva de uma coprodução
 app.put('/api/challenge/world-195/origin/:movieId', async (req: Request, res: Response) => {
   try {
-    const prevXp = await getQuickXpSnapshot().catch(() => null);
+    const [prevXp, prevWorld] = await Promise.all([
+      getQuickXpSnapshot().catch(() => null),
+      buildWorldChallengePayload().catch(() => null),
+    ]);
     const movieId = Number(req.params.movieId);
     const { countryCode } = req.body;
     const cleanCode = countryCode ? String(countryCode).trim() : null;
     const data = await setMovieCulturalOrigin(movieId, cleanCode);
-    let newlyUnlocked: any[] = [];
-    let progressedTrophies: any[] = [];
-    let xpStatus: any = null;
-    try {
-      const trophyResult = await evaluateTrophies({ markNew: true });
-      newlyUnlocked = trophyResult.newlyUnlocked || [];
-      progressedTrophies = trophyResult.progressedTrophies || [];
-      xpStatus = trophyResult.xpStatus || null;
-    } catch (e: any) {
-      console.error('[Trophies] Erro pós-set-origin:', e.message);
-    }
-    if (!xpStatus) {
-      xpStatus = await getQuickXpSnapshot().catch(() => null);
-    }
-    const xpGain = computeXpGainEvent(prevXp, xpStatus);
-    return res.json({ success: true, data, newlyUnlocked, progressedTrophies, xpStatus, xpGain });
+    const feedback = await evaluateWorldActionFeedback(
+      prevXp,
+      prevWorld,
+      data,
+      'coproduction_curate',
+      movieId
+    );
+    return res.json({ success: true, data, ...feedback });
   } catch (err: any) {
     console.error('[WorldChallenge] Erro ao atualizar origem cultural:', err.message);
     return res.status(500).json({ success: false, error: err.message });
