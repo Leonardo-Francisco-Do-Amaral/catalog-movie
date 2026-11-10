@@ -492,6 +492,15 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
         if (tierA !== tierB) return tierA - tierB;
         return a.name.localeCompare(b.name, 'pt-BR');
       }
+      if (cardSortBy === 'movies_desc') {
+        const ma = a.totalCandidates ?? a.candidates?.length ?? 0;
+        const mb = b.totalCandidates ?? b.candidates?.length ?? 0;
+        if (mb !== ma) return mb - ma;
+        const ra = a.champion ? Number(a.champion.user_rating || 0) : -1;
+        const rb = b.champion ? Number(b.champion.user_rating || 0) : -1;
+        if (rb !== ra) return rb - ra;
+        return a.name.localeCompare(b.name, 'pt-BR');
+      }
       if (cardSortBy === 'rating_desc') {
         const ra = a.champion ? Number(a.champion.user_rating || 0) : -1;
         const rb = b.champion ? Number(b.champion.user_rating || 0) : -1;
@@ -1127,6 +1136,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                   className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs font-bold text-zinc-200 focus:outline-none cursor-pointer"
                 >
                   <option value="conquered_first">Conquistados Primeiro</option>
+                  <option value="movies_desc">Mais Filmes Cadastrados</option>
                   <option value="rarity_desc">Raridade (Mítico → Comum)</option>
                   <option value="rarity_asc">Raridade (Comum → Mítico)</option>
                   <option value="rating_desc">Maior Nota do Filme</option>
@@ -1211,9 +1221,15 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                           <div className="text-xs font-bold text-zinc-100 truncate mt-0.5">
                             {c.champion.title}
                           </div>
-                          <div className="text-[10px] font-black text-amber-400 mt-0.5 flex items-center gap-1">
+                          <div className="text-[10px] font-black text-amber-400 mt-0.5 flex items-center gap-1 flex-wrap">
                             <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
                             <span>{Number(c.champion.user_rating || 0).toFixed(2)}</span>
+                            {(c.totalCandidates ?? c.candidates?.length ?? 0) > 0 && (
+                              <span className="inline-flex items-center gap-0.5 rounded bg-black/80 border border-white/15 font-mono font-bold text-zinc-200 text-[9px] px-1.5 py-0.2 ml-1">
+                                <Film className="w-2.5 h-2.5 text-cyan-300" />
+                                {c.totalCandidates ?? c.candidates?.length}
+                              </span>
+                            )}
                             {c.champion.originMode === 'manual' && (
                               <span className="text-[9px] text-emerald-400 font-black ml-1 flex items-center gap-0.5">
                                 <Flag className="w-2 h-2 fill-current" /> Validado
@@ -1682,6 +1698,15 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                           {country.selectionMode === 'manual' && (
                             <span className="text-[8px] font-black uppercase bg-zinc-950/90 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded flex items-center gap-0.5">
                               <Pin className="w-2.5 h-2.5" /> Fixado
+                            </span>
+                          )}
+                          {(country.totalCandidates ?? country.candidates?.length ?? 0) > 0 && (
+                            <span
+                              className="inline-flex items-center gap-1 rounded-md bg-black/80 border border-white/15 font-mono font-bold text-zinc-100 backdrop-blur-md text-[10px] px-1.5 py-0.5 shadow"
+                              title={`${country.totalCandidates ?? country.candidates?.length} filme(s) neste país no Desafio 195`}
+                            >
+                              <Film className="w-2.5 h-2.5 text-cyan-300" />
+                              {country.totalCandidates ?? country.candidates?.length}
                             </span>
                           )}
                         </div>
