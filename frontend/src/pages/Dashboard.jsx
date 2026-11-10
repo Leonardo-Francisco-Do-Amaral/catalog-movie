@@ -215,56 +215,61 @@ export default function Dashboard() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [reviewedMovieIds, setReviewedMovieIds] = useState([]);
 
-  // Calcula diretores, roteiristas, estúdios e distribuidoras frequentes no catálogo
-  const { frequentDirectors, frequentWriters, frequentStudios, frequentDistributors } = useMemo(() => {
-    const directorCounts = {};
-    const writerCounts = {};
-    const studioCounts = {};
-    const distributorCounts = {};
+  // Calcula diretores, roteiristas, estúdios e distribuidoras frequentes no catálogo + contagens por filme único
+  const {
+    frequentDirectors,
+    frequentWriters,
+    frequentStudios,
+    frequentDistributors,
+    directorCounts,
+    writerCounts,
+    studioCounts,
+    distributorCounts,
+  } = useMemo(() => {
+    const dCounts = {};
+    const wCounts = {};
+    const sCounts = {};
+    const distCounts = {};
 
     allMovies.forEach(movie => {
       const directorsList = Array.isArray(movie.directors) && movie.directors.length > 0
         ? movie.directors
         : (movie.director ? [movie.director] : []);
-      directorsList.forEach(directorName => {
-        if (directorName) {
-          directorCounts[directorName] = (directorCounts[directorName] || 0) + 1;
-        }
+      new Set(directorsList.map(d => (d ? String(d).trim() : '')).filter(Boolean)).forEach(directorName => {
+        dCounts[directorName] = (dCounts[directorName] || 0) + 1;
       });
 
       const writersList = movie.writers || [];
-      writersList.forEach(writerName => {
-        if (writerName) {
-          writerCounts[writerName] = (writerCounts[writerName] || 0) + 1;
-        }
+      new Set(writersList.map(w => (w ? String(w).trim() : '')).filter(Boolean)).forEach(writerName => {
+        wCounts[writerName] = (wCounts[writerName] || 0) + 1;
       });
       
       const studiosList = movie.studios || [];
-      studiosList.forEach(studioName => {
-        const cleanStudio = normalizeName(studioName);
-        if (cleanStudio) {
-          studioCounts[cleanStudio] = (studioCounts[cleanStudio] || 0) + 1;
-        }
+      new Set(studiosList.map(s => normalizeName(s)).filter(Boolean)).forEach(cleanStudio => {
+        sCounts[cleanStudio] = (sCounts[cleanStudio] || 0) + 1;
       });
 
       if (movie.distributor) {
-        const dists = getDistributorsList(movie.distributor);
-        dists.forEach(cleanDist => {
-          distributorCounts[cleanDist] = (distributorCounts[cleanDist] || 0) + 1;
+        new Set(getDistributorsList(movie.distributor)).forEach(cleanDist => {
+          distCounts[cleanDist] = (distCounts[cleanDist] || 0) + 1;
         });
       }
     });
 
-    const directors = Object.keys(directorCounts).filter(d => directorCounts[d] >= 2);
-    const writers = Object.keys(writerCounts).filter(w => writerCounts[w] >= 2);
-    const studios = Object.keys(studioCounts).filter(s => studioCounts[s] >= 3);
-    const distributors = Object.keys(distributorCounts).filter(d => distributorCounts[d] >= 3);
+    const directors = Object.keys(dCounts).filter(d => dCounts[d] >= 2);
+    const writers = Object.keys(wCounts).filter(w => wCounts[w] >= 2);
+    const studios = Object.keys(sCounts).filter(s => sCounts[s] >= 3);
+    const distributors = Object.keys(distCounts).filter(d => distCounts[d] >= 3);
 
     return { 
       frequentDirectors: directors.sort(), 
       frequentWriters: writers.sort(), 
       frequentStudios: studios.sort(), 
-      frequentDistributors: distributors.sort() 
+      frequentDistributors: distributors.sort(),
+      directorCounts: dCounts,
+      writerCounts: wCounts,
+      studioCounts: sCounts,
+      distributorCounts: distCounts,
     };
   }, [allMovies]);
 
@@ -293,11 +298,13 @@ export default function Dashboard() {
     }
   };
 
-  // Contagens por filme único para Tags, Gêneros e Países nos dropdowns de filtros
-  const { tagCounts, genreCounts, countryCounts } = useMemo(() => {
+  // Contagens por filme único para Tags, Gêneros, Países, Plataformas e Áudios nos dropdowns de filtros
+  const { tagCounts, genreCounts, countryCounts, platformCounts, audioCounts } = useMemo(() => {
     const tCounts = {};
     const gCounts = {};
     const cCounts = {};
+    const pCounts = {};
+    const aCounts = {};
 
     allMovies.forEach((movie) => {
       new Set(movie.tags || []).forEach((tag) => {
@@ -313,6 +320,14 @@ export default function Dashboard() {
       } else {
         cCounts['Desconhecido'] = (cCounts['Desconhecido'] || 0) + 1;
       }
+      if (movie.platform && movie.platform.trim()) {
+        const plat = movie.platform.trim();
+        pCounts[plat] = (pCounts[plat] || 0) + 1;
+      }
+      if (movie.audio_type && movie.audio_type.trim()) {
+        const aud = movie.audio_type.trim();
+        aCounts[aud] = (aCounts[aud] || 0) + 1;
+      }
     });
 
     systemTags.forEach((tag) => {
@@ -320,9 +335,20 @@ export default function Dashboard() {
         tCounts[tag] = 0;
       }
     });
+    allPlatforms.forEach((plat) => {
+      if (plat && pCounts[plat] === undefined) {
+        pCounts[plat] = 0;
+      }
+    });
 
-    return { tagCounts: tCounts, genreCounts: gCounts, countryCounts: cCounts };
-  }, [allMovies, systemTags]);
+    return {
+      tagCounts: tCounts,
+      genreCounts: gCounts,
+      countryCounts: cCounts,
+      platformCounts: pCounts,
+      audioCounts: aCounts,
+    };
+  }, [allMovies, systemTags, allPlatforms]);
 
   const [loading, setLoading] = useState(true);
   const [usingMock, setUsingMock] = useState(false);
@@ -812,6 +838,17 @@ export default function Dashboard() {
     }
   };
 
+  const [apiRefreshJob, setApiRefreshJob] = useState(null);
+  const apiRefreshPollRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (apiRefreshPollRef.current) {
+        clearInterval(apiRefreshPollRef.current);
+      }
+    };
+  }, []);
+
   // Aplica atualização seletiva de métricas no estado local sem sobrescrever campos manuais
   const handleApplyApiRefreshPayload = useCallback(
     (payload) => {
@@ -860,26 +897,111 @@ export default function Dashboard() {
     [applyXpStatus]
   );
 
-  // Acionado direto do Card no Catálogo: atualiza APENAS notas externas, votos e Oscars
-  const handleRefreshMovieApiMetrics = useCallback(
-    async (movie) => {
-      const targetMovieId = movie.movie_id || movie.id;
-      try {
-        const res = await axios.post(`${API_BASE_URL}/movies/${targetMovieId}/refresh-api-metrics`);
-        if (res.data?.success) {
-          handleApplyApiRefreshPayload(res.data);
-          triggerApiRefreshToast(res.data);
-        }
-      } catch (err) {
-        console.error('[Dashboard] Erro ao atualizar métricas externas:', err);
-        triggerApiRefreshToast({
-          title: movie.title,
-          error: err.response?.data?.error || err.message,
-        });
+  // Acionado no Catálogo: atualiza em lote TODOS os filmes do catálogo (APENAS notas externas, votos/visualizações e Oscars)
+  const handleStartCatalogApiRefresh = useCallback(async () => {
+    if (apiRefreshJob?.status === 'running') return;
+    try {
+      const startRes = await axios.post(`${API_BASE_URL}/movies/refresh-all-api-metrics/start`);
+      if (!startRes.data?.success) {
+        throw new Error(startRes.data?.error || 'Falha ao iniciar atualização.');
       }
-    },
-    [handleApplyApiRefreshPayload]
-  );
+      const { jobId, total } = startRes.data;
+      setApiRefreshJob({
+        jobId,
+        status: 'running',
+        total,
+        processed: 0,
+        updatedCount: 0,
+        unchangedCount: 0,
+        errorCount: 0,
+        currentTitle: '',
+      });
+
+      if (apiRefreshPollRef.current) clearInterval(apiRefreshPollRef.current);
+
+      apiRefreshPollRef.current = setInterval(async () => {
+        try {
+          const statusRes = await axios.get(`${API_BASE_URL}/movies/refresh-all-api-metrics/status/${jobId}`);
+          const job = statusRes.data?.data;
+          if (!job) return;
+          setApiRefreshJob(job);
+
+          if (job.status !== 'running') {
+            clearInterval(apiRefreshPollRef.current);
+            apiRefreshPollRef.current = null;
+            setApiRefreshJob(null);
+
+            // Aplica apenas as métricas atualizadas em memória sem perder filtros ou scroll
+            if (Array.isArray(job.updatedMovies) && job.updatedMovies.length > 0) {
+              const updatesById = new Map(job.updatedMovies.map((u) => [u.movieId, u.metrics]));
+              setAllMovies((prev) =>
+                prev.map((item) => {
+                  const m = updatesById.get(item.movie_id || item.id);
+                  return m
+                    ? {
+                        ...item,
+                        imdb_rating: m.imdb_rating,
+                        metacritic_score: m.metacritic_score,
+                        rotten_tomatoes_score: m.rotten_tomatoes_score,
+                        vote_count: m.vote_count,
+                        oscar_wins: m.oscar_wins,
+                        oscar_nominations: m.oscar_nominations,
+                      }
+                    : item;
+                })
+              );
+            }
+
+            const te = job.trophyEvaluation;
+            if (te) {
+              const newlyUnlocked = te.newlyUnlocked || [];
+              const progressedTrophies = te.progressedTrophies || [];
+              if (progressedTrophies.length > 0 || newlyUnlocked.length > 0) {
+                triggerTrophyBatch({ progressed: progressedTrophies, unlocked: newlyUnlocked });
+              }
+              if (newlyUnlocked.length > 0) {
+                axios
+                  .post(`${API_BASE_URL}/trophies/ack-new`, {
+                    trophyIds: newlyUnlocked.map((x) => x.id),
+                  })
+                  .catch(() => {});
+              }
+              if (Array.isArray(te.timeMachineUnlocks) && te.timeMachineUnlocks.length > 0) {
+                triggerTimeMachineUnlock(te.timeMachineUnlocks);
+              }
+              if (te.xpGain && te.xpGain.gainedXp > 0) {
+                triggerXPGainToast(te.xpGain, te.xpStatus);
+              } else if (te.xpStatus) {
+                applyXpStatus(te.xpStatus);
+              }
+            }
+
+            triggerApiRefreshToast({
+              isBatch: true,
+              ...job,
+            });
+          }
+        } catch (pollErr) {
+          console.error('[Dashboard] Erro no polling de atualização da API:', pollErr);
+        }
+      }, 450);
+    } catch (err) {
+      console.error('[Dashboard] Erro ao iniciar atualização global da API:', err);
+      triggerApiRefreshToast({
+        title: 'Atualização Global do Catálogo',
+        error: err.response?.data?.error || err.message,
+      });
+    }
+  }, [apiRefreshJob?.status, applyXpStatus]);
+
+  const handleCancelCatalogApiRefresh = useCallback(async () => {
+    if (!apiRefreshJob?.jobId) return;
+    try {
+      await axios.post(`${API_BASE_URL}/movies/refresh-all-api-metrics/cancel/${apiRefreshJob.jobId}`);
+    } catch {
+      // ignore cancel errors
+    }
+  }, [apiRefreshJob?.jobId]);
 
   return (
     <div className="flex flex-col min-h-screen bg-zinc-950 text-zinc-100 font-sans">
@@ -943,6 +1065,12 @@ export default function Dashboard() {
         tagCounts={tagCounts}
         genreCounts={genreCounts}
         countryCounts={countryCounts}
+        directorCounts={directorCounts}
+        writerCounts={writerCounts}
+        studioCounts={studioCounts}
+        distributorCounts={distributorCounts}
+        platformCounts={platformCounts}
+        audioCounts={audioCounts}
       />
 
       {/* Painel Central e Conteúdo da Grelha em Largura Total */}
@@ -1010,6 +1138,24 @@ export default function Dashboard() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
+                {/* Botão Global de Atualização Segura da API (Todos os Filmes do Catálogo) */}
+                {!usingMock && (
+                  <button
+                    type="button"
+                    disabled={apiRefreshJob?.status === 'running'}
+                    onClick={handleStartCatalogApiRefresh}
+                    className="flex items-center gap-1.5 bg-cyan-500/12 hover:bg-cyan-500/22 border border-cyan-500/40 hover:border-cyan-400/70 text-cyan-300 hover:text-cyan-200 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer disabled:opacity-60"
+                    title="Atualiza em lote APENAS notas externas (IMDb, Metacritic, Rotten Tomatoes), votos e Oscars de todos os filmes do catálogo, preservando todos os seus dados pessoais."
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${apiRefreshJob?.status === 'running' ? 'animate-spin' : ''}`} />
+                    <span>
+                      {apiRefreshJob?.status === 'running'
+                        ? `Atualizando API (${apiRefreshJob.processed}/${apiRefreshJob.total})...`
+                        : '🔄 Atualizar Dados da API'}
+                    </span>
+                  </button>
+                )}
+
                 {/* Seletor de Exibição em Grade (5 / 7 / 10 por linha) */}
                 <div className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800/80 rounded-lg px-2.5 py-1 text-xs font-semibold text-zinc-300">
                   <span className="text-zinc-500 text-[11px]">Exibir:</span>
@@ -1061,6 +1207,50 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* Banner de Progresso ao Vivo durante Atualização Global na API */}
+            {apiRefreshJob?.status === 'running' && (
+              <div className="bg-zinc-900/90 border border-cyan-500/35 rounded-2xl p-4 flex flex-col gap-2.5 shadow-xl">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 font-bold text-cyan-300">
+                    <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
+                    <span>
+                      Sincronizando notas externas, votos e Oscars do catálogo...{' '}
+                      <span className="text-zinc-200 font-mono">
+                        ({apiRefreshJob.processed}/{apiRefreshJob.total})
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {apiRefreshJob.updatedCount > 0 && (
+                      <span className="text-[11px] font-bold text-emerald-400">
+                        {apiRefreshJob.updatedCount} atualizado{apiRefreshJob.updatedCount === 1 ? '' : 's'}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleCancelCatalogApiRefresh}
+                      className="text-[11px] font-bold uppercase tracking-wider text-rose-400 hover:text-rose-300 bg-rose-500/10 border border-rose-500/30 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+                <div className="w-full h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
+                  <div
+                    className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 transition-all duration-300"
+                    style={{
+                      width: `${apiRefreshJob.total > 0 ? Math.min(100, Math.round((apiRefreshJob.processed / apiRefreshJob.total) * 100)) : 0}%`,
+                    }}
+                  />
+                </div>
+                {apiRefreshJob.currentTitle && (
+                  <span className="text-[10px] font-mono text-zinc-400 truncate">
+                    Verificando agora: {apiRefreshJob.currentTitle}
+                  </span>
+                )}
+              </div>
+            )}
+
             {filteredMovies.length === 0 ? (
               <div className="h-60 flex flex-col items-center justify-center border border-zinc-800/50 border-dashed rounded-2xl gap-3">
                 <span className="text-zinc-600 text-sm font-bold uppercase tracking-wider">Nenhum filme corresponde aos filtros.</span>
@@ -1092,7 +1282,6 @@ export default function Dashboard() {
                       setIsFormOpen(true);
                     }}
                     onDelete={handleDeleteMovie}
-                    onRefreshApiMetrics={handleRefreshMovieApiMetrics}
                   />
                 ))}
               </div>

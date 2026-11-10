@@ -142,7 +142,13 @@ export default function TopNavbar({
   xpStatus = null,
   tagCounts = {},
   genreCounts = {},
-  countryCounts = {}
+  countryCounts = {},
+  directorCounts = {},
+  writerCounts = {},
+  studioCounts = {},
+  distributorCounts = {},
+  platformCounts = {},
+  audioCounts = {}
 }) {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [dropdownSearch, setDropdownSearch] = useState('');
@@ -150,13 +156,24 @@ export default function TopNavbar({
   const [isLevelModalOpen, setIsLevelModalOpen] = useState(false);
   const [liveXpStatus, setLiveXpStatus] = useState(xpStatus);
   const [filterSortModes, setFilterSortModes] = useState(() => {
+    const defaults = {
+      tags: 'alpha',
+      genres: 'alpha',
+      countries: 'alpha',
+      directors: 'alpha',
+      writers: 'alpha',
+      studios: 'alpha',
+      distributors: 'alpha',
+      platforms: 'alpha',
+      audios: 'alpha',
+    };
     try {
       const saved = localStorage.getItem('cine_catalog_filter_sort_modes');
-      if (saved) return { tags: 'alpha', genres: 'alpha', countries: 'alpha', ...JSON.parse(saved) };
+      if (saved) return { ...defaults, ...JSON.parse(saved) };
     } catch {
       // ignore storage errors
     }
-    return { tags: 'alpha', genres: 'alpha', countries: 'alpha' };
+    return defaults;
   });
   const navRef = useRef(null);
 
@@ -375,7 +392,9 @@ export default function TopNavbar({
       selected: selectedDirectors,
       onToggle: toggleDirector,
       hint: '2+ filmes no catálogo',
-      align: 'left'
+      align: 'left',
+      supportsSortToggle: true,
+      countsMap: directorCounts
     },
     {
       key: 'writers',
@@ -386,7 +405,9 @@ export default function TopNavbar({
       selected: selectedWriters,
       onToggle: toggleWriter,
       hint: '2+ filmes no catálogo',
-      align: 'left'
+      align: 'left',
+      supportsSortToggle: true,
+      countsMap: writerCounts
     },
     {
       key: 'studios',
@@ -397,7 +418,9 @@ export default function TopNavbar({
       selected: selectedStudios,
       onToggle: toggleStudio,
       hint: '3+ filmes no catálogo',
-      align: 'right'
+      align: 'right',
+      supportsSortToggle: true,
+      countsMap: studioCounts
     },
     {
       key: 'distributors',
@@ -408,7 +431,9 @@ export default function TopNavbar({
       selected: selectedDistributors,
       onToggle: toggleDistributor,
       hint: '3+ filmes no catálogo',
-      align: 'right'
+      align: 'right',
+      supportsSortToggle: true,
+      countsMap: distributorCounts
     },
     {
       key: 'platforms',
@@ -419,7 +444,9 @@ export default function TopNavbar({
       selected: selectedPlatforms,
       onToggle: togglePlatform,
       hint: 'Qualquer selecionada',
-      align: 'right'
+      align: 'right',
+      supportsSortToggle: true,
+      countsMap: platformCounts
     },
     {
       key: 'audios',
@@ -430,7 +457,9 @@ export default function TopNavbar({
       selected: selectedAudios,
       onToggle: toggleAudio,
       hint: 'Qualquer selecionado',
-      align: 'right'
+      align: 'right',
+      supportsSortToggle: true,
+      countsMap: audioCounts
     }
   ];
 

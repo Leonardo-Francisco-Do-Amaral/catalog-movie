@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Edit3, Trash2, RefreshCw } from 'lucide-react';
+import { Edit3, Trash2 } from 'lucide-react';
 
 const COUNTRY_TO_ISO = {
   'estados unidos': 'us',
@@ -71,10 +71,9 @@ const formatVotes = (num) => {
   return cleanNum.toString();
 };
 
-export default function MovieCard({ movie, onEdit, onDelete, onRefreshApiMetrics, gridCols = 5 }) {
+export default function MovieCard({ movie, onEdit, onDelete, gridCols = 5 }) {
   const isCompact7 = gridCols === 7;
   const isCompact10 = gridCols === 10;
-  const [isRefreshingApi, setIsRefreshingApi] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [mouseHearts, setMouseHearts] = useState([]);
   const [clickHearts, setClickHearts] = useState([]);
@@ -1029,13 +1028,18 @@ export default function MovieCard({ movie, onEdit, onDelete, onRefreshApiMetrics
     );
   };
 
-  // Renderiza efeitos temáticos de Documentário, Biografia e História (com precedência e combinação suave)
+  // Renderiza efeitos temáticos de Documentário, Biografia e História (apenas quando é o tema ativo, sem sobrepor Oscar/Terror/Romance/Curta)
   const renderRealityGenreEffects = () => {
-    if (!isHovered || !primaryRealityGenre || cardTheme === 'terror') return null;
+    if (
+      !isHovered ||
+      (cardTheme !== 'documentario' && cardTheme !== 'biografia' && cardTheme !== 'historia')
+    ) {
+      return null;
+    }
 
-    const showDoc = primaryRealityGenre === 'documentario';
-    const showBio = primaryRealityGenre === 'biografia';
-    const showHist = primaryRealityGenre === 'historia';
+    const showDoc = cardTheme === 'documentario';
+    const showBio = cardTheme === 'biografia';
+    const showHist = cardTheme === 'historia';
 
     return (
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
@@ -2123,7 +2127,7 @@ export default function MovieCard({ movie, onEdit, onDelete, onRefreshApiMetrics
         {/* Conteúdo Principal de Texto (z-20) */}
         <div className={`relative w-full h-full flex flex-col justify-between text-white font-mono z-20 overflow-y-auto scrollbar-hide ${
           isCompact10 ? 'p-2' : isCompact7 ? 'p-2.5' : 'p-4'
-        } ${primaryRealityGenre === 'documentario' && cardTheme !== 'terror' ? (isCompact10 ? 'pt-5' : 'pt-6') : ''}`}>
+        } ${cardTheme === 'documentario' ? (isCompact10 ? 'pt-5' : 'pt-6') : ''}`}>
           
           {/* Topo - Título Branco Puro e Botões de Ação */}
           <div className={`flex flex-col ${isCompact10 ? 'gap-0.5' : 'gap-1.5'} text-shadow-[0_1px_3px_rgba(0,0,0,0.9)]`}>
@@ -2162,28 +2166,8 @@ export default function MovieCard({ movie, onEdit, onDelete, onRefreshApiMetrics
                 )}
               </div>
               
-              {/* Controles de Ação: Atualizar API, Editar e Excluir */}
+              {/* Controles de Ação (Editar e Excluir) */}
               <div className={`flex items-center ${isCompact10 ? 'gap-0.5' : isCompact7 ? 'gap-1' : 'gap-1.5'} shrink-0`}>
-                {onRefreshApiMetrics && (
-                  <button
-                    type="button"
-                    disabled={isRefreshingApi}
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      if (isRefreshingApi) return;
-                      setIsRefreshingApi(true);
-                      try {
-                        await onRefreshApiMetrics(movie);
-                      } finally {
-                        setIsRefreshingApi(false);
-                      }
-                    }}
-                    className={`${isCompact10 ? 'p-1' : isCompact7 ? 'p-1' : 'p-1.5'} rounded bg-black/60 hover:bg-cyan-950/70 border border-zinc-700/50 hover:border-cyan-500/50 text-zinc-300 hover:text-cyan-300 transition-colors cursor-pointer disabled:opacity-60`}
-                    title="Atualizar Dados da API (Notas, Votos e Oscars)"
-                  >
-                    <RefreshCw className={`${isCompact10 ? 'w-2.5 h-2.5' : isCompact7 ? 'w-3 h-3' : 'w-3.5 h-3.5'} ${isRefreshingApi ? 'animate-spin text-cyan-400' : ''}`} />
-                  </button>
-                )}
                 {onEdit && (
                   <button
                     onClick={(e) => {

@@ -3,7 +3,13 @@ import cors from 'cors';
 import * as dotenv from 'dotenv';
 import axios from 'axios';
 import pool, { query, testConnection } from './config/database';
-import { fetchMovieDetailsByTitle, fetchExternalMetricsOnly, fetchMoviePosters, normalizeGenre } from './services/movieIntegration';
+import { fetchMovieDetailsByTitle, fetchMoviePosters, normalizeGenre } from './services/movieIntegration';
+import {
+  refreshSingleMovieExternalMetrics,
+  startCatalogApiRefreshJob,
+  getCatalogApiRefreshJob,
+  cancelCatalogApiRefreshJob,
+} from './services/apiRefreshService';
 import {
   startSpreadsheetImportJob,
   getImportJob,
@@ -1040,8 +1046,7 @@ app.get('/api/movies/fetch-external-ratings', async (req: Request, res: Response
   }
 });
 
-// Rota: Atualização Seletiva de Métricas Externas da API (Notas, Votos e Oscars APENAS)
-// PROIBIDO sobrescrever minha_nota, minha_critica, generos, tags, paises, diretores, roteiristas, estudios, visto_em, audio ou datas.
+// Rota: Atualização Seletiva de Métricas Externas da API para 1 filme (Notas, Votos e Oscars APENAS)
 app.post('/api/movies/:id/refresh-api-metrics', async (req: Request, res: Response) => {
   const movieId = Number(req.params.id);
   if (!movieId || Number.isNaN(movieId)) {
@@ -1063,72 +1068,20 @@ app.post('/api/movies/:id/refresh-api-metrics', async (req: Request, res: Respon
       return res.status(404).json({ success: false, error: 'Filme não encontrado no banco de dados.' });
     }
 
-    const current = currentRes.rows[0];
-    const prevImdb = current.imdb_rating !== null && current.imdb_rating !== undefined ? Number(current.imdb_rating) : null;
-    const prevMc = current.metacritic_score !== null && current.metacritic_score !== undefined ? Number(current.metacritic_score) : null;
-    const prevRt = current.rotten_tomatoes_score !== null && current.rotten_tomatoes_score !== undefined ? Number(current.rotten_tomatoes_score) : null;
-    const prevVotes = current.vote_count !== null && current.vote_count !== undefined ? Number(current.vote_count) : null;
-    const prevOscarWins = current.oscar_wins !== null && current.oscar_wins !== undefined ? Number(current.oscar_wins) : 0;
-    const prevOscarNoms = current.oscar_nominations !== null && current.oscar_nominations !== undefined ? Number(current.oscar_nominations) : 0;
-
-    const fresh = await fetchExternalMetricsOnly({
-      imdbId: current.imdb_id,
-      tmdbId: current.tmdb_id,
-      title: current.title,
-      originalTitle: current.original_title,
-      releaseYear: current.release_year ? Number(current.release_year) : null,
-    });
-
-    // Proteção rigorosa: campos ausentes/N/A nunca convertem valores existentes em 0 ou null
-    const nextImdb = fresh.imdb_rating !== null && !Number.isNaN(fresh.imdb_rating) ? fresh.imdb_rating : prevImdb;
-    const nextMc = fresh.metacritic_score !== null && !Number.isNaN(fresh.metacritic_score) ? fresh.metacritic_score : prevMc;
-    const nextRt = fresh.rotten_tomatoes_score !== null && !Number.isNaN(fresh.rotten_tomatoes_score) ? fresh.rotten_tomatoes_score : prevRt;
-
-    let nextVotes = prevVotes;
-    if (fresh.omdb_vote_count !== null && fresh.omdb_vote_count > 0) {
-      nextVotes = fresh.omdb_vote_count;
-    } else if ((prevVotes === null || prevVotes === 0) && fresh.tmdb_vote_count !== null && fresh.tmdb_vote_count > 0) {
-      nextVotes = fresh.tmdb_vote_count;
-    }
-
-    // Oscar: preserva premiações manuais/superiores (nunca rebaixa indicações se OMDb omitir ou trouxer número menor)
-    const nextOscarWins = fresh.oscar_wins !== null ? Math.max(prevOscarWins, fresh.oscar_wins) : prevOscarWins;
-    let nextOscarNoms = fresh.oscar_nominations !== null ? Math.max(prevOscarNoms, fresh.oscar_nominations) : prevOscarNoms;
-    if (nextOscarWins > nextOscarNoms) {
-      nextOscarNoms = nextOscarWins;
-    }
-
-    await query(
-      `UPDATE movies
-       SET imdb_rating = $1,
-           metacritic_score = $2,
-           rotten_tomatoes_score = $3,
-           vote_count = $4,
-           oscar_wins = $5,
-           oscar_nominations = $6
-       WHERE id = $7`,
-      [nextImdb, nextMc, nextRt, nextVotes, nextOscarWins, nextOscarNoms, movieId]
-    );
-
-    const changes = {
-      imdb_rating: { before: prevImdb, after: nextImdb, changed: prevImdb !== nextImdb },
-      metacritic_score: { before: prevMc, after: nextMc, changed: prevMc !== nextMc },
-      rotten_tomatoes_score: { before: prevRt, after: nextRt, changed: prevRt !== nextRt },
-      vote_count: { before: prevVotes, after: nextVotes, changed: prevVotes !== nextVotes },
-      oscar_wins: { before: prevOscarWins, after: nextOscarWins, changed: prevOscarWins !== nextOscarWins },
-      oscar_nominations: { before: prevOscarNoms, after: nextOscarNoms, changed: prevOscarNoms !== nextOscarNoms },
-    };
+    const diff = await refreshSingleMovieExternalMetrics(currentRes.rows[0]);
 
     let newlyUnlocked: any[] = [];
     let progressedTrophies: any[] = [];
     let xpStatus: any = null;
-    try {
-      const trophyResult = await evaluateTrophies({ markNew: true });
-      newlyUnlocked = trophyResult.newlyUnlocked || [];
-      progressedTrophies = trophyResult.progressedTrophies || [];
-      xpStatus = trophyResult.xpStatus || null;
-    } catch (e: any) {
-      console.error('[Trophies] Erro pós-refresh-api-metrics:', e.message);
+    if (diff.anyChanged) {
+      try {
+        const trophyResult = await evaluateTrophies({ markNew: true });
+        newlyUnlocked = trophyResult.newlyUnlocked || [];
+        progressedTrophies = trophyResult.progressedTrophies || [];
+        xpStatus = trophyResult.xpStatus || null;
+      } catch (e: any) {
+        console.error('[Trophies] Erro pós-refresh-api-metrics:', e.message);
+      }
     }
     if (!xpStatus) {
       xpStatus = await getQuickXpSnapshot().catch(() => null);
@@ -1138,17 +1091,10 @@ app.post('/api/movies/:id/refresh-api-metrics', async (req: Request, res: Respon
 
     return res.json({
       success: true,
-      movieId,
-      title: current.title,
-      metrics: {
-        imdb_rating: nextImdb,
-        metacritic_score: nextMc,
-        rotten_tomatoes_score: nextRt,
-        vote_count: nextVotes,
-        oscar_wins: nextOscarWins,
-        oscar_nominations: nextOscarNoms,
-      },
-      changes,
+      movieId: diff.movieId,
+      title: diff.title,
+      metrics: diff.metrics,
+      changes: diff.changes,
       newlyUnlocked,
       progressedTrophies,
       timeMachineUnlocks,
@@ -1159,6 +1105,30 @@ app.post('/api/movies/:id/refresh-api-metrics', async (req: Request, res: Respon
     console.error('[Express] Erro ao atualizar dados da API seletivamente:', err.message);
     return res.status(500).json({ success: false, error: err.message });
   }
+});
+
+// Rotas: Atualização em Lote de Métricas Externas para TODOS os filmes do Catálogo
+app.post('/api/movies/refresh-all-api-metrics/start', async (req: Request, res: Response) => {
+  try {
+    const job = await startCatalogApiRefreshJob();
+    return res.json({ success: true, jobId: job.jobId, total: job.total, status: job.status });
+  } catch (err: any) {
+    console.error('[Express] Erro ao iniciar atualização em lote da API:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/movies/refresh-all-api-metrics/status/:jobId', (req: Request, res: Response) => {
+  const job = getCatalogApiRefreshJob(String(req.params.jobId));
+  if (!job) {
+    return res.status(404).json({ success: false, error: 'Sessão de atualização não encontrada.' });
+  }
+  return res.json({ success: true, data: job });
+});
+
+app.post('/api/movies/refresh-all-api-metrics/cancel/:jobId', (req: Request, res: Response) => {
+  const cancelled = cancelCatalogApiRefreshJob(String(req.params.jobId));
+  return res.json({ success: cancelled });
 });
 
 // Rota: Buscar Países Ativos (com pelo menos 1 filme associado)

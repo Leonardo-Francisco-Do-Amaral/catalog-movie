@@ -1027,11 +1027,11 @@ export default function MovieFormModal({
                     type="button"
                     disabled={refreshingSafeApi}
                     onClick={handleRefreshApiMetricsSafe}
-                    className="flex items-center gap-1.5 text-[10px] font-black uppercase bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/35 px-2.5 py-1 rounded-lg text-cyan-300 hover:text-cyan-200 transition-colors cursor-pointer disabled:opacity-60"
-                    title="Atualiza EXCLUSIVAMENTE notas externas, volume de votos e Oscars sem sobrescrever seus dados manuais"
+                    className="flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-500 hover:text-amber-400 transition-colors cursor-pointer disabled:opacity-60"
+                    title="Buscar notas externas e votos no OMDb para este filme"
                   >
                     <RefreshCw className={`w-3 h-3 ${refreshingSafeApi ? 'animate-spin' : ''}`} />
-                    <span>{refreshingSafeApi ? 'Sincronizando...' : '🔄 Atualizar Dados da API'}</span>
+                    <span>{refreshingSafeApi ? 'Buscando...' : 'Buscar Notas das APIs 🔄'}</span>
                   </button>
                 </div>
                 
