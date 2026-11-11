@@ -234,7 +234,7 @@ function ExtremeRecordCard({ rec }) {
         <div className="text-[11px] text-zinc-300 line-clamp-2">{activeVariant.statDetail}</div>
         {hasTies ? (
           <div className="text-[10px] font-mono font-bold text-amber-300/90 flex items-center justify-between gap-2">
-            <span className="truncate">Empate ({variants.length} filmes)</span>
+            <span className="truncate">{rec.tieSummary || `Empate (${variants.length} filmes)`}</span>
             <span className="shrink-0">Clique p/ virar ↻</span>
           </div>
         ) : (
@@ -337,6 +337,7 @@ export default function AnalyticsDashboard({
               code: pCode,
               iso: matchedRef?.flagCode || pCode || null,
               rarityTier: matchedRef?.rarityTier || countryMeta?.rarityTier || null,
+              isCountryChampion: Boolean(countryMeta?.champion?.movie_id === cm.movie_id),
             };
           });
           setWorldOriginMap(originLookup);

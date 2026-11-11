@@ -484,6 +484,7 @@ app.post('/api/movies/add', upload.single('poster_file'), async (req: Request, r
       title,
       original_title,
       release_year,
+      release_date,
       runtime,
       synopsis,
       poster_url,
@@ -569,9 +570,15 @@ app.post('/api/movies/add', upload.single('poster_file'), async (req: Request, r
     }
 
     // 1. Inserir filme na tabela movies
+    const cleanReleaseDate =
+      release_date && typeof release_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(release_date.trim())
+        ? release_date.trim()
+        : null;
+    const initialRawApiData = cleanReleaseDate ? JSON.stringify({ tmdb: { release_date: cleanReleaseDate } }) : null;
+
     const insertMovieRes = await dbClient.query(
-      `INSERT INTO movies (imdb_id, tmdb_id, title, original_title, release_year, runtime, synopsis, poster_url, imdb_rating, metacritic_score, rotten_tomatoes_score, is_custom, oscar_wins, oscar_nominations, vote_count, distributor)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING id`,
+      `INSERT INTO movies (imdb_id, tmdb_id, title, original_title, release_year, runtime, synopsis, poster_url, imdb_rating, metacritic_score, rotten_tomatoes_score, is_custom, oscar_wins, oscar_nominations, vote_count, distributor, raw_api_data)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17::jsonb) RETURNING id`,
       [
         effectiveImdbId,
         effectiveTmdbId,
@@ -588,7 +595,8 @@ app.post('/api/movies/add', upload.single('poster_file'), async (req: Request, r
         parseNumeric(oscar_wins, 0),
         parseNumeric(oscar_nominations, 0),
         parseGlobalReviewsNullable(vote_count),
-        distributor || null
+        distributor || null,
+        initialRawApiData
       ]
     );
     const movieId = insertMovieRes.rows[0].id;
@@ -766,6 +774,7 @@ app.put('/api/movies/edit/:id', upload.single('poster_file'), async (req: Reques
       title,
       original_title,
       release_year,
+      release_date,
       runtime,
       synopsis,
       poster_url,
@@ -843,12 +852,24 @@ app.put('/api/movies/edit/:id', upload.single('poster_file'), async (req: Reques
     }
 
     const activeMovieId = movieId;
+    const cleanEditReleaseDate =
+      typeof release_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(release_date.trim())
+        ? release_date.trim()
+        : null;
 
     // 1. Atualizar movies (marcando is_custom = TRUE)
     await dbClient.query(
       `UPDATE movies 
-       SET imdb_id = $1, tmdb_id = $2, title = $3, original_title = $4, release_year = $5, runtime = $6, synopsis = $7, poster_url = $8, imdb_rating = $9, metacritic_score = $10, rotten_tomatoes_score = $11, is_custom = TRUE, oscar_wins = $12, oscar_nominations = $13, vote_count = $14, distributor = $15
-       WHERE id = $16`,
+       SET imdb_id = $1, tmdb_id = $2, title = $3, original_title = $4, release_year = $5, runtime = $6, synopsis = $7, poster_url = $8, imdb_rating = $9, metacritic_score = $10, rotten_tomatoes_score = $11, is_custom = TRUE, oscar_wins = $12, oscar_nominations = $13, vote_count = $14, distributor = $15,
+           raw_api_data = CASE
+             WHEN $16::text IS NOT NULL THEN
+               COALESCE(raw_api_data, '{}'::jsonb) || jsonb_build_object(
+                 'tmdb',
+                 COALESCE(raw_api_data->'tmdb', '{}'::jsonb) || jsonb_build_object('release_date', $16::text)
+               )
+             ELSE raw_api_data
+           END
+       WHERE id = $17`,
       [
         imdb_id || null,
         parseNullableNumeric(tmdb_id),
@@ -865,6 +886,7 @@ app.put('/api/movies/edit/:id', upload.single('poster_file'), async (req: Reques
         parseNumeric(oscar_nominations, 0),
         parseGlobalReviewsNullable(vote_count),
         distributor || null,
+        cleanEditReleaseDate,
         activeMovieId
       ]
     );

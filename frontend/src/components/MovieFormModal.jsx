@@ -78,6 +78,7 @@ export default function MovieFormModal({
     title: '',
     original_title: '',
     release_year: '',
+    release_date: '',
     runtime: '',
     synopsis: '',
     poster_url: '',
@@ -216,6 +217,7 @@ export default function MovieFormModal({
           title: movie.title || '',
           original_title: movie.original_title || '',
           release_year: movie.release_year || '',
+          release_date: movie.raw_api_data?.tmdb?.release_date || '',
           runtime: movie.runtime || '',
           synopsis: movie.synopsis || '',
           poster_url: movie.poster_url || '',
@@ -282,6 +284,7 @@ export default function MovieFormModal({
           title: '',
           original_title: '',
           release_year: initialReleaseYear || '',
+          release_date: '',
           runtime: '',
           synopsis: '',
           poster_url: '',
@@ -362,6 +365,7 @@ export default function MovieFormModal({
           title: d.title || '',
           original_title: d.original_title || '',
           release_year: d.release_year || '',
+          release_date: d.raw_api_data?.tmdb?.release_date || prev.release_date || '',
           runtime: d.runtime || '',
           synopsis: d.synopsis || '',
           poster_url: d.poster_url || (apiPosters[0]?.url || ''),
@@ -574,6 +578,7 @@ export default function MovieFormModal({
     data.append('title', formData.title);
     data.append('original_title', formData.original_title);
     data.append('release_year', formData.release_year || '');
+    data.append('release_date', formData.release_date || '');
     data.append('runtime', formData.runtime || '');
     data.append('synopsis', formData.synopsis);
     data.append('poster_url', formData.poster_url);

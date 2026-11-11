@@ -338,22 +338,40 @@ const OMDB_MONTH_MAP = {
   jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
 };
 
-function extractReleaseMonth(movie) {
+function extractReleaseDateInfo(movie) {
   const tmdbDate = movie?.raw_api_data?.tmdb?.release_date;
   if (tmdbDate && typeof tmdbDate === 'string') {
-    const parts = tmdbDate.split('-');
+    const parts = tmdbDate.trim().split('-');
+    const year = Number(parts[0]);
     const month = Number(parts[1]);
-    if (month >= 1 && month <= 12) return month;
+    const day = Number(parts[2]);
+    if (month >= 1 && month <= 12) {
+      return {
+        month,
+        day: day >= 1 && day <= 31 ? day : null,
+        formatted:
+          day >= 1 && day <= 31 && year > 1880
+            ? `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`
+            : null,
+      };
+    }
   }
   const omdbRel = movie?.raw_api_data?.omdb?.Released;
   if (omdbRel && typeof omdbRel === 'string') {
-    const match = omdbRel.trim().match(/^\d{1,2}\s+([A-Za-z]{3})\s+\d{4}$/);
+    const match = omdbRel.trim().match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/);
     if (match) {
-      const m = OMDB_MONTH_MAP[match[1].toLowerCase()];
-      if (m) return m;
+      const month = OMDB_MONTH_MAP[match[2].toLowerCase()];
+      const day = Number(match[1]);
+      if (month) {
+        return {
+          month,
+          day: day >= 1 && day <= 31 ? day : null,
+          formatted: `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${match[3]}`,
+        };
+      }
     }
   }
-  return null;
+  return { month: null, day: null, formatted: null };
 }
 
 function resolveOriginRarityForMovie(movie, worldOriginMap = {}) {
@@ -361,6 +379,7 @@ function resolveOriginRarityForMovie(movie, worldOriginMap = {}) {
   let code = mapped?.code ? String(mapped.code).toLowerCase() : null;
   let tier = mapped?.rarityTier ? String(mapped.rarityTier).toLowerCase() : null;
   let name = mapped?.name || null;
+  const isCountryChampion = Boolean(mapped?.isCountryChampion);
 
   if (!code) {
     const manual = String(movie?.manual_origin_code || movie?.manual_pick_code || '').toLowerCase().trim();
@@ -383,6 +402,7 @@ function resolveOriginRarityForMovie(movie, worldOriginMap = {}) {
     name: name || def?.name || code.toUpperCase(),
     rarityTier: resolvedTier,
     rank,
+    isCountryChampion,
     meta: COUNTRY_RARITY_META[resolvedTier] || COUNTRY_RARITY_META.common,
   };
 }
@@ -399,6 +419,7 @@ function buildRecordWithTies({
   isSameScore = (a, b) => a === b,
   formatVariant,
   formatNextDistinct,
+  tieSummary = null,
 }) {
   if (!Array.isArray(sortedCandidates) || sortedCandidates.length === 0) return null;
   const topScore = getScore(sortedCandidates[0]);
@@ -426,6 +447,7 @@ function buildRecordWithTies({
     statDetail: tiedVariants[0].statDetail,
     flagCode: tiedVariants[0].flagCode,
     tiedVariants,
+    tieSummary: tiedVariants.length > 1 ? tieSummary : null,
     runnerUp: nextDistinct ? formatNextDistinct(nextDistinct) : null,
   };
 }
@@ -483,23 +505,44 @@ export function computeExtremeRecords(movies = [], worldOriginMap = {}) {
     }));
   }
 
-  // 3. País Mais Raro no Desafio dos 195
-  const withRarity195 = unique
-    .map((m) => {
-      const origin = resolveOriginRarityForMovie(m, worldOriginMap);
-      return origin ? { movie: m, origin } : null;
+  // 3. País Mais Raro no Desafio dos 195 (1 card representativo por país empatado!)
+  const rareCountryGroups = new Map();
+  unique.forEach((m) => {
+    const origin = resolveOriginRarityForMovie(m, worldOriginMap);
+    if (!origin) return;
+    if (!rareCountryGroups.has(origin.code)) {
+      rareCountryGroups.set(origin.code, { origin, movies: [] });
+    }
+    const g = rareCountryGroups.get(origin.code);
+    g.movies.push({ movie: m, isCountryChampion: origin.isCountryChampion });
+  });
+
+  const sortedRareCountries = Array.from(rareCountryGroups.values())
+    .map((g) => {
+      const sortedMovies = [...g.movies].sort(
+        (a, b) =>
+          Number(b.isCountryChampion) - Number(a.isCountryChampion) ||
+          Number(b.movie.user_rating || 0) - Number(a.movie.user_rating || 0)
+      );
+      return {
+        origin: g.origin,
+        movie: sortedMovies[0].movie,
+        allMovies: sortedMovies.map((x) => x.movie),
+      };
     })
-    .filter(Boolean)
     .sort(
       (a, b) =>
         b.origin.rank - a.origin.rank ||
         Number(b.movie.user_rating || 0) - Number(a.movie.user_rating || 0)
     );
-  if (withRarity195.length > 0) {
-    const topOrigin = withRarity195[0].origin;
+
+  if (sortedRareCountries.length > 0) {
+    const topOrigin = sortedRareCountries[0].origin;
     const rarKey = ['mythic', 'legendary', 'epic', 'rare'].includes(topOrigin.rarityTier)
       ? topOrigin.rarityTier
       : 'rare';
+    const topCountriesList = sortedRareCountries.filter((c) => c.origin.rank === topOrigin.rank);
+    const countryNamesSummary = topCountriesList.map((c) => c.origin.name).join(', ');
     pushRec(buildRecordWithTies({
       id: 'rarest_origin_country',
       rarity: rarKey,
@@ -507,13 +550,17 @@ export function computeExtremeRecords(movies = [], worldOriginMap = {}) {
       icon: '🗺️',
       title: 'País Mais Raro (Desafio 195)',
       subtitle: 'Maior raridade geográfica (país de origem único)',
-      sortedCandidates: withRarity195,
+      sortedCandidates: sortedRareCountries,
       getScore: (it) => it.origin.rank,
-      formatVariant: (it) => ({
-        statBadge: `${it.origin.meta.icon} ${it.origin.name} (${it.origin.meta.label})`,
-        statDetail: `Ano ${it.movie.release_year || '?'} • +${it.origin.meta.xp} XP no Desafio 195 • Nota ${Number(it.movie.user_rating || 0).toFixed(3)}`,
-        flagCode: it.origin.code,
-      }),
+      tieSummary: `Empate (${topCountriesList.length} países: ${countryNamesSummary})`,
+      formatVariant: (it) => {
+        const titlesList = it.allMovies.map((m) => m.title).join(', ');
+        return {
+          statBadge: `${it.origin.meta.icon} ${it.origin.name} (${it.origin.meta.label})`,
+          statDetail: `${it.allMovies.length > 1 ? `Filmes (${it.allMovies.length}): ${titlesList}` : `Filme: ${titlesList}`} • +${it.origin.meta.xpEach} XP`,
+          flagCode: it.origin.code,
+        };
+      },
       formatNextDistinct: (it) => `2º: ${it.movie.title} (${it.origin.name} • ${it.origin.meta.label})`,
     }));
   }
@@ -660,11 +707,16 @@ export function computeExtremeRecords(movies = [], worldOriginMap = {}) {
   // 10 & 11. Filme Mais Antigo & Filme Mais Novo Assistido (com mês de lançamento quando disponível)
   const withRelease = unique
     .filter((m) => Number(m.release_year) > 1880)
-    .map((m) => ({
-      movie: m,
-      releaseYear: Number(m.release_year),
-      releaseMonth: extractReleaseMonth(m),
-    }));
+    .map((m) => {
+      const dateInfo = extractReleaseDateInfo(m);
+      return {
+        movie: m,
+        releaseYear: Number(m.release_year),
+        releaseMonth: dateInfo.month,
+        releaseDay: dateInfo.day,
+        releaseDateFormatted: dateInfo.formatted,
+      };
+    });
 
   if (withRelease.length > 0) {
     const minYear = Math.min(...withRelease.map((r) => r.releaseYear));
@@ -674,7 +726,12 @@ export function computeExtremeRecords(movies = [], worldOriginMap = {}) {
 
     const byOldest = [...withRelease].sort((a, b) => {
       if (a.releaseYear !== b.releaseYear) return a.releaseYear - b.releaseYear;
-      if (minYearAllHaveMonth) return (a.releaseMonth || 99) - (b.releaseMonth || 99);
+      if (minYearAllHaveMonth) {
+        if ((a.releaseMonth || 99) !== (b.releaseMonth || 99)) {
+          return (a.releaseMonth || 99) - (b.releaseMonth || 99);
+        }
+        return (a.releaseDay || 99) - (b.releaseDay || 99);
+      }
       return Number(b.movie.user_rating || 0) - Number(a.movie.user_rating || 0);
     });
     const currentYear = new Date().getFullYear();
@@ -690,9 +747,10 @@ export function computeExtremeRecords(movies = [], worldOriginMap = {}) {
       getScore: (r) => (minYearAllHaveMonth && r.releaseYear === minYear ? r.releaseYear * 100 + r.releaseMonth : r.releaseYear),
       formatVariant: (r) => ({
         statBadge: r.releaseMonth ? `${MONTH_NAMES[r.releaseMonth - 1]}/${r.releaseYear}` : `Ano ${r.releaseYear}`,
-        statDetail: `${currentYear - r.releaseYear} anos de história cinematográfica!`,
+        statDetail: `${r.releaseDateFormatted ? `Estreia ${r.releaseDateFormatted} • ` : ''}${currentYear - r.releaseYear} anos de história cinematográfica!`,
       }),
-      formatNextDistinct: (r) => `2º: ${r.movie.title} (${r.releaseYear})`,
+      formatNextDistinct: (r) =>
+        `2º: ${r.movie.title} (${r.releaseMonth ? `${MONTH_NAMES[r.releaseMonth - 1]}/${r.releaseYear}` : r.releaseYear})`,
     }));
 
     const maxYear = Math.max(...withRelease.map((r) => r.releaseYear));
@@ -702,13 +760,24 @@ export function computeExtremeRecords(movies = [], worldOriginMap = {}) {
 
     const byNewest = [...withRelease].sort((a, b) => {
       if (b.releaseYear !== a.releaseYear) return b.releaseYear - a.releaseYear;
-      if (maxYearAllHaveMonth) return (b.releaseMonth || 0) - (a.releaseMonth || 0);
+      if (maxYearAllHaveMonth) {
+        if ((b.releaseMonth || 0) !== (a.releaseMonth || 0)) {
+          return (b.releaseMonth || 0) - (a.releaseMonth || 0);
+        }
+        if ((b.releaseDay || 0) !== (a.releaseDay || 0)) {
+          return (b.releaseDay || 0) - (a.releaseDay || 0);
+        }
+      }
       return (
         (Number(b.movie.year_seen) || 0) - (Number(a.movie.year_seen) || 0) ||
         (Number(b.movie.month_seen) || 0) - (Number(a.movie.month_seen) || 0) ||
         Number(b.movie.user_rating || 0) - Number(a.movie.user_rating || 0)
       );
     });
+
+    const newestBadgeStr = byNewest[0]?.releaseMonth
+      ? `${MONTH_NAMES[byNewest[0].releaseMonth - 1]}/${byNewest[0].releaseYear}`
+      : `Ano ${maxYear}`;
 
     pushRec(buildRecordWithTies({
       id: 'newest_release',
@@ -719,6 +788,7 @@ export function computeExtremeRecords(movies = [], worldOriginMap = {}) {
       subtitle: 'A produção mais recente que você assistiu',
       sortedCandidates: byNewest,
       getScore: (r) => (maxYearAllHaveMonth && r.releaseYear === maxYear ? r.releaseYear * 100 + r.releaseMonth : r.releaseYear),
+      tieSummary: `Empate (${newestBadgeStr})`,
       formatVariant: (r) => {
         const seenStr = r.movie.year_seen
           ? r.movie.month_seen
@@ -727,7 +797,7 @@ export function computeExtremeRecords(movies = [], worldOriginMap = {}) {
           : null;
         return {
           statBadge: r.releaseMonth ? `${MONTH_NAMES[r.releaseMonth - 1]}/${r.releaseYear}` : `Ano ${r.releaseYear}`,
-          statDetail: `${seenStr ? `Assistido em ${seenStr} • ` : ''}Nota ${Number(r.movie.user_rating || 0).toFixed(3)}`,
+          statDetail: `${r.releaseDateFormatted ? `Estreia ${r.releaseDateFormatted} • ` : ''}${seenStr ? `Assistido em ${seenStr} • ` : ''}Nota ${Number(r.movie.user_rating || 0).toFixed(3)}`,
         };
       },
       formatNextDistinct: (r) =>
