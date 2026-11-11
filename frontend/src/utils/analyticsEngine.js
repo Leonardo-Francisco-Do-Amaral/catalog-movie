@@ -6,6 +6,29 @@ import {
   calculateClientXpStatus,
 } from './xpSystem';
 import { CATEGORY_BADGE_CONFIG, getCleanTrophyTitle } from '../components/TrophyBadges';
+import { UN_COUNTRIES_195, getCountryRarityTier } from '../data/unCountries195';
+
+const UN_COUNTRY_BY_CODE = new Map();
+const UN_COUNTRY_BY_NAME = new Map();
+const normalizeKey = (s) =>
+  String(s || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+
+UN_COUNTRIES_195.forEach((c) => {
+  const code = c.code.toLowerCase();
+  UN_COUNTRY_BY_CODE.set(code, c);
+  UN_COUNTRY_BY_NAME.set(normalizeKey(c.name), c);
+  if (Array.isArray(c.aliases)) {
+    c.aliases.forEach((a) => UN_COUNTRY_BY_NAME.set(normalizeKey(a), c));
+  }
+});
+[['estados unidos', 'us'], ['usa', 'us'], ['eua', 'us'], ['brasil', 'br'], ['reino unido', 'gb'], ['uk', 'gb'], ['inglaterra', 'gb'], ['holanda', 'nl'], ['paises baixos', 'nl'], ['russia', 'ru'], ['coreia do sul', 'kr'], ['coreia do norte', 'kp']].forEach(([alias, code]) => {
+  const ref = UN_COUNTRY_BY_CODE.get(code);
+  if (ref && !UN_COUNTRY_BY_NAME.has(alias)) UN_COUNTRY_BY_NAME.set(alias, ref);
+});
 
 export const MONTH_NAMES = [
   'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
@@ -203,6 +226,11 @@ export function computeRatingsPantheon(movies = []) {
     .sort((a, b) => b.rawUser - a.rawUser || b.unifiedScore - a.unifiedScore)
     .slice(0, 5);
 
+  const bottom5User = enriched
+    .filter((m) => m.hasUser)
+    .sort((a, b) => a.rawUser - b.rawUser || a.unifiedScore - b.unifiedScore)
+    .slice(0, 5);
+
   const top5Imdb = enriched
     .filter((m) => m.hasImdb)
     .sort(
@@ -293,6 +321,7 @@ export function computeRatingsPantheon(movies = []) {
     strict4Count: strict4Pool.length,
     usingStrict4,
     top5User,
+    bottom5User,
     top5Imdb,
     top5Metacritic,
     top5Rotten,
@@ -302,93 +331,235 @@ export function computeRatingsPantheon(movies = []) {
   };
 }
 
+const RARITY_RANK_195 = { mythic: 5, legendary: 4, epic: 3, rare: 2, common: 1 };
+
+const OMDB_MONTH_MAP = {
+  jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+  jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
+};
+
+function extractReleaseMonth(movie) {
+  const tmdbDate = movie?.raw_api_data?.tmdb?.release_date;
+  if (tmdbDate && typeof tmdbDate === 'string') {
+    const parts = tmdbDate.split('-');
+    const month = Number(parts[1]);
+    if (month >= 1 && month <= 12) return month;
+  }
+  const omdbRel = movie?.raw_api_data?.omdb?.Released;
+  if (omdbRel && typeof omdbRel === 'string') {
+    const match = omdbRel.trim().match(/^\d{1,2}\s+([A-Za-z]{3})\s+\d{4}$/);
+    if (match) {
+      const m = OMDB_MONTH_MAP[match[1].toLowerCase()];
+      if (m) return m;
+    }
+  }
+  return null;
+}
+
+function resolveOriginRarityForMovie(movie, worldOriginMap = {}) {
+  const mapped = movie?.movie_id != null ? worldOriginMap[String(movie.movie_id)] : null;
+  let code = mapped?.code ? String(mapped.code).toLowerCase() : null;
+  let tier = mapped?.rarityTier ? String(mapped.rarityTier).toLowerCase() : null;
+  let name = mapped?.name || null;
+
+  if (!code) {
+    const manual = String(movie?.manual_origin_code || movie?.manual_pick_code || '').toLowerCase().trim();
+    if (manual && UN_COUNTRY_BY_CODE.has(manual)) {
+      code = manual;
+    } else if (Array.isArray(movie?.countries) && movie.countries.length === 1) {
+      const ref = UN_COUNTRY_BY_NAME.get(normalizeKey(movie.countries[0]));
+      if (ref) code = ref.code.toLowerCase();
+    }
+  }
+
+  if (!code || !UN_COUNTRY_BY_CODE.has(code)) return null;
+  const def = UN_COUNTRY_BY_CODE.get(code);
+  const resolvedTier = tier || def?.rarityTier || getCountryRarityTier(code);
+  const rank = RARITY_RANK_195[resolvedTier] || 0;
+  if (!rank) return null;
+
+  return {
+    code,
+    name: name || def?.name || code.toUpperCase(),
+    rarityTier: resolvedTier,
+    rank,
+    meta: COUNTRY_RARITY_META[resolvedTier] || COUNTRY_RARITY_META.common,
+  };
+}
+
+function buildRecordWithTies({
+  id,
+  rarity,
+  rarityLabel,
+  icon,
+  title,
+  subtitle,
+  sortedCandidates,
+  getScore,
+  isSameScore = (a, b) => a === b,
+  formatVariant,
+  formatNextDistinct,
+}) {
+  if (!Array.isArray(sortedCandidates) || sortedCandidates.length === 0) return null;
+  const topScore = getScore(sortedCandidates[0]);
+  const tiedItems = sortedCandidates.filter((item) => isSameScore(getScore(item), topScore));
+  const nextDistinct = sortedCandidates.find((item) => !isSameScore(getScore(item), topScore)) || null;
+  const tiedVariants = tiedItems.map((item) => {
+    const formatted = formatVariant(item);
+    return {
+      movie: item.movie || item,
+      statBadge: formatted.statBadge,
+      statDetail: formatted.statDetail,
+      flagCode: formatted.flagCode || null,
+    };
+  });
+
+  return {
+    id,
+    rarity,
+    rarityLabel,
+    icon,
+    title,
+    subtitle,
+    movie: tiedVariants[0].movie,
+    statBadge: tiedVariants[0].statBadge,
+    statDetail: tiedVariants[0].statDetail,
+    flagCode: tiedVariants[0].flagCode,
+    tiedVariants,
+    runnerUp: nextDistinct ? formatNextDistinct(nextDistinct) : null,
+  };
+}
+
 /**
- * 2. Museu de Relíquias & 12 Recordes Extremos (Loot Cards RPG)
+ * 2. Museu de Relíquias & Curiosidades Extremas (Loot Cards RPG com Flip para Empates)
  */
-export function computeExtremeRecords(movies = []) {
+export function computeExtremeRecords(movies = [], worldOriginMap = {}) {
   const unique = deduplicateMovies(movies);
   if (unique.length === 0) return [];
 
   const records = [];
+  const pushRec = (rec) => {
+    if (rec) records.push(rec);
+  };
 
-  // 1. Filme Mais Raro / Underground (menor vote_count > 0)
-  const withVotes = unique
+  // 1 & 2. Menor e Maior Vote Count
+  const withVotesAsc = unique
     .filter((m) => Number(m.vote_count) > 0)
-    .sort((a, b) => Number(a.vote_count) - Number(b.vote_count));
-  if (withVotes.length > 0) {
-    const win = withVotes[0];
-    const second = withVotes[1];
-    records.push({
+    .sort((a, b) => Number(a.vote_count) - Number(b.vote_count) || Number(b.user_rating || 0) - Number(a.user_rating || 0));
+  if (withVotesAsc.length > 0) {
+    pushRec(buildRecordWithTies({
       id: 'rarest_votes',
       rarity: 'mythic',
       rarityLabel: '💎 RELÍQUIA MÍTICA',
       icon: '🕵️',
       title: 'Achado Mais Raro & Underground',
       subtitle: 'Menor número de votos globais no mundo',
-      movie: win,
-      statBadge: `${Number(win.vote_count).toLocaleString('pt-BR')} votos`,
-      statDetail: `Ano ${win.release_year || '?'} • Quase ninguém no planeta catalogou!`,
-      runnerUp: second
-        ? `2º: ${second.title} (${Number(second.vote_count).toLocaleString('pt-BR')} votos)`
-        : null,
-    });
+      sortedCandidates: withVotesAsc,
+      getScore: (m) => Number(m.vote_count),
+      formatVariant: (m) => ({
+        statBadge: `${Number(m.vote_count).toLocaleString('pt-BR')} votos`,
+        statDetail: `Ano ${m.release_year || '?'} • Quase ninguém no planeta catalogou!`,
+      }),
+      formatNextDistinct: (m) => `2º: ${m.title} (${Number(m.vote_count).toLocaleString('pt-BR')} votos)`,
+    }));
 
-    // 2. Colosso Mainstream (maior vote_count)
-    const popWin = withVotes[withVotes.length - 1];
-    const popSecond = withVotes[withVotes.length - 2];
-    records.push({
+    const withVotesDesc = [...withVotesAsc].sort(
+      (a, b) => Number(b.vote_count) - Number(a.vote_count) || Number(b.user_rating || 0) - Number(a.user_rating || 0)
+    );
+    pushRec(buildRecordWithTies({
       id: 'popular_votes',
       rarity: 'legendary',
       rarityLabel: '🥇 COLOSSO LENDÁRIO',
       icon: '🌍',
       title: 'Titã de Popularidade Global',
       subtitle: 'Filme com mais avaliações mundiais',
-      movie: popWin,
-      statBadge: `${Number(popWin.vote_count).toLocaleString('pt-BR')} votos`,
-      statDetail: `IMDb ${Number(popWin.imdb_rating || 0).toFixed(1)} • Minha: ${Number(popWin.user_rating || 0).toFixed(3)}`,
-      runnerUp: popSecond
-        ? `2º: ${popSecond.title} (${Number(popSecond.vote_count).toLocaleString('pt-BR')})`
-        : null,
-    });
+      sortedCandidates: withVotesDesc,
+      getScore: (m) => Number(m.vote_count),
+      formatVariant: (m) => ({
+        statBadge: `${Number(m.vote_count).toLocaleString('pt-BR')} votos`,
+        statDetail: `IMDb ${Number(m.imdb_rating || 0).toFixed(1)} • Minha: ${Number(m.user_rating || 0).toFixed(3)}`,
+      }),
+      formatNextDistinct: (m) => `2º: ${m.title} (${Number(m.vote_count).toLocaleString('pt-BR')})`,
+    }));
   }
 
-  // 3 & 4. Maior e Menor Duração
-  const withRuntime = unique
+  // 3. País Mais Raro no Desafio dos 195
+  const withRarity195 = unique
+    .map((m) => {
+      const origin = resolveOriginRarityForMovie(m, worldOriginMap);
+      return origin ? { movie: m, origin } : null;
+    })
+    .filter(Boolean)
+    .sort(
+      (a, b) =>
+        b.origin.rank - a.origin.rank ||
+        Number(b.movie.user_rating || 0) - Number(a.movie.user_rating || 0)
+    );
+  if (withRarity195.length > 0) {
+    const topOrigin = withRarity195[0].origin;
+    const rarKey = ['mythic', 'legendary', 'epic', 'rare'].includes(topOrigin.rarityTier)
+      ? topOrigin.rarityTier
+      : 'rare';
+    pushRec(buildRecordWithTies({
+      id: 'rarest_origin_country',
+      rarity: rarKey,
+      rarityLabel: `${topOrigin.meta.icon} ${topOrigin.meta.label.toUpperCase()} • DESAFIO 195`,
+      icon: '🗺️',
+      title: 'País Mais Raro (Desafio 195)',
+      subtitle: 'Maior raridade geográfica (país de origem único)',
+      sortedCandidates: withRarity195,
+      getScore: (it) => it.origin.rank,
+      formatVariant: (it) => ({
+        statBadge: `${it.origin.meta.icon} ${it.origin.name} (${it.origin.meta.label})`,
+        statDetail: `Ano ${it.movie.release_year || '?'} • +${it.origin.meta.xp} XP no Desafio 195 • Nota ${Number(it.movie.user_rating || 0).toFixed(3)}`,
+        flagCode: it.origin.code,
+      }),
+      formatNextDistinct: (it) => `2º: ${it.movie.title} (${it.origin.name} • ${it.origin.meta.label})`,
+    }));
+  }
+
+  // 4 & 5. Maior e Menor Duração
+  const withRuntimeDesc = unique
     .filter((m) => Number(m.runtime) > 0)
-    .sort((a, b) => Number(b.runtime) - Number(a.runtime));
-  if (withRuntime.length > 0) {
-    const longest = withRuntime[0];
-    const longest2 = withRuntime[1];
-    records.push({
+    .sort((a, b) => Number(b.runtime) - Number(a.runtime) || Number(b.user_rating || 0) - Number(a.user_rating || 0));
+  if (withRuntimeDesc.length > 0) {
+    pushRec(buildRecordWithTies({
       id: 'longest_runtime',
       rarity: 'legendary',
       rarityLabel: '🥇 CHEFÃO DE RESISTÊNCIA',
       icon: '⏳',
       title: 'Maior Tempo de Duração',
       subtitle: 'A maratona suprema de um único filme',
-      movie: longest,
-      statBadge: `${longest.runtime} min (${formatRuntime(longest.runtime)})`,
-      statDetail: `Lançado em ${longest.release_year || '?'} • Teste máximo de foco!`,
-      runnerUp: longest2 ? `2º: ${longest2.title} (${longest2.runtime} min)` : null,
-    });
+      sortedCandidates: withRuntimeDesc,
+      getScore: (m) => Number(m.runtime),
+      formatVariant: (m) => ({
+        statBadge: `${m.runtime} min (${formatRuntime(m.runtime)})`,
+        statDetail: `Lançado em ${m.release_year || '?'} • Teste máximo de foco!`,
+      }),
+      formatNextDistinct: (m) => `2º: ${m.title} (${m.runtime} min)`,
+    }));
 
-    const shortest = withRuntime[withRuntime.length - 1];
-    const shortest2 = withRuntime[withRuntime.length - 2];
-    records.push({
+    const withRuntimeAsc = [...withRuntimeDesc].sort(
+      (a, b) => Number(a.runtime) - Number(b.runtime) || Number(b.user_rating || 0) - Number(a.user_rating || 0)
+    );
+    pushRec(buildRecordWithTies({
       id: 'shortest_runtime',
       rarity: 'rare',
       rarityLabel: '🔵 SPEEDRUN RARO',
       icon: '⚡',
       title: 'Menor Tempo de Duração',
       subtitle: 'Tiro curto e direto ao ponto',
-      movie: shortest,
-      statBadge: `${shortest.runtime} min (${formatRuntime(shortest.runtime)})`,
-      statDetail: `Lançado em ${shortest.release_year || '?'} • Nota ${Number(shortest.user_rating || 0).toFixed(3)}`,
-      runnerUp: shortest2 ? `2º: ${shortest2.title} (${shortest2.runtime} min)` : null,
-    });
+      sortedCandidates: withRuntimeAsc,
+      getScore: (m) => Number(m.runtime),
+      formatVariant: (m) => ({
+        statBadge: `${m.runtime} min (${formatRuntime(m.runtime)})`,
+        statDetail: `Lançado em ${m.release_year || '?'} • Nota ${Number(m.user_rating || 0).toFixed(3)}`,
+      }),
+      formatNextDistinct: (m) => `2º: ${m.title} (${m.runtime} min)`,
+    }));
   }
 
-  // 5. Maior Campeão de Oscars
+  // 6. Maior Campeão de Oscars
   const withOscarWins = unique
     .filter((m) => Number(m.oscar_wins) > 0)
     .sort(
@@ -398,149 +569,239 @@ export function computeExtremeRecords(movies = []) {
         Number(b.user_rating || 0) - Number(a.user_rating || 0)
     );
   if (withOscarWins.length > 0) {
-    const oscWin = withOscarWins[0];
-    const oscWin2 = withOscarWins[1];
-    records.push({
+    pushRec(buildRecordWithTies({
       id: 'most_oscar_wins',
       rarity: 'mythic',
       rarityLabel: '💎 REALEZA DA ACADEMIA',
       icon: '🏆',
       title: 'Maior Ganhador de Oscar',
       subtitle: 'Recordista de estatuetas douradas no catálogo',
-      movie: oscWin,
-      statBadge: `🏆 ${oscWin.oscar_wins} Oscars`,
-      statDetail: `${oscWin.oscar_nominations || oscWin.oscar_wins} indicações oficiais na cerimônia`,
-      runnerUp: oscWin2 ? `2º: ${oscWin2.title} (${oscWin2.oscar_wins} Oscars)` : null,
-    });
+      sortedCandidates: withOscarWins,
+      getScore: (m) => Number(m.oscar_wins),
+      formatVariant: (m) => ({
+        statBadge: `🏆 ${m.oscar_wins} Oscars`,
+        statDetail: `${m.oscar_nominations || m.oscar_wins} indicações oficiais na cerimônia`,
+      }),
+      formatNextDistinct: (m) => `2º: ${m.title} (${m.oscar_wins} Oscars)`,
+    }));
   }
 
-  // 6. Mais Indicações ao Oscar
+  // 7. Mais Indicações ao Oscar
   const withOscarNoms = unique
     .filter((m) => Number(m.oscar_nominations) > 0)
     .sort(
       (a, b) =>
         Number(b.oscar_nominations) - Number(a.oscar_nominations) ||
-        Number(b.oscar_wins || 0) - Number(a.oscar_wins || 0)
+        Number(b.oscar_wins || 0) - Number(a.oscar_wins || 0) ||
+        Number(b.user_rating || 0) - Number(a.user_rating || 0)
     );
   if (withOscarNoms.length > 0) {
-    const nomWin = withOscarNoms[0];
-    const nomWin2 = withOscarNoms[1];
-    records.push({
+    pushRec(buildRecordWithTies({
       id: 'most_oscar_noms',
       rarity: 'epic',
       rarityLabel: '💜 ÍMÃ DA ACADEMIA',
       icon: '🎬',
       title: 'Recordista de Indicações ao Oscar',
       subtitle: 'O queridinho absoluto das votações',
-      movie: nomWin,
-      statBadge: `🎬 ${nomWin.oscar_nominations} Indicações`,
-      statDetail: `Converteu ${nomWin.oscar_wins || 0} vitória(s) na premiação`,
-      runnerUp: nomWin2 ? `2º: ${nomWin2.title} (${nomWin2.oscar_nominations} ind.)` : null,
-    });
+      sortedCandidates: withOscarNoms,
+      getScore: (m) => Number(m.oscar_nominations),
+      formatVariant: (m) => ({
+        statBadge: `🎬 ${m.oscar_nominations} Indicações`,
+        statDetail: `Converteu ${m.oscar_wins || 0} vitória(s) na premiação`,
+      }),
+      formatNextDistinct: (m) => `2º: ${m.title} (${m.oscar_nominations} ind.)`,
+    }));
   }
 
-  // 7. Filme com Mais Tags
+  // 8. Filme com Mais Tags
   const byTags = unique
     .filter((m) => Array.isArray(m.tags) && m.tags.length > 0)
-    .sort(
-      (a, b) =>
-        b.tags.length - a.tags.length ||
-        Number(b.user_rating || 0) - Number(a.user_rating || 0)
-    );
+    .sort((a, b) => b.tags.length - a.tags.length || Number(b.user_rating || 0) - Number(a.user_rating || 0));
   if (byTags.length > 0) {
-    const tagWin = byTags[0];
-    const tagWin2 = byTags[1];
-    records.push({
+    pushRec(buildRecordWithTies({
       id: 'most_tags',
       rarity: 'epic',
       rarityLabel: '💜 QUIMERA DE TAGS',
       icon: '🏷️',
       title: 'Filme com Maior Número de Tags',
       subtitle: 'Mistura mais insana de temas e elementos',
-      movie: tagWin,
-      statBadge: `${tagWin.tags.length} Tags`,
-      statDetail: tagWin.tags.slice(0, 5).join(' • ') + (tagWin.tags.length > 5 ? '...' : ''),
-      runnerUp: tagWin2 ? `2º: ${tagWin2.title} (${tagWin2.tags.length} tags)` : null,
-    });
+      sortedCandidates: byTags,
+      getScore: (m) => m.tags.length,
+      formatVariant: (m) => ({
+        statBadge: `${m.tags.length} Tags`,
+        statDetail: m.tags.slice(0, 5).join(' • ') + (m.tags.length > 5 ? '...' : ''),
+      }),
+      formatNextDistinct: (m) => `2º: ${m.title} (${m.tags.length} tags)`,
+    }));
   }
 
-  // 8. Filme com Mais Gêneros
+  // 9. Filme com Mais Gêneros
   const byGenres = unique
     .filter((m) => Array.isArray(m.genres) && m.genres.length > 0)
-    .sort(
-      (a, b) =>
-        b.genres.length - a.genres.length ||
-        Number(b.user_rating || 0) - Number(a.user_rating || 0)
-    );
+    .sort((a, b) => b.genres.length - a.genres.length || Number(b.user_rating || 0) - Number(a.user_rating || 0));
   if (byGenres.length > 0) {
-    const genWin = byGenres[0];
-    const genWin2 = byGenres[1];
-    records.push({
+    pushRec(buildRecordWithTies({
       id: 'most_genres',
       rarity: 'rare',
       rarityLabel: '🔵 MUTANTE MULTICLASSE',
       icon: '🧬',
       title: 'Mais Gêneros Combinados',
       subtitle: 'Obra híbrida que cruza múltiplas classes',
-      movie: genWin,
-      statBadge: `${genWin.genres.length} Gêneros`,
-      statDetail: genWin.genres.join(' • '),
-      runnerUp: genWin2 ? `2º: ${genWin2.title} (${genWin2.genres.length} gêneros)` : null,
-    });
+      sortedCandidates: byGenres,
+      getScore: (m) => m.genres.length,
+      formatVariant: (m) => ({
+        statBadge: `${m.genres.length} Gêneros`,
+        statDetail: m.genres.join(' • '),
+      }),
+      formatNextDistinct: (m) => `2º: ${m.title} (${m.genres.length} gêneros)`,
+    }));
   }
 
-  // 9. Gravação / Lançamento Mais Antigo
-  const byOldest = unique
+  // 10 & 11. Filme Mais Antigo & Filme Mais Novo Assistido (com mês de lançamento quando disponível)
+  const withRelease = unique
     .filter((m) => Number(m.release_year) > 1880)
-    .sort(
-      (a, b) =>
-        Number(a.release_year) - Number(b.release_year) ||
-        Number(b.user_rating || 0) - Number(a.user_rating || 0)
-    );
-  if (byOldest.length > 0) {
-    const oldWin = byOldest[0];
-    const oldWin2 = byOldest[1];
-    const ageYears = new Date().getFullYear() - Number(oldWin.release_year);
-    records.push({
+    .map((m) => ({
+      movie: m,
+      releaseYear: Number(m.release_year),
+      releaseMonth: extractReleaseMonth(m),
+    }));
+
+  if (withRelease.length > 0) {
+    const minYear = Math.min(...withRelease.map((r) => r.releaseYear));
+    const minYearAllHaveMonth = withRelease
+      .filter((r) => r.releaseYear === minYear)
+      .every((r) => r.releaseMonth !== null);
+
+    const byOldest = [...withRelease].sort((a, b) => {
+      if (a.releaseYear !== b.releaseYear) return a.releaseYear - b.releaseYear;
+      if (minYearAllHaveMonth) return (a.releaseMonth || 99) - (b.releaseMonth || 99);
+      return Number(b.movie.user_rating || 0) - Number(a.movie.user_rating || 0);
+    });
+    const currentYear = new Date().getFullYear();
+
+    pushRec(buildRecordWithTies({
       id: 'oldest_release',
       rarity: 'mythic',
       rarityLabel: '💎 ARTEFATO ANCESTRAL',
       icon: '🏺',
       title: 'Filme Mais Antigo Assistido',
       subtitle: 'Sua viagem mais profunda ao passado do cinema',
-      movie: oldWin,
-      statBadge: `Ano ${oldWin.release_year}`,
-      statDetail: `${ageYears} anos de história cinematográfica!`,
-      runnerUp: oldWin2 ? `2º: ${oldWin2.title} (${oldWin2.release_year})` : null,
+      sortedCandidates: byOldest,
+      getScore: (r) => (minYearAllHaveMonth && r.releaseYear === minYear ? r.releaseYear * 100 + r.releaseMonth : r.releaseYear),
+      formatVariant: (r) => ({
+        statBadge: r.releaseMonth ? `${MONTH_NAMES[r.releaseMonth - 1]}/${r.releaseYear}` : `Ano ${r.releaseYear}`,
+        statDetail: `${currentYear - r.releaseYear} anos de história cinematográfica!`,
+      }),
+      formatNextDistinct: (r) => `2º: ${r.movie.title} (${r.releaseYear})`,
+    }));
+
+    const maxYear = Math.max(...withRelease.map((r) => r.releaseYear));
+    const maxYearAllHaveMonth = withRelease
+      .filter((r) => r.releaseYear === maxYear)
+      .every((r) => r.releaseMonth !== null);
+
+    const byNewest = [...withRelease].sort((a, b) => {
+      if (b.releaseYear !== a.releaseYear) return b.releaseYear - a.releaseYear;
+      if (maxYearAllHaveMonth) return (b.releaseMonth || 0) - (a.releaseMonth || 0);
+      return (
+        (Number(b.movie.year_seen) || 0) - (Number(a.movie.year_seen) || 0) ||
+        (Number(b.movie.month_seen) || 0) - (Number(a.movie.month_seen) || 0) ||
+        Number(b.movie.user_rating || 0) - Number(a.movie.user_rating || 0)
+      );
     });
+
+    pushRec(buildRecordWithTies({
+      id: 'newest_release',
+      rarity: 'rare',
+      rarityLabel: '🔵 LANÇAMENTO RECENTE',
+      icon: '🚀',
+      title: 'Filme Mais Novo Assistido',
+      subtitle: 'A produção mais recente que você assistiu',
+      sortedCandidates: byNewest,
+      getScore: (r) => (maxYearAllHaveMonth && r.releaseYear === maxYear ? r.releaseYear * 100 + r.releaseMonth : r.releaseYear),
+      formatVariant: (r) => {
+        const seenStr = r.movie.year_seen
+          ? r.movie.month_seen
+            ? `${MONTH_NAMES[Number(r.movie.month_seen) - 1] || r.movie.month_seen}/${r.movie.year_seen}`
+            : String(r.movie.year_seen)
+          : null;
+        return {
+          statBadge: r.releaseMonth ? `${MONTH_NAMES[r.releaseMonth - 1]}/${r.releaseYear}` : `Ano ${r.releaseYear}`,
+          statDetail: `${seenStr ? `Assistido em ${seenStr} • ` : ''}Nota ${Number(r.movie.user_rating || 0).toFixed(3)}`,
+        };
+      },
+      formatNextDistinct: (r) =>
+        `2º: ${r.movie.title} (${r.releaseMonth ? `${MONTH_NAMES[r.releaseMonth - 1]}/${r.releaseYear}` : r.releaseYear})`,
+    }));
   }
 
-  // 10. Maior Coprodução Internacional
+  // 12 & 13. Filme com Maior Nome & Filme com Menor Nome
+  const withTitles = unique
+    .filter((m) => String(m.title || '').trim().length > 0)
+    .map((m) => ({ movie: m, titleLen: String(m.title || '').trim().length }));
+  if (withTitles.length > 0) {
+    const byLongestTitle = [...withTitles].sort(
+      (a, b) => b.titleLen - a.titleLen || Number(b.movie.user_rating || 0) - Number(a.movie.user_rating || 0)
+    );
+    pushRec(buildRecordWithTies({
+      id: 'longest_title',
+      rarity: 'epic',
+      rarityLabel: '💜 TÍTULO ÉPICO',
+      icon: '📜',
+      title: 'Filme com Maior Nome',
+      subtitle: 'Título mais extenso do catálogo',
+      sortedCandidates: byLongestTitle,
+      getScore: (t) => t.titleLen,
+      formatVariant: (t) => ({
+        statBadge: `${t.titleLen} caracteres`,
+        statDetail: `Ano ${t.movie.release_year || '?'} • Nota ${Number(t.movie.user_rating || 0).toFixed(3)}`,
+      }),
+      formatNextDistinct: (t) => `2º: ${t.movie.title} (${t.titleLen} car.)`,
+    }));
+
+    const byShortestTitle = [...withTitles].sort(
+      (a, b) => a.titleLen - b.titleLen || Number(b.movie.user_rating || 0) - Number(a.movie.user_rating || 0)
+    );
+    pushRec(buildRecordWithTies({
+      id: 'shortest_title',
+      rarity: 'rare',
+      rarityLabel: '🔵 TÍTULO MINIMALISTA',
+      icon: '🔤',
+      title: 'Filme com Menor Nome',
+      subtitle: 'Título mais curto e direto do acervo',
+      sortedCandidates: byShortestTitle,
+      getScore: (t) => t.titleLen,
+      formatVariant: (t) => ({
+        statBadge: `${t.titleLen} ${t.titleLen === 1 ? 'caractere' : 'caracteres'}`,
+        statDetail: `Ano ${t.movie.release_year || '?'} • Nota ${Number(t.movie.user_rating || 0).toFixed(3)}`,
+      }),
+      formatNextDistinct: (t) => `2º: ${t.movie.title} (${t.titleLen} car.)`,
+    }));
+  }
+
+  // 14. Maior Coprodução Internacional
   const byCountries = unique
     .filter((m) => Array.isArray(m.countries) && m.countries.length > 0)
-    .sort(
-      (a, b) =>
-        b.countries.length - a.countries.length ||
-        Number(b.user_rating || 0) - Number(a.user_rating || 0)
-    );
+    .sort((a, b) => b.countries.length - a.countries.length || Number(b.user_rating || 0) - Number(a.user_rating || 0));
   if (byCountries.length > 0) {
-    const cWin = byCountries[0];
-    const cWin2 = byCountries[1];
-    records.push({
+    pushRec(buildRecordWithTies({
       id: 'most_countries',
       rarity: 'epic',
       rarityLabel: '💜 ALIANÇA DIPLOMÁTICA',
       icon: '🌐',
       title: 'Maior Coprodução Mundial',
       subtitle: 'Mais bandeiras unidas na mesma produção',
-      movie: cWin,
-      statBadge: `${cWin.countries.length} Países`,
-      statDetail: cWin.countries.join(', '),
-      runnerUp: cWin2 ? `2º: ${cWin2.title} (${cWin2.countries.length} países)` : null,
-    });
+      sortedCandidates: byCountries,
+      getScore: (m) => m.countries.length,
+      formatVariant: (m) => ({
+        statBadge: `${m.countries.length} Países`,
+        statDetail: m.countries.join(', '),
+      }),
+      formatNextDistinct: (m) => `2º: ${m.title} (${m.countries.length} países)`,
+    }));
   }
 
-  // 11 & 12. Divergências Críticas ("Contra o Sistema" vs "Escudo Anti-Hype")
+  // 15 & 16. Divergências Críticas ("Contra o Sistema" vs "Escudo Anti-Hype")
   const withCriticAndUser = unique
     .map((m) => {
       const u = Number(m.user_rating);
@@ -567,41 +828,41 @@ export function computeExtremeRecords(movies = []) {
 
   if (withCriticAndUser.length > 0) {
     const rebelSorted = [...withCriticAndUser].sort((a, b) => b.diff - a.diff);
-    const rebelWin = rebelSorted[0];
-    if (rebelWin && rebelWin.diff > 0) {
-      records.push({
+    if (rebelSorted[0] && rebelSorted[0].diff > 0) {
+      pushRec(buildRecordWithTies({
         id: 'rebel_love',
         rarity: 'legendary',
         rarityLabel: '🥇 CONTRA O SISTEMA',
         icon: '⚔️',
         title: 'Eu Amei, a Crítica Chorou!',
         subtitle: 'Maior vantagem da sua nota contra os críticos',
-        movie: rebelWin,
-        statBadge: `+${rebelWin.diff.toFixed(1)} pts acima`,
-        statDetail: `Você: ${Number(rebelWin.user_rating).toFixed(3)} (${rebelWin.user100.toFixed(0)}) vs Crítica: ${rebelWin.criticAvg.toFixed(0)}/100`,
-        runnerUp: rebelSorted[1]
-          ? `2º: ${rebelSorted[1].title} (+${rebelSorted[1].diff.toFixed(1)} pts)`
-          : null,
-      });
+        sortedCandidates: rebelSorted,
+        getScore: (m) => Math.round(m.diff * 100),
+        formatVariant: (m) => ({
+          statBadge: `+${m.diff.toFixed(1)} pts acima`,
+          statDetail: `Você: ${Number(m.user_rating).toFixed(3)} (${m.user100.toFixed(0)}) vs Crítica: ${m.criticAvg.toFixed(0)}/100`,
+        }),
+        formatNextDistinct: (m) => `2º: ${m.title} (+${m.diff.toFixed(1)} pts)`,
+      }));
     }
 
     const shieldSorted = [...withCriticAndUser].sort((a, b) => a.diff - b.diff);
-    const shieldWin = shieldSorted[0];
-    if (shieldWin && shieldWin.diff < 0) {
-      records.push({
+    if (shieldSorted[0] && shieldSorted[0].diff < 0) {
+      pushRec(buildRecordWithTies({
         id: 'hype_shield',
         rarity: 'epic',
         rarityLabel: '💜 ESCUDO ANTI-HYPE',
         icon: '🛡️',
         title: 'Imune ao Hype da Crítica',
         subtitle: 'A crítica aplaudiu de pé, mas você foi rigoroso',
-        movie: shieldWin,
-        statBadge: `${shieldWin.diff.toFixed(1)} pts abaixo`,
-        statDetail: `Crítica: ${shieldWin.criticAvg.toFixed(0)}/100 vs Você: ${Number(shieldWin.user_rating).toFixed(3)} (${shieldWin.user100.toFixed(0)})`,
-        runnerUp: shieldSorted[1]
-          ? `2º: ${shieldSorted[1].title} (${shieldSorted[1].diff.toFixed(1)} pts)`
-          : null,
-      });
+        sortedCandidates: shieldSorted,
+        getScore: (m) => Math.round(m.diff * 100),
+        formatVariant: (m) => ({
+          statBadge: `${m.diff.toFixed(1)} pts abaixo`,
+          statDetail: `Crítica: ${m.criticAvg.toFixed(0)}/100 vs Você: ${Number(m.user_rating).toFixed(3)} (${m.user100.toFixed(0)})`,
+        }),
+        formatNextDistinct: (m) => `2º: ${m.title} (${m.diff.toFixed(1)} pts)`,
+      }));
     }
   }
 
@@ -1330,10 +1591,12 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
   const totalStatPoints = vigorScore + wisdomScore + exploreScore + precisionScore + trophyScore + prestigeScore;
   const characterClass = determineCharacterClass(rpgAttributes, totalStatPoints, uniqueAll);
 
-  // Facções de Áudio (Dublado vs Legendado vs Outros)
+  // Facções de Áudio (Dublado, Legendado, Legendado YouTube, Original & Outros)
   const audioMap = {
     Dublado: { count: 0, ratingSum: 0, ratingCount: 0 },
     Legendado: { count: 0, ratingSum: 0, ratingCount: 0 },
+    YoutubeSub: { count: 0, ratingSum: 0, ratingCount: 0 },
+    Original: { count: 0, ratingSum: 0, ratingCount: 0 },
     Outros: { count: 0, ratingSum: 0, ratingCount: 0 },
   };
 
@@ -1367,8 +1630,12 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
     const aud = String(m.audio_type || '').toLowerCase().trim();
     const bucket = aud.includes('dubl')
       ? 'Dublado'
+      : aud.includes('youtube')
+      ? 'YoutubeSub'
       : aud.includes('legend')
       ? 'Legendado'
+      : aud.includes('original')
+      ? 'Original'
       : 'Outros';
     audioMap[bucket].count += 1;
     if (r > 0) {
@@ -1410,8 +1677,13 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
   const topGenres = toTopList(genresMap, 10);
   const dominantGenre1 = topGenres[0]?.name || 'Cinema';
   const dominantGenre2 = topGenres[1]?.name || 'Exploração';
-  const dominantAudio =
-    audioMap.Dublado.count >= audioMap.Legendado.count ? 'Facção Dublado 🎙️' : 'Facção Legendado 💬';
+  const factionLeaders = [
+    { label: 'Facção Dublado 🎙️', count: audioMap.Dublado.count },
+    { label: 'Facção Legendado 💬', count: audioMap.Legendado.count },
+    { label: 'Facção Legenda YouTube 📺', count: audioMap.YoutubeSub.count },
+    { label: 'Facção Áudio Original 🎞️', count: audioMap.Original.count },
+  ].sort((a, b) => b.count - a.count);
+  const dominantAudio = factionLeaders[0]?.label || 'Facção Dublado 🎙️';
 
   const characterSubclass = `Mestre em ${dominantGenre1} & ${dominantGenre2} • ${dominantAudio}`;
 
@@ -1481,8 +1753,17 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
 
   const totalAudioCount = Math.max(
     1,
-    audioMap.Dublado.count + audioMap.Legendado.count + audioMap.Outros.count
+    audioMap.Dublado.count +
+      audioMap.Legendado.count +
+      audioMap.YoutubeSub.count +
+      audioMap.Original.count +
+      audioMap.Outros.count
   );
+  const formatAudioFaction = (entry) => ({
+    ...entry,
+    pct: Number(((entry.count / totalAudioCount) * 100).toFixed(1)),
+    avg: entry.ratingCount > 0 ? (entry.ratingSum / entry.ratingCount).toFixed(2) : '—',
+  });
 
   return {
     activeXp,
@@ -1504,20 +1785,11 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
     },
     rpgAttributes,
     audioFactions: {
-      dublado: {
-        ...audioMap.Dublado,
-        pct: Math.round((audioMap.Dublado.count / totalAudioCount) * 100),
-        avg: audioMap.Dublado.ratingCount > 0 ? (audioMap.Dublado.ratingSum / audioMap.Dublado.ratingCount).toFixed(2) : '—',
-      },
-      legendado: {
-        ...audioMap.Legendado,
-        pct: Math.round((audioMap.Legendado.count / totalAudioCount) * 100),
-        avg: audioMap.Legendado.ratingCount > 0 ? (audioMap.Legendado.ratingSum / audioMap.Legendado.ratingCount).toFixed(2) : '—',
-      },
-      outros: {
-        ...audioMap.Outros,
-        pct: Math.round((audioMap.Outros.count / totalAudioCount) * 100),
-      },
+      dublado: formatAudioFaction(audioMap.Dublado),
+      legendado: formatAudioFaction(audioMap.Legendado),
+      youtubeSub: formatAudioFaction(audioMap.YoutubeSub),
+      original: formatAudioFaction(audioMap.Original),
+      outros: formatAudioFaction(audioMap.Outros),
     },
     guilds: {
       directors: toTopList(directorsMap, 10),

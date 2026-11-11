@@ -126,6 +126,129 @@ function PosterThumb({ url, title, className = 'w-12 h-16 rounded-lg' }) {
   );
 }
 
+function ExtremeRecordCard({ rec }) {
+  const theme = RARITY_CARD_THEMES[rec.rarity] || RARITY_CARD_THEMES.rare;
+  const variants =
+    Array.isArray(rec.tiedVariants) && rec.tiedVariants.length > 0
+      ? rec.tiedVariants
+      : [{ movie: rec.movie, statBadge: rec.statBadge, statDetail: rec.statDetail, flagCode: rec.flagCode || null }];
+  const hasTies = variants.length > 1;
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [flipPhase, setFlipPhase] = useState('idle'); // 'idle' | 'out' | 'in'
+
+  const safeIdx = activeIdx % variants.length;
+  const activeVariant = variants[safeIdx];
+
+  const handleCardClick = () => {
+    if (!hasTies || flipPhase !== 'idle') return;
+    setFlipPhase('out');
+    setTimeout(() => {
+      setActiveIdx((prev) => (prev + 1) % variants.length);
+      setFlipPhase('in');
+      setTimeout(() => {
+        setFlipPhase('idle');
+      }, 190);
+    }, 150);
+  };
+
+  const flipAnimStyle =
+    flipPhase === 'out'
+      ? { animation: 'analyticsCardFlipOut 150ms ease-in forwards' }
+      : flipPhase === 'in'
+        ? { animation: 'analyticsCardFlipIn 190ms ease-out forwards' }
+        : undefined;
+
+  return (
+    <div
+      onClick={handleCardClick}
+      role={hasTies ? 'button' : undefined}
+      tabIndex={hasTies ? 0 : undefined}
+      onKeyDown={
+        hasTies
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleCardClick();
+              }
+            }
+          : undefined
+      }
+      title={hasTies ? `Empate entre ${variants.length} filmes — clique para virar e ver o próximo!` : undefined}
+      style={flipAnimStyle}
+      className={`rounded-2xl border bg-gradient-to-br ${theme.bg} ${theme.border} ${theme.glow} p-4 flex flex-col justify-between gap-3 transition-all duration-300 ${
+        hasTies
+          ? 'cursor-pointer hover:-translate-y-1 hover:brightness-110 ring-1 ring-white/10 hover:ring-amber-400/45 select-none'
+          : 'hover:-translate-y-1'
+      }`}
+    >
+      <div className="flex flex-col gap-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${theme.badge}`}>
+            {rec.rarityLabel}
+          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {hasTies && (
+              <span className="text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400/50 text-amber-200">
+                🔄 {safeIdx + 1}/{variants.length}
+              </span>
+            )}
+            <span className="text-lg">{rec.icon}</span>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-xs uppercase font-black tracking-wider text-zinc-300">
+            {rec.title}
+          </h3>
+          <p className="text-[11px] text-zinc-500">{rec.subtitle}</p>
+        </div>
+
+        {/* Filme Detentor */}
+        <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-xl p-2.5">
+          <PosterThumb
+            url={activeVariant.movie?.poster_url}
+            title={activeVariant.movie?.title}
+            className="w-12 h-17 rounded-lg"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-black text-white line-clamp-2 leading-tight">
+              {activeVariant.movie?.title}
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+              {activeVariant.flagCode && (
+                <img
+                  src={`https://flagcdn.com/w40/${String(activeVariant.flagCode).toLowerCase()}.png`}
+                  alt=""
+                  className="w-4 h-3 object-cover rounded-sm border border-white/25 shrink-0"
+                />
+              )}
+              <span className={`inline-block text-[11px] font-mono font-black px-2 py-0.5 rounded-md border ${theme.stat}`}>
+                {activeVariant.statBadge}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1 pt-2 border-t border-zinc-800/80">
+        <div className="text-[11px] text-zinc-300 line-clamp-2">{activeVariant.statDetail}</div>
+        {hasTies ? (
+          <div className="text-[10px] font-mono font-bold text-amber-300/90 flex items-center justify-between gap-2">
+            <span className="truncate">Empate ({variants.length} filmes)</span>
+            <span className="shrink-0">Clique p/ virar ↻</span>
+          </div>
+        ) : (
+          rec.runnerUp && (
+            <div className="text-[10px] font-mono text-zinc-500 truncate">
+              {rec.runnerUp}
+            </div>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AnalyticsDashboard({
   movies = [],
   xpStatus: xpStatusProp = null,
@@ -163,11 +286,11 @@ export default function AnalyticsDashboard({
     return [
       { id: 'all', label: '✨ Visão Geral Completa' },
       { id: 'xp_rpg', label: '⚡ XP & Ficha RPG' },
-      { id: 'pantheon', label: '👑 Panteão das 4 Notas' },
+      { id: 'pantheon', label: '⭐ Panteão & Minha Nota' },
       { id: 'relics', label: '💎 Relíquias & Recordes' },
-      { id: 'checkpoints', label: '💾 Save Slots (#1, #50, #100...)' },
       { id: 'years', label: '📅 Anos & Gravações' },
       { id: 'guilds', label: '🎙️ Áudio, Países & Guildas' },
+      { id: 'checkpoints', label: '💾 Linha do Tempo (#1, #50...)' },
     ];
   }, [isYearFilterActive, selectedYear]);
 
@@ -197,16 +320,23 @@ export default function AnalyticsDashboard({
           setLiveXp(xpRes.value.data.data);
         }
         if (worldRes.status === 'fulfilled' && worldRes.value.data?.success && worldRes.value.data?.data?.catalogMovies) {
+          const countryMetaByCode = {};
+          (worldRes.value.data.data.countries || []).forEach((c) => {
+            if (c?.code) countryMetaByCode[String(c.code).toLowerCase()] = c;
+          });
           const originLookup = {};
           worldRes.value.data.data.catalogMovies.forEach((cm) => {
             if (cm?.movie_id == null) return;
             const matchedRef = (cm.coproductionCountries || []).find(
               (ref) => ref.code === cm.primaryCountryCode
             );
+            const pCode = cm.primaryCountryCode ? String(cm.primaryCountryCode).toLowerCase() : null;
+            const countryMeta = pCode ? countryMetaByCode[pCode] : null;
             originLookup[String(cm.movie_id)] = {
-              name: cm.primaryCountryName || null,
-              code: cm.primaryCountryCode || null,
-              iso: matchedRef?.flagCode || cm.primaryCountryCode || null,
+              name: cm.primaryCountryName || countryMeta?.name || null,
+              code: pCode,
+              iso: matchedRef?.flagCode || pCode || null,
+              rarityTier: matchedRef?.rarityTier || countryMeta?.rarityTier || null,
             };
           });
           setWorldOriginMap(originLookup);
@@ -266,8 +396,8 @@ export default function AnalyticsDashboard({
   );
 
   const extremeRecords = useMemo(
-    () => computeExtremeRecords(filteredMovies),
-    [filteredMovies]
+    () => computeExtremeRecords(filteredMovies, worldOriginMap),
+    [filteredMovies, worldOriginMap]
   );
 
   const checkpoints = useMemo(
@@ -489,8 +619,8 @@ export default function AnalyticsDashboard({
     return activeWing === 'all' || activeWing === id;
   };
 
-  const unifiedDisplayedList =
-    unifiedMode === 'best' ? pantheon.top5Unified : pantheon.bottom5Unified;
+  const heroUserDisplayedList =
+    unifiedMode === 'best' ? pantheon.top5User : pantheon.bottom5User;
 
   return (
     <div className="flex flex-col gap-8 pb-16">
@@ -1521,35 +1651,33 @@ export default function AnalyticsDashboard({
       )}
 
       {/* =====================================================================
-          ALA 2: O PANTEÃO DAS 4 NOTAS & CAMPEÃO SUPREMO UNIFICADO (0-100)
+          ALA 2: DESTAQUE MINHA NOTA PESSOAL + PANTEÃO DAS 4 NOTAS UNIDAS
          ===================================================================== */}
       {showSection('pantheon') && (
         <section className="flex flex-col gap-6">
-          {/* Painel Principal: TOP 5 SUPREMO UNIFICADO */}
+          {/* Painel Principal: TOP 5 MINHA NOTA EM DESTAQUE */}
           <div className="rounded-3xl border border-amber-400/40 bg-gradient-to-br from-zinc-950 via-amber-950/15 to-zinc-950 p-5 sm:p-7 shadow-2xl flex flex-col gap-5">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-zinc-800/80 pb-4">
               <div>
                 <div className="flex items-center gap-2 flex-wrap mb-1">
                   <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/45">
-                    👑 Consenso Absoluto das 4 Escalas Normalizadas (0–100)
+                    ⭐ Pódio Pessoal Absoluto (0–10.000)
                   </span>
                   <span className="text-[10px] font-mono text-zinc-400">
-                    {pantheon.usingStrict4
-                      ? `${pantheon.strict4Count} filmes com as 4 notas completas`
-                      : `${pantheon.eligibleUnifiedCount} filmes elegíveis (3+ notas)`}
+                    {pantheon.judges[0]?.count || 0} filmes avaliados por você
                   </span>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-black text-white">
                   {unifiedMode === 'best'
-                    ? '🌟 Top 5 Melhores Filmes — Todas as 4 Notas Unidas'
-                    : '💀 Top 5 Submundo — Menores Médias nas 4 Notas Unidas'}
+                    ? '⭐ Top 5 Melhores Filmes — Minha Nota Pessoal'
+                    : '💀 Top 5 Menores Notas — Minha Nota Pessoal'}
                 </h2>
                 <p className="text-xs text-zinc-400 mt-0.5">
-                  Fórmula Oficial: <strong className="text-amber-200">(Minha Nota × 10 + IMDb × 10 + Metacritic + Rotten Tomatoes) ÷ 4</strong>
+                  As obras mais bem (ou pior) avaliadas diretamente por você no catálogo, comparadas com as médias externas.
                 </p>
               </div>
 
-              {/* Toggle Olimpo vs Submundo */}
+              {/* Toggle Melhores vs Piores na Minha Nota */}
               <div className="flex items-center gap-1 bg-zinc-950 border border-zinc-800 p-1 rounded-2xl self-start lg:self-center">
                 <button
                   type="button"
@@ -1560,7 +1688,7 @@ export default function AnalyticsDashboard({
                       : 'text-zinc-400 hover:text-white'
                   }`}
                 >
-                  👑 Top 5 Melhores
+                  ⭐ Top 5 Melhores
                 </button>
                 <button
                   type="button"
@@ -1576,18 +1704,18 @@ export default function AnalyticsDashboard({
               </div>
             </div>
 
-            {/* 5 Cards do Pódio Unificado */}
-            {unifiedDisplayedList.length === 0 ? (
+            {/* 5 Cards do Pódio Minha Nota */}
+            {heroUserDisplayedList.length === 0 ? (
               <div className="text-center py-10 text-xs text-zinc-500 italic">
-                Nenhum filme com notas suficientes nesta seleção.
+                Nenhum filme com avaliação pessoal nesta seleção.
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-                {unifiedDisplayedList.map((m, idx) => {
+                {heroUserDisplayedList.map((m, idx) => {
                   const rankMedal =
                     unifiedMode === 'best'
                       ? idx === 0
-                        ? '👑 #1 CAMPEÃO'
+                        ? '👑 #1 FAVORITO'
                         : idx === 1
                         ? '🥈 #2 VICE'
                         : idx === 2
@@ -1629,22 +1757,22 @@ export default function AnalyticsDashboard({
                         </div>
                       </div>
 
-                      {/* Score Unificado + 4 Notas Originais */}
+                      {/* Destaque Minha Nota + 4 Notas Comparadas */}
                       <div className="flex flex-col gap-2 pt-2 border-t border-zinc-800/80">
                         <div className="flex items-baseline justify-between">
                           <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
-                            Média Suprema
+                            Minha Nota
                           </span>
                           <span className="text-2xl font-black font-mono text-amber-300">
-                            {m.unifiedFormatted}
-                            <span className="text-xs text-zinc-500">/100</span>
+                            {m.rawUser !== null ? m.rawUser.toFixed(3) : '—'}
+                            <span className="text-xs text-zinc-500"> / 10</span>
                           </span>
                         </div>
 
                         <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono font-bold">
                           <div className="px-2 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-200 flex justify-between">
-                            <span>⭐ Minha</span>
-                            <span>{m.rawUser !== null ? m.rawUser.toFixed(3) : '—'}</span>
+                            <span>🌟 4 Notas</span>
+                            <span>{m.metricsCount >= 3 ? m.unifiedFormatted : '—'}</span>
                           </div>
                           <div className="px-2 py-1 rounded-lg bg-yellow-500/15 border border-yellow-500/30 text-yellow-200 flex justify-between">
                             <span>🟡 IMDb</span>
@@ -1700,17 +1828,17 @@ export default function AnalyticsDashboard({
             </div>
           </div>
 
-          {/* OS 4 TRONOS INDIVIDUAIS (TOP 5 DE CADA NOTA) */}
+          {/* OS 4 TRONOS INDIVIDUAIS (TOP 5 TODAS AS 4 NOTAS + IMDb + METACRITIC + ROTTEN) */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             {[
               {
-                key: 'user',
-                title: '⭐ Top 5 Minha Nota',
-                subtitle: 'Suas maiores notas pessoais (0–10.000)',
+                key: 'unified4',
+                title: '🌟 Top 5 Todas as 4 Notas',
+                subtitle: 'Consenso normalizado (0–100): Minha, IMDb, Meta e Rotten',
                 border: 'border-amber-500/35',
                 badgeBg: 'bg-amber-500/20 border-amber-400/50 text-amber-200',
-                items: pantheon.top5User,
-                renderScore: (m) => Number(m.rawUser).toFixed(3),
+                items: pantheon.top5Unified,
+                renderScore: (m) => `${m.unifiedFormatted}/100`,
               },
               {
                 key: 'imdb',
@@ -1792,226 +1920,23 @@ export default function AnalyticsDashboard({
                 Museu de Relíquias & Recordes Absolutos do Catálogo
               </h2>
             </div>
-            <span className="text-xs font-mono text-zinc-400">
-              {extremeRecords.length} Artefatos Identificados
-            </span>
+            <div className="flex flex-col sm:items-end gap-0.5">
+              <span className="text-xs font-mono text-zinc-400">
+                {extremeRecords.length} Artefatos Identificados
+              </span>
+              {extremeRecords.some((r) => (r.tiedVariants?.length || 0) > 1) && (
+                <span className="text-[10px] font-mono text-amber-300/90">
+                  🔄 Clique nos cards com empate para virar
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {extremeRecords.map((rec) => {
-              const theme = RARITY_CARD_THEMES[rec.rarity] || RARITY_CARD_THEMES.rare;
-              return (
-                <div
-                  key={rec.id}
-                  className={`rounded-2xl border bg-gradient-to-br ${theme.bg} ${theme.border} ${theme.glow} p-4 flex flex-col justify-between gap-3 transition-all duration-300 hover:-translate-y-1`}
-                >
-                  <div className="flex flex-col gap-2.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${theme.badge}`}>
-                        {rec.rarityLabel}
-                      </span>
-                      <span className="text-lg">{rec.icon}</span>
-                    </div>
-
-                    <div>
-                      <h3 className="text-xs uppercase font-black tracking-wider text-zinc-300">
-                        {rec.title}
-                      </h3>
-                      <p className="text-[11px] text-zinc-500">{rec.subtitle}</p>
-                    </div>
-
-                    {/* Filme Detentor */}
-                    <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-xl p-2.5">
-                      <PosterThumb
-                        url={rec.movie?.poster_url}
-                        title={rec.movie?.title}
-                        className="w-12 h-17 rounded-lg"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-black text-white line-clamp-2 leading-tight">
-                          {rec.movie?.title}
-                        </div>
-                        <span className={`inline-block mt-1.5 text-[11px] font-mono font-black px-2 py-0.5 rounded-md border ${theme.stat}`}>
-                          {rec.statBadge}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1 pt-2 border-t border-zinc-800/80">
-                    <div className="text-[11px] text-zinc-300 line-clamp-2">{rec.statDetail}</div>
-                    {rec.runnerUp && (
-                      <div className="text-[10px] font-mono text-zinc-500 truncate">
-                        {rec.runnerUp}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {extremeRecords.map((rec) => (
+              <ExtremeRecordCard key={rec.id} rec={rec} />
+            ))}
           </div>
-        </section>
-      )}
-
-      {/* =====================================================================
-          ALA 4: MEMORY CARD — CHECKPOINTS DE CADASTRO (#1, #50, #100, #150... + ÚLTIMO)
-         ===================================================================== */}
-      {showSection('checkpoints') && (
-        <section className="rounded-3xl border border-cyan-500/35 bg-gradient-to-br from-zinc-950 via-cyan-950/10 to-zinc-950 p-5 sm:p-7 shadow-2xl flex flex-col gap-6">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-zinc-800/80 pb-4">
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-cyan-300 flex items-center gap-1.5">
-                <Save className="w-3.5 h-3.5" /> Memory Card Oficial da Sua Campanha ({checkpoints.totalCount} Saves)
-              </span>
-              <h2 className="text-xl sm:text-2xl font-black text-white mt-0.5">
-                Linha do Tempo de Checkpoints: 1º Filme, #50, #100, #150... até o Último!
-              </h2>
-              <p className="text-xs text-zinc-400 mt-0.5">
-                Veja exatamente quais obras marcaram o início e cada marco histórico de 50 em 50 filmes da sua coleção.
-              </p>
-            </div>
-
-            {/* Seletor Ordem de Cadastro vs Ordem Assistida */}
-            <div className="flex items-center gap-1 bg-zinc-950 border border-zinc-800 p-1 rounded-2xl self-start lg:self-center">
-              <button
-                type="button"
-                onClick={() => setCheckpointMode('registration')}
-                className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                  checkpointMode === 'registration'
-                    ? 'bg-cyan-400 text-slate-950 shadow-md'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                💾 Ordem de Cadastro
-              </button>
-              <button
-                type="button"
-                onClick={() => setCheckpointMode('watched')}
-                className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                  checkpointMode === 'watched'
-                    ? 'bg-amber-400 text-slate-950 shadow-md'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                📅 Ordem Assistida
-              </button>
-            </div>
-          </div>
-
-          {/* Grid dos Save Slots (#1, #25, #50, #100, #150... + Último + Próximo Bloqueado) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {checkpoints.slots.map((slot) => {
-              const accentCls = SLOT_ACCENTS[slot.accent] || SLOT_ACCENTS.cyan;
-              return (
-                <div
-                  key={slot.number}
-                  className={`rounded-2xl border p-4 flex flex-col justify-between gap-3 transition-all hover:-translate-y-1 ${accentCls}`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded-md bg-black/50 border border-white/15">
-                      {slot.badgeLabel}
-                    </span>
-                    <span className="text-xs font-mono font-bold opacity-80">
-                      #{slot.number}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <PosterThumb
-                      url={slot.movie?.poster_url}
-                      title={slot.movie?.title}
-                      className="w-14 h-20 rounded-xl shadow-md"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[10px] font-black uppercase tracking-wider opacity-75">
-                        {slot.slotTitle}
-                      </div>
-                      <h3 className="text-sm font-black text-white line-clamp-2 leading-snug mt-0.5">
-                        {slot.movie?.title}
-                      </h3>
-                      <div className="text-[11px] font-mono text-zinc-300 mt-1 flex items-center gap-2">
-                        <span>({slot.movie?.release_year || '—'})</span>
-                        {Number(slot.movie?.user_rating) > 0 && (
-                          <span className="text-amber-300 font-black">
-                            ⭐ {Number(slot.movie.user_rating).toFixed(3)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] font-mono text-zinc-300">
-                    <span>Visto: {slot.seenLabel}</span>
-                    {slot.formattedSavedDate && <span>Save: {slot.formattedSavedDate}</span>}
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Card do Próximo Marco de 50 Bloqueado */}
-            {checkpoints.nextCheckpoint && (
-              <div className="rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/40 p-4 flex flex-col justify-between gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400">
-                    🔒 SAVE #{checkpoints.nextCheckpoint.targetNumber} • FUTURO
-                  </span>
-                  <Lock className="w-4 h-4 text-zinc-500" />
-                </div>
-
-                <div className="my-2">
-                  <div className="text-sm font-black text-zinc-200">
-                    Próximo Grande Marco #{checkpoints.nextCheckpoint.targetNumber}
-                  </div>
-                  <p className="text-xs text-zinc-400 mt-1">
-                    Faltam <strong className="text-cyan-300">{checkpoints.nextCheckpoint.remaining} filmes</strong> para desbloquear este slot no Memory Card!
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <div className="flex justify-between text-[10px] font-mono text-zinc-400">
-                    <span>Progresso do Bloco</span>
-                    <span>{checkpoints.nextCheckpoint.progressPct}%</span>
-                  </div>
-                  <div className="w-full h-2 rounded-full bg-zinc-950 overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-cyan-500 to-amber-400 rounded-full"
-                      style={{ width: `${checkpoints.nextCheckpoint.progressPct}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Primeiras Vezes Históricas */}
-          {checkpoints.specialFirsts.length > 0 && (
-            <div className="pt-2 border-t border-zinc-800/80 flex flex-col gap-3">
-              <span className="text-xs font-black uppercase tracking-wider text-amber-300">
-                🏅 Primeiras Vezes Históricas na Jornada
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {checkpoints.specialFirsts.map((sf) => (
-                  <div
-                    key={sf.id}
-                    className="rounded-2xl bg-zinc-900/75 border border-zinc-800 p-3 flex items-center gap-3"
-                  >
-                    <PosterThumb url={sf.movie?.poster_url} title={sf.movie?.title} className="w-11 h-16 rounded-lg" />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[10px] font-black uppercase text-amber-300 truncate">
-                        {sf.icon} {sf.label}
-                      </div>
-                      <div className="text-xs font-black text-white truncate mt-0.5">
-                        {sf.movie?.title}
-                      </div>
-                      <div className="text-[10px] font-mono text-zinc-400 mt-0.5 truncate">
-                        Slot #{sf.slotNum} • {sf.detail}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </section>
       )}
 
@@ -2366,63 +2291,110 @@ export default function AnalyticsDashboard({
         <section className="flex flex-col gap-6">
           {/* Grid de 2 Colunas Amplas: Facções de Áudio + Top 10 Países */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {/* Coluna 1: Facções de Áudio (Dublado vs Legendado) */}
+            {/* Coluna 1: Facções de Áudio (Dublado, Legendado, Legenda YouTube & Original) */}
             <div className="rounded-3xl bg-zinc-950/90 border border-amber-500/30 p-5 sm:p-6 flex flex-col justify-between gap-4 shadow-xl">
               <div className="border-b border-zinc-800/80 pb-3">
                 <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">
                   🎙️ Preferência Auditiva
                 </span>
                 <h3 className="text-lg font-black text-white mt-0.5">
-                  Duelo de Facções de Áudio: Dublado vs Legendado
+                  Duelo de Facções de Áudio: Dublado, Legendado, YouTube & Original
                 </h3>
                 <p className="text-xs text-zinc-400 mt-0.5">
-                  Comparativo de volume e afinidade crítica das suas sessões.
+                  Comparativo de volume e afinidade crítica entre todas as faixas de áudio e legenda.
                 </p>
               </div>
 
-              {/* Barra de Cabo de Guerra */}
-              <div className="flex flex-col gap-2">
-                <div className="w-full h-5 rounded-full bg-zinc-900 border border-zinc-800 overflow-hidden flex p-0.5 gap-0.5">
-                  <div
-                    className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-l-full transition-all"
-                    style={{ width: `${audioFactions.dublado.pct}%` }}
-                    title={`Dublado: ${audioFactions.dublado.count} filmes (${audioFactions.dublado.pct}%)`}
-                  />
-                  <div
-                    className="h-full bg-gradient-to-r from-cyan-400 to-sky-500 rounded-r-full transition-all"
-                    style={{ width: `${audioFactions.legendado.pct}%` }}
-                    title={`Legendado: ${audioFactions.legendado.count} filmes (${audioFactions.legendado.pct}%)`}
-                  />
-                </div>
+              {/* Barra de Cabo de Guerra com as 4 Facções */}
+              {(() => {
+                const audioCards = [
+                  {
+                    key: 'dublado',
+                    icon: '🎙️',
+                    label: 'Dublado',
+                    stats: audioFactions.dublado,
+                    barCls: 'from-amber-500 to-yellow-400',
+                    cardCls: 'bg-amber-500/10 border-amber-500/30',
+                    titleCls: 'text-amber-300',
+                    pctCls: 'text-amber-200',
+                    avgCls: 'text-amber-300/90',
+                  },
+                  {
+                    key: 'legendado',
+                    icon: '💬',
+                    label: 'Legendado',
+                    stats: audioFactions.legendado,
+                    barCls: 'from-cyan-400 to-sky-500',
+                    cardCls: 'bg-cyan-500/10 border-cyan-500/30',
+                    titleCls: 'text-cyan-300',
+                    pctCls: 'text-cyan-200',
+                    avgCls: 'text-cyan-300/90',
+                  },
+                  {
+                    key: 'youtubeSub',
+                    icon: '📺',
+                    label: 'Legenda YouTube',
+                    stats: audioFactions.youtubeSub || { count: 0, pct: 0, avg: '—' },
+                    barCls: 'from-rose-500 to-red-400',
+                    cardCls: 'bg-rose-500/10 border-rose-500/30',
+                    titleCls: 'text-rose-300',
+                    pctCls: 'text-rose-200',
+                    avgCls: 'text-rose-300/90',
+                  },
+                  {
+                    key: 'original',
+                    icon: '🎞️',
+                    label: 'Áudio Original',
+                    stats: audioFactions.original || { count: 0, pct: 0, avg: '—' },
+                    barCls: 'from-emerald-400 to-teal-500',
+                    cardCls: 'bg-emerald-500/10 border-emerald-500/30',
+                    titleCls: 'text-emerald-300',
+                    pctCls: 'text-emerald-200',
+                    avgCls: 'text-emerald-300/90',
+                  },
+                ];
 
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <div className="rounded-2xl bg-amber-500/10 border border-amber-500/30 p-3.5 flex flex-col gap-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-black text-sm text-amber-300">🎙️ Dublado</span>
-                      <span className="font-mono font-black text-amber-200">{audioFactions.dublado.pct}%</span>
+                return (
+                  <div className="flex flex-col gap-3">
+                    <div className="w-full h-5 rounded-full bg-zinc-900 border border-zinc-800 overflow-hidden flex p-0.5 gap-0.5">
+                      {audioCards.map((ac) =>
+                        ac.stats.count > 0 ? (
+                          <div
+                            key={ac.key}
+                            className={`h-full bg-gradient-to-r ${ac.barCls} rounded-full transition-all`}
+                            style={{ width: `${Math.max(ac.stats.pct, 1.5)}%` }}
+                            title={`${ac.label}: ${ac.stats.count} filmes (${ac.stats.pct}%)`}
+                          />
+                        ) : null
+                      )}
                     </div>
-                    <div className="text-2xl font-black font-mono text-white mt-0.5">
-                      {audioFactions.dublado.count} <span className="text-xs font-normal text-zinc-400">filmes</span>
-                    </div>
-                    <div className="text-[11px] font-mono text-amber-300/90 font-bold">
-                      Média pessoal: ⭐ {audioFactions.dublado.avg}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      {audioCards.map((ac) => (
+                        <div
+                          key={ac.key}
+                          className={`rounded-2xl border p-3.5 flex flex-col gap-1 ${ac.cardCls}`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={`font-black text-sm truncate ${ac.titleCls}`}>
+                              {ac.icon} {ac.label}
+                            </span>
+                            <span className={`font-mono font-black shrink-0 ${ac.pctCls}`}>
+                              {ac.stats.pct}%
+                            </span>
+                          </div>
+                          <div className="text-2xl font-black font-mono text-white mt-0.5">
+                            {ac.stats.count} <span className="text-xs font-normal text-zinc-400">filmes</span>
+                          </div>
+                          <div className={`text-[11px] font-mono font-bold ${ac.avgCls}`}>
+                            Média pessoal: ⭐ {ac.stats.avg}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-
-                  <div className="rounded-2xl bg-cyan-500/10 border border-cyan-500/30 p-3.5 flex flex-col gap-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-black text-sm text-cyan-300">💬 Legendado</span>
-                      <span className="font-mono font-black text-cyan-200">{audioFactions.legendado.pct}%</span>
-                    </div>
-                    <div className="text-2xl font-black font-mono text-white mt-0.5">
-                      {audioFactions.legendado.count} <span className="text-xs font-normal text-zinc-400">filmes</span>
-                    </div>
-                    <div className="text-[11px] font-mono text-cyan-300/90 font-bold">
-                      Média pessoal: ⭐ {audioFactions.legendado.avg}
-                    </div>
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
 
               {audioFactions.outros.count > 0 && (
                 <span className="text-[11px] text-zinc-500 font-mono text-center">
@@ -2593,6 +2565,138 @@ export default function AnalyticsDashboard({
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* =====================================================================
+          ALA FINAL: MEMORY CARD — CHECKPOINTS / LINHA DO TEMPO (#1, #50, #100... + ÚLTIMO)
+         ===================================================================== */}
+      {showSection('checkpoints') && (
+        <section className="rounded-3xl border border-cyan-500/35 bg-gradient-to-br from-zinc-950 via-cyan-950/10 to-zinc-950 p-5 sm:p-7 shadow-2xl flex flex-col gap-6">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-zinc-800/80 pb-4">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-cyan-300 flex items-center gap-1.5">
+                <Save className="w-3.5 h-3.5" /> Memory Card Oficial da Sua Campanha ({checkpoints.totalCount} Saves)
+              </span>
+              <h2 className="text-xl sm:text-2xl font-black text-white mt-0.5">
+                Linha do Tempo de Checkpoints: 1º Filme, #50, #100, #150... até o Último!
+              </h2>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Veja exatamente quais obras marcaram o início e cada marco histórico de 50 em 50 filmes da sua coleção.
+              </p>
+            </div>
+
+            {/* Seletor Ordem de Cadastro vs Ordem Assistida */}
+            <div className="flex items-center gap-1 bg-zinc-950 border border-zinc-800 p-1 rounded-2xl self-start lg:self-center">
+              <button
+                type="button"
+                onClick={() => setCheckpointMode('registration')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  checkpointMode === 'registration'
+                    ? 'bg-cyan-400 text-slate-950 shadow-md'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                💾 Ordem de Cadastro
+              </button>
+              <button
+                type="button"
+                onClick={() => setCheckpointMode('watched')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  checkpointMode === 'watched'
+                    ? 'bg-amber-400 text-slate-950 shadow-md'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                📅 Ordem Assistida
+              </button>
+            </div>
+          </div>
+
+          {/* Grid dos Save Slots (#1, #25, #50, #100, #150... + Último + Próximo Bloqueado) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {checkpoints.slots.map((slot) => {
+              const accentCls = SLOT_ACCENTS[slot.accent] || SLOT_ACCENTS.cyan;
+              return (
+                <div
+                  key={slot.number}
+                  className={`rounded-2xl border p-4 flex flex-col justify-between gap-3 transition-all hover:-translate-y-1 ${accentCls}`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded-md bg-black/50 border border-white/15">
+                      {slot.badgeLabel}
+                    </span>
+                    <span className="text-xs font-mono font-bold opacity-80">
+                      #{slot.number}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <PosterThumb
+                      url={slot.movie?.poster_url}
+                      title={slot.movie?.title}
+                      className="w-14 h-20 rounded-xl shadow-md"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[10px] font-black uppercase tracking-wider opacity-75">
+                        {slot.slotTitle}
+                      </div>
+                      <h3 className="text-sm font-black text-white line-clamp-2 leading-snug mt-0.5">
+                        {slot.movie?.title}
+                      </h3>
+                      <div className="text-[11px] font-mono text-zinc-300 mt-1 flex items-center gap-2">
+                        <span>({slot.movie?.release_year || '—'})</span>
+                        {Number(slot.movie?.user_rating) > 0 && (
+                          <span className="text-amber-300 font-black">
+                            ⭐ {Number(slot.movie.user_rating).toFixed(3)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] font-mono text-zinc-300">
+                    <span>Visto: {slot.seenLabel}</span>
+                    {slot.formattedSavedDate && <span>Save: {slot.formattedSavedDate}</span>}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Card do Próximo Marco de 50 Bloqueado */}
+            {checkpoints.nextCheckpoint && (
+              <div className="rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/40 p-4 flex flex-col justify-between gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono font-black uppercase px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400">
+                    🔒 SAVE #{checkpoints.nextCheckpoint.targetNumber} • FUTURO
+                  </span>
+                  <Lock className="w-4 h-4 text-zinc-500" />
+                </div>
+
+                <div className="my-2">
+                  <div className="text-sm font-black text-zinc-200">
+                    Próximo Grande Marco #{checkpoints.nextCheckpoint.targetNumber}
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-1">
+                    Faltam <strong className="text-cyan-300">{checkpoints.nextCheckpoint.remaining} filmes</strong> para desbloquear este slot no Memory Card!
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <div className="flex justify-between text-[10px] font-mono text-zinc-400">
+                    <span>Progresso do Bloco</span>
+                    <span>{checkpoints.nextCheckpoint.progressPct}%</span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-zinc-950 overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-cyan-500 to-amber-400 rounded-full"
+                      style={{ width: `${checkpoints.nextCheckpoint.progressPct}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </section>
       )}
@@ -2944,6 +3048,25 @@ export default function AnalyticsDashboard({
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes analyticsCardFlipOut {
+          0% {
+            transform: perspective(900px) rotateY(0deg) scale(1);
+          }
+          100% {
+            transform: perspective(900px) rotateY(90deg) scale(1.03);
+          }
+        }
+        @keyframes analyticsCardFlipIn {
+          0% {
+            transform: perspective(900px) rotateY(-90deg) scale(1.03);
+          }
+          100% {
+            transform: perspective(900px) rotateY(0deg) scale(1);
+          }
+        }
+      `}</style>
     </div>
   );
 }
