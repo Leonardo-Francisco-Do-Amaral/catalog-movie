@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Clock, Sparkles, X, Film, Star, Award, Zap, Swords, Crown, Ghost } from 'lucide-react';
 import { playTimeMachineSound, playDethroneSound } from '../utils/trophyAudio';
+import DuelArenaShowcase from './DuelArenaShowcase';
+import { pickRandomDuelEffect } from '../utils/duelEffectPresets';
 import {
   TIME_MACHINE_RARITY_META,
   notifyTimeMachineStarted,
@@ -134,7 +136,7 @@ function TimeMachinePortalCard({ item, onRemove }) {
 
   const posterSrc = resolvePosterUrl(item.posterUrl);
   const oldPosterSrc = resolvePosterUrl(item.previousPosterUrl);
-  const durationMs = item.kind === 'decade' || isDethrone ? 5600 : 4800;
+  const durationMs = item.duelEffect || isDethrone || item.kind === 'decade' ? 6000 : 4800;
   const ratingDiff =
     isDethrone && Number(item.userRating) > Number(item.previousUserRating || 0)
       ? Number(item.userRating) - Number(item.previousUserRating || 0)
@@ -265,67 +267,16 @@ function TimeMachinePortalCard({ item, onRemove }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 bg-zinc-950/75 border border-zinc-800/80 rounded-xl p-2">
-                {/* Destronado */}
-                <div className="flex items-center gap-2 min-w-0 opacity-65">
-                  {oldPosterSrc ? (
-                    <img
-                      src={oldPosterSrc}
-                      alt={item.previousMovieTitle || 'Campeão anterior'}
-                      className="w-9 h-13 object-cover rounded-lg border border-zinc-700 grayscale shrink-0"
-                    />
-                  ) : (
-                    <div className="w-9 h-13 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
-                      <Film className="w-3.5 h-3.5 text-zinc-600" />
-                    </div>
-                  )}
-                  <div className="min-w-0 flex flex-col">
-                    <span className="text-[8px] font-black uppercase tracking-wider text-rose-300">
-                      Destronado
-                    </span>
-                    <span className="text-[11px] font-bold text-zinc-300 truncate line-through">
-                      {item.previousMovieTitle || 'Anterior'}
-                    </span>
-                    <span className="text-[10px] font-mono text-zinc-400 line-through">
-                      ★ {Number(item.previousUserRating || 0).toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* VS Centro */}
-                <div className="flex flex-col items-center justify-center px-1">
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400/25 to-rose-500/25 border border-amber-400/60 flex items-center justify-center shadow-[0_0_14px_rgba(245,158,11,0.35)]">
-                    <Crown className="w-3.5 h-3.5 text-amber-300" />
-                  </div>
-                </div>
-
-                {/* Novo Campeão */}
-                <div className="flex items-center gap-2 min-w-0 justify-end text-right">
-                  <div className="min-w-0 flex flex-col items-end">
-                    <span className="text-[8px] font-black uppercase tracking-wider text-emerald-300">
-                      Novo Rei 👑
-                    </span>
-                    <span className="text-xs font-black text-white truncate max-w-full">
-                      {item.movieTitle}
-                    </span>
-                    <span className="inline-flex items-center gap-0.5 text-[10px] font-mono font-black text-amber-300">
-                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                      {Number(item.userRating || 0).toFixed(2)}
-                    </span>
-                  </div>
-                  {posterSrc ? (
-                    <img
-                      src={posterSrc}
-                      alt={item.movieTitle}
-                      className="w-10 h-14 object-cover rounded-lg border-2 border-amber-400/85 shadow-[0_0_14px_rgba(245,158,11,0.35)] shrink-0"
-                    />
-                  ) : (
-                    <div className="w-10 h-14 rounded-lg bg-zinc-900 border-2 border-amber-400/70 flex items-center justify-center shrink-0">
-                      <Crown className="w-4 h-4 text-amber-300" />
-                    </div>
-                  )}
-                </div>
-              </div>
+              <DuelArenaShowcase
+                oldPosterSrc={oldPosterSrc}
+                oldTitle={item.previousMovieTitle}
+                oldRating={item.previousUserRating}
+                newPosterSrc={posterSrc}
+                newTitle={item.movieTitle}
+                newRating={item.userRating}
+                duelEffect={item.duelEffect || null}
+                compact
+              />
             </div>
           ) : (
             /* Linha Principal com Odômetro LED */
@@ -422,8 +373,11 @@ export default function TimeMachineToastContainer() {
         const uniqueKey = u.id || `${u.kind || 'year'}_${u.year || u.decadeId || idx}_${Date.now()}`;
         if (existingIds.has(uniqueKey)) return;
         existingIds.add(uniqueKey);
+        const resolvedEffect =
+          u.kind === 'year_dethrone' ? u.duelEffect || pickRandomDuelEffect() : null;
         prepared.push({
           ...u,
+          duelEffect: resolvedEffect,
           id: uniqueKey,
           toastId: `${uniqueKey}_${Math.random().toString(36).slice(2, 7)}`,
         });
@@ -440,7 +394,7 @@ export default function TimeMachineToastContainer() {
 
         toShow.forEach((item, i) => {
           setTimeout(() => {
-            if (item.kind === 'year_dethrone') playDethroneSound();
+            if (item.kind === 'year_dethrone') playDethroneSound(item.duelEffect || null);
             else playTimeMachineSound(item.kind === 'decade' ? 'decade_relic' : item.rarity);
           }, i * 180);
         });
@@ -466,7 +420,7 @@ export default function TimeMachineToastContainer() {
       if (nextVisible.length < MAX_VISIBLE_PORTALS && prev.queue.length > 0) {
         const [nextItem, ...restQueue] = prev.queue;
         setTimeout(() => {
-          if (nextItem.kind === 'year_dethrone') playDethroneSound();
+          if (nextItem.kind === 'year_dethrone') playDethroneSound(nextItem.duelEffect || null);
           else playTimeMachineSound(nextItem.kind === 'decade' ? 'decade_relic' : nextItem.rarity);
         }, 100);
         return {

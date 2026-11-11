@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Globe, Sparkles, X, Film, Star, Crown, Swords, Flag, Ghost } from 'lucide-react';
+import { Globe, Sparkles, X, Star, Crown, Swords, Flag, Ghost } from 'lucide-react';
 import { playWorldConquestSound } from '../utils/trophyAudio';
+import DuelArenaShowcase from './DuelArenaShowcase';
+import { pickRandomDuelEffect } from '../utils/duelEffectPresets';
 import {
   notifyWorldChallengeStarted,
   notifyWorldChallengeCleared,
@@ -95,7 +97,7 @@ function WorldChallengeCard({ item, onRemove }) {
 
   const newPoster = resolvePosterUrl(item.posterUrl);
   const oldPoster = resolvePosterUrl(item.previousPosterUrl);
-  const durationMs = isDethrone ? 5800 : 5000;
+  const durationMs = item.duelEffect || isDethrone ? 6000 : 5000;
   const ratingDiff =
     isDethrone && Number(item.userRating) > Number(item.previousUserRating || 0)
       ? Number(item.userRating) - Number(item.previousUserRating || 0)
@@ -217,70 +219,16 @@ function WorldChallengeCard({ item, onRemove }) {
             </div>
 
             {/* Arena VS */}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2.5 bg-zinc-950/75 border border-zinc-800/80 rounded-xl p-2.5">
-              {/* Campeão Destronado */}
-              <div className="flex items-center gap-2 min-w-0 opacity-65">
-                {oldPoster ? (
-                  <img
-                    src={oldPoster}
-                    alt={item.previousMovieTitle || 'Campeão anterior'}
-                    className="w-10 h-14 object-cover rounded-lg border border-zinc-700 grayscale shrink-0"
-                  />
-                ) : (
-                  <div className="w-10 h-14 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
-                    <Film className="w-4 h-4 text-zinc-600" />
-                  </div>
-                )}
-                <div className="min-w-0 flex flex-col">
-                  <span className="text-[8px] font-black uppercase tracking-wider text-rose-300/90">
-                    Destronado
-                  </span>
-                  <span className="text-[11px] font-bold text-zinc-300 truncate line-through">
-                    {item.previousMovieTitle || 'Anterior'}
-                  </span>
-                  <span className="text-[10px] font-mono text-zinc-400 line-through">
-                    ★ {Number(item.previousUserRating || 0).toFixed(2)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Centro VS */}
-              <div className="flex flex-col items-center justify-center px-1">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400/25 to-rose-500/25 border border-amber-400/60 flex items-center justify-center shadow-[0_0_16px_rgba(245,158,11,0.35)]">
-                  <Crown className="w-4 h-4 text-amber-300" />
-                </div>
-                <span className="text-[8px] font-black uppercase tracking-widest text-amber-300 mt-0.5">
-                  TOMOU!
-                </span>
-              </div>
-
-              {/* Novo Campeão */}
-              <div className="flex items-center gap-2 min-w-0 justify-end text-right">
-                <div className="min-w-0 flex flex-col items-end">
-                  <span className="text-[8px] font-black uppercase tracking-wider text-emerald-300">
-                    Novo Rei 👑
-                  </span>
-                  <span className="text-xs font-black text-white truncate max-w-full">
-                    {item.movieTitle}
-                  </span>
-                  <span className="inline-flex items-center gap-0.5 text-[11px] font-mono font-black text-amber-300">
-                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                    {Number(item.userRating || 0).toFixed(2)}
-                  </span>
-                </div>
-                {newPoster ? (
-                  <img
-                    src={newPoster}
-                    alt={item.movieTitle}
-                    className="w-11 h-16 object-cover rounded-lg border-2 border-amber-400/80 shadow-[0_0_15px_rgba(245,158,11,0.35)] shrink-0"
-                  />
-                ) : (
-                  <div className="w-11 h-16 rounded-lg bg-zinc-900 border-2 border-amber-400/70 flex items-center justify-center shrink-0">
-                    <Crown className="w-5 h-5 text-amber-300" />
-                  </div>
-                )}
-              </div>
-            </div>
+            <DuelArenaShowcase
+              oldPosterSrc={oldPoster}
+              oldTitle={item.previousMovieTitle}
+              oldRating={item.previousUserRating}
+              newPosterSrc={newPoster}
+              newTitle={item.movieTitle}
+              newRating={item.userRating}
+              duelEffect={item.duelEffect || null}
+              showVsTakenLabel
+            />
           </div>
         ) : (
           <div className="flex items-center gap-3.5">
@@ -361,8 +309,11 @@ export default function WorldChallengeToastContainer() {
         const uniqueKey = u.id || `wc_${u.countryCode}_${idx}_${Date.now()}`;
         if (existingIds.has(uniqueKey)) return;
         existingIds.add(uniqueKey);
+        const resolvedEffect =
+          u.kind === 'country_dethrone' ? u.duelEffect || pickRandomDuelEffect() : null;
         prepared.push({
           ...u,
+          duelEffect: resolvedEffect,
           id: uniqueKey,
           toastId: `${uniqueKey}_${Math.random().toString(36).slice(2, 7)}`,
         });
@@ -379,7 +330,7 @@ export default function WorldChallengeToastContainer() {
 
         toShow.forEach((item, i) => {
           setTimeout(() => {
-            playWorldConquestSound(item.rarity, item.kind === 'country_dethrone');
+            playWorldConquestSound(item.rarity, item.kind === 'country_dethrone', item.duelEffect || null);
           }, i * 180);
         });
 
@@ -398,7 +349,7 @@ export default function WorldChallengeToastContainer() {
       if (nextVisible.length < MAX_VISIBLE_WORLD_CARDS && prev.queue.length > 0) {
         const [nextItem, ...restQueue] = prev.queue;
         setTimeout(() => {
-          playWorldConquestSound(nextItem.rarity, nextItem.kind === 'country_dethrone');
+          playWorldConquestSound(nextItem.rarity, nextItem.kind === 'country_dethrone', nextItem.duelEffect || null);
         }, 100);
         return { visible: [...nextVisible, nextItem], queue: restQueue };
       }

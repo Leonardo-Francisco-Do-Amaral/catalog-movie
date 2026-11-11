@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, Play, RefreshCw, RotateCcw, Sparkles, Check, AlertCircle, Clock, Layers } from 'lucide-react';
+import { DUEL_EFFECT_PRESETS } from '../utils/duelEffectPresets';
 import {
   triggerPS5TrophyToast,
   triggerPS5ProgressToast,
@@ -82,6 +83,64 @@ export default function TrophyTestPanelModal({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [toastSettings, setToastSettings] = useState(getToastSettings);
+  const [duelArenaMode, setDuelArenaMode] = useState('both');
+
+  const sampleDuelPairs = useMemo(() => {
+    const withPoster = (Array.isArray(movies) ? movies : []).filter((m) => Boolean(m?.poster_url));
+    const findMatch = (needle) =>
+      withPoster.find((m) => String(m.title || '').toLowerCase().includes(needle));
+
+    const matrix = findMatch('matrix');
+    const fightClub = findMatch('clube da luta');
+    const movies1999 = withPoster.filter((m) => Number(m.release_year) === 1999);
+
+    const tmNew = matrix || movies1999[0] || withPoster[0];
+    const tmOld =
+      fightClub ||
+      movies1999.find((m) => m.movie_id !== tmNew?.movie_id) ||
+      withPoster.find((m) => m.movie_id !== tmNew?.movie_id);
+
+    const monster = findMatch('monster');
+    const nobodyKnows =
+      findMatch('ninguém pode saber') ||
+      findMatch('shoplifters') ||
+      findMatch('assunto de família');
+    const jpMovies = withPoster.filter(
+      (m) => Array.isArray(m.countries) && m.countries.some((c) => /jap[aã]o|japan/i.test(c))
+    );
+
+    const wcNew = monster || jpMovies[0] || withPoster[1] || withPoster[0];
+    const wcOld =
+      nobodyKnows ||
+      jpMovies.find((m) => m.movie_id !== wcNew?.movie_id) ||
+      withPoster.find((m) => m.movie_id !== wcNew?.movie_id);
+
+    const tmPrevRating = Number(tmOld?.user_rating || 8.95);
+    const wcPrevRating = Number(wcOld?.user_rating || 9.01);
+
+    return {
+      timeMachine: {
+        year: Number(tmNew?.release_year || 1999),
+        movieTitle: tmNew?.title || 'Matrix',
+        posterUrl: tmNew?.poster_url || null,
+        userRating: Math.max(Number(tmNew?.user_rating || 9.65), tmPrevRating + 0.55),
+        previousMovieTitle: tmOld?.title || 'Clube da Luta',
+        previousPosterUrl: tmOld?.poster_url || null,
+        previousUserRating: tmPrevRating,
+      },
+      worldChallenge: {
+        countryCode: 'jp',
+        countryName: 'Japão',
+        rarity: 'common',
+        movieTitle: wcNew?.title || 'Monster',
+        posterUrl: wcNew?.poster_url || null,
+        userRating: Math.max(Number(wcNew?.user_rating || 9.73), wcPrevRating + 0.5),
+        previousMovieTitle: wcOld?.title || 'Ninguém Pode Saber',
+        previousPosterUrl: wcOld?.poster_url || null,
+        previousUserRating: wcPrevRating,
+      },
+    };
+  }, [movies]);
 
   // Fecha no ESC
   useEffect(() => {
@@ -297,13 +356,15 @@ export default function TrophyTestPanelModal({
       year_dethrone: {
         id: `sim_tm_dethrone_${Date.now()}`,
         kind: 'year_dethrone',
-        year: 1999,
+        year: sampleDuelPairs.timeMachine.year,
         rarity: 'rare',
         xp: 0,
-        movieTitle: 'Matrix',
-        userRating: 9.65,
-        previousMovieTitle: 'Clube da Luta',
-        previousUserRating: 8.95,
+        movieTitle: sampleDuelPairs.timeMachine.movieTitle,
+        posterUrl: sampleDuelPairs.timeMachine.posterUrl,
+        userRating: sampleDuelPairs.timeMachine.userRating,
+        previousMovieTitle: sampleDuelPairs.timeMachine.previousMovieTitle,
+        previousPosterUrl: sampleDuelPairs.timeMachine.previousPosterUrl,
+        previousUserRating: sampleDuelPairs.timeMachine.previousUserRating,
         winReason: 'higher_rating',
       },
     };
@@ -316,14 +377,16 @@ export default function TrophyTestPanelModal({
         ? {
             id: `sim_wc_dethrone_${Date.now()}`,
             kind: 'country_dethrone',
-            countryCode: 'jp',
-            countryName: 'Japão',
-            rarity: 'common',
+            countryCode: sampleDuelPairs.worldChallenge.countryCode,
+            countryName: sampleDuelPairs.worldChallenge.countryName,
+            rarity: sampleDuelPairs.worldChallenge.rarity,
             xp: 0,
-            movieTitle: 'Monster',
-            userRating: 9.73,
-            previousMovieTitle: 'Ninguém Pode Saber',
-            previousUserRating: 9.01,
+            movieTitle: sampleDuelPairs.worldChallenge.movieTitle,
+            posterUrl: sampleDuelPairs.worldChallenge.posterUrl,
+            userRating: sampleDuelPairs.worldChallenge.userRating,
+            previousMovieTitle: sampleDuelPairs.worldChallenge.previousMovieTitle,
+            previousPosterUrl: sampleDuelPairs.worldChallenge.previousPosterUrl,
+            previousUserRating: sampleDuelPairs.worldChallenge.previousUserRating,
             winReason: 'higher_rating',
             sourceTrigger: 'coproduction_curate',
           }
@@ -339,6 +402,61 @@ export default function TrophyTestPanelModal({
             sourceTrigger: 'movie_add',
           };
     triggerWorldChallengeUnlock([sample], true);
+  };
+
+  const simulateDuelEffectPreview = (effectKey = null) => {
+    const stamp = Date.now();
+    const idTag = effectKey || 'rand';
+    const runTemporal = duelArenaMode === 'time_machine' || duelArenaMode === 'both';
+    const runCountry = duelArenaMode === 'world_195' || duelArenaMode === 'both';
+
+    if (runTemporal) {
+      triggerTimeMachineUnlock(
+        [
+          {
+            id: `lab_tm_${idTag}_${stamp}`,
+            kind: 'year_dethrone',
+            year: sampleDuelPairs.timeMachine.year,
+            rarity: 'rare',
+            xp: 0,
+            movieTitle: sampleDuelPairs.timeMachine.movieTitle,
+            posterUrl: sampleDuelPairs.timeMachine.posterUrl,
+            userRating: sampleDuelPairs.timeMachine.userRating,
+            previousMovieTitle: sampleDuelPairs.timeMachine.previousMovieTitle,
+            previousPosterUrl: sampleDuelPairs.timeMachine.previousPosterUrl,
+            previousUserRating: sampleDuelPairs.timeMachine.previousUserRating,
+            winReason: 'higher_rating',
+            ...(effectKey ? { duelEffect: effectKey } : {}),
+          },
+        ],
+        true
+      );
+    }
+
+    if (runCountry) {
+      triggerWorldChallengeUnlock(
+        [
+          {
+            id: `lab_wc_${idTag}_${stamp}`,
+            kind: 'country_dethrone',
+            countryCode: sampleDuelPairs.worldChallenge.countryCode,
+            countryName: sampleDuelPairs.worldChallenge.countryName,
+            rarity: sampleDuelPairs.worldChallenge.rarity,
+            xp: 0,
+            movieTitle: sampleDuelPairs.worldChallenge.movieTitle,
+            posterUrl: sampleDuelPairs.worldChallenge.posterUrl,
+            userRating: sampleDuelPairs.worldChallenge.userRating,
+            previousMovieTitle: sampleDuelPairs.worldChallenge.previousMovieTitle,
+            previousPosterUrl: sampleDuelPairs.worldChallenge.previousPosterUrl,
+            previousUserRating: sampleDuelPairs.worldChallenge.previousUserRating,
+            winReason: 'higher_rating',
+            sourceTrigger: 'coproduction_curate',
+            ...(effectKey ? { duelEffect: effectKey } : {}),
+          },
+        ],
+        !runTemporal
+      );
+    }
   };
 
   const simulateTripleSequence = () => {
@@ -797,6 +915,74 @@ export default function TrophyTestPanelModal({
                 >
                   <span>👑 Duelo de País (195)</span>
                 </button>
+              </div>
+            </div>
+
+            {/* Efeitos Visuais de Destronamento em Produção (Sorteio Aleatório) */}
+            <div className="bg-zinc-950/80 border border-fuchsia-500/30 rounded-xl p-3 flex flex-col gap-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-wider text-fuchsia-300 flex items-center gap-1.5">
+                    <span>🎲 Efeitos Ativos nos Duelos (Sorteio Aleatório)</span>
+                  </div>
+                  <div className="text-[10px] text-zinc-400 mt-0.5">
+                    Cada tomada de trono (Ano ou País 195) sorteia 1 destes 4 efeitos automaticamente, sem rótulo no card
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => simulateDuelEffectPreview(null)}
+                  className="px-2.5 py-1 rounded-lg border border-fuchsia-400/60 bg-fuchsia-500/15 hover:bg-fuchsia-500/25 text-fuchsia-100 text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all shrink-0"
+                >
+                  🎲 Sortear Aleatório
+                </button>
+              </div>
+
+              {/* Seletor de Arena alvo */}
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { key: 'time_machine', label: '⏳ Só Trono Temporal' },
+                  { key: 'world_195', label: '👑 Só Trono do País' },
+                  { key: 'both', label: '⚡ Ambos em Fila' },
+                ].map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setDuelArenaMode(opt.key)}
+                    className={`px-2 py-1.5 rounded-lg border text-[10px] font-black transition-all cursor-pointer ${
+                      duelArenaMode === opt.key
+                        ? 'border-fuchsia-400/80 bg-fuchsia-500/20 text-fuchsia-100 shadow-sm'
+                        : 'border-zinc-800 bg-zinc-900/70 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* 4 Botões dos Efeitos Selecionados */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                {DUEL_EFFECT_PRESETS.map((fx) => (
+                  <button
+                    key={fx.key}
+                    type="button"
+                    onClick={() => simulateDuelEffectPreview(fx.key)}
+                    className={`p-2 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-2 text-left group ${fx.accentClass}`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-base shrink-0">{fx.icon}</span>
+                      <div className="min-w-0">
+                        <div className="text-[11px] font-black leading-tight truncate">
+                          {fx.label}
+                        </div>
+                        <div className="text-[9px] text-zinc-300/80 truncate">
+                          {fx.shortDesc}
+                        </div>
+                      </div>
+                    </div>
+                    <Play className="w-3.5 h-3.5 shrink-0 opacity-75 group-hover:opacity-100 group-hover:scale-110 transition-transform" />
+                  </button>
+                ))}
               </div>
             </div>
 

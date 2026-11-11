@@ -435,10 +435,52 @@ export function playTimeMachineSound(rarityOrKind = 'epic') {
   }
 }
 
+const DUEL_SFX_CUES = {
+  card_drop: [
+    { type: 'sine', f0: 660, f1: 150, t: 0.42, d: 0.34, g: 0.14 },
+    { type: 'triangle', f0: 120, f1: 48, t: 0.76, d: 0.16, g: 0.24 },
+  ],
+  thanos_snap: [
+    { type: 'triangle', f0: 2500, f1: 920, t: 0.42, d: 0.06, g: 0.22 },
+    { type: 'sine', f0: 1180, f1: 310, t: 0.48, d: 0.48, g: 0.1 },
+  ],
+  slash_cleave: [
+    { type: 'sawtooth', f0: 3100, f1: 720, t: 0.42, d: 0.22, g: 0.14 },
+    { type: 'triangle', f0: 1850, f1: 420, t: 0.46, d: 0.18, g: 0.11 },
+  ],
+  shatter_glass: [
+    { type: 'sine', f0: 3200, f1: 2800, t: 0.42, d: 0.09, g: 0.13 },
+    { type: 'sine', f0: 3950, f1: 3400, t: 0.46, d: 0.1, g: 0.13 },
+    { type: 'sine', f0: 4520, f1: 3800, t: 0.51, d: 0.11, g: 0.11 },
+    { type: 'sine', f0: 2740, f1: 2100, t: 0.56, d: 0.13, g: 0.1 },
+  ],
+};
+
+function scheduleDuelEffectCue(ctx, now, duelEffect) {
+  const steps = duelEffect ? DUEL_SFX_CUES[duelEffect] : null;
+  if (!steps) return;
+  steps.forEach(({ type, f0, f1, t, d, g }) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(f0, now + t);
+    if (f1 && f1 !== f0) {
+      osc.frequency.exponentialRampToValueAtTime(f1, now + t + d);
+    }
+    gain.gain.setValueAtTime(0.0001, now + t);
+    gain.gain.linearRampToValueAtTime(g, now + t + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + t + d);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now + t);
+    osc.stop(now + t + d + 0.03);
+  });
+}
+
 /**
  * Efeito sonoro dramático de "Tomada de Trono / Duelo Vencido" (choque de aço + coroação).
  */
-export function playDethroneSound() {
+export function playDethroneSound(duelEffect = null) {
   try {
     if (isAudioMuted()) return;
     const ctx = getAudioContext();
@@ -491,6 +533,8 @@ export function playDethroneSound() {
       osc.start(now + t);
       osc.stop(now + t + d + 0.04);
     });
+
+    scheduleDuelEffectCue(ctx, now, duelEffect);
   } catch {
     // Silencioso em bloqueios de autoplay
   }
@@ -499,9 +543,9 @@ export function playDethroneSound() {
 /**
  * Efeito sonoro de Desbloqueio / Conquista Territorial do Desafio 195 (Passaporte + Radar).
  */
-export function playWorldConquestSound(rarity = 'common', isDethrone = false) {
+export function playWorldConquestSound(rarity = 'common', isDethrone = false, duelEffect = null) {
   if (isDethrone) {
-    playDethroneSound();
+    playDethroneSound(duelEffect);
     return;
   }
   try {
