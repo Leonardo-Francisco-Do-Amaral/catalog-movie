@@ -178,7 +178,9 @@ app.get('/api/movies/latest', async (req: Request, res: Response) => {
              COALESCE(array_agg(DISTINCT c.name) FILTER (WHERE c.name IS NOT NULL), '{}') as countries,
              COALESCE(array_agg(DISTINCT d.name) FILTER (WHERE d.name IS NOT NULL), '{}') as directors,
              COALESCE(array_agg(DISTINCT w.name) FILTER (WHERE w.name IS NOT NULL), '{}') as writers,
-             COALESCE(array_agg(DISTINCT s.name) FILTER (WHERE s.name IS NOT NULL), '{}') as studios
+             COALESCE(array_agg(DISTINCT s.name) FILTER (WHERE s.name IS NOT NULL), '{}') as studios,
+             (SELECT wmo.primary_country_code FROM world_challenge_movie_origins wmo WHERE wmo.movie_id = m.id LIMIT 1) as manual_origin_code,
+             (SELECT wcp.country_code FROM world_challenge_picks wcp WHERE wcp.champion_movie_id = m.id ORDER BY wcp.updated_at DESC LIMIT 1) as manual_pick_code
       FROM movie_views mv
       JOIN movies m ON mv.movie_id = m.id
       LEFT JOIN movie_tags mt ON m.id = mt.movie_id
@@ -219,7 +221,9 @@ app.get('/api/movies/favorites', async (req: Request, res: Response) => {
              COALESCE(array_agg(DISTINCT c.name) FILTER (WHERE c.name IS NOT NULL), '{}') as countries,
              COALESCE(array_agg(DISTINCT d.name) FILTER (WHERE d.name IS NOT NULL), '{}') as directors,
              COALESCE(array_agg(DISTINCT w.name) FILTER (WHERE w.name IS NOT NULL), '{}') as writers,
-             COALESCE(array_agg(DISTINCT s.name) FILTER (WHERE s.name IS NOT NULL), '{}') as studios
+             COALESCE(array_agg(DISTINCT s.name) FILTER (WHERE s.name IS NOT NULL), '{}') as studios,
+             (SELECT wmo.primary_country_code FROM world_challenge_movie_origins wmo WHERE wmo.movie_id = m.id LIMIT 1) as manual_origin_code,
+             (SELECT wcp.country_code FROM world_challenge_picks wcp WHERE wcp.champion_movie_id = m.id ORDER BY wcp.updated_at DESC LIMIT 1) as manual_pick_code
       FROM movie_views mv
       JOIN movies m ON mv.movie_id = m.id
       LEFT JOIN movie_tags mt ON m.id = mt.movie_id
@@ -257,7 +261,9 @@ app.get('/api/movies/horror-suspense', async (req: Request, res: Response) => {
              COALESCE(array_agg(DISTINCT c.name) FILTER (WHERE c.name IS NOT NULL), '{}') as countries,
              COALESCE(array_agg(DISTINCT d.name) FILTER (WHERE d.name IS NOT NULL), '{}') as directors,
              COALESCE(array_agg(DISTINCT w.name) FILTER (WHERE w.name IS NOT NULL), '{}') as writers,
-             COALESCE(array_agg(DISTINCT s.name) FILTER (WHERE s.name IS NOT NULL), '{}') as studios
+             COALESCE(array_agg(DISTINCT s.name) FILTER (WHERE s.name IS NOT NULL), '{}') as studios,
+             (SELECT wmo.primary_country_code FROM world_challenge_movie_origins wmo WHERE wmo.movie_id = m.id LIMIT 1) as manual_origin_code,
+             (SELECT wcp.country_code FROM world_challenge_picks wcp WHERE wcp.champion_movie_id = m.id ORDER BY wcp.updated_at DESC LIMIT 1) as manual_pick_code
       FROM movie_views mv
       JOIN movies m ON mv.movie_id = m.id
       LEFT JOIN movie_tags mt ON m.id = mt.movie_id
@@ -303,7 +309,9 @@ app.get('/api/movies/all', async (req: Request, res: Response) => {
              COALESCE(array_agg(DISTINCT c.name) FILTER (WHERE c.name IS NOT NULL), '{}') as countries,
              COALESCE(array_agg(DISTINCT d.name) FILTER (WHERE d.name IS NOT NULL), '{}') as directors,
              COALESCE(array_agg(DISTINCT w.name) FILTER (WHERE w.name IS NOT NULL), '{}') as writers,
-             COALESCE(array_agg(DISTINCT s.name) FILTER (WHERE s.name IS NOT NULL), '{}') as studios
+             COALESCE(array_agg(DISTINCT s.name) FILTER (WHERE s.name IS NOT NULL), '{}') as studios,
+             (SELECT wmo.primary_country_code FROM world_challenge_movie_origins wmo WHERE wmo.movie_id = m.id LIMIT 1) as manual_origin_code,
+             (SELECT wcp.country_code FROM world_challenge_picks wcp WHERE wcp.champion_movie_id = m.id ORDER BY wcp.updated_at DESC LIMIT 1) as manual_pick_code
       FROM movie_views mv
       JOIN movies m ON mv.movie_id = m.id
       LEFT JOIN movie_tags mt ON m.id = mt.movie_id

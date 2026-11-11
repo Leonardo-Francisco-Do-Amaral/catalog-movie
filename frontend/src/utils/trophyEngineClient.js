@@ -1751,6 +1751,41 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
     championsByCode.set(code, list[0]);
   }
 
+  // Helper estrito para resolver o País de Origem único no Desafio dos 195 (sem vazar coproduções não curadas)
+  const resolveClientPrimaryCountryCode195 = (movie) => {
+    if (!movie) return null;
+    if (movie.primaryCountryCode) {
+      const c = String(movie.primaryCountryCode).toLowerCase().trim();
+      return unByCode.has(c) ? c : null;
+    }
+    const manual = String(movie.manual_origin_code || movie.manual_pick_code || '').toLowerCase().trim();
+    if (manual) {
+      return unByCode.has(manual) ? manual : null;
+    }
+    const rawCountries = Array.isArray(movie.countries) ? movie.countries : [];
+    if (rawCountries.length !== 1) return null;
+    const code = unLookupMap.get(cleanStr(rawCountries[0]));
+    return code && unByCode.has(code) ? code : null;
+  };
+
+  // 2. Mapa de países conquistados no Desafio 195 (país de origem único por filme)
+  const worldOriginMoviesByCode = new Map();
+  const worldOriginChampionsByCode = new Map();
+
+  for (const m of movies) {
+    const pCode = resolveClientPrimaryCountryCode195(m);
+    if (!pCode) continue;
+    if (!worldOriginMoviesByCode.has(pCode)) {
+      worldOriginMoviesByCode.set(pCode, []);
+    }
+    worldOriginMoviesByCode.get(pCode).push(m);
+  }
+
+  for (const [code, list] of worldOriginMoviesByCode.entries()) {
+    list.sort((a, b) => (Number(b.user_rating) || 0) - (Number(a.user_rating) || 0));
+    worldOriginChampionsByCode.set(code, list[0]);
+  }
+
   const evaluatedTrophies = [];
 
   const standardDefs = CLIENT_TROPHY_DEFINITIONS.filter(
@@ -1813,10 +1848,10 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
         for (const code of codes) {
           const cCode = code.toLowerCase();
           const unDef = unByCode.get(cCode);
-          const hasMovie = (moviesByCode.get(cCode)?.length || 0) > 0;
+          const hasMovie = (worldOriginMoviesByCode.get(cCode)?.length || 0) > 0;
           if (hasMovie) conqCount++;
 
-          const rep = championsByCode.get(cCode) || null;
+          const rep = hasMovie ? (worldOriginChampionsByCode.get(cCode) || null) : null;
           checklist.push({
             code: cCode,
             name: unDef?.name || cCode.toUpperCase(),
@@ -1931,11 +1966,11 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
         for (const c of UN_COUNTRIES_195) {
           const cCode = c.code.toLowerCase();
           if (excludeCode && cCode === excludeCode) continue;
-          const has = (moviesByCode.get(cCode)?.length || 0) > 0;
+          const has = (worldOriginMoviesByCode.get(cCode)?.length || 0) > 0;
           if (has) {
             validConq++;
             if (checklist.length < 30) {
-              const rep = championsByCode.get(cCode);
+              const rep = worldOriginChampionsByCode.get(cCode);
               checklist.push({
                 code: cCode,
                 name: c.name,
@@ -1978,12 +2013,12 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
         let tiersCovered = 0;
         for (const tr of tiers) {
           const conq = UN_COUNTRIES_195.find(
-            (c) => (c.rarityTier || getCountryRarityTier(c.code)) === tr && (moviesByCode.get(c.code.toLowerCase())?.length || 0) > 0
+            (c) => (c.rarityTier || getCountryRarityTier(c.code)) === tr && (worldOriginMoviesByCode.get(c.code.toLowerCase())?.length || 0) > 0
           );
           const has = Boolean(conq);
           if (has) tiersCovered++;
 
-          const rep = conq ? championsByCode.get(conq.code.toLowerCase()) : null;
+          const rep = conq ? worldOriginChampionsByCode.get(conq.code.toLowerCase()) : null;
           checklist.push({
             name: tierLabels[tr],
             flag: conq?.code || null,
@@ -2004,13 +2039,13 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
 
       case 'rarity_mythic_count': {
         const mythicCountries = UN_COUNTRIES_195.filter((c) => getCountryRarityTier(c.code) === 'mythic');
-        const conqList = mythicCountries.filter((c) => (moviesByCode.get(c.code.toLowerCase())?.length || 0) > 0);
+        const conqList = mythicCountries.filter((c) => (worldOriginMoviesByCode.get(c.code.toLowerCase())?.length || 0) > 0);
         progressCurrent = Math.min(conqList.length, progressTarget);
         isMet = conqList.length >= progressTarget;
 
         if (conqList.length > 0) {
           conqList.forEach((c) => {
-            const rep = championsByCode.get(c.code.toLowerCase());
+            const rep = worldOriginChampionsByCode.get(c.code.toLowerCase());
             checklist.push({
               code: c.code,
               name: c.name,
@@ -2040,10 +2075,10 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
         let conqCount = 0;
 
         for (const c of mythicCountries) {
-          const has = (moviesByCode.get(c.code.toLowerCase())?.length || 0) > 0;
+          const has = (worldOriginMoviesByCode.get(c.code.toLowerCase())?.length || 0) > 0;
           if (has) conqCount++;
 
-          const rep = championsByCode.get(c.code.toLowerCase());
+          const rep = has ? worldOriginChampionsByCode.get(c.code.toLowerCase()) : null;
           checklist.push({
             code: c.code,
             name: c.name,
@@ -2066,7 +2101,7 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
         const minMovies = 1000;
         const minCountries = 100;
         const totalMovies = movies.length;
-        const totalCountries = Array.from(moviesByCode.keys()).length;
+        const totalCountries = Array.from(worldOriginMoviesByCode.keys()).length;
 
         isMet = totalMovies >= minMovies && totalCountries >= minCountries;
         const mScore = Math.min(totalMovies, minMovies) / minMovies;
@@ -2082,11 +2117,11 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
           extra_info: `${totalMovies} / ${minMovies} filmes`,
         });
         checklist.push({
-          name: '100 Países Diferentes com Filmes',
+          name: '100 Países Diferentes no Desafio dos 195',
           required: minCountries,
           current: totalCountries,
           conquered: totalCountries >= minCountries,
-          extra_info: `${totalCountries} / ${minCountries} países representados`,
+          extra_info: `${totalCountries} / ${minCountries} países conquistados no Desafio 195`,
         });
         break;
       }
@@ -3615,8 +3650,8 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
 
         reqCountries.forEach((rc) => {
           const cCode = rc.code.toLowerCase();
-          const repMovie = championsByCode.get(cCode) || (moviesByCode.get(cCode) || [])[0];
-          const hasMovie = Boolean(repMovie);
+          const hasMovie = (worldOriginMoviesByCode.get(cCode)?.length || 0) > 0;
+          const repMovie = hasMovie ? worldOriginChampionsByCode.get(cCode) : null;
           if (hasMovie) countDone++;
 
           checklist.push({
@@ -3629,7 +3664,7 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
             movie_title: repMovie ? repMovie.title : undefined,
             movie_year: repMovie ? repMovie.release_year : undefined,
             poster_url: repMovie ? repMovie.poster_url : undefined,
-            extra_info: hasMovie ? 'Conquistado' : 'Pendente (0 filmes assistidos)',
+            extra_info: hasMovie ? 'Conquistado no Desafio 195' : 'Pendente no Desafio 195',
           });
         });
 
@@ -4295,16 +4330,8 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
         for (const m of movies) {
           const { ur } = extractCriticMetrics(m);
           if (ur === null || Math.round(ur * 1000) < 8500) continue;
-          if (movieHasCountry(m, 'us', unCountryDefMap)) continue;
 
-          let cCode = m.primaryCountryCode ? m.primaryCountryCode.toLowerCase() : null;
-          if (!cCode && Array.isArray(m.coproductionCountries) && m.coproductionCountries.length > 0) {
-            cCode = m.coproductionCountries[0].code?.toLowerCase();
-          }
-          if (!cCode && Array.isArray(m.countries) && m.countries.length > 0) {
-            const def = unCountryDefMap.get(cleanStr(m.countries[0]));
-            if (def) cCode = def.code.toLowerCase();
-          }
+          const cCode = resolveClientPrimaryCountryCode195(m);
           if (!cCode || cCode === 'us') continue;
 
           const currentRating = Number(m.user_rating_raw || m.user_rating);
@@ -4372,10 +4399,10 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
         const selectedMovies = [];
         const seenCountries = new Set();
 
-        // 1ª passada: 1 filme por país para maximizar diversidade geográfica
+        // 1ª passada: 1 filme por país (Desafio 195) para maximizar diversidade geográfica
         for (const m of qualifyingMovies) {
-          const cCode = (m.primaryCountryCode || (m.countries && m.countries[0]) || 'unknown').toLowerCase();
-          if (!seenCountries.has(cCode)) {
+          const cCode = resolveClientPrimaryCountryCode195(m);
+          if (cCode && !seenCountries.has(cCode)) {
             seenCountries.add(cCode);
             selectedMovies.push(m);
             if (selectedMovies.length === 15) break;
@@ -4387,8 +4414,8 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
           for (const m of qualifyingMovies) {
             if (!selectedMovies.includes(m)) {
               selectedMovies.push(m);
-              const cCode = (m.primaryCountryCode || (m.countries && m.countries[0]) || 'unknown').toLowerCase();
-              seenCountries.add(cCode);
+              const cCode = resolveClientPrimaryCountryCode195(m);
+              if (cCode) seenCountries.add(cCode);
               if (selectedMovies.length === 15) break;
             }
           }
@@ -5094,15 +5121,14 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
 
           const countryMap = new Map();
           for (const m of pirateMovies) {
-            const cCode = (m.primaryCountryCode || (Array.isArray(m.countries) ? m.countries[0] : null) || '').toLowerCase();
+            const cCode = resolveClientPrimaryCountryCode195(m);
             if (!cCode) continue;
             const unDef = unCountryDefMap.get(cCode);
-            const countryKey = unDef ? unDef.code.toLowerCase() : cCode;
             const cName = unDef ? unDef.name : (m.primaryCountryName || cCode.toUpperCase());
-            if (!countryMap.has(countryKey)) {
-              countryMap.set(countryKey, {
+            if (!countryMap.has(cCode)) {
+              countryMap.set(cCode, {
                 countryName: cName,
-                flag: unDef?.code?.toLowerCase() || cCode,
+                flag: cCode,
                 movie: m,
               });
             }
@@ -5182,8 +5208,8 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
               if (m) {
                 usedIds.add(m.movie_id || m.id);
                 totalConquered++;
-                const cCode = (m.primaryCountryCode || (Array.isArray(m.countries) ? m.countries[0] : null) || '').toLowerCase();
-                if (cCode) conqueredCountries.add(cCode);
+                const cCode195 = resolveClientPrimaryCountryCode195(m);
+                if (cCode195) conqueredCountries.add(cCode195);
 
                 const { ur } = extractCriticMetrics(m);
                 checklist.push({
@@ -5195,7 +5221,7 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
                   movie_title: m.title,
                   movie_year: getMovieReleaseYear(m) || undefined,
                   poster_url: m.poster_url || null,
-                  flag: cCode && cCode.length === 2 ? cCode : null,
+                  flag: cCode195 || null,
                   extra_info: `✅ Conquistado (${m.title} - Nota: ${ur ? ur.toFixed(3) : '8.0+'} | ${m.primaryCountryName || 'País N/I'})`,
                 });
               } else {
@@ -5565,11 +5591,12 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
         const matchingMovies = catalogMovies.filter((m) => movieHasTag(m, reqTag));
         const countryMap = new Map();
         for (const m of matchingMovies) {
-          const cCode = (m.primaryCountryCode || (Array.isArray(m.countries) ? m.countries[0] : null) || 'unknown').toLowerCase();
+          const cCode = resolveClientPrimaryCountryCode195(m);
+          if (!cCode) continue;
           if (!countryMap.has(cCode)) countryMap.set(cCode, []);
           countryMap.get(cCode).push(m);
         }
-        const distinctCountries = Array.from(countryMap.keys()).filter((c) => c !== 'unknown');
+        const distinctCountries = Array.from(countryMap.keys());
         progressTarget = def.target_value;
         progressCurrent = Math.min(progressTarget, distinctCountries.length);
         isMet = distinctCountries.length >= progressTarget;
@@ -5582,11 +5609,13 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
             const firstMovie = countryMap.get(cCode)[0];
             checklist.push({
               id: `tag_country_${i + 1}`,
+              code: cCode,
+              flag: cCode,
               name: `País ${i + 1}: ${cName}`,
               required: 1,
               current: 1,
               conquered: true,
-              extra_info: `✅ Conquistado (${firstMovie.title})`,
+              extra_info: `✅ Conquistado no Desafio 195 (${firstMovie.title})`,
             });
           } else {
             checklist.push({
