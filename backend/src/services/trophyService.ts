@@ -7,7 +7,8 @@ import {
 } from '../data/trophyDefinitions';
 import { UN_COUNTRIES_195, CountryRarityTier } from '../data/unCountries195';
 import { buildWorldChallengePayload, ChallengeCountryEntry } from './worldChallengeService';
-import { buildUserXpStatus, UserXpStatus } from './xpService';
+import { buildUserXpStatus, getQuickWalkOfFameXpSummary, UserXpStatus } from './xpService';
+import { getQuickUniverseXpSummary } from './universeCodexService';
 
 let tablesEnsured = false;
 
@@ -52,8 +53,14 @@ export async function ensureTrophyTables(): Promise<void> {
   tablesEnsured = true;
 }
 
-export async function seedTrophies(): Promise<void> {
+let trophiesSeeded = false;
+
+export async function seedTrophies(force = true): Promise<void> {
+  if (!force && trophiesSeeded) return;
   await ensureTrophyTables();
+
+  // Remove troféus legados migrados para páginas próprias (Códice dos Universos e Álbum da Calçada da Fama)
+  await query(`DELETE FROM trophies WHERE category IN ('universos_sagas', 'calcada_da_fama')`);
 
   for (const t of TROPHY_DEFINITIONS) {
     await query(
@@ -97,6 +104,8 @@ export async function seedTrophies(): Promise<void> {
       [t.id, t.target_value]
     );
   }
+
+  trophiesSeeded = true;
 }
 
 export interface TrophyChecklistItem {
@@ -476,7 +485,7 @@ function matchFranchiseMovie(
   return false;
 }
 
-function matchCuratedCandidate(
+export function matchCuratedCandidate(
   m: any,
   req: { name?: string; patterns: string[]; year?: number; exclude?: string[]; requireAdditionalPatterns?: string[] }
 ): boolean {
@@ -1958,6 +1967,9 @@ type PreviousTrophyStateMap = Map<
     progress_current: number;
     progress_target: number;
     progress_percentage: number;
+    checklist: TrophyChecklistItem[];
+    checklistJson: string;
+    is_new: boolean;
   }
 >;
 
@@ -2004,9 +2016,11 @@ function buildLastActivityEntries(
   for (const ev of evaluatedTrophies) {
     if (ev.test_override !== null) continue;
     const prev = getPrev(ev.id);
-    const prevCount = prev?.progress_current || 0;
     const wasUnlocked = Boolean(prev?.is_unlocked);
-    const unlockedNow = !wasUnlocked && Boolean(ev.is_unlocked);
+    // Troféus já conquistados antes deste cadastro nunca devem entrar em "Último Filme"
+    if (wasUnlocked) continue;
+    const prevCount = prev?.progress_current || 0;
+    const unlockedNow = Boolean(ev.is_unlocked);
     const diff = Math.max(0, ev.progress_current - prevCount);
     if (unlockedNow || diff > 0) {
       entries.push({
@@ -2024,7 +2038,8 @@ function buildLastActivityEntries(
 function evaluateDefinitionsFromWorldData(
   worldData: WorldChallengePayload,
   previousStateMap: PreviousTrophyStateMap,
-  markNew: boolean
+  markNew: boolean,
+  skipUnlocked = false
 ): { evaluatedTrophies: EvaluatedTrophy[]; progressedTrophiesRaw: ProgressedTrophy[] } {
   const unCountriesMap = new Map<string, ChallengeCountryEntry>();
   worldData.countries.forEach((c) => unCountriesMap.set(c.code.toLowerCase(), c));
@@ -2075,6 +2090,33 @@ function evaluateDefinitionsFromWorldData(
   );
 
   for (const def of standardDefinitions) {
+    const prev = previousStateMap.get(def.id);
+    // Troféu já conquistado (sem override de teste) não precisa ser reavaliado em cadastros incrementais
+    if (skipUnlocked && prev?.is_unlocked && prev.test_override === null) {
+      evaluatedTrophies.push({
+        id: def.id,
+        category: def.category,
+        categories: def.categories || (def.target_metadata?.isHybrid ? ['volta_ao_mundo', 'dna_cinefilo'] : [def.category]),
+        tier: def.tier,
+        title: def.title,
+        description: def.description,
+        icon: def.icon,
+        target_type: def.target_type,
+        target_value: def.target_value,
+        target_metadata: def.target_metadata,
+        sort_order: def.sort_order,
+        is_unlocked: true,
+        unlocked_at: prev.unlocked_at,
+        progress_current: prev.progress_current,
+        progress_target: prev.progress_target > 0 ? prev.progress_target : def.target_value,
+        progress_percentage: prev.progress_percentage,
+        checklist: prev.checklist,
+        is_new: false,
+        test_override: null,
+      });
+      continue;
+    }
+
     let progressCurrent = 0;
     let progressTarget = def.target_value;
     let isMet = false;
@@ -5558,8 +5600,7 @@ function evaluateDefinitionsFromWorldData(
         break;
       }
 
-      case 'secret_session_curated':
-      case 'calcada_fama_curated': {
+      case 'secret_session_curated': {
         const reqMovies: Array<{
           name: string;
           patterns: string[];
@@ -6507,7 +6548,6 @@ function evaluateDefinitionsFromWorldData(
     const progressPct = progressTarget > 0 ? Math.min(100, Math.round((progressCurrent / progressTarget) * 100)) : 0;
 
     // Respeita override de teste se houver
-    const prev = previousStateMap.get(def.id);
     const testOverride = prev?.test_override ?? null;
 
     let finalUnlocked = isMet;
@@ -6659,16 +6699,49 @@ function evaluateDefinitionsFromWorldData(
   return { evaluatedTrophies, progressedTrophiesRaw };
 }
 
+function parseChecklistColumn(raw: unknown): TrophyChecklistItem[] {
+  if (Array.isArray(raw)) return raw as TrophyChecklistItem[];
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+function hasTrophyStateChanged(
+  prev: PreviousTrophyStateMap extends Map<string, infer V> ? V | undefined : never,
+  ev: EvaluatedTrophy,
+  checklistJson: string
+): boolean {
+  if (!prev) return true;
+  if (prev.is_unlocked !== ev.is_unlocked) return true;
+  if ((prev.unlocked_at || null) !== (ev.unlocked_at || null)) return true;
+  if (prev.progress_current !== ev.progress_current) return true;
+  if (prev.progress_target !== ev.progress_target) return true;
+  if (prev.progress_percentage !== ev.progress_percentage) return true;
+  if (prev.is_new !== ev.is_new) return true;
+  if (prev.test_override !== ev.test_override) return true;
+  if (prev.checklistJson !== checklistJson) return true;
+  return false;
+}
+
 export async function evaluateTrophies(
   options: {
     markNew?: boolean;
     dryRun?: boolean;
+    skipUnlocked?: boolean;
+    forceSeed?: boolean;
     recordLastMovie?: { movieId: number; title: string };
   } = {}
 ): Promise<TrophiesSummaryResponse> {
   const dryRun = Boolean(options.dryRun);
+  const skipUnlocked = Boolean(options.skipUnlocked);
   if (!dryRun) {
-    await seedTrophies();
+    await seedTrophies(Boolean(options.forceSeed));
   } else {
     await ensureTrophyTables();
   }
@@ -6681,7 +6754,7 @@ export async function evaluateTrophies(
   // 2. Lê o estado atual salvo de user_trophies e a última atividade registrada
   const [userTrophiesRes, lastActRes] = await Promise.all([
     query(`
-      SELECT trophy_id, is_unlocked, unlocked_at, test_override, progress_current, progress_target, progress_percentage
+      SELECT trophy_id, is_unlocked, unlocked_at, test_override, progress_current, progress_target, progress_percentage, checklist, is_new
       FROM user_trophies
     `),
     query(`SELECT movie_id, movie_title, recorded_at, entries FROM trophy_last_activity WHERE id = 1`),
@@ -6689,6 +6762,7 @@ export async function evaluateTrophies(
 
   const previousStateMap: PreviousTrophyStateMap = new Map();
   userTrophiesRes.rows.forEach((r) => {
+    const checklist = parseChecklistColumn(r.checklist);
     previousStateMap.set(r.trophy_id, {
       is_unlocked: Boolean(r.is_unlocked),
       unlocked_at: r.unlocked_at ? new Date(r.unlocked_at).toISOString() : null,
@@ -6696,13 +6770,17 @@ export async function evaluateTrophies(
       progress_current: Number(r.progress_current) || 0,
       progress_target: Number(r.progress_target) || 1,
       progress_percentage: Number(r.progress_percentage) || 0,
+      checklist,
+      checklistJson: JSON.stringify(checklist),
+      is_new: Boolean(r.is_new),
     });
   });
 
   const { evaluatedTrophies, progressedTrophiesRaw } = evaluateDefinitionsFromWorldData(
     worldData,
     previousStateMap,
-    markNew
+    markNew,
+    skipUnlocked
   );
   const newlyUnlocked: EvaluatedTrophy[] = [];
 
@@ -6710,11 +6788,16 @@ export async function evaluateTrophies(
   let lastActivity: TrophyLastActivity | null = null;
   if (lastActRes.rows.length > 0) {
     const row = lastActRes.rows[0];
+    const unlockedNowMap = new Map(evaluatedTrophies.map((t) => [t.id, Boolean(t.is_unlocked)]));
+    const rawEntries = Array.isArray(row.entries) ? (row.entries as TrophyLastActivityEntry[]) : [];
+    const cleanedEntries = rawEntries.filter(
+      (entry) => Boolean(entry?.unlockedNow) || !unlockedNowMap.get(entry?.trophyId)
+    );
     lastActivity = {
       movieId: row.movie_id ? Number(row.movie_id) : null,
       movieTitle: row.movie_title || null,
       recordedAt: row.recorded_at ? new Date(row.recorded_at).toISOString() : null,
-      entries: Array.isArray(row.entries) ? row.entries : [],
+      entries: cleanedEntries,
     };
   }
 
@@ -6779,13 +6862,19 @@ export async function evaluateTrophies(
     }
   }
 
-  // 5. Salva estado avaliado no banco de dados (ignorado em modo dryRun / Filme Fantasma)
+  // 5. Salva apenas os troféus cujo estado mudou no banco (ignorado em modo dryRun / Filme Fantasma)
   for (const ev of evaluatedTrophies) {
     if (ev.is_new) {
       newlyUnlocked.push(ev);
     }
 
     if (dryRun) {
+      continue;
+    }
+
+    const prev = previousStateMap.get(ev.id);
+    const checklistJson = JSON.stringify(ev.checklist);
+    if (!hasTrophyStateChanged(prev, ev, checklistJson)) {
       continue;
     }
 
@@ -6823,7 +6912,7 @@ export async function evaluateTrophies(
         ev.progress_current,
         ev.progress_target,
         ev.progress_percentage,
-        JSON.stringify(ev.checklist),
+        checklistJson,
         ev.is_new,
         ev.test_override,
       ]
@@ -6864,7 +6953,11 @@ export async function evaluateTrophies(
 
   const unlockedCount = evaluatedTrophies.filter((t) => t.is_unlocked).length;
   const overallPercentage = evaluatedTrophies.length > 0 ? Math.round((unlockedCount / evaluatedTrophies.length) * 100) : 0;
-  const xpStatus = buildUserXpStatus(worldData, evaluatedTrophies);
+  const [universeSummary, walkOfFameSummary] = await Promise.all([
+    getQuickUniverseXpSummary().catch(() => undefined),
+    getQuickWalkOfFameXpSummary().catch(() => undefined),
+  ]);
+  const xpStatus = buildUserXpStatus(worldData, evaluatedTrophies, universeSummary, walkOfFameSummary);
   const progressedTrophies = filterProgressedTrophies(progressedTrophiesRaw);
 
   return {

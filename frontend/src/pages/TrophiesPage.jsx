@@ -71,22 +71,20 @@ export const CATEGORY_NAMES = {
   dna_cinefilo: 'DNA Cinéfilo',
   anatomia_cinema: 'Anatomia do Cinema',
   data_limite: 'Data Limite',
-  universos_sagas: 'Universos & Sagas',
   mafia_hollywood: 'A Máfia de Hollywood',
   tribunal_critica: 'Tribunal da Crítica',
   ritual_cinefilo: 'O Ritual do Cinéfilo',
   sessao_secreta: 'Sessão Secreta',
-  calcada_da_fama: 'Calçada da Fama',
 };
 
-export default function TrophiesPage({ movies = [] }) {
+export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [localOverrides, setLocalOverrides] = useState({});
 
   // Filtros de Categoria, Tier, Status e Busca
-  const [selectedCategory, setSelectedCategory] = useState('all'); // 'all', 'volta_ao_mundo', 'dna_cinefilo', 'anatomia_cinema', 'data_limite', 'universos_sagas', 'mafia_hollywood'
+  const [selectedCategory, setSelectedCategory] = useState('all'); // 'all', 'volta_ao_mundo', 'dna_cinefilo', 'anatomia_cinema', 'data_limite', 'mafia_hollywood', etc.
   const [onlyMultiCategory, setOnlyMultiCategory] = useState(false);
   const [selectedTier, setSelectedTier] = useState('all'); // 'all', 'bronze', 'silver', 'epic', 'gold', 'mythic', 'platinum'
   const [selectedStatus, setSelectedStatus] = useState('all'); // 'all', 'unlocked', 'in_progress', 'locked'
@@ -487,8 +485,20 @@ export default function TrophiesPage({ movies = [] }) {
               </div>
             </div>
 
-            {/* Ações Rápidas: Som Mute + Painel de Testes */}
+            {/* Ações Rápidas: Lab Calçada da Fama + Som Mute + Painel de Testes */}
             <div className="flex items-center gap-2.5 flex-wrap">
+              {onOpenWalkOfFame && (
+                <button
+                  type="button"
+                  onClick={onOpenWalkOfFame}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/15 hover:from-amber-500/30 hover:to-yellow-500/25 border border-amber-400/55 text-amber-200 text-xs font-black transition-all cursor-pointer shadow-[0_0_16px_rgba(245,158,11,0.2)]"
+                  title="Abrir Laboratório Visual da Calçada da Fama (3 Modos)"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-300" />
+                  <span>📖 Álbum Calçada da Fama</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={handleToggleMute}
@@ -591,7 +601,7 @@ export default function TrophiesPage({ movies = [] }) {
                   {onlyMultiCategory
                     ? '🔥 Multicategoria'
                     : selectedCategory === 'all'
-                    ? '🌟 Visão Geral (10 Categorias)'
+                    ? '🌟 Visão Geral (9 Categorias)'
                     : CATEGORY_NAMES[selectedCategory] || selectedCategory}
                 </span>
                 <span className="text-zinc-600">•</span>
@@ -601,8 +611,8 @@ export default function TrophiesPage({ movies = [] }) {
               </div>
             </div>
 
-            {/* Grid Harmônico 5x2 das 10 Categorias Temáticas */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+            {/* Grid Harmônico 3x3 das 9 Categorias Temáticas */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {[
                 {
                   id: 'volta_ao_mundo',
@@ -629,12 +639,6 @@ export default function TrophiesPage({ movies = [] }) {
                   count: allTrophies.filter((t) => (t.categories || [t.category]).includes('data_limite')).length,
                 },
                 {
-                  id: 'universos_sagas',
-                  label: 'Universos & Sagas',
-                  icon: '🌌',
-                  count: allTrophies.filter((t) => (t.categories || [t.category]).includes('universos_sagas')).length,
-                },
-                {
                   id: 'mafia_hollywood',
                   label: 'A Máfia de Hollywood',
                   icon: '🕴️',
@@ -657,12 +661,6 @@ export default function TrophiesPage({ movies = [] }) {
                   label: 'Sessão Secreta',
                   icon: '🕵️‍♂️',
                   count: allTrophies.filter((t) => (t.categories || [t.category]).includes('sessao_secreta')).length,
-                },
-                {
-                  id: 'calcada_da_fama',
-                  label: 'Calçada da Fama',
-                  icon: '⭐',
-                  count: allTrophies.filter((t) => (t.categories || [t.category]).includes('calcada_da_fama')).length,
                 },
               ].map((cat) => {
                 const isSelected = selectedCategory === cat.id && !onlyMultiCategory;
@@ -705,9 +703,7 @@ export default function TrophiesPage({ movies = [] }) {
               const st = activeTierStats[tierKey] || { total: 0, unlocked: 0, percentage: 0 };
               const isNoPlat =
                 (selectedCategory === 'data_limite' ||
-                  selectedCategory === 'universos_sagas' ||
-                  selectedCategory === 'sessao_secreta' ||
-                  selectedCategory === 'calcada_da_fama') &&
+                  selectedCategory === 'sessao_secreta') &&
                 tierKey === 'platinum';
 
               return (
@@ -773,8 +769,6 @@ export default function TrophiesPage({ movies = [] }) {
                       ? 'Progresso Anatomia do Cinema'
                       : selectedCategory === 'data_limite'
                       ? 'Progresso Data Limite (Sazonal)'
-                      : selectedCategory === 'universos_sagas'
-                      ? 'Progresso Universos & Sagas (Coleções & Franquias)'
                       : selectedCategory === 'mafia_hollywood'
                       ? 'Progresso A Máfia de Hollywood (Diretores, Estúdios & Oscar)'
                       : selectedCategory === 'tribunal_critica'
@@ -783,8 +777,6 @@ export default function TrophiesPage({ movies = [] }) {
                       ? 'Progresso O Ritual do Cinéfilo (Plataformas, Áudio, Duração & Anos)'
                       : selectedCategory === 'sessao_secreta'
                       ? 'Progresso Sessão Secreta (Listas Temáticas, Tropos & Desafios)'
-                      : selectedCategory === 'calcada_da_fama'
-                      ? 'Progresso Calçada da Fama (Grandes Atores, Atrizes & Filmografias)'
                       : 'Progresso Geral (Todas as Categorias)'}
                   </span>
                   <span className="text-[11px] font-bold text-amber-400 font-mono">
@@ -800,8 +792,6 @@ export default function TrophiesPage({ movies = [] }) {
                     ? 'Desbloqueie todos os troféus de gêneros para obter a Platina O Mestre Supremo dos Gêneros.'
                     : selectedCategory === 'data_limite'
                     ? 'Categoria Sazonal por Mês Assistido. Não possui troféu de Platina.'
-                    : selectedCategory === 'universos_sagas'
-                    ? 'Categoria de Coleções e Franquias do Cinema. Não possui troféu de Platina.'
                     : selectedCategory === 'mafia_hollywood'
                     ? 'Desbloqueie todos os troféus da Máfia de Hollywood para obter a Platina O Poderoso Chefão dos Estúdios.'
                     : selectedCategory === 'tribunal_critica'
@@ -810,9 +800,7 @@ export default function TrophiesPage({ movies = [] }) {
                     ? 'Desbloqueie todos os troféus de O Ritual do Cinéfilo para obter a Platina O Mestre da Cabine de Projeção.'
                     : selectedCategory === 'sessao_secreta'
                     ? 'Categoria de Listas Temáticas, Tropos Pop e Desafios Cult. Não possui troféu de Platina.'
-                    : selectedCategory === 'calcada_da_fama'
-                    ? 'Categoria de Filmografias dos Grandes Atores e Atrizes. Não possui troféu de Platina.'
-                    : 'Desafios geográficos, tags, gêneros, franquias, diretores, plataformas, críticas e filmografias.'}
+                    : 'Desafios geográficos, tags, gêneros, franquias, diretores, plataformas e críticas.'}
                 </p>
               </div>
             </div>

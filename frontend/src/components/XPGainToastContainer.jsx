@@ -1,10 +1,23 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Sparkles, Zap, PartyPopper } from 'lucide-react';
-import { playXpGainSound } from '../utils/trophyAudio';
+import { playXpEventSound } from '../utils/trophyAudio';
+import { notifyXpBarStarted, notifyXpBarCleared } from '../utils/xpSystem';
 
 function getTagBadgeStyle(tag) {
   if (tag.type === 'movie') {
     return 'bg-amber-500/15 text-amber-300 border-amber-500/40';
+  }
+  if (tag.type === 'universe_checkpoint') {
+    return 'bg-indigo-500/20 text-indigo-200 border-indigo-400/55 shadow-[0_0_10px_rgba(129,140,248,0.22)]';
+  }
+  if (tag.type === 'universe_saga') {
+    return 'bg-amber-500/25 text-amber-100 border-amber-300/65';
+  }
+  if (tag.type === 'universe_mega') {
+    return 'bg-fuchsia-500/25 text-fuchsia-100 border-fuchsia-400/70';
+  }
+  if (tag.type === 'walk_of_fame') {
+    return 'bg-amber-500/20 text-amber-200 border-amber-400/60 shadow-[0_0_12px_rgba(251,191,36,0.22)]';
   }
   if (tag.type === 'country' || tag.type === 'time_machine') {
     switch (tag.rarityOrTier) {
@@ -57,6 +70,7 @@ function XPGainCard({ item, onDismiss }) {
     xpNeededForNextLevel,
     tags = [],
     statGains = [],
+    universeCheckpoints = [],
     unlockedClass = null,
   } = event;
 
@@ -65,15 +79,32 @@ function XPGainCard({ item, onDismiss }) {
   const [displayedLevel, setDisplayedLevel] = useState(prevLevel || newLevel);
   const [showLevelUpCelebration, setShowLevelUpCelebration] = useState(false);
 
+  const hasUnlockedClass = Boolean(unlockedClass);
+
   useEffect(() => {
-    playXpGainSound(false);
+    const soundConfig = {
+      unlockedClass,
+      leveledUp,
+      titleChanged,
+    };
+
+    // Prioridade única para não atropelar áudios longos:
+    // Nova Classe > Novo Patamar (título de 5 em 5 níveis) > Level Up > Orb XP
+    const tInitialSound = setTimeout(() => {
+      if (hasUnlockedClass || !leveledUp) {
+        playXpEventSound(soundConfig);
+      }
+    }, 10);
 
     if (!leveledUp) {
       const t1 = setTimeout(() => {
         setBarAnimated(true);
         setBarWidth(Math.max(0, Math.min(100, newPercentage || 0)));
       }, 110);
-      return () => clearTimeout(t1);
+      return () => {
+        clearTimeout(tInitialSound);
+        clearTimeout(t1);
+      };
     }
 
     // Sequência dupla de animação ao subir de nível:
@@ -87,7 +118,9 @@ function XPGainCard({ item, onDismiss }) {
     const tCelebrate = setTimeout(() => {
       setShowLevelUpCelebration(true);
       setDisplayedLevel(newLevel);
-      playXpGainSound(true);
+      if (!hasUnlockedClass) {
+        playXpEventSound(soundConfig);
+      }
       setBarAnimated(false);
       setBarWidth(0);
     }, 1020);
@@ -98,13 +131,15 @@ function XPGainCard({ item, onDismiss }) {
     }, 1140);
 
     return () => {
+      clearTimeout(tInitialSound);
       clearTimeout(tFillMax);
       clearTimeout(tCelebrate);
       clearTimeout(tRefill);
     };
-  }, [leveledUp, newLevel, newPercentage]);
+  }, [hasUnlockedClass, unlockedClass, leveledUp, titleChanged, newLevel, newPercentage]);
 
-  const durationMs = (leveledUp || unlockedClass) ? 9200 : 6200;
+  const hasCheckpoints = Array.isArray(universeCheckpoints) && universeCheckpoints.length > 0;
+  const durationMs = hasUnlockedClass ? 10800 : leveledUp ? 9200 : hasCheckpoints ? 8600 : 6200;
 
   return (
     <div
@@ -281,6 +316,32 @@ function XPGainCard({ item, onDismiss }) {
         </div>
       </div>
 
+      {/* Caixa de Diálogo RPG de Checkpoint do Códice dos Universos (acoplada logo abaixo da Barra de XP) */}
+      {hasCheckpoints && (
+        <div className="relative z-10 mt-3 flex flex-col gap-2">
+          {universeCheckpoints.map((cp, idx) => (
+            <div
+              key={`${cp.sagaId || 'cp'}_${cp.threshold}_${idx}`}
+              style={{ animation: 'xpLevelUpPop 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
+              className="rounded-xl bg-gradient-to-br from-indigo-950/90 via-zinc-950/95 to-purple-950/85 border border-indigo-400/70 px-3 py-2.5 shadow-[0_0_24px_rgba(129,140,248,0.3)] flex flex-col gap-1"
+            >
+              <div className="flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-wider">
+                <span className="text-indigo-200 flex items-center gap-1.5 truncate">
+                  <span className="text-sm shrink-0">{cp.icon || '🌌'}</span>
+                  <span className="truncate">
+                    Marco {cp.threshold} filmes • {cp.sagaTitle}
+                  </span>
+                </span>
+                <span className="font-mono text-amber-300 shrink-0">+{cp.xp || 30} XP</span>
+              </div>
+              <p className="text-xs font-bold text-zinc-100 leading-snug italic">
+                💬 &ldquo;{cp.quote}&rdquo;
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Timer inferior de fechamento */}
       <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-zinc-800/80 overflow-hidden">
         <div
@@ -296,6 +357,7 @@ function XPGainCard({ item, onDismiss }) {
 
 export default function XPGainToastContainer() {
   const [items, setItems] = useState([]);
+  const wasActiveRef = useRef(false);
 
   const dismiss = useCallback((id) => {
     setItems((prev) => prev.filter((x) => x.id !== id));
@@ -303,14 +365,23 @@ export default function XPGainToastContainer() {
 
   const pushXpEvent = useCallback(
     (xpEvent) => {
+      const hasCheckpoints =
+        Array.isArray(xpEvent?.universeCheckpoints) && xpEvent.universeCheckpoints.length > 0;
       const hasContent =
         xpEvent &&
         ((xpEvent.gainedXp || 0) > 0 ||
           Boolean(xpEvent.unlockedClass) ||
+          hasCheckpoints ||
           (Array.isArray(xpEvent.statGains) && xpEvent.statGains.length > 0));
       if (!hasContent) return;
       const id = `xp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-      const durationMs = (xpEvent.leveledUp || xpEvent.unlockedClass) ? 9200 : 6200;
+      const durationMs = xpEvent.unlockedClass
+        ? 10800
+        : xpEvent.leveledUp
+        ? 9200
+        : hasCheckpoints
+        ? 8600
+        : 6200;
 
       setItems((prev) => [{ id, event: xpEvent }, ...prev.slice(0, 2)]);
 
@@ -330,6 +401,27 @@ export default function XPGainToastContainer() {
     window.addEventListener('cine-xp-gain-toast', handler);
     return () => window.removeEventListener('cine-xp-gain-toast', handler);
   }, [pushXpEvent]);
+
+  useEffect(() => {
+    if (items.length > 0) {
+      wasActiveRef.current = true;
+      notifyXpBarStarted();
+    } else if (wasActiveRef.current) {
+      wasActiveRef.current = false;
+      const timer = setTimeout(() => {
+        notifyXpBarCleared();
+      }, 260);
+      return () => clearTimeout(timer);
+    }
+  }, [items.length]);
+
+  useEffect(() => {
+    return () => {
+      if (wasActiveRef.current) {
+        notifyXpBarCleared();
+      }
+    };
+  }, []);
 
   if (items.length === 0) return null;
 

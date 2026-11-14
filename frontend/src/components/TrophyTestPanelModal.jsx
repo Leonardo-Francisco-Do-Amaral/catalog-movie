@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { X, Play, RefreshCw, RotateCcw, Sparkles, Check, AlertCircle, Clock, Layers } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { X, Play, RefreshCw, RotateCcw, Sparkles, Check, AlertCircle, Clock, Layers, Gift } from 'lucide-react';
 import { DUEL_EFFECT_PRESETS } from '../utils/duelEffectPresets';
 import {
   triggerPS5TrophyToast,
@@ -14,8 +14,10 @@ import {
   triggerXPGainToast,
   triggerTimeMachineUnlock,
   triggerWorldChallengeUnlock,
+  triggerUniverseVictory,
   dispatchXpStatusUpdate,
 } from '../utils/xpSystem';
+import { applySimulatedMilestoneToStar } from '../utils/walkOfFameStickers';
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:5000/api';
@@ -84,6 +86,7 @@ export default function TrophyTestPanelModal({
   const [message, setMessage] = useState(null);
   const [toastSettings, setToastSettings] = useState(getToastSettings);
   const [duelArenaMode, setDuelArenaMode] = useState('both');
+  const walkStarsCacheRef = useRef(null);
 
   const sampleDuelPairs = useMemo(() => {
     const withPoster = (Array.isArray(movies) ? movies : []).filter((m) => Boolean(m?.poster_url));
@@ -155,14 +158,8 @@ export default function TrophyTestPanelModal({
 
   if (!isOpen) return null;
 
-  const handleUpdateDurationUnlocked = (ms) => {
-    const updated = { ...toastSettings, durationUnlocked: ms };
-    setToastSettings(updated);
-    saveToastSettings(updated);
-  };
-
-  const handleUpdateDurationProgress = (ms) => {
-    const updated = { ...toastSettings, durationProgress: ms };
+  const handleUpdateUnifiedDuration = (ms) => {
+    const updated = { ...toastSettings, durationUnlocked: ms, durationProgress: ms };
     setToastSettings(updated);
     saveToastSettings(updated);
   };
@@ -238,6 +235,125 @@ export default function TrophyTestPanelModal({
           title: 'Volta ao Mundo: Soberano das Américas',
           description: '100% dos países da América do Sul e América do Norte conquistados!',
           icon: '🌎',
+        },
+      ],
+    });
+  };
+
+  const simulateDualMythicSilverWithProgress = () => {
+    // Simulação Definitiva: 2 Troféus (Mítico primeiro, depois Prata) no Top-Right
+    // + 5 Progressos visíveis no Bottom-Right + 2 na fila
+    // + Indicador unificado no topo escrevendo troféus e progressos na fila!
+    triggerTrophyBatch({
+      unlocked: [
+        {
+          id: `sim_dual_mythic_${Date.now()}`,
+          tier: 'mythic',
+          category: 'volta_ao_mundo',
+          title: 'Mítico: O Panteão dos Deuses do Cinema',
+          description: 'Todos os 18 países míticos conquistados com maestria!',
+          icon: '💎',
+        },
+        {
+          id: `sim_dual_silver_${Date.now()}`,
+          tier: 'silver',
+          category: 'dna_cinefilo',
+          title: 'Prata: Cinéfilo de Carteirinha',
+          description: 'Assistiu a mais de 10 obras-primas da sétima arte!',
+          icon: '🥈',
+        },
+      ],
+      progressed: [
+        {
+          id: `sim_dual_prog_1_${Date.now()}`,
+          category: 'volta_ao_mundo',
+          tier: 'gold',
+          title: 'Volta ao Mundo: O Panteão dos Continentes',
+          description: 'Assistir a filmes de 50 países diferentes.',
+          icon: '🧭',
+          currentCount: 48,
+          targetCount: 50,
+          previousPercentage: 94,
+          progress_percentage: 96,
+          increasedBy: 1,
+        },
+        {
+          id: `sim_dual_prog_2_${Date.now()}`,
+          category: 'sessao_secreta',
+          tier: 'bronze',
+          title: 'Sessão Secreta: Caçador de Easter Eggs',
+          description: 'Descobrir segredos cinematográficos ocultos.',
+          icon: '🕵️',
+          currentCount: 3,
+          targetCount: 5,
+          previousPercentage: 40,
+          progress_percentage: 60,
+          increasedBy: 1,
+        },
+        {
+          id: `sim_dual_prog_3_${Date.now()}`,
+          category: 'dna_cinefilo',
+          tier: 'silver',
+          title: 'DNA Cinéfilo: Mestre dos Clássicos',
+          description: 'Assistir a 10 clássicos imperdíveis.',
+          icon: '🏛️',
+          currentCount: 9,
+          targetCount: 10,
+          previousPercentage: 80,
+          progress_percentage: 90,
+          increasedBy: 1,
+        },
+        {
+          id: `sim_dual_prog_4_${Date.now()}`,
+          category: 'anatomia_cinema',
+          tier: 'epic',
+          title: 'Anatomia do Cinema: Maratona Épica',
+          description: 'Assistir a filmes com mais de 3h de duração.',
+          icon: '⏱️',
+          currentCount: 8,
+          targetCount: 10,
+          previousPercentage: 70,
+          progress_percentage: 80,
+          increasedBy: 1,
+        },
+        {
+          id: `sim_dual_prog_5_${Date.now()}`,
+          category: 'tribunal_critica',
+          tier: 'gold',
+          title: 'Tribunal da Crítica: Aclamação Universal',
+          description: 'Assistir a filmes com nota superior a 9.0.',
+          icon: '⚖️',
+          currentCount: 19,
+          targetCount: 20,
+          previousPercentage: 90,
+          progress_percentage: 95,
+          increasedBy: 1,
+        },
+        {
+          id: `sim_dual_prog_6_${Date.now()}`,
+          category: 'sessao_secreta',
+          tier: 'silver',
+          title: 'Sessão Secreta: Maratona Cult',
+          description: 'Completar desafios temáticos da Sessão Secreta.',
+          icon: '🕵️‍♂️',
+          currentCount: 4,
+          targetCount: 5,
+          previousPercentage: 60,
+          progress_percentage: 80,
+          increasedBy: 1,
+        },
+        {
+          id: `sim_dual_prog_7_${Date.now()}`,
+          category: 'mafia_hollywood',
+          tier: 'bronze',
+          title: 'A Máfia de Hollywood: Rota dos Estúdios',
+          description: 'Assistir a produções dos maiores estúdios.',
+          icon: '🎥',
+          currentCount: 7,
+          targetCount: 10,
+          previousPercentage: 60,
+          progress_percentage: 70,
+          increasedBy: 1,
         },
       ],
     });
@@ -351,7 +467,7 @@ export default function TrophyTestPanelModal({
         decadeId: '1990s',
         decadeLabel: 'Anos 1990',
         rarity: 'decade_relic',
-        xp: 100,
+        xp: 400,
       },
       year_dethrone: {
         id: `sim_tm_dethrone_${Date.now()}`,
@@ -371,7 +487,7 @@ export default function TrophyTestPanelModal({
     triggerTimeMachineUnlock([presets[presetKey] || presets.epic], true);
   };
 
-  const simulateWorldChallengeCard = (kind = 'country_unlock') => {
+  const simulateWorldChallengeCard = (kind = 'country_unlock', customCountry = null) => {
     const sample =
       kind === 'country_dethrone'
         ? {
@@ -391,13 +507,13 @@ export default function TrophyTestPanelModal({
             sourceTrigger: 'coproduction_curate',
           }
         : {
-            id: `sim_wc_unlock_${Date.now()}`,
+            id: `sim_wc_unlock_${customCountry?.code || 'ma'}_${Date.now()}`,
             kind: 'country_unlock',
-            countryCode: 'ma',
-            countryName: 'Marrocos',
-            rarity: 'epic',
-            xp: 65,
-            movieTitle: 'O Caçador de Pipas (Exemplo)',
+            countryCode: customCountry?.code || 'ma',
+            countryName: customCountry?.name || 'Marrocos',
+            rarity: customCountry?.rarity || 'epic',
+            xp: customCountry?.xp || 65,
+            movieTitle: customCountry?.movieTitle || 'O Caçador de Pipas (Exemplo)',
             userRating: 9.2,
             sourceTrigger: 'movie_add',
           };
@@ -599,6 +715,203 @@ export default function TrophyTestPanelModal({
     });
   };
 
+  const simulateWalkPackToast = async (mode = 'pack_75') => {
+    const fallbackStar = {
+      id: 'keanu_reeves_sim',
+      albumNumber: 1,
+      name: 'Keanu Reeves',
+      icon: '🕶️',
+      tagline: 'O Escolhido da Ação Neon',
+      rpgClassLabel: 'O Escolhido da Ação Neon',
+      rpgRank: 'A+',
+      photoUrl: null,
+      ceiling: 20,
+      percentage: 75,
+      watchedCount: 15,
+      extraStars: 0,
+      quote: '“Yeah… estou pensando que estou de volta.”',
+      curiosities: [
+        'Fez quase todas as próprias cenas de luta e direção em John Wick.',
+        'Estudou artes marciais por meses para a trilogia Matrix.',
+        'É famoso pelos bastidores generosos com a equipe de dublês.',
+      ],
+      biography: 'Astro canadense conhecido por Matrix, John Wick e Velocidade Máxima.',
+      watchedFilms: [
+        { movieId: 9001, title: 'Velocidade Máxima', releaseYear: 1994, userRating: 8.5, imdbRating: 7.3, yearSeen: 2022, monthSeen: 3 },
+        { movieId: 9002, title: 'Matrix', releaseYear: 1999, userRating: 9.7, imdbRating: 8.7, yearSeen: 2023, monthSeen: 6 },
+        { movieId: 9003, title: 'Constantine', releaseYear: 2005, userRating: 8.8, imdbRating: 7.0, yearSeen: 2024, monthSeen: 1 },
+        { movieId: 9004, title: 'John Wick: De Volta ao Jogo', releaseYear: 2014, userRating: 9.2, imdbRating: 7.4, yearSeen: 2024, monthSeen: 9 },
+      ],
+      pendingFilms: [
+        { title: 'Point Break', releaseYear: 1991 },
+        { title: 'John Wick 4: Baba Yaga', releaseYear: 2023 },
+      ],
+      milestones: [
+        { thresholdPct: 15, unlocked: true, targetCount: 3 },
+        { thresholdPct: 30, unlocked: true, targetCount: 6 },
+        { thresholdPct: 45, unlocked: true, targetCount: 9 },
+        { thresholdPct: 60, unlocked: true, targetCount: 12 },
+        { thresholdPct: 75, unlocked: true, targetCount: 15 },
+        { thresholdPct: 90, unlocked: false, targetCount: 18 },
+      ],
+    };
+
+    let baseStar = fallbackStar;
+    try {
+      if (!walkStarsCacheRef.current) {
+        const res = await axios.get(`${API_BASE_URL}/walk-of-fame`, { timeout: 2500 });
+        if (res.data?.success && Array.isArray(res.data?.data?.stars) && res.data.data.stars.length > 0) {
+          walkStarsCacheRef.current = res.data.data.stars;
+        }
+      }
+      if (Array.isArray(walkStarsCacheRef.current) && walkStarsCacheRef.current.length > 0) {
+        const list = walkStarsCacheRef.current;
+        baseStar =
+          list.find((s) => s.photoUrl && Array.isArray(s.watchedFilms) && s.watchedFilms.length >= 2) ||
+          list.find((s) => s.photoUrl) ||
+          list[0];
+      }
+    } catch {
+      // usa fallback offline se o backend não estiver disponível
+    }
+
+    const configs = {
+      pack_15: {
+        packType: 'new_sticker',
+        fromTier: null,
+        toTier: 'bronze',
+        fromPct: 0,
+        toPct: 15,
+        packXp: 20,
+        triggerMovieTitle: baseStar.watchedFilms?.[0]?.title || 'Filme Desbloqueador',
+      },
+      pack_75: {
+        packType: 'rarity_up',
+        fromTier: 'gold',
+        toTier: 'mythic',
+        fromPct: 60,
+        toPct: 75,
+        packXp: 75,
+        triggerMovieTitle: baseStar.watchedFilms?.[1]?.title || baseStar.watchedFilms?.[0]?.title || 'Matrix',
+      },
+      pack_90: {
+        packType: 'rarity_up',
+        fromTier: 'mythic',
+        toTier: 'diamond',
+        fromPct: 75,
+        toPct: 90,
+        packXp: 105,
+        triggerMovieTitle: baseStar.watchedFilms?.[0]?.title || 'Obra-Prima',
+      },
+      trophy_plus_pack: {
+        packType: 'rarity_up',
+        fromTier: 'mythic',
+        toTier: 'diamond',
+        fromPct: 75,
+        toPct: 90,
+        packXp: 105,
+        triggerMovieTitle: baseStar.watchedFilms?.[0]?.title || 'John Wick: De Volta ao Jogo',
+        withTrophyCombo: true,
+      },
+    };
+
+    const cfg = configs[mode] || configs.pack_75;
+    const simulatedStar = applySimulatedMilestoneToStar(baseStar, cfg.toPct, 0);
+    const prevInLevel = 273;
+    const levelCap = 400;
+    const totalNext = prevInLevel + cfg.packXp;
+    const levelsGained = Math.floor(totalNext / levelCap);
+    const xpInCurrentLevel = totalNext % levelCap;
+
+    const demoPack = {
+      isDemo: true,
+      packId: `sim_toast_pack_${mode}_${Date.now()}`,
+      packType: cfg.packType,
+      fromTier: cfg.fromTier,
+      toTier: cfg.toTier,
+      fromPct: cfg.fromPct,
+      toPct: cfg.toPct,
+      fromPercentage: cfg.fromPct,
+      toPercentage: cfg.toPct,
+      extraStarsBefore: 0,
+      extraStarsAfter: 0,
+      extraStarsUnlocked: 0,
+      packXp: cfg.packXp,
+      triggerMovieTitle: cfg.triggerMovieTitle,
+      star: simulatedStar,
+      demoXpGain: {
+        gainedXp: cfg.packXp,
+        prevTotalXp: 7300,
+        nextTotalXp: 7300 + cfg.packXp,
+        prevLevel: 21,
+        newLevel: 21 + levelsGained,
+        prevPercentage: Math.round((prevInLevel / levelCap) * 100),
+        newPercentage: Math.round((xpInCurrentLevel / levelCap) * 100),
+        leveledUp: levelsGained > 0,
+        levelsGained,
+        prevTitle: 'Quantas Armadilhas Você Fez para Chegar Aqui?',
+        newTitle: 'Quantas Armadilhas Você Fez para Chegar Aqui?',
+        titleChanged: false,
+        xpInCurrentLevel,
+        xpNeededForNextLevel: levelCap,
+        xpRemaining: levelCap - xpInCurrentLevel,
+        tags: [
+          {
+            type: 'walk_of_fame',
+            icon: '🌟',
+            label: `+${cfg.packXp} XP Pacote (${simulatedStar.name})`,
+            xp: cfg.packXp,
+          },
+        ],
+      },
+    };
+
+    if (cfg.withTrophyCombo) {
+      triggerTrophyBatch({
+        unlocked: [
+          {
+            id: `sim_walk_combo_trophy_${Date.now()}`,
+            tier: 'gold',
+            category: 'dna_cinefilo',
+            title: 'Combo: Troféu + Pacotinho Pendente',
+            description: 'Troféu + Filme computam já; os +105 XP do pacote ficam retidos até você abrir!',
+            icon: '🏆',
+          },
+        ],
+        progressed: [],
+      });
+      triggerXPGainToast({
+        gainedXp: 80,
+        prevTotalXp: 7220,
+        nextTotalXp: 7300,
+        prevLevel: 21,
+        newLevel: 21,
+        prevPercentage: 48,
+        newPercentage: 68,
+        leveledUp: false,
+        levelsGained: 0,
+        prevTitle: 'Quantas Armadilhas Você Fez para Chegar Aqui?',
+        newTitle: 'Quantas Armadilhas Você Fez para Chegar Aqui?',
+        titleChanged: false,
+        xpInCurrentLevel: 273,
+        xpNeededForNextLevel: 400,
+        xpRemaining: 127,
+        tags: [
+          { type: 'movie', icon: '🎬', label: '+10 XP Filme Cadastrado', xp: 10 },
+          { type: 'trophy', icon: '🥇', label: '+70 XP Troféu Ouro', xp: 70, rarityOrTier: 'gold' },
+        ],
+      });
+    }
+
+    window.dispatchEvent(new CustomEvent('cine-walk-pack-toast', { detail: [demoPack] }));
+    setMessage({
+      type: 'success',
+      text: cfg.withTrophyCombo
+        ? `Combo disparado! Troféu (+80 XP) segue normal; aviso sem spoiler do pacotinho no canto e os +${cfg.packXp} XP só entram após abrir lá no Álbum da Fama.`
+        : `Notificação sem spoiler exibida! No fluxo real, o contador aparece ao lado de 📖 Álbum da Fama para você abrir um pacote por vez e resgatar os +${cfg.packXp} XP.`,
+    });
+  };
+
   const handleTestOverride = async (overrideState) => {
     if (!selectedTrophyId) return;
     setLoading(true);
@@ -776,6 +1089,54 @@ export default function TrophyTestPanelModal({
           </div>
         )}
 
+        {/* SEÇÃO 0: Simulador de Notificação de Pacotinho (Calçada da Fama) */}
+        <div className="flex flex-col gap-2.5 relative z-10 bg-amber-950/25 border border-amber-500/45 rounded-2xl p-3.5 shadow-lg">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-amber-300">
+              <Gift className="w-4 h-4 text-amber-400" />
+              <span>Notificação de Pacotinho (Calçada da Fama)</span>
+            </div>
+            <span className="text-[10px] font-mono text-zinc-300">
+              XP só entra na barra APÓS abrir o pacote
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => simulateWalkPackToast('pack_15')}
+              className="p-2 rounded-xl border border-amber-500/45 bg-amber-500/10 hover:bg-amber-500/20 text-amber-200 text-[11px] font-bold flex items-center justify-between cursor-pointer transition-all"
+            >
+              <span>🎟️ Novo Pacote 15% (+20 XP)</span>
+              <Play className="w-3.5 h-3.5 shrink-0" />
+            </button>
+            <button
+              type="button"
+              onClick={() => simulateWalkPackToast('pack_75')}
+              className="p-2 rounded-xl border border-cyan-500/45 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-200 text-[11px] font-bold flex items-center justify-between cursor-pointer transition-all"
+            >
+              <span>🎞️ Marco 75% Timeline (+75 XP)</span>
+              <Play className="w-3.5 h-3.5 shrink-0" />
+            </button>
+            <button
+              type="button"
+              onClick={() => simulateWalkPackToast('pack_90')}
+              className="p-2 rounded-xl border border-sky-400/55 bg-sky-500/15 hover:bg-sky-500/25 text-sky-100 text-[11px] font-bold flex items-center justify-between cursor-pointer transition-all"
+            >
+              <span>💎 90% Assinada (+105 XP)</span>
+              <Play className="w-3.5 h-3.5 shrink-0" />
+            </button>
+            <button
+              type="button"
+              onClick={() => simulateWalkPackToast('trophy_plus_pack')}
+              className="p-2 rounded-xl border border-emerald-400/55 bg-gradient-to-r from-amber-500/15 to-emerald-500/15 hover:brightness-110 text-emerald-100 text-[11px] font-black flex items-center justify-between cursor-pointer transition-all"
+            >
+              <span>🏆+🎁 Combo Troféu + Pacote</span>
+              <Play className="w-3.5 h-3.5 shrink-0 text-amber-300" />
+            </button>
+          </div>
+        </div>
+
         {/* SEÇÃO 1: Simulações Especiais de Notificação (Colecionável HUD & Combos) */}
         <div className="flex flex-col gap-2.5 relative z-10 bg-zinc-900/40 border border-zinc-800/80 rounded-2xl p-3.5">
           <div className="flex items-center justify-between">
@@ -792,7 +1153,7 @@ export default function TrophyTestPanelModal({
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <button
               type="button"
               onClick={simulateCollectibleToast}
@@ -816,11 +1177,26 @@ export default function TrophyTestPanelModal({
               <div className="flex items-center gap-2 text-left">
                 <span className="text-base">🔥</span>
                 <div>
-                  <div className="text-[11px] leading-tight">Combo Completo</div>
+                  <div className="text-[11px] leading-tight">Combo Ouro + Prog.</div>
                   <div className="text-[9px] font-mono text-purple-300/80 lowercase">2 progressos + 100%</div>
                 </div>
               </div>
               <Play className="w-3.5 h-3.5 text-purple-400 group-hover:scale-110 transition-transform" />
+            </button>
+
+            <button
+              type="button"
+              onClick={simulateDualMythicSilverWithProgress}
+              className="p-2.5 rounded-xl border border-red-500/60 bg-gradient-to-r from-red-950/40 via-purple-950/30 to-zinc-900 hover:border-red-400 text-red-200 text-xs font-black uppercase tracking-wider flex items-center justify-between transition-all cursor-pointer shadow-sm group"
+            >
+              <div className="flex items-center gap-2 text-left">
+                <span className="text-base">💎</span>
+                <div>
+                  <div className="text-[11px] leading-tight text-rose-300">Mítico + Prata (Leva PS5)</div>
+                  <div className="text-[9px] font-mono text-zinc-300 lowercase">troféu em cima + 4 prog. embaixo • som por troféu</div>
+                </div>
+              </div>
+              <Play className="w-3.5 h-3.5 text-rose-400 group-hover:scale-110 transition-transform" />
             </button>
           </div>
 
@@ -878,7 +1254,7 @@ export default function TrophyTestPanelModal({
                   { key: 'epic', icon: '💜', label: '1985', sub: '+55 XP', cls: 'border-purple-400/50 text-purple-200 hover:bg-purple-500/15' },
                   { key: 'rare', icon: '🔵', label: '2008', sub: '+35 XP', cls: 'border-cyan-400/50 text-cyan-200 hover:bg-cyan-500/15' },
                   { key: 'common', icon: '🟢', label: '2024', sub: '+20 XP', cls: 'border-emerald-400/50 text-emerald-200 hover:bg-emerald-500/15' },
-                  { key: 'decade', icon: '🕰️', label: '1990s', sub: '+100 XP', cls: 'border-amber-300/65 text-amber-100 hover:bg-amber-500/20' },
+                  { key: 'decade', icon: '🕰️', label: '1990s', sub: '+400 XP', cls: 'border-amber-300/65 text-amber-100 hover:bg-amber-500/20' },
                 ].map((btn) => (
                   <button
                     key={btn.key}
@@ -915,6 +1291,23 @@ export default function TrophyTestPanelModal({
                 >
                   <span>👑 Duelo de País (195)</span>
                 </button>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { code: 'cn', name: 'China', flag: '🇨🇳', rarity: 'rare', xp: 45, movieTitle: 'A Grande Muralha (Teste)' },
+                  { code: 'ru', name: 'Rússia', flag: '🇷🇺', rarity: 'rare', xp: 45, movieTitle: 'Solaris (Teste)' },
+                  { code: 'th', name: 'Tailândia', flag: '🇹🇭', rarity: 'epic', xp: 65, movieTitle: 'Ong-Bak (Teste)' },
+                ].map((c) => (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => simulateWorldChallengeCard('country_unlock', c)}
+                    className="px-2 py-1 rounded-lg border border-emerald-500/35 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-200 text-[10px] font-black flex items-center justify-center gap-1 cursor-pointer transition-all"
+                  >
+                    <span>{c.flag}</span>
+                    <span>Som {c.name}</span>
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -1005,8 +1398,8 @@ export default function TrophyTestPanelModal({
               <Play className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform shrink-0" />
             </button>
 
-            {/* Botões para testar animação da Barra de XP e Level Up */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {/* Botões para testar animação da Barra de XP, Level Up, Patamar (5 em 5) e Nova Classe */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
               <button
                 type="button"
               onClick={() =>
@@ -1041,8 +1434,39 @@ export default function TrophyTestPanelModal({
               }
               className="p-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-[11px] font-black uppercase tracking-wider flex items-center justify-between cursor-pointer transition-all"
             >
-              <span>✨ +135 XP (Barra)</span>
-              <Play className="w-3.5 h-3.5" />
+              <span>✨ +135 XP (Orb)</span>
+              <Play className="w-3.5 h-3.5 shrink-0" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                triggerXPGainToast({
+                  gainedXp: 110,
+                  prevTotalXp: 7500,
+                  nextTotalXp: 7610,
+                  prevLevel: 21,
+                  newLevel: 22,
+                  prevPercentage: 82,
+                  newPercentage: 14,
+                  leveledUp: true,
+                  levelsGained: 1,
+                  prevTitle: 'Quantas Armadilhas Você Fez para Chegar Aqui?',
+                  newTitle: 'Quantas Armadilhas Você Fez para Chegar Aqui?',
+                  titleChanged: false,
+                  xpInCurrentLevel: 56,
+                  xpNeededForNextLevel: 400,
+                  xpRemaining: 344,
+                  tags: [
+                    { type: 'movie', icon: '🎬', label: '+10 XP Filme', xp: 10 },
+                    { type: 'country', icon: '🥇', label: '+100 XP País Lendário', xp: 100, rarityOrTier: 'legendary' },
+                  ],
+                })
+              }
+              className="p-2 rounded-xl border border-cyan-400/50 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-200 text-[11px] font-black uppercase tracking-wider flex items-center justify-between cursor-pointer transition-all"
+            >
+              <span>⬆️ Level Up!</span>
+              <Play className="w-3.5 h-3.5 shrink-0" />
             </button>
 
             <button
@@ -1077,8 +1501,8 @@ export default function TrophyTestPanelModal({
               }
               className="p-2 rounded-xl border border-amber-400/50 bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 text-[11px] font-black uppercase tracking-wider flex items-center justify-between cursor-pointer transition-all"
             >
-              <span>🎉 LEVEL UP!</span>
-              <Play className="w-3.5 h-3.5" />
+              <span>🏆 Patamar 5/5!</span>
+              <Play className="w-3.5 h-3.5 shrink-0" />
             </button>
 
             <button
@@ -1117,7 +1541,158 @@ export default function TrophyTestPanelModal({
               className="p-2 rounded-xl border border-purple-400/50 bg-purple-500/15 hover:bg-purple-500/25 text-purple-200 text-[11px] font-black uppercase tracking-wider flex items-center justify-between cursor-pointer transition-all"
             >
               <span>👑 Nova Classe!</span>
-              <Play className="w-3.5 h-3.5" />
+              <Play className="w-3.5 h-3.5 shrink-0" />
+            </button>
+          </div>
+
+          {/* Teste dos 3 Atos do Códice dos Universos: Checkpoint (+30 XP) + Letreiro de Vitória (100%) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() =>
+                triggerXPGainToast({
+                  gainedXp: 40,
+                  prevTotalXp: 7300,
+                  nextTotalXp: 7340,
+                  prevLevel: 21,
+                  newLevel: 21,
+                  prevPercentage: 42,
+                  newPercentage: 52,
+                  leveledUp: false,
+                  levelsGained: 0,
+                  prevTitle: 'Quantas Armadilhas Você Fez para Chegar Aqui?',
+                  newTitle: 'Quantas Armadilhas Você Fez para Chegar Aqui?',
+                  titleChanged: false,
+                  xpInCurrentLevel: 208,
+                  xpNeededForNextLevel: 400,
+                  xpRemaining: 192,
+                  tags: [
+                    { type: 'movie', icon: '🎬', label: '+10 XP Filme', xp: 10 },
+                    { type: 'universe_checkpoint', icon: '💎', label: '+30 XP — Marco da Saga MCU: Fase 3', xp: 30 },
+                  ],
+                  universeCheckpoints: [
+                    {
+                      sagaId: 'saga_03_mcu_f3',
+                      sagaTitle: 'MCU: Fase 3 — O Ápice do Infinito',
+                      icon: '💎',
+                      threshold: 9,
+                      xp: 30,
+                      quote: 'Sr. Stark, não estou me sentindo muito bem... metade do cinema virou pó e você junto!',
+                    },
+                  ],
+                })
+              }
+              className="p-2 rounded-xl border border-indigo-400/55 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-200 text-[11px] font-black uppercase tracking-wider flex items-center justify-between cursor-pointer transition-all"
+            >
+              <span>💬 Checkpoint +30 XP (RPG)</span>
+              <Play className="w-3.5 h-3.5 shrink-0" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                triggerUniverseVictory(
+                  [
+                    {
+                      id: `sim_victory_${Date.now()}`,
+                      universeId: 'saga_17_deadpool',
+                      megaSagaId: 'mega_xmen',
+                      entityType: 'saga',
+                      title: 'Trilogia Deadpool (Teste Letreiro)',
+                      icon: '🌮',
+                      tier: 'silver',
+                      xp: 25,
+                      finalQuote:
+                        "O Jesus da Marvel quebrou a quarta parede, desenterrou o Logan e deu um enterro digno pra Fox ao som de 'Like a Prayer'!",
+                      watchedCount: 3,
+                      totalCount: 3,
+                      posters: [
+                        {
+                          title: 'Deadpool',
+                          year: 2016,
+                          posterUrl: 'https://image.tmdb.org/t/p/w342/tekExNqal2kcHp8BKiHX5jjxK9J.jpg',
+                          userRating: 8.5,
+                          imdbRating: 8.0,
+                          metacriticScore: 65,
+                          rottenTomatoesScore: 85,
+                        },
+                        {
+                          title: 'Deadpool 2',
+                          year: 2018,
+                          posterUrl: 'https://image.tmdb.org/t/p/w342/rDRIx1J63HVXUkjWTf4RUiNOa3D.jpg',
+                          userRating: 8.2,
+                          imdbRating: 7.6,
+                          metacriticScore: 66,
+                          rottenTomatoesScore: 84,
+                        },
+                        {
+                          title: 'Deadpool & Wolverine',
+                          year: 2024,
+                          posterUrl: 'https://image.tmdb.org/t/p/w342/cJFqqiDYprqExaXatu4AaoMzDG2.jpg',
+                          userRating: 8.9,
+                          imdbRating: 7.6,
+                          metacriticScore: null,
+                          rottenTomatoesScore: 78,
+                        },
+                      ],
+                    },
+                  ],
+                  true
+                )
+              }
+              className="p-2 rounded-xl border border-amber-400/55 bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 text-[11px] font-black uppercase tracking-wider flex items-center justify-between cursor-pointer transition-all"
+            >
+              <span>🌌 Letreiro Saga 100%</span>
+              <Play className="w-3.5 h-3.5 shrink-0" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                triggerUniverseVictory(
+                  [
+                    {
+                      id: `sim_mythic_victory_${Date.now()}`,
+                      universeId: 'mega_spider',
+                      megaSagaId: 'mega_spider',
+                      entityType: 'mega_saga',
+                      title: 'A Grande Teia da Vida e do Destino: Aranhaverso Completo',
+                      icon: '🕷️',
+                      tier: 'mythic',
+                      xp: 450,
+                      finalQuote:
+                        'Com grandes poderes vêm grandes maratonas! Você uniu os 3 Peters, o Miles Morales, o Simbionte e ainda sobreviveu aos vilões da Sony sem precisar do feitiço do Doutor Estranho!',
+                      watchedCount: 18,
+                      totalCount: 18,
+                      posters: [
+                        { title: 'Homem-Aranha', year: 2002, posterUrl: 'https://image.tmdb.org/t/p/w342/RbZQL5hXmydecu82UHw9ZGyytB.jpg', userRating: 8.5, imdbRating: 7.4, metacriticScore: 73, rottenTomatoesScore: 90 },
+                        { title: 'Homem-Aranha 2', year: 2004, posterUrl: 'https://image.tmdb.org/t/p/w342/xB05Gyeo2w4RBwt7nZlPkjZzt9X.jpg', userRating: 9.2, imdbRating: 7.5, metacriticScore: 83, rottenTomatoesScore: 93 },
+                        { title: 'Homem-Aranha 3', year: 2007, posterUrl: 'https://image.tmdb.org/t/p/w342/5831VrgpYNPEokBwxurLVpQ3twM.jpg', userRating: 7.4, imdbRating: 6.3, metacriticScore: 59, rottenTomatoesScore: 63 },
+                        { title: 'O Espetacular Homem-Aranha', year: 2012, posterUrl: 'https://image.tmdb.org/t/p/w342/gxSsFBCFuDhVQMCuIDoZcmHOqlY.jpg', userRating: 7.8, imdbRating: 6.9, metacriticScore: 66, rottenTomatoesScore: 71 },
+                        { title: 'O Espetacular Homem-Aranha 2', year: 2014, posterUrl: 'https://image.tmdb.org/t/p/w342/cyMz4OfmNqpuQ02QQOQCbGxQjwK.jpg', userRating: 7.3, imdbRating: 6.6, metacriticScore: 53, rottenTomatoesScore: 51 },
+                        { title: 'De Volta ao Lar', year: 2017, posterUrl: 'https://image.tmdb.org/t/p/w342/1nkwRL17cAGO8A1yu3miRBdvOsl.jpg', userRating: 8.1, imdbRating: 7.4, metacriticScore: 73, rottenTomatoesScore: 92 },
+                        { title: 'Longe de Casa', year: 2019, posterUrl: 'https://image.tmdb.org/t/p/w342/tX0o4AdHpidgniTWwfzK0dNTKrc.jpg', userRating: 8.0, imdbRating: 7.4, metacriticScore: 69, rottenTomatoesScore: 91 },
+                        { title: 'Sem Volta para Casa', year: 2021, posterUrl: 'https://image.tmdb.org/t/p/w342/xaKydnMw6wR1MBAjS5seGPVusbs.jpg', userRating: 9.1, imdbRating: 8.2, metacriticScore: 71, rottenTomatoesScore: 93 },
+                        { title: 'Um Novo Dia', year: 2026, posterUrl: 'https://image.tmdb.org/t/p/w342/x0nvYzQpyJc5pdT9lMnkMuYAg0O.jpg', userRating: 8.4, imdbRating: null, metacriticScore: null, rottenTomatoesScore: null },
+                        { title: 'Venom', year: 2018, posterUrl: 'https://image.tmdb.org/t/p/w342/e4SJKPH8muigUI8VcZtkqWJvEz1.jpg', userRating: 7.5, imdbRating: 6.6, metacriticScore: 35, rottenTomatoesScore: 30 },
+                        { title: 'Venom: Tempo de Carnificina', year: 2021, posterUrl: 'https://image.tmdb.org/t/p/w342/h5UzYZquMwO9FVn15R2eK2itmHu.jpg', userRating: 6.9, imdbRating: 5.9, metacriticScore: 49, rottenTomatoesScore: 57 },
+                        { title: 'Venom: A Última Rodada', year: 2024, posterUrl: 'https://image.tmdb.org/t/p/w342/eZIIPjL7oGqfmF7Gw5ZnbDjH6yu.jpg', userRating: 7.2, imdbRating: 6.0, metacriticScore: 41, rottenTomatoesScore: 41 },
+                        { title: 'Morbius', year: 2022, posterUrl: 'https://image.tmdb.org/t/p/w342/Av8Z2jZhEm1FLkFzMThzz9hndJF.jpg', userRating: 5.5, imdbRating: 5.1, metacriticScore: 35, rottenTomatoesScore: 15 },
+                        { title: 'Madame Teia', year: 2024, posterUrl: 'https://image.tmdb.org/t/p/w342/zWEm5oy2tE9ku1KSNM089FmZJ2p.jpg', userRating: 4.8, imdbRating: 4.0, metacriticScore: 26, rottenTomatoesScore: 11 },
+                        { title: 'Kraven, o Caçador', year: 2024, posterUrl: 'https://image.tmdb.org/t/p/w342/pWvQsP9o1MQ4vQNjpL9QeYFXKOs.jpg', userRating: 6.2, imdbRating: 5.5, metacriticScore: 35, rottenTomatoesScore: 16 },
+                        { title: 'No Aranhaverso', year: 2018, posterUrl: 'https://image.tmdb.org/t/p/w342/ybQSBSrINtjWsJQ6Ih8sva8HlEZ.jpg', userRating: 9.6, imdbRating: 8.4, metacriticScore: 87, rottenTomatoesScore: 97 },
+                        { title: 'Através do Aranhaverso', year: 2023, posterUrl: 'https://image.tmdb.org/t/p/w342/fBS6y0LYX4kU6pPSBYMdQy6SIHX.jpg', userRating: 9.7, imdbRating: 8.5, metacriticScore: 86, rottenTomatoesScore: 95 },
+                        { title: 'Além do Aranhaverso', year: 2027, posterUrl: 'https://image.tmdb.org/t/p/w342/9KAe39xqyZnv9J4W3DRGdQqX82h.jpg', userRating: 9.5, imdbRating: null, metacriticScore: null, rottenTomatoesScore: null },
+                      ],
+                    },
+                  ],
+                  true
+                )
+              }
+              className="sm:col-span-2 p-2 rounded-xl border border-fuchsia-400/65 bg-gradient-to-r from-fuchsia-500/20 via-amber-500/15 to-cyan-500/20 hover:brightness-115 text-fuchsia-100 text-[11px] font-black uppercase tracking-wider flex items-center justify-between cursor-pointer transition-all shadow-[0_0_20px_rgba(217,70,239,0.2)]"
+            >
+              <span>💎 Simular Evento Mítico (Tela Cheia + Máquina de Escrever)</span>
+              <Play className="w-3.5 h-3.5 shrink-0 text-amber-300" />
             </button>
           </div>
         </div>
@@ -1130,10 +1705,10 @@ export default function TrophyTestPanelModal({
             <span>2. Tempo de Exibição na Tela & Filtro (Salvo no Navegador)</span>
           </div>
 
-          {/* Duração Desbloqueados (100%) */}
+          {/* Duração Sincronizada (Troféus 100% e Progressos com mesma duração para levas de 4) */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs">
             <span className="text-zinc-300 font-bold">
-              🏆 Conquistados (100%):
+              🏆🎯 Troféus &amp; Progresso (Levas de 4):
             </span>
             <div className="flex items-center gap-1.5">
               {[5000, 8000, 10000, 12000, 15000].map((ms) => {
@@ -1142,36 +1717,10 @@ export default function TrophyTestPanelModal({
                   <button
                     key={ms}
                     type="button"
-                    onClick={() => handleUpdateDurationUnlocked(ms)}
+                    onClick={() => handleUpdateUnifiedDuration(ms)}
                     className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer border ${
                       isSelected
                         ? 'bg-blue-500/30 border-blue-400 text-blue-200 shadow-sm'
-                        : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
-                    }`}
-                  >
-                    {ms / 1000}s
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Duração Colecionáveis / Progresso */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs">
-            <span className="text-zinc-300 font-bold">
-              🎯 Progresso / Colecionável:
-            </span>
-            <div className="flex items-center gap-1.5">
-              {[4000, 6000, 8000, 10000].map((ms) => {
-                const isSelected = toastSettings.durationProgress === ms;
-                return (
-                  <button
-                    key={ms}
-                    type="button"
-                    onClick={() => handleUpdateDurationProgress(ms)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer border ${
-                      isSelected
-                        ? 'bg-amber-500/30 border-amber-400 text-amber-200 shadow-sm'
                         : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
                     }`}
                   >
@@ -1192,7 +1741,7 @@ export default function TrophyTestPanelModal({
               {[
                 { label: 'Top 3', val: 3 },
                 { label: 'Top 5', val: 5 },
-                { label: 'Todos', val: 99 },
+                { label: 'Todas (Padrão)', val: 99 },
               ].map(({ label, val }) => {
                 const isSelected = toastSettings.maxProgress === val;
                 return (

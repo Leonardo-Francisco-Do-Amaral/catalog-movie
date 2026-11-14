@@ -2181,3 +2181,335 @@ export function computeMovieStatGains({
     unlockedClass,
   };
 }
+
+const UNIVERSE_TIER_NAMES = {
+  mythic: 'Mítico',
+  gold: 'Ouro',
+  epic: 'Épico',
+  silver: 'Prata',
+  bronze: 'Bronze',
+};
+
+function parseValidUniverseScore(val) {
+  if (val === null || val === undefined) return null;
+  const s = String(val).trim();
+  if (!s || s.toUpperCase() === 'N/A') return null;
+  const n = Number(s.replace('%', '').replace(',', '.'));
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n;
+}
+
+function pickBestPosterFromList(items = []) {
+  const watchedWithPoster = items
+    .filter((m) => (m?.watched ?? true) && m?.posterUrl)
+    .sort((a, b) => (parseValidUniverseScore(b.userRating) || 0) - (parseValidUniverseScore(a.userRating) || 0));
+  if (watchedWithPoster[0]?.posterUrl) return watchedWithPoster[0].posterUrl;
+  const anyWithPoster = items.find((m) => m?.posterUrl);
+  return anyWithPoster?.posterUrl || null;
+}
+
+/**
+ * 9. Visão Consolidada para o Banner "Universos Conquistados" (Painel Analytics)
+ */
+export function computeUniverseOverview(universeCodex = null, universeXpSummary = null) {
+  const sagas = Array.isArray(universeCodex?.sagas) ? universeCodex.sagas : [];
+  const megaSagas = Array.isArray(universeCodex?.megaSagas) ? universeCodex.megaSagas : [];
+  const summary = universeCodex?.summary || {};
+  const xp = universeXpSummary || universeCodex?.xpSummary || {};
+
+  const uniqueMoviesMap = new Map();
+  sagas.forEach((s) => {
+    (s.movies || []).forEach((m) => {
+      const key = m.movieId ? `id_${m.movieId}` : `${String(m.title || '').toLowerCase()}_${m.year || ''}`;
+      const prev = uniqueMoviesMap.get(key);
+      if (!prev || (!prev.watched && m.watched)) {
+        uniqueMoviesMap.set(key, { watched: Boolean(m.watched) });
+      }
+    });
+  });
+
+  const uniqueTotalMovies = uniqueMoviesMap.size;
+  let uniqueWatchedMovies = 0;
+  uniqueMoviesMap.forEach((v) => {
+    if (v.watched) uniqueWatchedMovies += 1;
+  });
+
+  const mythicEarnedXp = megaSagas
+    .filter((ms) => ms.isCompleted)
+    .reduce((acc, ms) => acc + Number(ms.completionXp || 0), 0);
+  const mythicInProgress = megaSagas.filter((ms) => !ms.isCompleted && (ms.watchedMoviesCount || 0) > 0).length;
+
+  const tierOrder = [
+    { key: 'gold', label: 'Blocos Ouro', icon: '🥇', color: 'text-amber-300', barColor: 'bg-amber-400' },
+    { key: 'epic', label: 'Blocos Épicos', icon: '💜', color: 'text-purple-300', barColor: 'bg-purple-400' },
+    { key: 'silver', label: 'Blocos Prata', icon: '🥈', color: 'text-zinc-200', barColor: 'bg-zinc-300' },
+    { key: 'bronze', label: 'Blocos Bronze', icon: '🥉', color: 'text-[#E8A96B]', barColor: 'bg-[#CD7F32]' },
+  ];
+
+  const byTier = [
+    {
+      key: 'mythic',
+      label: 'Mega-Sagas Míticas',
+      icon: '💎',
+      color: 'text-fuchsia-300',
+      barColor: 'bg-gradient-to-r from-fuchsia-400 via-amber-300 to-cyan-400',
+      completed: Number(summary.completedMegaSagas ?? xp.completedMegaSagasCount ?? megaSagas.filter((m) => m.isCompleted).length),
+      total: Number(summary.totalMegaSagas ?? xp.totalMegaSagasCount ?? megaSagas.length),
+      inProgress: mythicInProgress,
+      earnedXp: Number(summary.megaSagasXp ?? xp.megaSagasXp ?? mythicEarnedXp),
+    },
+    ...tierOrder.map((meta) => {
+      const subset = sagas.filter((s) => s.tier === meta.key);
+      const completedSubset = subset.filter((s) => s.isCompleted);
+      const inProgress = subset.filter((s) => !s.isCompleted && (s.watchedCount || 0) > 0).length;
+      const earnedXp = completedSubset.reduce((acc, s) => acc + Number(s.completionXp || 0), 0);
+      return {
+        ...meta,
+        completed: completedSubset.length,
+        total: subset.length,
+        inProgress,
+        earnedXp,
+      };
+    }),
+  ].map((row) => ({
+    ...row,
+    pct: row.total > 0 ? Math.round((row.completed / row.total) * 100) : 0,
+  }));
+
+  const topMegaProgress = [...megaSagas].sort(
+    (a, b) =>
+      Number(b.watchedMoviesCount || 0) - Number(a.watchedMoviesCount || 0) ||
+      Number(b.progressPct || 0) - Number(a.progressPct || 0)
+  )[0] || null;
+
+  return {
+    totalSagas: Number(summary.totalSagas ?? xp.totalSagasCount ?? sagas.length),
+    completedSagas: Number(summary.completedSagas ?? xp.completedSagasCount ?? sagas.filter((s) => s.isCompleted).length),
+    totalMegaSagas: Number(summary.totalMegaSagas ?? xp.totalMegaSagasCount ?? megaSagas.length),
+    completedMegaSagas: Number(summary.completedMegaSagas ?? xp.completedMegaSagasCount ?? megaSagas.filter((m) => m.isCompleted).length),
+    unlockedCheckpoints: Number(summary.unlockedCheckpoints ?? xp.unlockedCheckpointsCount ?? 0),
+    totalCheckpoints: Number(summary.totalCheckpoints ?? 0),
+    checkpointsXp: Number(summary.checkpointsXp ?? xp.checkpointsXp ?? 0),
+    sagasXp: Number(summary.sagasXp ?? xp.sagasXp ?? 0),
+    megaSagasXp: Number(summary.megaSagasXp ?? xp.megaSagasXp ?? 0),
+    totalUniverseXp: Number(summary.totalUniverseXp ?? xp.totalXp ?? 0),
+    uniqueWatchedMovies,
+    uniqueTotalMovies,
+    moviesPct: uniqueTotalMovies > 0 ? Math.round((uniqueWatchedMovies / uniqueTotalMovies) * 100) : 0,
+    byTier,
+    topMegaProgress,
+  };
+}
+
+/**
+ * 10. Relíquias Exclusivas do Códice dos Universos (Ala 3: Museu de Relíquias)
+ */
+export function computeUniverseRelics(universeCodex = null) {
+  const sagas = Array.isArray(universeCodex?.sagas) ? universeCodex.sagas : [];
+  const megaSagas = Array.isArray(universeCodex?.megaSagas) ? universeCodex.megaSagas : [];
+  if (sagas.length === 0 && megaSagas.length === 0) return [];
+
+  const records = [];
+  const sagaById = new Map(sagas.map((s) => [s.id, s]));
+
+  const resolveMegaPoster = (ms) => {
+    const direct = pickBestPosterFromList(ms.posters || []);
+    if (direct) return direct;
+    for (const cid of ms.childSagaIds || []) {
+      const child = sagaById.get(cid);
+      const p = pickBestPosterFromList(child?.movies || []);
+      if (p) return p;
+    }
+    return null;
+  };
+
+  // 1. Mega-Saga Mítica com Mais Filmes Conquistados (ex: 13/42)
+  if (megaSagas.length > 0) {
+    const sortedMega = [...megaSagas].sort(
+      (a, b) =>
+        Number(b.watchedMoviesCount || 0) - Number(a.watchedMoviesCount || 0) ||
+        Number(b.progressPct || 0) - Number(a.progressPct || 0) ||
+        Number(b.totalMoviesCount || 0) - Number(a.totalMoviesCount || 0)
+    );
+    const hasWatched = sortedMega.some((m) => Number(m.watchedMoviesCount || 0) > 0);
+    const candidates = hasWatched ? sortedMega.filter((m) => Number(m.watchedMoviesCount || 0) > 0) : sortedMega;
+
+    const rec = buildRecordWithTies({
+      id: 'universe_mythic_most_movies',
+      rarity: 'mythic',
+      rarityLabel: '💎 RELÍQUIA MÍTICA • CÓDICE',
+      icon: '🌌',
+      title: 'Saga Mítica Mais Avançada',
+      subtitle: 'Mega-Saga Mítica com mais filmes conquistados',
+      sortedCandidates: candidates,
+      getScore: (ms) => Number(ms.watchedMoviesCount || 0),
+      formatVariant: (ms) => ({
+        statBadge: `${ms.watchedMoviesCount || 0}/${ms.totalMoviesCount || 0} filmes`,
+        statDetail: `${ms.icon || '💎'} ${ms.completedBlocks || 0}/${ms.totalBlocks || 0} blocos concluídos • ${ms.progressPct || 0}% da Mega-Saga`,
+      }),
+      formatNextDistinct: (ms) => `2º: ${ms.title} (${ms.watchedMoviesCount || 0}/${ms.totalMoviesCount || 0})`,
+    });
+
+    if (rec) {
+      rec.tiedVariants = rec.tiedVariants.map((v) => ({
+        ...v,
+        movie: {
+          title: v.movie.title,
+          poster_url: resolveMegaPoster(v.movie),
+        },
+      }));
+      rec.movie = rec.tiedVariants[0].movie;
+      records.push(rec);
+    }
+  }
+
+  // 2. Saga Dominada com Mais Filmes (100% concluída)
+  const completedSagas = sagas
+    .filter((s) => s.isCompleted)
+    .sort(
+      (a, b) =>
+        Number(b.watchedCount || b.totalCount || 0) - Number(a.watchedCount || a.totalCount || 0) ||
+        Number(b.completionXp || 0) - Number(a.completionXp || 0)
+    );
+
+  if (completedSagas.length > 0) {
+    const rec = buildRecordWithTies({
+      id: 'universe_completed_most_movies',
+      rarity: 'legendary',
+      rarityLabel: '🥇 COLOSSO DOMINADO • CÓDICE',
+      icon: '🏆',
+      title: 'Saga Dominada com Mais Filmes',
+      subtitle: 'Maior bloco do Códice zerado em 100%',
+      sortedCandidates: completedSagas,
+      getScore: (s) => Number(s.watchedCount || s.totalCount || 0),
+      formatVariant: (s) => ({
+        statBadge: `${s.watchedCount || 0}/${s.totalCount || 0} filmes`,
+        statDetail: `${s.icon || '🏆'} Tier ${UNIVERSE_TIER_NAMES[s.tier] || s.tier} • +${s.completionXp || 0} XP conquistados`,
+      }),
+      formatNextDistinct: (s) => `2º: ${s.title} (${s.watchedCount || 0} filmes)`,
+    });
+    if (rec) {
+      rec.tiedVariants = rec.tiedVariants.map((v) => ({
+        ...v,
+        movie: {
+          title: v.movie.title,
+          poster_url: pickBestPosterFromList(v.movie.movies || []),
+        },
+      }));
+      rec.movie = rec.tiedVariants[0].movie;
+      records.push(rec);
+    }
+  } else if (sagas.length > 0) {
+    const closest = [...sagas].sort(
+      (a, b) =>
+        Number(b.progressPct || 0) - Number(a.progressPct || 0) ||
+        Number(b.watchedCount || 0) - Number(a.watchedCount || 0)
+    )[0];
+    records.push({
+      id: 'universe_completed_most_movies',
+      rarity: 'legendary',
+      rarityLabel: '🥇 COLOSSO DOMINADO • CÓDICE',
+      icon: '🏆',
+      title: 'Saga Dominada com Mais Filmes',
+      subtitle: 'Maior bloco do Códice zerado em 100%',
+      movie: {
+        title: 'Nenhuma Saga 100% Dominada',
+        poster_url: pickBestPosterFromList(closest?.movies || []),
+      },
+      statBadge: `0 / ${sagas.length} Sagas 100%`,
+      statDetail: closest
+        ? `Mais próxima: ${closest.title} (${closest.watchedCount}/${closest.totalCount} • ${closest.progressPct}%)`
+        : 'Conclua 100% de uma saga para registrar o recorde.',
+      tiedVariants: [],
+      runnerUp: null,
+    });
+  }
+
+  // 3 & 4. Sagas Completas (100%) com Maior e Menor Média da Minha Nota (Números de filmes + Média)
+  const ratedSagas = completedSagas
+    .map((s) => {
+      const validRatings = (s.movies || [])
+        .map((m) => parseValidUniverseScore(m.userRating))
+        .filter((v) => v !== null);
+      if (validRatings.length === 0) return null;
+      const sum = validRatings.reduce((acc, v) => acc + v, 0);
+      const avg = sum / validRatings.length;
+      return {
+        ...s,
+        ratedCount: validRatings.length,
+        avgUserRating: avg,
+        posterUrl: pickBestPosterFromList(s.movies || []),
+      };
+    })
+    .filter(Boolean);
+
+  if (ratedSagas.length > 0) {
+    const byHighestAvg = [...ratedSagas].sort(
+      (a, b) =>
+        b.avgUserRating - a.avgUserRating ||
+        b.ratedCount - a.ratedCount ||
+        Number(b.totalCount || 0) - Number(a.totalCount || 0)
+    );
+    const highRec = buildRecordWithTies({
+      id: 'universe_highest_user_avg',
+      rarity: 'epic',
+      rarityLabel: '💜 PINÁCULO DA NOTA • CÓDICE',
+      icon: '👑',
+      title: 'Saga com Maior Média Pessoal',
+      subtitle: 'Maior média das suas notas entre sagas 100% completas',
+      sortedCandidates: byHighestAvg,
+      getScore: (s) => Math.round(s.avgUserRating * 1000),
+      formatVariant: (s) => ({
+        statBadge: `⭐ ${s.avgUserRating.toFixed(3)} • ${s.ratedCount} ${s.ratedCount === 1 ? 'filme' : 'filmes'}`,
+        statDetail: `Média ${s.avgUserRating.toFixed(3)} em ${s.ratedCount} ${s.ratedCount === 1 ? 'filme avaliado' : 'filmes avaliados'} (${s.watchedCount}/${s.totalCount} • 100% completa)`,
+      }),
+      formatNextDistinct: (s) => `2º: ${s.title} (${s.avgUserRating.toFixed(3)} • ${s.ratedCount}f)`,
+    });
+    if (highRec) {
+      highRec.tiedVariants = highRec.tiedVariants.map((v) => ({
+        ...v,
+        movie: {
+          title: v.movie.title,
+          poster_url: v.movie.posterUrl,
+        },
+      }));
+      highRec.movie = highRec.tiedVariants[0].movie;
+      records.push(highRec);
+    }
+
+    const byLowestAvg = [...ratedSagas].sort(
+      (a, b) =>
+        a.avgUserRating - b.avgUserRating ||
+        b.ratedCount - a.ratedCount ||
+        Number(b.totalCount || 0) - Number(a.totalCount || 0)
+    );
+    const lowRec = buildRecordWithTies({
+      id: 'universe_lowest_user_avg',
+      rarity: 'rare',
+      rarityLabel: '🔵 CRIPTA CRÍTICA • CÓDICE',
+      icon: '💀',
+      title: 'Saga com Menor Média Pessoal',
+      subtitle: 'Menor média das suas notas entre sagas 100% completas',
+      sortedCandidates: byLowestAvg,
+      getScore: (s) => Math.round(s.avgUserRating * 1000),
+      formatVariant: (s) => ({
+        statBadge: `⚠️ ${s.avgUserRating.toFixed(3)} • ${s.ratedCount} ${s.ratedCount === 1 ? 'filme' : 'filmes'}`,
+        statDetail: `Média ${s.avgUserRating.toFixed(3)} em ${s.ratedCount} ${s.ratedCount === 1 ? 'filme avaliado' : 'filmes avaliados'} (${s.watchedCount}/${s.totalCount} • 100% completa)`,
+      }),
+      formatNextDistinct: (s) => `2º: ${s.title} (${s.avgUserRating.toFixed(3)} • ${s.ratedCount}f)`,
+    });
+    if (lowRec) {
+      lowRec.tiedVariants = lowRec.tiedVariants.map((v) => ({
+        ...v,
+        movie: {
+          title: v.movie.title,
+          poster_url: v.movie.posterUrl,
+        },
+      }));
+      lowRec.movie = lowRec.tiedVariants[0].movie;
+      records.push(lowRec);
+    }
+  }
+
+  return records;
+}

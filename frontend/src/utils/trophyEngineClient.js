@@ -5279,8 +5279,7 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
         break;
       }
 
-      case 'secret_session_curated':
-      case 'calcada_fama_curated': {
+      case 'secret_session_curated': {
         const reqMovies = def.target_metadata?.movies || [];
         progressTarget = def.target_value || def.target_metadata?.minTarget || reqMovies.length || 1;
         let countConquered = 0;

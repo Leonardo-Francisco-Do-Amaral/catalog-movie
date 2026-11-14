@@ -6,6 +6,38 @@ export type TimeMachineRarityTier = 'common' | 'rare' | 'epic' | 'legendary' | '
 export const MIN_TIME_MACHINE_YEAR = 1920;
 export const DECADE_COMPLETION_XP = 100;
 
+export const DECADE_COMPLETION_XP_BY_DECADE: Record<string, number> = {
+  '1920s': 1100,
+  '1930s': 1000,
+  '1940s': 900,
+  '1950s': 800,
+  '1960s': 700,
+  '1970s': 600,
+  '1980s': 500,
+  '1990s': 400,
+  '2000s': 300,
+  '2010s': 200,
+  '2020s': 100,
+};
+
+export function getDecadeCompletionXp(decadeIdOrStart: string | number): number {
+  if (typeof decadeIdOrStart === 'string') {
+    const key = decadeIdOrStart.trim();
+    if (key === 'pioneers') return 0;
+    if (DECADE_COMPLETION_XP_BY_DECADE[key] !== undefined) {
+      return DECADE_COMPLETION_XP_BY_DECADE[key];
+    }
+    const parsed = parseInt(key, 10);
+    if (!Number.isFinite(parsed) || parsed < MIN_TIME_MACHINE_YEAR) return 0;
+    const decStart = Math.floor(parsed / 10) * 10;
+    return DECADE_COMPLETION_XP_BY_DECADE[`${decStart}s`] ?? Math.max(100, 100 + ((2020 - decStart) / 10) * 100);
+  }
+  const num = Number(decadeIdOrStart);
+  if (!Number.isFinite(num) || num < MIN_TIME_MACHINE_YEAR) return 0;
+  const decStart = Math.floor(num / 10) * 10;
+  return DECADE_COMPLETION_XP_BY_DECADE[`${decStart}s`] ?? Math.max(100, 100 + ((2020 - decStart) / 10) * 100);
+}
+
 export function getMaxTimeMachineYear(): number {
   return Math.max(2027, new Date().getFullYear());
 }
@@ -337,12 +369,13 @@ export function computeTimeMachineXpSummary(catalogMovies: any[] = []): TimeMach
         id: decKey,
         label: `Anos ${decStart}`,
       };
+      const decadeXp = getDecadeCompletionXp(decKey);
       completedDecades[decKey] = {
         id: decKey,
         label: meta.label,
-        xp: DECADE_COMPLETION_XP,
+        xp: decadeXp,
       };
-      decadesXp += DECADE_COMPLETION_XP;
+      decadesXp += decadeXp;
     }
   }
 
@@ -559,7 +592,7 @@ export async function buildTimeMachinePayload(existingWorldData?: any) {
       availableYearsCount: decYears.length,
       relicTargetCount,
       isRelicUnlocked,
-      relicXp: isStandardDecade ? DECADE_COMPLETION_XP : 0,
+      relicXp: isStandardDecade ? getDecadeCompletionXp(decKey) : 0,
       years: decYears,
     };
   });

@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import {
   MIN_TIME_MACHINE_YEAR,
-  DECADE_COMPLETION_XP,
+  getDecadeCompletionXp,
   TIME_MACHINE_XP_BY_RARITY,
   TIME_MACHINE_RARITY_META,
   DECADE_META,
@@ -240,10 +240,11 @@ function buildOfflineTimeMachinePayload(movies = [], localState = {}) {
           break;
         }
       }
+      const relicXp = isStandardDecade ? getDecadeCompletionXp(decKey) : 0;
       isRelicUnlocked = fullTen;
       if (isRelicUnlocked) {
         completedDecadesCount += 1;
-        decadesXp += DECADE_COMPLETION_XP;
+        decadesXp += relicXp;
       }
     }
 
@@ -257,7 +258,7 @@ function buildOfflineTimeMachinePayload(movies = [], localState = {}) {
       availableYearsCount: decYears.length,
       relicTargetCount: isStandardDecade ? 10 : decYears.length,
       isRelicUnlocked,
-      relicXp: isStandardDecade ? DECADE_COMPLETION_XP : 0,
+      relicXp: isStandardDecade ? getDecadeCompletionXp(decKey) : 0,
       years: decYears,
     };
   });
@@ -635,7 +636,7 @@ export default function TimeMachinePage({
                 </span>
               </div>
               <div className="text-[11px] text-zinc-400">
-                +{DECADE_COMPLETION_XP} XP bônus por década 100% completa
+                +100 a +1.100 XP bônus por década 100% completa
               </div>
             </div>
 

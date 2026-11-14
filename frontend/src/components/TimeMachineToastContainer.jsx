@@ -136,7 +136,7 @@ function TimeMachinePortalCard({ item, onRemove }) {
 
   const posterSrc = resolvePosterUrl(item.posterUrl);
   const oldPosterSrc = resolvePosterUrl(item.previousPosterUrl);
-  const durationMs = item.duelEffect || isDethrone || item.kind === 'decade' ? 6000 : 4800;
+  const durationMs = item.duelEffect || isDethrone ? 8000 : item.kind === 'decade' ? 6000 : 4800;
   const ratingDiff =
     isDethrone && Number(item.userRating) > Number(item.previousUserRating || 0)
       ? Number(item.userRating) - Number(item.previousUserRating || 0)
@@ -354,7 +354,20 @@ export default function TimeMachineToastContainer() {
   const [portalState, setPortalState] = useState({
     visible: [],
     queue: [],
+    waveId: 0,
+    soundItem: null,
   });
+  const lastSoundWaveRef = useRef(0);
+
+  useEffect(() => {
+    if (!portalState.waveId || lastSoundWaveRef.current === portalState.waveId) return;
+    lastSoundWaveRef.current = portalState.waveId;
+    const item = portalState.soundItem;
+    if (!item) return;
+
+    if (item.kind === 'year_dethrone') playDethroneSound(item.duelEffect || null);
+    else playTimeMachineSound(item.kind === 'decade' ? 'decade_relic' : item.rarity);
+  }, [portalState.waveId, portalState.soundItem]);
 
   const enqueueUnlocks = useCallback((rawItems) => {
     const list = Array.isArray(rawItems) ? rawItems.filter(Boolean) : [];
@@ -391,22 +404,18 @@ export default function TimeMachineToastContainer() {
       if (freeSlots > 0) {
         const toShow = allPending.slice(0, freeSlots);
         const remaining = allPending.slice(freeSlots);
-
-        toShow.forEach((item, i) => {
-          setTimeout(() => {
-            if (item.kind === 'year_dethrone') playDethroneSound(item.duelEffect || null);
-            else playTimeMachineSound(item.kind === 'decade' ? 'decade_relic' : item.rarity);
-          }, i * 180);
-        });
+        const leadItem = toShow.find((it) => it.kind === 'year_dethrone') || toShow[0] || null;
 
         return {
           visible: [...prev.visible, ...toShow],
           queue: remaining,
+          waveId: prev.waveId + 1,
+          soundItem: leadItem,
         };
       }
 
       return {
-        visible: prev.visible,
+        ...prev,
         queue: allPending,
       };
     });
@@ -419,19 +428,17 @@ export default function TimeMachineToastContainer() {
 
       if (nextVisible.length < MAX_VISIBLE_PORTALS && prev.queue.length > 0) {
         const [nextItem, ...restQueue] = prev.queue;
-        setTimeout(() => {
-          if (nextItem.kind === 'year_dethrone') playDethroneSound(nextItem.duelEffect || null);
-          else playTimeMachineSound(nextItem.kind === 'decade' ? 'decade_relic' : nextItem.rarity);
-        }, 100);
         return {
           visible: [...nextVisible, nextItem],
           queue: restQueue,
+          waveId: prev.waveId + 1,
+          soundItem: nextItem,
         };
       }
 
       return {
+        ...prev,
         visible: nextVisible,
-        queue: prev.queue,
       };
     });
   }, []);

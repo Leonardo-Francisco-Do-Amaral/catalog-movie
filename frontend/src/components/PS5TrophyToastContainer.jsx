@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Sparkles, TrendingUp, CheckCircle2, Award, Layers } from 'lucide-react';
-import { playTrophySound, playCollectibleChimeSound } from '../utils/trophyAudio';
+import { X, Sparkles, TrendingUp, CheckCircle2, Layers } from 'lucide-react';
+import {
+  playTrophySound,
+  playCollectibleChimeSound,
+} from '../utils/trophyAudio';
 import { notifyTrophiesStarted, notifyTrophiesCleared } from '../utils/xpSystem';
 import { getCleanTrophyTitle } from './TrophyBadges';
 
@@ -9,12 +12,10 @@ export const CATEGORY_LABELS = {
   dna_cinefilo: 'DNA Cinéfilo',
   anatomia_cinema: 'Anatomia do Cinema',
   data_limite: 'Data Limite',
-  universos_sagas: 'Universos & Sagas',
   mafia_hollywood: 'A Máfia de Hollywood',
   tribunal_critica: 'Tribunal da Crítica',
   ritual_cinefilo: 'O Ritual do Cinéfilo',
   sessao_secreta: 'Sessão Secreta',
-  calcada_da_fama: 'Calçada da Fama',
   multi: 'Multicategoria',
   tags: 'Tags & Curadoria',
   generos: 'Gêneros Cinematográficos',
@@ -27,68 +28,70 @@ export const TIER_THEMES = {
     name: 'Bronze',
     symbol: '🥉',
     color: '#CD7F32',
-    border: 'border-[#CD7F32]/60',
-    glow: 'shadow-[0_0_25px_rgba(205,127,50,0.35)]',
-    badgeBg: 'bg-[#CD7F32]/20 text-[#E5A663] border-[#CD7F32]/50',
-    iconBg: 'from-[#CD7F32]/30 to-amber-950/40',
+    border: 'border-[#CD7F32]',
+    borderColor: '#E59866',
+    rayColor: '#F59E0B',
+    badgeBg: 'bg-[#CD7F32]/25 text-[#E5A663] border-[#CD7F32]/70',
+    iconBg: 'from-[#CD7F32]/40 to-amber-950/60',
     accentColor: '#CD7F32',
   },
   silver: {
     name: 'Prata',
     symbol: '🥈',
     color: '#C0C0C0',
-    border: 'border-[#C0C0C0]/60',
-    glow: 'shadow-[0_0_25px_rgba(192,192,192,0.35)]',
-    badgeBg: 'bg-zinc-700/40 text-zinc-100 border-zinc-400/50',
-    iconBg: 'from-zinc-400/30 to-zinc-800/40',
+    border: 'border-zinc-200',
+    borderColor: '#E4E4E7',
+    rayColor: '#F8FAFC',
+    badgeBg: 'bg-zinc-700/50 text-zinc-100 border-zinc-300/70',
+    iconBg: 'from-zinc-400/40 to-zinc-800/60',
     accentColor: '#C0C0C0',
   },
   epic: {
     name: 'Épico',
     symbol: '💜',
     color: '#9B59B6',
-    border: 'border-[#9B59B6]/60',
-    glow: 'shadow-[0_0_30px_rgba(155,89,182,0.45)]',
-    badgeBg: 'bg-purple-900/30 text-purple-300 border-purple-500/50',
-    iconBg: 'from-purple-600/30 to-purple-950/40',
+    border: 'border-purple-400',
+    borderColor: '#C084FC',
+    rayColor: '#C084FC',
+    badgeBg: 'bg-purple-900/40 text-purple-200 border-purple-400/70',
+    iconBg: 'from-purple-600/40 to-purple-950/60',
     accentColor: '#9B59B6',
   },
   gold: {
     name: 'Ouro',
     symbol: '🥇',
     color: '#FFD700',
-    border: 'border-[#FFD700]/70',
-    glow: 'shadow-[0_0_35px_rgba(255,215,0,0.45)]',
-    badgeBg: 'bg-amber-500/20 text-amber-300 border-amber-400/60',
-    iconBg: 'from-amber-400/30 to-amber-950/40',
+    border: 'border-amber-300',
+    borderColor: '#FDE047',
+    rayColor: '#FDE047',
+    badgeBg: 'bg-amber-500/25 text-amber-200 border-amber-300/80',
+    iconBg: 'from-amber-400/40 to-amber-950/60',
     accentColor: '#FFD700',
   },
   mythic: {
     name: 'Mítico',
     symbol: '💎',
     color: '#EF4444',
-    border: 'border-[#EF4444]/70',
-    glow: 'shadow-[0_0_40px_rgba(239,68,68,0.5)]',
-    badgeBg: 'bg-red-950/40 text-red-300 border-red-500/60',
-    iconBg: 'from-red-500/30 to-rose-950/40',
+    border: 'border-rose-500',
+    borderColor: '#FB7185',
+    rayColor: '#FB7185',
+    badgeBg: 'bg-red-950/50 text-red-200 border-red-500/80',
+    iconBg: 'from-red-500/40 to-rose-950/60',
     accentColor: '#EF4444',
   },
   platinum: {
     name: 'Platina',
     symbol: '🏆',
     color: '#E5E4E2',
-    border: 'border-[#E5E4E2]/80',
-    glow: 'shadow-[0_0_45px_rgba(229,228,226,0.6),0_0_25px_rgba(59,130,246,0.4)]',
-    badgeBg: 'bg-blue-950/40 text-blue-200 border-blue-300/60',
-    iconBg: 'from-blue-400/30 via-slate-200/20 to-indigo-950/50',
+    border: 'border-blue-200',
+    borderColor: '#BAE6FD',
+    rayColor: '#93C5FD',
+    badgeBg: 'bg-blue-950/50 text-blue-100 border-blue-300/80',
+    iconBg: 'from-blue-400/40 via-slate-200/30 to-indigo-950/60',
     accentColor: '#E5E4E2',
   },
 };
 
-/**
- * Peso de dificuldade/raridade para ordenação de exibição:
- * Platina (mais difícil) -> Mítico -> Ouro -> Épico -> Prata -> Bronze
- */
 export const TIER_DIFFICULTY_WEIGHT = {
   platinum: 60,
   platina: 60,
@@ -99,11 +102,6 @@ export const TIER_DIFFICULTY_WEIGHT = {
   bronze: 10,
 };
 
-/**
- * Calcula a prioridade de exibição:
- * - Troféus Conquistados (100% / unlock): 1010 a 1060 (aparecem sempre primeiro, do mais difícil para o mais fácil)
- * - Colecionáveis (progress): 0 a 100 (aparecem sempre por último)
- */
 export function getTrophyPriority(item) {
   if (!item || !item.trophy) return 0;
   const isUnlock = item.type === 'unlock';
@@ -111,10 +109,8 @@ export function getTrophyPriority(item) {
   const tierWeight = TIER_DIFFICULTY_WEIGHT[tierKey] || 10;
 
   if (isUnlock) {
-    // Conquistados têm prioridade superior (Platina 1060 > Mítico 1050 > Ouro 1040 > Épico 1030 > Prata 1020 > Bronze 1010)
     return 1000 + tierWeight;
   } else {
-    // Colecionáveis ficam por último; desempate por proximidade da meta (%) e raridade
     const pct = Number(item.trophy.progress_percentage ?? item.trophy.percentage) || 0;
     return pct + (tierWeight / 10);
   }
@@ -126,26 +122,28 @@ export const STORAGE_KEY_MAX_PROGRESS = 'cinecatalog_toast_max_progress';
 
 export function getToastSettings() {
   if (typeof window === 'undefined') {
-    return { durationUnlocked: 8000, durationProgress: 6000, maxProgress: 3 };
+    return { durationUnlocked: 8000, durationProgress: 8000, maxProgress: 99 };
   }
   const u = Number(localStorage.getItem(STORAGE_KEY_DURATION_UNLOCKED)) || 8000;
-  const p = Number(localStorage.getItem(STORAGE_KEY_DURATION_PROGRESS)) || 6000;
   const rawMax = localStorage.getItem(STORAGE_KEY_MAX_PROGRESS);
-  const m = rawMax !== null ? Number(rawMax) : 3;
-  return { durationUnlocked: u, durationProgress: p, maxProgress: isNaN(m) ? 3 : m };
+  const m = rawMax !== null && !isNaN(Number(rawMax)) && Number(rawMax) > 0 ? Number(rawMax) : 99;
+  return { durationUnlocked: u, durationProgress: u, maxProgress: m };
 }
 
 export function saveToastSettings({ durationUnlocked, durationProgress, maxProgress }) {
   if (typeof window === 'undefined') return;
-  if (durationUnlocked) localStorage.setItem(STORAGE_KEY_DURATION_UNLOCKED, String(durationUnlocked));
-  if (durationProgress) localStorage.setItem(STORAGE_KEY_DURATION_PROGRESS, String(durationProgress));
-  if (maxProgress !== undefined) localStorage.setItem(STORAGE_KEY_MAX_PROGRESS, String(maxProgress));
+  const unifiedDuration = Number(durationUnlocked || durationProgress);
+  if (unifiedDuration > 0) {
+    localStorage.setItem(STORAGE_KEY_DURATION_UNLOCKED, String(unifiedDuration));
+    localStorage.setItem(STORAGE_KEY_DURATION_PROGRESS, String(unifiedDuration));
+  }
+  if (maxProgress !== undefined) {
+    const val = Number(maxProgress) || 99;
+    localStorage.setItem(STORAGE_KEY_MAX_PROGRESS, String(val));
+  }
   window.dispatchEvent(new CustomEvent('ps5-toast-settings-updated'));
 }
 
-/**
- * Dispara um toast de Troféu Conquistado (100% / Desbloqueado)
- */
 export function triggerPS5TrophyToast(trophy) {
   if (typeof window === 'undefined' || !trophy) return;
   notifyTrophiesStarted();
@@ -156,9 +154,6 @@ export function triggerPS5TrophyToast(trophy) {
   );
 }
 
-/**
- * Dispara um toast estilo Colecionável / HUD de Progresso numérico (ex: 47/50)
- */
 export function triggerPS5ProgressToast(progressData) {
   if (typeof window === 'undefined' || !progressData) return;
   notifyTrophiesStarted();
@@ -169,16 +164,32 @@ export function triggerPS5ProgressToast(progressData) {
   );
 }
 
-/**
- * Orquestra o lote completo para a fila gerenciada:
- * - Troféus Conquistados são ordenados por dificuldade (mais difícil primeiro)
- * - Colecionáveis aparecem por último
- * - No máximo 4 na tela; os demais aguardam na fila de espera
- */
 export function triggerTrophyBatch({ progressed = [], unlocked = [] }) {
   if (typeof window === 'undefined') return;
   const { maxProgress } = getToastSettings();
-  const cappedProgress = maxProgress === 0 ? [] : (maxProgress >= 99 ? progressed : progressed.slice(0, maxProgress));
+  const limit = maxProgress || 99;
+
+  // Ordena os progressos por relevância (mais próximos de 100% primeiro, depois tier)
+  const sortedProgress = [...progressed].sort((a, b) => {
+    const pctA =
+      Number(
+        a.progress_percentage ??
+        a.percentage ??
+        (a.currentCount && a.targetCount ? (a.currentCount / a.targetCount) * 100 : 0)
+      ) || 0;
+    const pctB =
+      Number(
+        b.progress_percentage ??
+        b.percentage ??
+        (b.currentCount && b.targetCount ? (b.currentCount / b.targetCount) * 100 : 0)
+      ) || 0;
+    if (pctB !== pctA) return pctB - pctA;
+    const wa = TIER_DIFFICULTY_WEIGHT[String(a.tier || 'bronze').toLowerCase()] || 0;
+    const wb = TIER_DIFFICULTY_WEIGHT[String(b.tier || 'bronze').toLowerCase()] || 0;
+    return wb - wa;
+  });
+
+  const cappedProgress = limit >= 99 ? sortedProgress : sortedProgress.slice(0, limit);
 
   if (unlocked.length > 0 || cappedProgress.length > 0) {
     notifyTrophiesStarted();
@@ -194,27 +205,15 @@ export function triggerTrophyBatch({ progressed = [], unlocked = [] }) {
   );
 }
 
-// Gerador de IDs rigorosamente únicos para evitar colisões no React
 let toastSequence = 0;
 function createToastId(prefix, type) {
   toastSequence += 1;
   return `${prefix || 't'}_${type}_${Date.now()}_${toastSequence}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
-function playToastSound(item) {
-  try {
-    if (item.type === 'progress') {
-      playCollectibleChimeSound();
-    } else {
-      playTrophySound(item.trophy?.tier);
-    }
-  } catch (audioErr) {
-    console.warn('[PS5Toast] Falha ao reproduzir áudio do toast:', audioErr);
-  }
-}
-
 /**
- * Card individual de notificação PS5 com suporte a pause on hover
+ * Card PS5 Compacto e Elegante
+ * Otimizado para caber até 5 cards na tela confortavelmente (1 troféu + 4 progressos, ou 5 progressos).
  */
 function PS5ToastCard({ toast, onRemove, settings }) {
   const { trophy, toastId, type } = toast;
@@ -228,14 +227,10 @@ function PS5ToastCard({ toast, onRemove, settings }) {
     CATEGORY_LABELS[trophy.category] ||
     (trophy.category === 'dna_cinefilo' ? 'DNA Cinéfilo' : 'Volta ao Mundo');
 
-  // Duração configurável
-  const totalDurationMs = isProgress
-    ? settings.durationProgress || 6000
-    : settings.durationUnlocked || 8000;
-
+  const totalDurationMs = settings.durationUnlocked || settings.durationProgress || 8000;
   const [remainingMs, setRemainingMs] = useState(totalDurationMs);
   const [isHovered, setIsHovered] = useState(false);
-  const timerStartRef = useRef(Date.now());
+  const timerStartRef = useRef(0);
   const timerIdRef = useRef(null);
   const hasRemovedRef = useRef(false);
 
@@ -245,7 +240,7 @@ function PS5ToastCard({ toast, onRemove, settings }) {
     onRemove(toastId);
   }, [onRemove, toastId]);
 
-  // Barra de progresso animada (do previousPercentage até currentPercentage)
+  // Barra de progresso animada
   const previousPct = Number(trophy.previousPercentage) || 0;
   const currentPct = Number(trophy.progress_percentage ?? trophy.percentage) || 0;
   const [animatedPct, setAnimatedPct] = useState(isProgress ? previousPct : currentPct);
@@ -259,7 +254,6 @@ function PS5ToastCard({ toast, onRemove, settings }) {
     }
   }, [isProgress, currentPct]);
 
-  // Gerenciamento de auto-dismiss com pause no hover
   useEffect(() => {
     if (isHovered) {
       if (timerIdRef.current) {
@@ -292,18 +286,16 @@ function PS5ToastCard({ toast, onRemove, settings }) {
     setIsHovered(false);
   };
 
-  // Cálculos de contagem numérica para o HUD de colecionável
   const curCount = trophy.currentCount ?? trophy.progress_current ?? 0;
   const tgtCount = trophy.targetCount ?? trophy.progress_target ?? 1;
   const incBy = trophy.increasedBy ?? 1;
   const remainingCount = Math.max(tgtCount - curCount, 0);
 
-  // Mensagem motivacional
-  let motivationalSubtext = `${currentPct}% concluído`;
+  let motivationalSubtext = `${currentPct}%`;
   if (remainingCount === 1) {
-    motivationalSubtext = 'Falta apenas 1 para conquistar!';
+    motivationalSubtext = 'Falta 1!';
   } else if (remainingCount <= 5) {
-    motivationalSubtext = `Faltam apenas ${remainingCount}!`;
+    motivationalSubtext = `Faltam ${remainingCount}!`;
   }
 
   return (
@@ -312,154 +304,233 @@ function PS5ToastCard({ toast, onRemove, settings }) {
       onMouseLeave={handleMouseLeave}
       style={{
         animation: 'ps5SlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-        transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+        transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
-      className={`pointer-events-auto relative overflow-hidden rounded-2xl bg-zinc-950/95 backdrop-blur-2xl border ${
-        isProgress ? 'border-amber-500/50 shadow-[0_0_25px_rgba(245,158,11,0.25)]' : `${theme.border} ${theme.glow}`
-      } p-3.5 sm:p-4 shadow-2xl transition-all duration-300 hover:scale-[1.02] flex flex-col gap-2.5`}
+      className={`pointer-events-auto relative transition-all duration-300 hover:scale-[1.01] ${
+        isProgress ? 'rounded-xl' : 'rounded-2xl'
+      }`}
     >
-      {/* Glow de fundo */}
-      <div
-        className="absolute inset-0 opacity-20 pointer-events-none"
-        style={{
-          background: `radial-gradient(circle at 10% 50%, ${isProgress ? '#F59E0B' : theme.accentColor} 0%, transparent 65%)`,
-        }}
-      />
-
-      {/* Linha Principal: Ícone + Textos + Fechar */}
-      <div className="flex items-start gap-3 relative z-10">
-        {/* Ícone com Halo PSN */}
-        <div
-          className={`relative shrink-0 w-12 h-12 rounded-2xl bg-gradient-to-br ${
-            isProgress ? 'from-amber-500/30 via-zinc-900 to-zinc-950 border-amber-500/60' : `${theme.iconBg} ${theme.border}`
-          } border flex items-center justify-center text-2xl shadow-inner`}
+      {/* Raio Elétrico da Cor do Troféu Contornando a Notificação */}
+      {!isProgress && (
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none overflow-visible z-30"
+          aria-hidden="true"
         >
-          <span className="drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] select-none">
-            {trophy.icon || theme.symbol}
-          </span>
-          {isPlatinum && (
-            <Sparkles className="absolute -top-1 -right-1 w-4 h-4 text-blue-300 animate-pulse" />
-          )}
-          {isProgress && (
-            <div className="absolute -bottom-1 -right-1 bg-amber-500 text-zinc-950 rounded-full p-0.5 shadow-md">
-              <TrendingUp className="w-3 h-3 stroke-[3]" />
-            </div>
-          )}
-        </div>
+          <rect
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            rx="16"
+            ry="16"
+            fill="none"
+            stroke={theme.rayColor || theme.accentColor}
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            pathLength="100"
+            strokeDasharray="22 78"
+            style={{
+              animation: 'ps5RayTravel 2.8s linear infinite',
+              filter: `drop-shadow(0 0 3px #FFFFFF) drop-shadow(0 0 6px ${theme.rayColor || theme.accentColor}) drop-shadow(0 0 12px ${theme.accentColor})`,
+            }}
+          />
+        </svg>
+      )}
 
-        {/* Conteúdo Textual */}
-        <div className="flex-1 min-w-0 pr-1">
-          {/* Header Badges */}
-          <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-            {isProgress ? (
-              <span className="text-[9px] uppercase font-black tracking-widest px-2 py-0.5 rounded-md bg-amber-500/25 text-amber-300 border border-amber-500/50 flex items-center gap-1 shadow-sm">
-                <span>🎯 PROGRESSO</span>
-                <span className="font-mono text-[10px] text-amber-200 font-black">+{incBy}</span>
-              </span>
-            ) : (
-              <span
-                className={`text-[9px] uppercase font-black tracking-widest px-2 py-0.5 rounded-md border ${theme.badgeBg}`}
-              >
-                {theme.symbol} {theme.name}
-              </span>
-            )}
+      {/* Corpo Principal do Card */}
+      <div
+        className={`relative overflow-hidden bg-zinc-950/95 backdrop-blur-2xl shadow-2xl flex flex-col ${
+          isProgress
+            ? 'rounded-xl border border-amber-500/35 p-3 sm:p-3.5 gap-2'
+            : 'rounded-2xl border border-zinc-700/80 p-3.5 sm:p-4 gap-2.5'
+        }`}
+      >
+        {/* Glow de fundo sutil */}
+        <div
+          className={`absolute inset-0 pointer-events-none ${isProgress ? 'opacity-15' : 'opacity-20'}`}
+          style={{
+            background: `radial-gradient(circle at 10% 50%, ${isProgress ? '#F59E0B' : theme.accentColor} 0%, transparent 65%)`,
+          }}
+        />
 
-            <span className="text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-zinc-900/90 border border-zinc-700/80 text-zinc-300">
-              {categoryLabel}
+        {/* Linha Superior: Ícone + Textos + Fechar */}
+        <div className="flex items-start gap-2.5 sm:gap-3 relative z-10">
+          {/* Ícone com Halo PSN (Proporções nobres e equilibradas) */}
+          <div
+            className={`relative shrink-0 rounded-xl flex items-center justify-center shadow-inner ${
+              isProgress
+                ? 'w-10 h-10 sm:w-11 sm:h-11 bg-gradient-to-br from-amber-500/25 via-zinc-900 to-zinc-950 border border-amber-500/50 text-xl'
+                : `w-12 h-12 sm:w-13 sm:h-13 bg-gradient-to-br ${theme.iconBg} border border-white/20 text-2xl sm:text-3xl shadow-[0_0_15px_rgba(255,255,255,0.15)] ring-1 ring-white/20`
+            }`}
+          >
+            <span className="drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)] select-none">
+              {trophy.icon || theme.symbol}
             </span>
-
-            {!isProgress && (
-              <span className="text-[9px] uppercase font-black text-emerald-400 tracking-wider flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> Conquistado!
-              </span>
+            {isPlatinum && (
+              <Sparkles className="absolute -top-1 -right-1 w-3.5 h-3.5 text-blue-300 animate-pulse" />
             )}
-            {trophy.isGhost && (
-              <span className="text-[9px] uppercase font-black tracking-wider px-2 py-0.5 rounded-md bg-violet-500/20 border border-violet-400/50 text-violet-200">
-                👻 Fantasma
-              </span>
+            {isProgress && (
+              <div className="absolute -bottom-1 -right-1 bg-amber-500 text-zinc-950 rounded-full p-0.5 shadow-md">
+                <TrendingUp className="w-2.5 h-2.5 stroke-[3]" />
+              </div>
             )}
           </div>
 
-          <h4 className="text-sm font-black text-zinc-100 truncate tracking-tight">
-            {cleanTitle}
-          </h4>
-
-          {/* Subtítulo ou Contador Destacado */}
-          {isProgress ? (
-            <div className="flex items-baseline justify-between mt-1 gap-2">
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-lg font-black font-mono text-amber-300 tracking-tight">
-                  {curCount}
+          {/* Conteúdo Textual */}
+          <div className="flex-1 min-w-0 pr-1">
+            {/* Header Badges */}
+            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+              {isProgress ? (
+                <>
+                  <span className="text-[8.5px] uppercase font-black tracking-widest px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+                    <span>PROGRESSO</span>
+                    <span className="font-mono text-[9px] text-amber-200 font-black">+{incBy}</span>
+                  </span>
+                  <span
+                    className={`text-[8.5px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded border ${theme.badgeBg}`}
+                  >
+                    {theme.symbol} {theme.name}
+                  </span>
+                </>
+              ) : (
+                <span
+                  className={`text-[9.5px] uppercase font-black tracking-widest px-2 py-0.5 rounded-md border ${theme.badgeBg}`}
+                >
+                  {theme.symbol} {theme.name}
                 </span>
-                <span className="text-xs font-mono font-bold text-zinc-500">/</span>
-                <span className="text-xs font-mono font-bold text-zinc-400">
-                  {tgtCount}
+              )}
+
+              <span className="text-[8.5px] uppercase font-semibold tracking-wider px-1.5 py-0.5 rounded bg-zinc-900/90 border border-zinc-700/80 text-zinc-300 truncate max-w-[130px]">
+                {categoryLabel}
+              </span>
+
+              {!isProgress && (
+                <span className="text-[9.5px] uppercase font-black text-emerald-400 tracking-wider flex items-center gap-0.5">
+                  <CheckCircle2 className="w-3 h-3" /> Conquistado!
+                </span>
+              )}
+              {trophy.isGhost && (
+                <span className="text-[8px] uppercase font-black px-1.5 py-0.5 rounded bg-violet-500/20 border border-violet-400/50 text-violet-200">
+                  👻 Fantasma
+                </span>
+              )}
+            </div>
+
+            {/* Título */}
+            <h4
+              className={`font-black tracking-tight leading-tight truncate ${
+                isProgress
+                  ? 'text-xs sm:text-[13px] text-zinc-100'
+                  : 'text-sm sm:text-[14.5px] text-white drop-shadow-sm'
+              }`}
+            >
+              {cleanTitle}
+            </h4>
+
+            {/* Descrição: aparece no troféu e também no progresso! */}
+            {trophy.description && (
+              <p
+                className={`font-normal leading-snug ${
+                  isProgress
+                    ? 'text-[11px] sm:text-[11.5px] text-zinc-400 line-clamp-1 mt-0.5'
+                    : 'text-xs text-zinc-300 line-clamp-2 leading-relaxed mt-1'
+                }`}
+              >
+                {trophy.description}
+              </p>
+            )}
+
+            {/* Indicador Numérico e Subtexto para Progresso */}
+            {isProgress && (
+              <div className="flex items-center justify-between mt-1 gap-2 font-mono">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-xs font-black text-amber-300 tracking-tight">
+                    {curCount}
+                  </span>
+                  <span className="text-[10px] text-zinc-500">/</span>
+                  <span className="text-[10px] text-zinc-400">
+                    {tgtCount}
+                  </span>
+                  <span className="text-[9.5px] text-zinc-500 ml-1">
+                    ({Math.round(currentPct)}%)
+                  </span>
+                </div>
+                <span className="text-[10.5px] font-bold text-amber-400 italic truncate">
+                  {motivationalSubtext}
                 </span>
               </div>
-              <span className="text-[11px] font-semibold text-amber-400/90 italic truncate">
-                {motivationalSubtext}
-              </span>
-            </div>
-          ) : (
-            <p className="text-xs text-zinc-400 line-clamp-1 leading-relaxed mt-0.5">
-              {trophy.description}
-            </p>
-          )}
+            )}
+          </div>
+
+          {/* Botão de Fechar */}
+          <button
+            type="button"
+            onClick={safeRemove}
+            className={`shrink-0 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/60 transition-colors cursor-pointer ${
+              isProgress ? 'p-1' : 'p-1.5'
+            }`}
+            title="Fechar notificação"
+          >
+            <X className={isProgress ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+          </button>
         </div>
 
-        {/* Botão de Fechar */}
-        <button
-          type="button"
-          onClick={safeRemove}
-          className="shrink-0 p-1 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/60 transition-colors cursor-pointer"
-          title="Fechar notificação"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
+        {/* Barra de Progresso Animada */}
+        {isProgress && (
+          <div className="relative z-10 w-full h-1.5 bg-zinc-900/90 rounded-full overflow-hidden border border-amber-500/25 p-[0.5px]">
+            <div
+              className="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-amber-500 to-yellow-400 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
+              style={{ width: `${Math.min(Math.max(animatedPct, 3), 100)}%` }}
+            />
+          </div>
+        )}
 
-      {/* Barra de Progresso do Colecionável (se for progresso) */}
-      {isProgress && (
-        <div className="relative z-10 w-full h-2 bg-zinc-900/90 rounded-full overflow-hidden border border-amber-500/30 p-0.5">
+        {/* Linha de Dismiss Timer */}
+        <div
+          className={`absolute bottom-0 left-0 right-0 bg-zinc-800/80 overflow-hidden ${
+            isProgress ? 'h-[1.5px]' : 'h-[2.5px]'
+          }`}
+        >
           <div
-            className="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-amber-500 to-yellow-400 shadow-[0_0_10px_rgba(245,158,11,0.6)]"
-            style={{ width: `${Math.min(Math.max(animatedPct, 3), 100)}%` }}
+            className="h-full origin-left"
+            onAnimationEnd={() => {
+              if (!isHovered) {
+                safeRemove();
+              }
+            }}
+            style={{
+              backgroundColor: isProgress ? '#F59E0B' : theme.accentColor,
+              animation: `ps5TimerBar ${totalDurationMs}ms linear forwards`,
+              animationPlayState: isHovered ? 'paused' : 'running',
+            }}
           />
         </div>
-      )}
-
-      {/* Linha de Dismiss Timer no rodapé com pausa no hover e gatilho de término seguro */}
-      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-zinc-800/80 overflow-hidden">
-        <div
-          className="h-full origin-left"
-          onAnimationEnd={() => {
-            if (!isHovered) {
-              safeRemove();
-            }
-          }}
-          style={{
-            backgroundColor: isProgress ? '#F59E0B' : theme.accentColor,
-            animation: `ps5TimerBar ${totalDurationMs}ms linear forwards`,
-            animationPlayState: isHovered ? 'paused' : 'running',
-          }}
-        />
       </div>
     </div>
   );
 }
 
-const MAX_VISIBLE_TOASTS = 4;
+// Máximo de cards de progresso por leva embaixo do troféu (1 troféu + 4 progressos = 5 cards na tela)
+const MAX_PROGRESS_PER_WAVE = 4;
 
 export default function PS5TrophyToastContainer() {
-  // Estado único e sincronizado para evitar descompasso e duplicações
-  const [toastState, setToastState] = useState({
-    visible: [], // até 4 notificações simultâneas na tela
-    queue: [],   // fila de espera com os excedentes
-  });
-
   const [settings, setSettings] = useState(getToastSettings);
 
-  // Atualiza configurações quando o usuário alterar via Painel de Testes
+  // Estado gerenciador de Levas (Waves) no Canto Superior Direito:
+  // - 1 Troféu Conquistado no topo + até 4 Progressos embaixo se houver
+  // - Cada troféu ganha sua própria leva tocando seu som exclusivo
+  // - Se uma leva não tiver troféu (só progressos), cabem até 5 progressos na tela!
+  const [waveState, setWaveState] = useState({
+    visible: [],        // até 5 cards simultâneos na tela (1 troféu + 4 progressos, ou 5 progressos)
+    unlockedQueue: [],  // troféus aguardando próximas levas
+    progressQueue: [],  // progressos aguardando próximas levas
+    waveId: 0,
+    soundTarget: null,  // { type: 'unlock', trophy } | { type: 'progress' }
+  });
+
+  const lastPlayedWaveRef = useRef(0);
+
+  // Monitora configurações do painel
   useEffect(() => {
     const handleSettingsUpdate = () => {
       setSettings(getToastSettings());
@@ -470,88 +541,174 @@ export default function PS5TrophyToastContainer() {
     };
   }, []);
 
-  // Função atômica para enfileirar novos itens respeitando a hierarquia de dificuldade
-  const enqueueItems = useCallback((newItems) => {
-    if (!newItems || newItems.length === 0) return;
+  // Disparo sonoro atômico por Leva:
+  // - Se a leva tiver troféu desbloqueado: toca o som do troféu!
+  // - Se a leva tiver apenas progressos: toca o som de progresso (anel do Sonic)!
+  useEffect(() => {
+    if (!waveState.waveId || lastPlayedWaveRef.current === waveState.waveId) return;
+    lastPlayedWaveRef.current = waveState.waveId;
+
+    if (waveState.soundTarget) {
+      if (waveState.soundTarget.type === 'unlock') {
+        const trophy = waveState.soundTarget.trophy;
+        playTrophySound(trophy?.tier, trophy);
+      } else if (waveState.soundTarget.type === 'progress') {
+        playCollectibleChimeSound();
+      }
+    }
+  }, [waveState.waveId, waveState.soundTarget]);
+
+  // Função central para enfileirar e promover levas:
+  // 1 troféu no topo + até 4 progressos embaixo dele (ou até 5 progressos se não houver troféu)
+  const enqueueBatch = useCallback((newUnlocked = [], newProgress = []) => {
+    if (newUnlocked.length === 0 && newProgress.length === 0) return;
     notifyTrophiesStarted();
 
-    setToastState((prevState) => {
-      // Evita duplicar o mesmo troféu que já esteja ativo na tela ou aguardando na fila
-      const existingTrophyKeys = new Set([
-        ...prevState.visible.map((t) => `${t.type}_${t.trophy?.id || t.trophy?.title}`),
-        ...prevState.queue.map((t) => `${t.type}_${t.trophy?.id || t.trophy?.title}`),
+    setWaveState((prev) => {
+      // Deduplicação de troféus
+      const existingUnlockKeys = new Set([
+        ...prev.visible.filter((t) => t.type === 'unlock').map((t) => t.trophy?.id || t.trophy?.title),
+        ...prev.unlockedQueue.map((t) => t.trophy?.id || t.trophy?.title),
       ]);
 
-      const filteredNewItems = newItems.filter((item) => {
-        const key = `${item.type}_${item.trophy?.id || item.trophy?.title}`;
-        if (existingTrophyKeys.has(key)) return false;
-        existingTrophyKeys.add(key);
+      const filteredUnlocked = newUnlocked.filter((item) => {
+        const key = item.trophy?.id || item.trophy?.title;
+        if (existingUnlockKeys.has(key)) return false;
+        existingUnlockKeys.add(key);
         return true;
       });
 
-      if (filteredNewItems.length === 0) return prevState;
+      // Deduplicação de progressos
+      const existingProgressKeys = new Set([
+        ...prev.visible.filter((t) => t.type === 'progress').map((t) => t.trophy?.id || t.trophy?.title),
+        ...prev.progressQueue.map((t) => t.trophy?.id || t.trophy?.title),
+      ]);
 
-      // Junta com a fila existente e ordena estritamente por dificuldade/prioridade:
-      // Mais difícil primeiro (Platina -> Mítico -> Ouro -> Épico -> Prata -> Bronze)
-      // Colecionáveis por último
-      const allPending = [...prevState.queue, ...filteredNewItems];
-      allPending.sort((a, b) => getTrophyPriority(b) - getTrophyPriority(a));
+      const filteredProgress = newProgress.filter((item) => {
+        const key = item.trophy?.id || item.trophy?.title;
+        if (existingProgressKeys.has(key)) return false;
+        existingProgressKeys.add(key);
+        return true;
+      });
 
-      // Calcula vagas disponíveis na tela (máximo 4)
-      const freeSlots = Math.max(MAX_VISIBLE_TOASTS - prevState.visible.length, 0);
+      if (filteredUnlocked.length === 0 && filteredProgress.length === 0) return prev;
 
-      if (freeSlots > 0 && allPending.length > 0) {
-        const toShow = allPending.slice(0, freeSlots);
-        const remainingInQueue = allPending.slice(freeSlots);
+      // Junta com filas pendentes e ordena por prioridade
+      const allUnlocked = [...prev.unlockedQueue, ...filteredUnlocked];
+      allUnlocked.sort((a, b) => getTrophyPriority(b) - getTrophyPriority(a));
 
-        // Toca o som de forma cadenciada para os itens promovidos para a tela
-        toShow.forEach((item, idx) => {
-          setTimeout(() => {
-            playToastSound(item);
-          }, idx * 120);
-        });
+      const allProgress = [...prev.progressQueue, ...filteredProgress];
+      allProgress.sort((a, b) => getTrophyPriority(b) - getTrophyPriority(a));
+
+      // Se a tela estiver vazia, monta a primeira leva imediatamente!
+      if (prev.visible.length === 0) {
+        const toShow = [];
+        let remainingUnlocked = allUnlocked;
+        let remainingProgress = allProgress;
+        let soundTarget = null;
+
+        if (allUnlocked.length > 0) {
+          // 1 Troféu em cima!
+          const leadTrophy = allUnlocked[0];
+          remainingUnlocked = allUnlocked.slice(1);
+          toShow.push(leadTrophy);
+
+          // E até 4 progressos embaixo dele!
+          const toShowProgress = allProgress.slice(0, MAX_PROGRESS_PER_WAVE);
+          remainingProgress = allProgress.slice(MAX_PROGRESS_PER_WAVE);
+          toShow.push(...toShowProgress);
+
+          soundTarget = { type: 'unlock', trophy: leadTrophy.trophy };
+        } else if (allProgress.length > 0) {
+          // Apenas progressos (até 5 cards na tela)
+          const toShowProgress = allProgress.slice(0, MAX_PROGRESS_PER_WAVE + 1);
+          remainingProgress = allProgress.slice(MAX_PROGRESS_PER_WAVE + 1);
+          toShow.push(...toShowProgress);
+
+          soundTarget = { type: 'progress' };
+        }
 
         return {
-          visible: [...prevState.visible, ...toShow],
-          queue: remainingInQueue,
+          visible: toShow,
+          unlockedQueue: remainingUnlocked,
+          progressQueue: remainingProgress,
+          waveId: prev.waveId + 1,
+          soundTarget,
         };
       }
 
+      // Se já houver cards na tela, adiciona às filas de espera para as próximas levas
       return {
-        visible: prevState.visible,
-        queue: allPending,
+        ...prev,
+        unlockedQueue: allUnlocked,
+        progressQueue: allProgress,
       };
     });
   }, []);
 
-  // Remoção atômica: remove o item da tela e promove o próximo da fila
+  // Remoção atômica por leva:
+  // Quando todos os cards da leva atual terminam (ou o usuário fecha todos),
+  // a próxima leva assume o comando com seu som exclusivo!
   const removeToast = useCallback((toastId) => {
-    setToastState((prevState) => {
-      const newVisible = prevState.visible.filter((t) => t.toastId !== toastId);
-      if (newVisible.length === prevState.visible.length) return prevState;
+    setWaveState((prev) => {
+      const newVisible = prev.visible.filter((t) => t.toastId !== toastId);
+      if (newVisible.length === prev.visible.length) return prev;
 
-      // Se liberou espaço e tem alguém aguardando na fila de espera:
-      if (newVisible.length < MAX_VISIBLE_TOASTS && prevState.queue.length > 0) {
-        const nextItem = prevState.queue[0];
-        const nextQueue = prevState.queue.slice(1);
+      // Se ainda sobraram cards da leva atual na tela, apenas remove o card
+      if (newVisible.length > 0) {
+        return {
+          ...prev,
+          visible: newVisible,
+        };
+      }
 
-        setTimeout(() => {
-          playToastSound(nextItem);
-        }, 80);
+      // Toda a leva atual terminou! Verifica se há próximas levas na fila
+      if (prev.unlockedQueue.length > 0 || prev.progressQueue.length > 0) {
+        const allUnlocked = prev.unlockedQueue;
+        const allProgress = prev.progressQueue;
+        const toShow = [];
+        let remainingUnlocked = allUnlocked;
+        let remainingProgress = allProgress;
+        let soundTarget = null;
+
+        if (allUnlocked.length > 0) {
+          // Próximo troféu desbloqueado em cima!
+          const leadTrophy = allUnlocked[0];
+          remainingUnlocked = allUnlocked.slice(1);
+          toShow.push(leadTrophy);
+
+          // E até 4 progressos embaixo dele!
+          const toShowProgress = allProgress.slice(0, MAX_PROGRESS_PER_WAVE);
+          remainingProgress = allProgress.slice(MAX_PROGRESS_PER_WAVE);
+          toShow.push(...toShowProgress);
+
+          soundTarget = { type: 'unlock', trophy: leadTrophy.trophy };
+        } else if (allProgress.length > 0) {
+          // Apenas progressos restantes (até 5 cards)
+          const toShowProgress = allProgress.slice(0, MAX_PROGRESS_PER_WAVE + 1);
+          remainingProgress = allProgress.slice(MAX_PROGRESS_PER_WAVE + 1);
+          toShow.push(...toShowProgress);
+
+          soundTarget = { type: 'progress' };
+        }
 
         return {
-          visible: [...newVisible, nextItem],
-          queue: nextQueue,
+          visible: toShow,
+          unlockedQueue: remainingUnlocked,
+          progressQueue: remainingProgress,
+          waveId: prev.waveId + 1,
+          soundTarget,
         };
       }
 
       return {
+        ...prev,
         visible: newVisible,
-        queue: prevState.queue,
       };
     });
   }, []);
 
+  // Listeners de eventos
   useEffect(() => {
     const handleUnlockEvent = (e) => {
       if (e?.detail) {
@@ -561,7 +718,7 @@ export default function PS5TrophyToastContainer() {
           type: 'unlock',
           createdAt: Date.now(),
         };
-        enqueueItems([item]);
+        enqueueBatch([item], []);
       }
     };
 
@@ -573,37 +730,28 @@ export default function PS5TrophyToastContainer() {
           type: 'progress',
           createdAt: Date.now(),
         };
-        enqueueItems([item]);
+        enqueueBatch([], [item]);
       }
     };
 
     const handleBatchEvent = (e) => {
       const { unlocked = [], progressed = [] } = e?.detail || {};
-      const itemsToAdd = [];
 
-      // Conquistados (100%)
-      unlocked.forEach((u) => {
-        itemsToAdd.push({
-          toastId: createToastId(u.id, 'unlock'),
-          trophy: u,
-          type: 'unlock',
-          createdAt: Date.now(),
-        });
-      });
+      const unlockItems = unlocked.map((u) => ({
+        toastId: createToastId(u.id, 'unlock'),
+        trophy: u,
+        type: 'unlock',
+        createdAt: Date.now(),
+      }));
 
-      // Colecionáveis de Progresso
-      progressed.forEach((p) => {
-        itemsToAdd.push({
-          toastId: createToastId(p.id, 'progress'),
-          trophy: p,
-          type: 'progress',
-          createdAt: Date.now(),
-        });
-      });
+      const progressItems = progressed.map((p) => ({
+        toastId: createToastId(p.id, 'progress'),
+        trophy: p,
+        type: 'progress',
+        createdAt: Date.now(),
+      }));
 
-      if (itemsToAdd.length > 0) {
-        enqueueItems(itemsToAdd);
-      }
+      enqueueBatch(unlockItems, progressItems);
     };
 
     window.addEventListener('ps5-trophy-unlock', handleUnlockEvent);
@@ -615,28 +763,27 @@ export default function PS5TrophyToastContainer() {
       window.removeEventListener('ps5-trophy-progress', handleProgressEvent);
       window.removeEventListener('ps5-trophy-batch', handleBatchEvent);
     };
-  }, [enqueueItems]);
+  }, [enqueueBatch]);
 
-  const { visible, queue } = toastState;
+  // Sincronização estrita com o sistema de XP:
+  const isActive =
+    waveState.visible.length > 0 ||
+    waveState.unlockedQueue.length > 0 ||
+    waveState.progressQueue.length > 0;
   const wasActiveRef = useRef(false);
 
-  // Monitora transições de visibilidade dos troféus:
-  // Notifica o sistema de XP quando inicia e quando TODAS as notificações
-  // (incluindo as da fila de espera) tiverem terminado e sumido da tela.
   useEffect(() => {
-    const isActive = visible.length > 0 || queue.length > 0;
     if (isActive) {
       wasActiveRef.current = true;
       notifyTrophiesStarted();
     } else if (wasActiveRef.current) {
       wasActiveRef.current = false;
-      // Pausa graciosa (400ms) para que a animação de saída termine antes da barra de XP aparecer
       const timer = setTimeout(() => {
         notifyTrophiesCleared();
       }, 400);
       return () => clearTimeout(timer);
     }
-  }, [visible.length, queue.length]);
+  }, [isActive]);
 
   useEffect(() => {
     return () => {
@@ -646,23 +793,51 @@ export default function PS5TrophyToastContainer() {
     };
   }, []);
 
-  if (visible.length === 0 && queue.length === 0) return null;
+  if (!isActive) return null;
+
+  const remainingTrophiesCount = waveState.unlockedQueue.length;
+  const remainingProgressCount = waveState.progressQueue.length;
+  const hasQueueIndicator = remainingTrophiesCount > 0 || remainingProgressCount > 0;
 
   return (
     <div
       aria-live="polite"
-      className="fixed top-5 right-5 z-[9999] pointer-events-none flex flex-col gap-3 max-w-[420px] w-full"
+      className="fixed top-4 right-4 z-[9999] pointer-events-none flex flex-col gap-2 max-w-[410px] w-full max-sm:left-3 max-sm:right-3 max-sm:w-auto"
     >
-      {/* Indicador de Fila de Espera quando houver mais de 4 notificações */}
-      {queue.length > 0 && (
-        <div className="self-end px-3 py-1 rounded-full bg-zinc-900/90 border border-zinc-700/80 text-[10px] font-mono font-bold text-zinc-300 shadow-xl flex items-center gap-1.5 animate-pulse backdrop-blur-md">
-          <Layers className="w-3.5 h-3.5 text-amber-400" />
-          <span>+{queue.length} na fila de espera</span>
+      {/* Indicador Unificado de Fila no Topo de Tudo (Escreve junto Troféus e Progressos na fila) */}
+      {hasQueueIndicator && (
+        <div className="self-end px-3 py-1 rounded-full bg-zinc-950/95 border border-zinc-700/80 text-[10px] font-mono font-bold text-zinc-300 shadow-xl flex items-center gap-1.5 animate-pulse backdrop-blur-md pointer-events-auto">
+          <Layers className="w-3 h-3 text-amber-400 shrink-0" />
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {remainingTrophiesCount > 0 && (
+              <span className="text-amber-300 flex items-center gap-1">
+                <span>🏆</span>
+                <span>
+                  +{remainingTrophiesCount}{' '}
+                  {remainingTrophiesCount === 1 ? 'troféu' : 'troféus'}
+                </span>
+              </span>
+            )}
+            {remainingTrophiesCount > 0 && remainingProgressCount > 0 && (
+              <span className="text-zinc-500 font-bold">•</span>
+            )}
+            {remainingProgressCount > 0 && (
+              <span className="text-cyan-300 flex items-center gap-1">
+                <span>🎯</span>
+                <span>
+                  +{remainingProgressCount}{' '}
+                  {remainingProgressCount === 1 ? 'progresso' : 'progressos'}
+                </span>
+              </span>
+            )}
+            <span className="text-zinc-400 font-normal">na fila</span>
+          </div>
         </div>
       )}
 
-      {/* Exibição dos até 4 toasts visíveis */}
-      {visible.map((toast) => (
+      {/* Cards Visíveis da Leva Atual:
+          1 Troféu em cima e até 4 de progresso embaixo dele (cabe 5 na tela perfeitamente!) */}
+      {waveState.visible.map((toast) => (
         <PS5ToastCard
           key={toast.toastId}
           toast={toast}
@@ -676,7 +851,7 @@ export default function PS5TrophyToastContainer() {
         @keyframes ps5SlideIn {
           0% {
             opacity: 0;
-            transform: translate3d(40px, -15px, 0) scale(0.94);
+            transform: translate3d(30px, -10px, 0) scale(0.96);
           }
           100% {
             opacity: 1;
@@ -686,6 +861,14 @@ export default function PS5TrophyToastContainer() {
         @keyframes ps5TimerBar {
           0% { width: 100%; }
           100% { width: 0%; }
+        }
+        @keyframes ps5RayTravel {
+          0% {
+            stroke-dashoffset: 0;
+          }
+          100% {
+            stroke-dashoffset: -100;
+          }
         }
       `}</style>
     </div>

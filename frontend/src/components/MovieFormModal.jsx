@@ -21,11 +21,13 @@ import {
   triggerXPGainToast,
   triggerTimeMachineUnlock,
   triggerWorldChallengeUnlock,
+  triggerUniverseVictory,
   dispatchXpStatusUpdate,
 } from '../utils/xpSystem';
 import { computeMovieStatGains } from '../utils/analyticsEngine';
 import { UN_COUNTRIES_195, HISTORICAL_TERRITORIES } from '../data/unCountries195';
 import { triggerApiRefreshToast } from './ApiRefreshToastContainer';
+import { stopUniverseMusicPlayer } from '../utils/universeAudio';
 
 const DEFAULT_PLATFORMS = [
   'Cinema',
@@ -625,6 +627,11 @@ export default function MovieFormModal({
     }
 
     const handleSaveSuccess = (resData, savedMovie, edited, ghostRun = false) => {
+      // Fecha automaticamente o player de música persistente de conquistas anteriores ao cadastrar um novo filme
+      if (!edited) {
+        stopUniverseMusicPlayer();
+      }
+
       const tagGhost = (item) => (ghostRun ? { ...item, isGhost: true } : item);
       const tagGhostEvent = (item) => (
         ghostRun
@@ -665,7 +672,13 @@ export default function MovieFormModal({
         triggerWorldChallengeUnlock(worldChallengeUnlocks);
       }
 
-      // 4º Estágio: Barra de XP, Atributos & Evolução de Classe RPG
+      const universeCheckpoints = (resData.universeEvents?.checkpoints || []).map(tagGhostEvent);
+      const universeVictories = [
+        ...(resData.universeEvents?.completedSagas || []),
+        ...(resData.universeEvents?.completedMegaSagas || []),
+      ].map(tagGhostEvent);
+
+      // 4º Estágio (ATO 2): Barra de XP, Atributos, Checkpoints de Saga & Evolução de Classe RPG
       const { statGains, unlockedClass } = computeMovieStatGains({
         movieData: savedMovie,
         newlyUnlocked,
@@ -679,8 +692,12 @@ export default function MovieFormModal({
 
       const resolvedUnlockedClass = unlockedClass || resData.xpGain?.unlockedClass || null;
       const xpSnapshot = resData.xpStatus || prevXpStatus;
+      const resolvedCheckpoints =
+        universeCheckpoints.length > 0
+          ? universeCheckpoints
+          : resData.xpGain?.universeCheckpoints || [];
 
-      if (resData.xpGain || resolvedUnlockedClass || statGains.length > 0) {
+      if (resData.xpGain || resolvedUnlockedClass || statGains.length > 0 || resolvedCheckpoints.length > 0) {
         const baseXpGain = resData.xpGain || {
           gainedXp: 0,
           prevTotalXp: xpSnapshot?.totalXp || 0,
@@ -704,12 +721,18 @@ export default function MovieFormModal({
           ...baseXpGain,
           isGhost: ghostRun,
           statGains: statGains.length > 0 ? statGains : baseXpGain.statGains,
+          universeCheckpoints: resolvedCheckpoints.length > 0 ? resolvedCheckpoints : undefined,
           unlockedClass: resolvedUnlockedClass,
         };
 
         triggerXPGainToast(enrichedXpGain, ghostRun ? null : resData.xpStatus);
       } else if (!ghostRun && resData.xpStatus) {
         dispatchXpStatusUpdate(resData.xpStatus);
+      }
+
+      // 5º Estágio (ATO 3 — Grand Finale): Letreiro de Vitória 100% APÓS a Barra de XP sumir!
+      if (universeVictories.length > 0) {
+        triggerUniverseVictory(universeVictories);
       }
 
       if (!ghostRun) {

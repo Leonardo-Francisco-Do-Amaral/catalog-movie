@@ -10,6 +10,19 @@ import {
   TimeMachineXpSummary,
 } from './timeMachineService';
 import type { EvaluatedTrophy, TrophiesSummaryResponse } from './trophyService';
+import { UNIVERSE_MEGA_SAGAS, UNIVERSE_SAGAS } from '../data/universeDefinitions';
+import {
+  getQuickUniverseXpSummary,
+  UniverseXpSummary,
+  NewlyHitUniverseCheckpoint,
+} from './universeCodexService';
+import {
+  WALK_OF_FAME_STARS,
+  WalkOfFameXpSummary,
+  WalkOfFameXpStarEntry,
+  EMPTY_WALK_OF_FAME_XP_SUMMARY,
+  computeWalkXpSplit,
+} from '../data/walkOfFameData';
 
 export type WorldChallengePayload = Awaited<ReturnType<typeof buildWorldChallengePayload>>;
 export type TimeMachinePayload = Awaited<ReturnType<typeof buildTimeMachinePayload>>;
@@ -191,11 +204,22 @@ export interface UserXpStatus extends LevelProgressInfo {
       totalXp: number;
     };
     timeMachine: TimeMachineXpSummary;
+    universes: UniverseXpSummary;
+    walkOfFame: WalkOfFameXpSummary;
   };
 }
 
 export interface XpGainTag {
-  type: 'movie' | 'country' | 'trophy' | 'time_machine' | 'time_decade';
+  type:
+    | 'movie'
+    | 'country'
+    | 'trophy'
+    | 'time_machine'
+    | 'time_decade'
+    | 'universe_checkpoint'
+    | 'universe_saga'
+    | 'universe_mega'
+    | 'walk_of_fame';
   icon: string;
   label: string;
   xp: number;
@@ -267,9 +291,25 @@ export interface XpGainEvent {
   xpRemaining: number;
   tags: XpGainTag[];
   timeMachineUnlocks?: TimeMachineUnlockNotification[];
+  universeCheckpoints?: NewlyHitUniverseCheckpoint[];
   statGains?: XpStatGain[];
   unlockedClass?: { name: string; icon?: string; flavor?: string } | null;
 }
+
+const EMPTY_UNIVERSE_XP_SUMMARY: UniverseXpSummary = {
+  completedSagasCount: 0,
+  totalSagasCount: UNIVERSE_SAGAS.length,
+  completedMegaSagasCount: 0,
+  totalMegaSagasCount: UNIVERSE_MEGA_SAGAS.length,
+  unlockedCheckpointsCount: 0,
+  checkpointsXp: 0,
+  sagasXp: 0,
+  megaSagasXp: 0,
+  totalXp: 0,
+  unlockedCheckpointKeys: {},
+  completedSagas: {},
+  completedMegaSagas: {},
+};
 
 function isMovieCoproduction(m: any): boolean {
   const coprodLen = Array.isArray(m?.coproductionCountries) ? m.coproductionCountries.length : 0;
@@ -278,12 +318,60 @@ function isMovieCoproduction(m: any): boolean {
 }
 
 /**
- * Constrói o status completo de XP a partir dos dados do Desafio 195 e da lista de Troféus.
+ * Constrói o status completo de XP a partir dos dados do Desafio 195, Troféus e Códice dos Universos.
  * Respeita estritamente a Regra de Ouro da Central de Curadoria de Coproduções!
  */
+export async function getQuickWalkOfFameXpSummary(): Promise<WalkOfFameXpSummary> {
+  try {
+    const res = await query(
+      `SELECT star_id, claimed_xp_pct, claimed_xp_extra_stars FROM walk_of_fame_album_state WHERE claimed_xp_pct > 0 OR claimed_xp_extra_stars > 0`
+    );
+    const starMetaById = new Map(WALK_OF_FAME_STARS.map((s) => [s.id, s]));
+    const starsById: Record<string, WalkOfFameXpStarEntry> = {};
+    let milestonesXp = 0;
+    let extraStarsXp = 0;
+    let claimedStarsCount = 0;
+    let totalClaimedExtraStars = 0;
+
+    for (const r of res.rows || []) {
+      const starId = String(r.star_id || '');
+      const claimedPct = Math.max(0, Number(r.claimed_xp_pct || 0));
+      const claimedExtraStars = Math.max(0, Number(r.claimed_xp_extra_stars || 0));
+      const split = computeWalkXpSplit(claimedPct, claimedExtraStars);
+      if (split.totalXp <= 0) continue;
+      const def = starMetaById.get(starId);
+      starsById[starId] = {
+        starId,
+        name: def?.name || starId,
+        icon: def?.icon || '🌟',
+        claimedPct,
+        claimedExtraStars,
+        xp: split.totalXp,
+      };
+      milestonesXp += split.milestonesXp;
+      extraStarsXp += split.extraStarsXp;
+      claimedStarsCount += 1;
+      totalClaimedExtraStars += claimedExtraStars;
+    }
+
+    return {
+      claimedStarsCount,
+      totalClaimedExtraStars,
+      milestonesXp,
+      extraStarsXp,
+      totalXp: milestonesXp + extraStarsXp,
+      starsById,
+    };
+  } catch {
+    return EMPTY_WALK_OF_FAME_XP_SUMMARY;
+  }
+}
+
 export function buildUserXpStatus(
   worldData: WorldChallengePayload,
-  trophiesList: Array<{ id: string; title: string; tier: TrophyTier; is_unlocked: boolean }>
+  trophiesList: Array<{ id: string; title: string; tier: TrophyTier; is_unlocked: boolean }>,
+  universeSummary: UniverseXpSummary = EMPTY_UNIVERSE_XP_SUMMARY,
+  walkOfFameSummary: WalkOfFameXpSummary = EMPTY_WALK_OF_FAME_XP_SUMMARY
 ): UserXpStatus {
   // 1. XP por Filmes Cadastrados (cada filme único = +10 XP)
   const moviesCount = Array.isArray(worldData.catalogMovies) ? worldData.catalogMovies.length : 0;
@@ -376,7 +464,19 @@ export function buildUserXpStatus(
   // 4. XP da Máquina do Tempo (Anos Conquistados + Bônus de Décadas Completas)
   const timeMachineSummary = computeTimeMachineXpSummary(worldData.catalogMovies || []);
 
-  const totalXp = moviesXp + countriesXp + trophiesXp + timeMachineSummary.totalXp;
+  // 5. XP do Códice dos Universos (Checkpoints +30 XP, Sagas 100%, Mega-Sagas Míticas)
+  const universesSummary = universeSummary || EMPTY_UNIVERSE_XP_SUMMARY;
+
+  // 6. XP da Calçada da Fama (Computado apenas ao abrir pacotinho ou colar figurinha)
+  const safeWalkOfFameSummary = walkOfFameSummary || EMPTY_WALK_OF_FAME_XP_SUMMARY;
+
+  const totalXp =
+    moviesXp +
+    countriesXp +
+    trophiesXp +
+    timeMachineSummary.totalXp +
+    universesSummary.totalXp +
+    safeWalkOfFameSummary.totalXp;
   const levelInfo = calculateLevelFromXp(totalXp);
 
   return {
@@ -403,6 +503,8 @@ export function buildUserXpStatus(
         totalXp: trophiesXp,
       },
       timeMachine: timeMachineSummary,
+      universes: universesSummary,
+      walkOfFame: safeWalkOfFameSummary,
     },
   };
 }
@@ -612,13 +714,15 @@ export function computeWorldChallengeEvents(
  * Snapshot rápido do banco antes de uma mutação (evita reavaliar 432 regras duas vezes).
  */
 export async function getQuickXpSnapshot(): Promise<UserXpStatus> {
-  const [worldData, trophiesRes] = await Promise.all([
+  const [worldData, trophiesRes, universeSummary, walkOfFameSummary] = await Promise.all([
     buildWorldChallengePayload(),
     query(`
       SELECT t.id, t.title, t.tier, COALESCE(ut.is_unlocked, FALSE) AS is_unlocked
       FROM trophies t
       LEFT JOIN user_trophies ut ON ut.trophy_id = t.id
     `),
+    getQuickUniverseXpSummary().catch(() => EMPTY_UNIVERSE_XP_SUMMARY),
+    getQuickWalkOfFameXpSummary().catch(() => EMPTY_WALK_OF_FAME_XP_SUMMARY),
   ]);
 
   const trophiesList = trophiesRes.rows.map((r: any) => ({
@@ -628,7 +732,7 @@ export async function getQuickXpSnapshot(): Promise<UserXpStatus> {
     is_unlocked: Boolean(r.is_unlocked),
   }));
 
-  return buildUserXpStatus(worldData, trophiesList);
+  return buildUserXpStatus(worldData, trophiesList, universeSummary, walkOfFameSummary);
 }
 
 /**
@@ -778,7 +882,112 @@ export function computeXpGainEvent(
     }
   }
 
-  // 5. Ganhos de Atributos RPG Cinéfilo baseados exclusivamente no que mudou neste evento de XP
+  // 4.5. Tags do Códice dos Universos (Checkpoints +30 XP, Sagas 100% e Mega-Sagas Míticas)
+  const prevUni = prev.sources?.universes;
+  const nextUni = next.sources?.universes;
+  const universeCheckpoints: NewlyHitUniverseCheckpoint[] = [];
+
+  if (nextUni) {
+    const prevCpMap = prevUni?.unlockedCheckpointKeys || {};
+    for (const [key, cp] of Object.entries(nextUni.unlockedCheckpointKeys || {})) {
+      if (!prevCpMap[key]) {
+        universeCheckpoints.push({
+          sagaId: cp.sagaId,
+          sagaTitle: cp.sagaTitle,
+          icon: cp.icon,
+          threshold: cp.threshold,
+          xp: cp.xp,
+          quote: cp.quote,
+          watchedCount: cp.threshold,
+          totalCount: cp.threshold,
+        });
+        tags.push({
+          type: 'universe_checkpoint',
+          icon: cp.icon || '💬',
+          label: `+${cp.xp} XP — Marco da Saga ${cp.sagaTitle}`,
+          xp: cp.xp,
+        });
+      }
+    }
+
+    const prevSagaMap = prevUni?.completedSagas || {};
+    for (const [id, sg] of Object.entries(nextUni.completedSagas || {})) {
+      if (!prevSagaMap[id]) {
+        const meta = TROPHY_TIER_META[sg.tier] || TROPHY_TIER_META.silver;
+        tags.push({
+          type: 'universe_saga',
+          icon: meta.icon,
+          label: `+${sg.xp} XP Saga ${meta.label} (${sg.title})`,
+          xp: sg.xp,
+          rarityOrTier: sg.tier,
+        });
+      }
+    }
+
+    const prevMegaMap = prevUni?.completedMegaSagas || {};
+    for (const [id, ms] of Object.entries(nextUni.completedMegaSagas || {})) {
+      if (!prevMegaMap[id]) {
+        tags.push({
+          type: 'universe_mega',
+          icon: '💎',
+          label: `+${ms.xp} XP Mega-Saga Mítica (${ms.title})`,
+          xp: ms.xp,
+          rarityOrTier: 'mythic',
+        });
+      }
+    }
+  }
+
+  // 5. Ganhos da Calçada da Fama (apenas ao abrir pacote / colar figurinha)
+  const prevWalk = prev.sources?.walkOfFame || EMPTY_WALK_OF_FAME_XP_SUMMARY;
+  const nextWalk = next.sources?.walkOfFame || EMPTY_WALK_OF_FAME_XP_SUMMARY;
+  const changedWalkStars: Array<{ name: string; icon: string; deltaXp: number; claimedPct: number }> = [];
+  for (const [starId, entry] of Object.entries(nextWalk.starsById || {})) {
+    const prevXp = Number(prevWalk.starsById?.[starId]?.xp || 0);
+    const deltaXp = Number(entry.xp || 0) - prevXp;
+    if (deltaXp > 0) {
+      changedWalkStars.push({
+        name: entry.name || starId,
+        icon: entry.icon || '🌟',
+        deltaXp,
+        claimedPct: Number(entry.claimedPct || 0),
+      });
+    }
+  }
+  if (changedWalkStars.length > 0 && changedWalkStars.length <= 2) {
+    for (const s of changedWalkStars) {
+      const rarity =
+        s.claimedPct >= 90
+          ? 'diamond'
+          : s.claimedPct >= 75
+          ? 'mythic'
+          : s.claimedPct >= 60
+          ? 'gold'
+          : s.claimedPct >= 45
+          ? 'epic'
+          : s.claimedPct >= 30
+          ? 'silver'
+          : 'bronze';
+      tags.push({
+        type: 'walk_of_fame',
+        icon: s.icon,
+        label: `+${s.deltaXp} XP Calçada (${s.name})`,
+        xp: s.deltaXp,
+        rarityOrTier: rarity,
+      });
+    }
+  } else if (changedWalkStars.length > 2) {
+    const sumXp = changedWalkStars.reduce((acc, s) => acc + s.deltaXp, 0);
+    tags.push({
+      type: 'walk_of_fame',
+      icon: '🌟',
+      label: `+${sumXp} XP Calçada (${changedWalkStars.length} estrelas)`,
+      xp: sumXp,
+      rarityOrTier: 'gold',
+    });
+  }
+
+  // 6. Ganhos de Atributos RPG Cinéfilo baseados exclusivamente no que mudou neste evento de XP
   const statGains: XpStatGain[] = [];
   if (movieDiff > 0) {
     const sorPoints = Math.round(movieDiff * 0.2 * 10) / 10;
@@ -854,6 +1063,7 @@ export function computeXpGainEvent(
     xpRemaining: next.xpRemaining,
     tags,
     timeMachineUnlocks,
+    universeCheckpoints: universeCheckpoints.length > 0 ? universeCheckpoints : undefined,
     statGains: statGains.length > 0 ? statGains : undefined,
   };
 }

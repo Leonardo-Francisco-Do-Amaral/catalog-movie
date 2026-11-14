@@ -50,6 +50,8 @@ import {
   computeSaveCheckpoints,
   computeYearShowdown,
   computeRpgAndGuilds,
+  computeUniverseOverview,
+  computeUniverseRelics,
 } from '../utils/analyticsEngine';
 
 const API_BASE_URL = 'http://localhost:5000/api';
@@ -269,6 +271,8 @@ export default function AnalyticsDashboard({
   const [liveXp, setLiveXp] = useState(xpStatusProp);
   const [trophiesList, setTrophiesList] = useState([]);
   const [worldOriginMap, setWorldOriginMap] = useState({});
+  const [universeCodex, setUniverseCodex] = useState(null);
+  const [walkOfFameData, setWalkOfFameData] = useState(null);
   const [countryViewMode, setCountryViewMode] = useState('coproductions'); // 'coproductions' | 'origin'
 
   const isYearFilterActive = selectedYear !== 'Geral';
@@ -310,14 +314,22 @@ export default function AnalyticsDashboard({
     let mounted = true;
     const loadServerInsights = async () => {
       try {
-        const [xpRes, trRes, worldRes] = await Promise.allSettled([
+        const [xpRes, trRes, worldRes, uniRes, wofRes] = await Promise.allSettled([
           axios.get(`${API_BASE_URL}/xp`),
           axios.get(`${API_BASE_URL}/trophies`),
           axios.get(`${API_BASE_URL}/challenge/world-195`),
+          axios.get(`${API_BASE_URL}/universes`),
+          axios.get(`${API_BASE_URL}/walk-of-fame`),
         ]);
         if (!mounted) return;
         if (xpRes.status === 'fulfilled' && xpRes.value.data?.success && xpRes.value.data?.data) {
           setLiveXp(xpRes.value.data.data);
+        }
+        if (uniRes.status === 'fulfilled' && uniRes.value.data?.success && uniRes.value.data?.data) {
+          setUniverseCodex(uniRes.value.data.data);
+        }
+        if (wofRes.status === 'fulfilled' && wofRes.value.data?.success && wofRes.value.data?.data) {
+          setWalkOfFameData(wofRes.value.data.data);
         }
         if (worldRes.status === 'fulfilled' && worldRes.value.data?.success && worldRes.value.data?.data?.catalogMovies) {
           const countryMetaByCode = {};
@@ -399,6 +411,16 @@ export default function AnalyticsDashboard({
   const extremeRecords = useMemo(
     () => computeExtremeRecords(filteredMovies, worldOriginMap),
     [filteredMovies, worldOriginMap]
+  );
+
+  const universeRelics = useMemo(
+    () => (isYearFilterActive ? [] : computeUniverseRelics(universeCodex)),
+    [universeCodex, isYearFilterActive]
+  );
+
+  const displayedRecords = useMemo(
+    () => [...extremeRecords, ...universeRelics],
+    [extremeRecords, universeRelics]
   );
 
   const checkpoints = useMemo(
@@ -607,11 +629,75 @@ export default function AnalyticsDashboard({
   const trophiesXp = xpSources.trophies?.totalXp || 0;
   const countriesXp = xpSources.countries?.totalXp || 0;
   const timeMachineXp = xpSources.timeMachine?.totalXp || 0;
+  const universesXp = xpSources.universes?.totalXp || 0;
+  const walkOfFameXp = xpSources.walkOfFame?.totalXp || 0;
+
+  const universeOverview = useMemo(
+    () => computeUniverseOverview(universeCodex, xpSources.universes),
+    [universeCodex, xpSources.universes]
+  );
+
+  const walkOfFameOverview = useMemo(() => {
+    const stars = Array.isArray(walkOfFameData?.stars) ? walkOfFameData.stars : [];
+    const alamedas = Array.isArray(walkOfFameData?.alamedas) ? walkOfFameData.alamedas : [];
+    const summary = walkOfFameData?.summary || {};
+    const xpWalk = xpSources.walkOfFame || {};
+    const totalStars = summary.totalStars ?? stars.length ?? 0;
+    const inauguratedCount =
+      summary.inauguratedCount ?? stars.filter((s) => Number(s.percentage || 0) >= 15).length;
+    const stuckCount = summary.stuckCount ?? stars.filter((s) => s.isStuck).length;
+    const diamondCount = summary.diamondCount ?? stars.filter((s) => Number(s.percentage || 0) >= 100).length;
+    const pendingPackCount =
+      summary.pendingPackCount ??
+      (Array.isArray(walkOfFameData?.pendingPacks) ? walkOfFameData.pendingPacks.length : 0);
+    const totalExtraStars = summary.totalExtraStars ?? xpWalk.totalExtraStars ?? 0;
+    const totalWatchedAppearances = summary.totalWatchedAppearances ?? 0;
+    const byAlameda = alamedas.map((al) => {
+      const group = stars.filter((s) => s.alameda === al.id);
+      const total = group.length;
+      const unlocked = group.filter((s) => Number(s.percentage || 0) >= 15).length;
+      const stuck = group.filter((s) => s.isStuck).length;
+      const avgPct =
+        total > 0
+          ? Math.round(group.reduce((acc, s) => acc + Math.min(100, Number(s.percentage || 0)), 0) / total)
+          : 0;
+      const appearances = group.reduce((acc, s) => acc + Number(s.watchedCount || 0), 0);
+      return {
+        id: al.id,
+        label: al.label,
+        icon: al.icon,
+        total,
+        unlocked,
+        stuck,
+        avgPct,
+        appearances,
+      };
+    });
+    const topStar =
+      Array.isArray(summary.topWatchedPodium) && summary.topWatchedPodium.length > 0
+        ? summary.topWatchedPodium[0]
+        : null;
+    return {
+      totalStars,
+      inauguratedCount,
+      stuckCount,
+      diamondCount,
+      pendingPackCount,
+      totalExtraStars,
+      totalWatchedAppearances,
+      rpgClassTitle: summary.rpgClassTitle || null,
+      rpgRankTitle: summary.rpgRankTitle || null,
+      byAlameda,
+      topStar,
+    };
+  }, [walkOfFameData, xpSources.walkOfFame]);
 
   const pctMoviesXp = ((moviesXp / totalXp) * 100).toFixed(1);
   const pctTrophiesXp = ((trophiesXp / totalXp) * 100).toFixed(1);
   const pctCountriesXp = ((countriesXp / totalXp) * 100).toFixed(1);
   const pctTimeMachineXp = ((timeMachineXp / totalXp) * 100).toFixed(1);
+  const pctUniversesXp = ((universesXp / totalXp) * 100).toFixed(1);
+  const pctWalkOfFameXp = ((walkOfFameXp / totalXp) * 100).toFixed(1);
 
   const showSection = (id) => {
     if (isYearFilterActive && (id === 'xp_rpg' || id === 'checkpoints')) {
@@ -891,7 +977,7 @@ export default function AnalyticsDashboard({
                     Anatomia Completa do XP — De Onde Vem o Seu Poder?
                   </span>
                   <span className="text-[11px] font-mono text-zinc-400">
-                    4 Sistemas Integrados • 100% Tempo Real
+                    6 Sistemas Integrados • 100% Tempo Real
                   </span>
                 </div>
 
@@ -914,13 +1000,23 @@ export default function AnalyticsDashboard({
                   />
                   <div
                     style={{ width: `${pctCountriesXp}%` }}
-                    className="h-full bg-emerald-400 rounded-r-full transition-all"
+                    className="h-full bg-emerald-400 transition-all"
                     title={`Desafio 195 Países: ${countriesXp} XP (${pctCountriesXp}%)`}
+                  />
+                  <div
+                    style={{ width: `${pctUniversesXp}%` }}
+                    className="h-full bg-indigo-400 transition-all"
+                    title={`Códice dos Universos: ${universesXp} XP (${pctUniversesXp}%)`}
+                  />
+                  <div
+                    style={{ width: `${pctWalkOfFameXp}%` }}
+                    className="h-full bg-rose-400 rounded-r-full transition-all"
+                    title={`Álbum da Fama: ${walkOfFameXp} XP (${pctWalkOfFameXp}%)`}
                   />
                 </div>
 
-                {/* Legenda dos 4 Motores */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1">
+                {/* Legenda dos 6 Motores */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
                   <div className="flex items-center justify-between rounded-xl bg-zinc-950/90 border border-purple-500/30 px-3 py-2">
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
@@ -960,6 +1056,26 @@ export default function AnalyticsDashboard({
                     </div>
                     <span className="text-xs font-mono font-black text-emerald-300">
                       +{countriesXp.toLocaleString('pt-BR')} XP ({pctCountriesXp}%)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-xl bg-zinc-950/90 border border-indigo-500/30 px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-indigo-400" />
+                      <span className="text-xs font-bold text-zinc-200">🌌 Códice Universos</span>
+                    </div>
+                    <span className="text-xs font-mono font-black text-indigo-300">
+                      +{universesXp.toLocaleString('pt-BR')} XP ({pctUniversesXp}%)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-xl bg-zinc-950/90 border border-rose-500/30 px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
+                      <span className="text-xs font-bold text-zinc-200">🌟 Álbum da Fama</span>
+                    </div>
+                    <span className="text-xs font-mono font-black text-rose-300">
+                      +{walkOfFameXp.toLocaleString('pt-BR')} XP ({pctWalkOfFameXp}%)
                     </span>
                   </div>
                 </div>
@@ -1019,8 +1135,8 @@ export default function AnalyticsDashboard({
             </div>
           </div>
 
-          {/* DETALHAMENTO PROFUNDO DOS 3 GRANDES SUBSISTEMAS DE XP */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {/* DETALHAMENTO PROFUNDO DOS 5 SUBSISTEMAS DE XP */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
             {/* Subsistema 1: Troféus PS5 por Tier */}
             <div className="rounded-3xl bg-zinc-950/90 border border-purple-500/30 p-5 flex flex-col justify-between gap-4">
               <div className="flex flex-col gap-3">
@@ -1230,6 +1346,193 @@ export default function AnalyticsDashboard({
                   className="w-full py-2.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 text-xs font-black uppercase tracking-wider text-cyan-200 flex items-center justify-center gap-1.5 cursor-pointer transition-all"
                 >
                   <span>Abrir Máquina do Tempo</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Subsistema 4: Universos Conquistados (Códice Multiversal) */}
+            <div className="relative overflow-hidden rounded-3xl bg-zinc-950/90 border border-indigo-500/35 p-5 flex flex-col justify-between gap-4">
+              <div className="pointer-events-none absolute -top-16 -right-14 w-48 h-48 rounded-full bg-fuchsia-500/10 blur-3xl" />
+
+              <div className="relative z-10 flex flex-col gap-3">
+                <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">
+                      Expansão Multiversal
+                    </span>
+                    <h3 className="text-base font-black text-white">
+                      🌌 Universos Conquistados
+                    </h3>
+                    <div className="text-[11px] font-mono text-zinc-400 mt-0.5">
+                      💎 {universeOverview.completedMegaSagas}/{universeOverview.totalMegaSagas} Míticas • 🏆{' '}
+                      {universeOverview.completedSagas}/{universeOverview.totalSagas} Sagas
+                    </div>
+                  </div>
+                  <span className="text-xs font-mono font-black px-2.5 py-1 rounded-xl bg-indigo-500/20 border border-indigo-400/40 text-indigo-200 shrink-0">
+                    +{universesXp.toLocaleString('pt-BR')} XP
+                  </span>
+                </div>
+
+                {/* Radar Multiversal: Marcos & Cobertura do Códice */}
+                <div className="rounded-xl bg-zinc-900/80 border border-indigo-500/25 px-3 py-2.5 flex flex-col gap-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-300 font-bold">
+                      🏁 Marcos ({universeOverview.unlockedCheckpoints}/{universeOverview.totalCheckpoints}):
+                    </span>
+                    <span className="font-mono font-black text-fuchsia-300">
+                      +{universeOverview.checkpointsXp.toLocaleString('pt-BR')} XP
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                    <span>🎬 Obras no Códice:</span>
+                    <span className="font-mono font-bold text-indigo-200">
+                      {universeOverview.uniqueWatchedMovies}/{universeOverview.uniqueTotalMovies} ({universeOverview.moviesPct}%)
+                    </span>
+                  </div>
+                  {universeOverview.topMegaProgress && universeOverview.topMegaProgress.watchedMoviesCount > 0 && (
+                    <div className="pt-0.5 flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-fuchsia-500/15 border border-fuchsia-400/40 text-fuchsia-200 truncate max-w-full">
+                        {universeOverview.topMegaProgress.icon} Líder Mítica:{' '}
+                        {universeOverview.topMegaProgress.watchedMoviesCount}/
+                        {universeOverview.topMegaProgress.totalMoviesCount} filmes
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Quebra por Tier do Códice */}
+                <div className="flex flex-col gap-2">
+                  {universeOverview.byTier.map((row) => (
+                    <div key={row.key} className="rounded-xl bg-zinc-900/70 border border-zinc-800/90 px-3 py-2 flex flex-col gap-1">
+                      <div className="flex items-center justify-between text-xs gap-2">
+                        <span className={`font-black truncate ${row.color}`}>
+                          {row.icon} {row.label}
+                          {row.inProgress > 0 && (
+                            <span className="text-[10px] font-normal text-zinc-500 ml-1">
+                              ({row.inProgress} em curso)
+                            </span>
+                          )}
+                        </span>
+                        <span className="font-mono font-bold text-zinc-200 shrink-0">
+                          {row.completed}/{row.total}
+                          <span className="text-indigo-300 ml-1.5">+{row.earnedXp} XP</span>
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 rounded-full bg-zinc-950 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${row.barColor}`}
+                          style={{ width: `${row.pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {onNavigateTab && (
+                <button
+                  type="button"
+                  onClick={() => onNavigateTab('universes')}
+                  className="relative z-10 w-full py-2.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-400/40 text-xs font-black uppercase tracking-wider text-indigo-200 flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                >
+                  <span>Abrir Códice dos Universos</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Subsistema 5: Álbum da Fama (Calçada da Fama) */}
+            <div className="relative overflow-hidden rounded-3xl bg-zinc-950/90 border border-rose-500/35 p-5 flex flex-col justify-between gap-4 lg:col-span-2 xl:col-span-1">
+              <div className="pointer-events-none absolute -top-16 -right-14 w-48 h-48 rounded-full bg-rose-500/10 blur-3xl" />
+
+              <div className="relative z-10 flex flex-col gap-3">
+                <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-rose-400">
+                      Calçada da Fama do Catálogo
+                    </span>
+                    <h3 className="text-base font-black text-white">
+                      🌟 {walkOfFameOverview.stuckCount} / {walkOfFameOverview.totalStars} Coladas
+                    </h3>
+                    <div className="text-[11px] font-mono text-zinc-400 mt-0.5">
+                      🔓 {walkOfFameOverview.inauguratedCount} Liberadas • 💎 {walkOfFameOverview.diamondCount} Diamante • ⭐ +{walkOfFameOverview.totalExtraStars} ★
+                    </div>
+                  </div>
+                  <span className="text-xs font-mono font-black px-2.5 py-1 rounded-xl bg-rose-500/20 border border-rose-400/40 text-rose-200 shrink-0">
+                    +{walkOfFameXp.toLocaleString('pt-BR')} XP
+                  </span>
+                </div>
+
+                {/* Radar do Álbum da Fama */}
+                <div className="rounded-xl bg-zinc-900/80 border border-rose-500/25 px-3 py-2.5 flex flex-col gap-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-300 font-bold">🎁 Pacotes Pendentes:</span>
+                    <span
+                      className={`font-mono font-black ${
+                        walkOfFameOverview.pendingPackCount > 0 ? 'text-amber-300' : 'text-zinc-400'
+                      }`}
+                    >
+                      {walkOfFameOverview.pendingPackCount} lacrado(s)
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                    <span>🎬 Créditos Catalogados nas Estrelas:</span>
+                    <span className="font-mono font-bold text-rose-200">
+                      {walkOfFameOverview.totalWatchedAppearances} aparições
+                    </span>
+                  </div>
+                  {(walkOfFameOverview.topStar || walkOfFameOverview.rpgClassTitle) && (
+                    <div className="pt-0.5 flex items-center gap-1.5 flex-wrap">
+                      {walkOfFameOverview.topStar && (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-400/40 text-amber-200 truncate max-w-full">
+                          👑 Líder: {walkOfFameOverview.topStar.icon} {walkOfFameOverview.topStar.name} (
+                          {walkOfFameOverview.topStar.watchedCount} filmes)
+                        </span>
+                      )}
+                      {walkOfFameOverview.rpgClassTitle && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-500/15 border border-rose-400/35 text-rose-200 truncate max-w-full">
+                          {walkOfFameOverview.rpgClassTitle}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Quebra por Alameda */}
+                <div className="flex flex-col gap-2">
+                  {walkOfFameOverview.byAlameda.map((al) => (
+                    <div key={al.id} className="rounded-xl bg-zinc-900/70 border border-zinc-800/90 px-3 py-2 flex flex-col gap-1">
+                      <div className="flex items-center justify-between text-xs gap-2">
+                        <span className="font-black text-rose-200 truncate">
+                          {al.icon} {al.label}{' '}
+                          <span className="text-[10px] font-normal text-zinc-500">
+                            ({al.appearances} filmes)
+                          </span>
+                        </span>
+                        <span className="font-mono font-bold text-zinc-200 shrink-0">
+                          {al.unlocked}/{al.total} lib.
+                          <span className="text-amber-300 ml-1.5">{al.stuck} col.</span>
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 rounded-full bg-zinc-950 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-rose-500 to-amber-400 transition-all"
+                          style={{ width: `${al.avgPct}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {onNavigateTab && (
+                <button
+                  type="button"
+                  onClick={() => onNavigateTab('walk_of_fame')}
+                  className="relative z-10 w-full py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-400/40 text-xs font-black uppercase tracking-wider text-rose-200 flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                >
+                  <span>Abrir Álbum da Fama</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
               )}
@@ -1923,9 +2226,9 @@ export default function AnalyticsDashboard({
             </div>
             <div className="flex flex-col sm:items-end gap-0.5">
               <span className="text-xs font-mono text-zinc-400">
-                {extremeRecords.length} Artefatos Identificados
+                {displayedRecords.length} Artefatos Identificados
               </span>
-              {extremeRecords.some((r) => (r.tiedVariants?.length || 0) > 1) && (
+              {displayedRecords.some((r) => (r.tiedVariants?.length || 0) > 1) && (
                 <span className="text-[10px] font-mono text-amber-300/90">
                   🔄 Clique nos cards com empate para virar
                 </span>
@@ -1934,7 +2237,7 @@ export default function AnalyticsDashboard({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {extremeRecords.map((rec) => (
+            {displayedRecords.map((rec) => (
               <ExtremeRecordCard key={rec.id} rec={rec} />
             ))}
           </div>

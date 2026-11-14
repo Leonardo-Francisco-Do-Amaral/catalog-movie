@@ -148,7 +148,8 @@ export default function TopNavbar({
   studioCounts = {},
   distributorCounts = {},
   platformCounts = {},
-  audioCounts = {}
+  audioCounts = {},
+  walkOfFamePackCount = 0
 }) {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [dropdownSearch, setDropdownSearch] = useState('');
@@ -579,6 +580,32 @@ export default function TopNavbar({
             <button
               type="button"
               onClick={() => {
+                setActiveTab('walk_of_fame');
+                setOpenDropdown(null);
+              }}
+              title={
+                walkOfFamePackCount > 0
+                  ? `${walkOfFamePackCount} pacote(s) lacrado(s) aguardando abertura no Álbum`
+                  : undefined
+              }
+              className={`inline-flex items-center px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap ${
+                activeTab === 'walk_of_fame'
+                  ? 'bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 shadow-md shadow-amber-400/25'
+                  : walkOfFamePackCount > 0
+                  ? 'text-amber-200 bg-rose-500/15 ring-1 ring-rose-400/60 hover:bg-rose-500/25 shadow-[0_0_16px_rgba(244,63,94,0.28)]'
+                  : 'text-amber-300/90 hover:text-amber-200 hover:bg-amber-400/10'
+              }`}
+            >
+              <span>📖 Álbum da Fama</span>
+              {walkOfFamePackCount > 0 && (
+                <span className="ml-1.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[9px] font-black animate-pulse shadow">
+                  🎁 {walkOfFamePackCount}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
                 setActiveTab('trophies');
                 setOpenDropdown(null);
               }}
@@ -603,6 +630,20 @@ export default function TopNavbar({
               }`}
             >
               ⏳ Máquina do Tempo
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('universes');
+                setOpenDropdown(null);
+              }}
+              className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer ${
+                activeTab === 'universes'
+                  ? 'bg-indigo-400 text-slate-950 shadow-md shadow-indigo-400/25'
+                  : 'text-indigo-300/90 hover:text-indigo-200 hover:bg-indigo-400/10'
+              }`}
+            >
+              🌌 Códice dos Universos
             </button>
             <button
               type="button"
@@ -634,7 +675,12 @@ export default function TopNavbar({
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
-                if (activeTab !== 'catalog' && activeTab !== 'time_machine' && e.target.value.trim()) {
+                if (
+                  activeTab !== 'catalog' &&
+                  activeTab !== 'time_machine' &&
+                  activeTab !== 'universes' &&
+                  e.target.value.trim()
+                ) {
                   setActiveTab('catalog');
                 }
               }}

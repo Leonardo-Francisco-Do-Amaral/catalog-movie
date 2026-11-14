@@ -31,11 +31,6 @@ export const CATEGORY_BADGE_CONFIG = {
     icon: '📅',
     bg: 'bg-amber-950/80 text-amber-300 border-amber-500/40',
   },
-  universos_sagas: {
-    label: 'UNIVERSOS & SAGAS',
-    icon: '🌌',
-    bg: 'bg-indigo-950/80 text-indigo-300 border-indigo-500/40',
-  },
   mafia_hollywood: {
     label: 'A MÁFIA DE HOLLYWOOD',
     icon: '🕴️',
@@ -55,11 +50,6 @@ export const CATEGORY_BADGE_CONFIG = {
     label: 'SESSÃO SECRETA',
     icon: '🕵️‍♂️',
     bg: 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40',
-  },
-  calcada_da_fama: {
-    label: 'CALÇADA DA FAMA',
-    icon: '⭐',
-    bg: 'bg-amber-950/80 text-amber-300 border-amber-500/40',
   },
   multi: {
     label: 'MULTICATEGORIA',

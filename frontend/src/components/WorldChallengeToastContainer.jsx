@@ -97,7 +97,7 @@ function WorldChallengeCard({ item, onRemove }) {
 
   const newPoster = resolvePosterUrl(item.posterUrl);
   const oldPoster = resolvePosterUrl(item.previousPosterUrl);
-  const durationMs = item.duelEffect || isDethrone ? 6000 : 5000;
+  const durationMs = item.duelEffect || isDethrone ? 8000 : 5000;
   const ratingDiff =
     isDethrone && Number(item.userRating) > Number(item.previousUserRating || 0)
       ? Number(item.userRating) - Number(item.previousUserRating || 0)
@@ -289,8 +289,30 @@ function WorldChallengeCard({ item, onRemove }) {
 
 const MAX_VISIBLE_WORLD_CARDS = 2;
 
+const COUNTRY_AUDIO_CODES = new Set(['cn', 'ru', 'su', 'th']);
+
 export default function WorldChallengeToastContainer() {
-  const [state, setState] = useState({ visible: [], queue: [] });
+  const [state, setState] = useState({
+    visible: [],
+    queue: [],
+    waveId: 0,
+    soundItem: null,
+  });
+  const lastSoundWaveRef = useRef(0);
+
+  useEffect(() => {
+    if (!state.waveId || lastSoundWaveRef.current === state.waveId) return;
+    lastSoundWaveRef.current = state.waveId;
+    const item = state.soundItem;
+    if (!item) return;
+
+    playWorldConquestSound(
+      item.rarity,
+      item.kind === 'country_dethrone',
+      item.duelEffect || null,
+      item.countryCode || null
+    );
+  }, [state.waveId, state.soundItem]);
 
   const enqueueUnlocks = useCallback((rawItems) => {
     const list = Array.isArray(rawItems) ? rawItems.filter(Boolean) : [];
@@ -327,17 +349,21 @@ export default function WorldChallengeToastContainer() {
       if (freeSlots > 0) {
         const toShow = allPending.slice(0, freeSlots);
         const remaining = allPending.slice(freeSlots);
+        const leadItem =
+          toShow.find((it) => it.kind === 'country_dethrone') ||
+          toShow.find((it) => COUNTRY_AUDIO_CODES.has(String(it.countryCode || '').toLowerCase())) ||
+          toShow[0] ||
+          null;
 
-        toShow.forEach((item, i) => {
-          setTimeout(() => {
-            playWorldConquestSound(item.rarity, item.kind === 'country_dethrone', item.duelEffect || null);
-          }, i * 180);
-        });
-
-        return { visible: [...prev.visible, ...toShow], queue: remaining };
+        return {
+          visible: [...prev.visible, ...toShow],
+          queue: remaining,
+          waveId: prev.waveId + 1,
+          soundItem: leadItem,
+        };
       }
 
-      return { visible: prev.visible, queue: allPending };
+      return { ...prev, queue: allPending };
     });
   }, []);
 
@@ -348,13 +374,15 @@ export default function WorldChallengeToastContainer() {
 
       if (nextVisible.length < MAX_VISIBLE_WORLD_CARDS && prev.queue.length > 0) {
         const [nextItem, ...restQueue] = prev.queue;
-        setTimeout(() => {
-          playWorldConquestSound(nextItem.rarity, nextItem.kind === 'country_dethrone', nextItem.duelEffect || null);
-        }, 100);
-        return { visible: [...nextVisible, nextItem], queue: restQueue };
+        return {
+          visible: [...nextVisible, nextItem],
+          queue: restQueue,
+          waveId: prev.waveId + 1,
+          soundItem: nextItem,
+        };
       }
 
-      return { visible: nextVisible, queue: prev.queue };
+      return { ...prev, visible: nextVisible };
     });
   }, []);
 

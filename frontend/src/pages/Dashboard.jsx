@@ -8,11 +8,16 @@ import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import WorldChallengePage from '../components/WorldChallengePage';
 import TimeMachinePage from '../components/TimeMachinePage';
 import TrophiesPage from './TrophiesPage';
+import UniverseCodexPage from './UniverseCodexPage';
 import AvatarLabPage from './AvatarLabPage';
+import WalkOfFamePage from './WalkOfFamePage';
+import WalkOfFamePackToast from '../components/WalkOfFamePackToast';
 import PS5TrophyToastContainer, { triggerPS5TrophyToast, triggerTrophyBatch } from '../components/PS5TrophyToastContainer';
 import TimeMachineToastContainer from '../components/TimeMachineToastContainer';
 import WorldChallengeToastContainer from '../components/WorldChallengeToastContainer';
 import XPGainToastContainer from '../components/XPGainToastContainer';
+import UniverseVictoryBanner from '../components/UniverseVictoryBanner';
+import UniverseMusicPlayer from '../components/UniverseMusicPlayer';
 import ApiRefreshToastContainer, { triggerApiRefreshToast } from '../components/ApiRefreshToastContainer';
 import { evaluateTrophiesClientSide } from '../utils/trophyEngineClient';
 import {
@@ -215,6 +220,46 @@ export default function Dashboard() {
   const [initialReleaseYear, setInitialReleaseYear] = useState('');
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [reviewedMovieIds, setReviewedMovieIds] = useState([]);
+  const [walkOfFamePacks, setWalkOfFamePacks] = useState([]);
+  const [toastWalkOfFamePacks, setToastWalkOfFamePacks] = useState([]);
+  const [walkOfFameRefreshKey, setWalkOfFameRefreshKey] = useState(0);
+
+  const fetchWalkOfFamePacks = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/walk-of-fame/packs`);
+      if (res.data?.success && res.data?.data) {
+        setWalkOfFamePacks(res.data.data.pendingPacks || []);
+      }
+    } catch {
+      // ignora erro se backend estiver offline
+    }
+  }, []);
+
+  const handleWalkOfFamePacksChanged = useCallback((packs) => {
+    const safePacks = Array.isArray(packs) ? packs : [];
+    setWalkOfFamePacks(safePacks);
+    setToastWalkOfFamePacks((prev) => (prev.length > 0 ? safePacks : []));
+  }, []);
+
+  useEffect(() => {
+    const onWalkPackToast = (e) => {
+      const detail = e?.detail;
+      const incoming = Array.isArray(detail)
+        ? detail
+        : Array.isArray(detail?.packs)
+        ? detail.packs
+        : detail
+        ? [detail]
+        : [];
+      if (incoming.length === 0) return;
+      setToastWalkOfFamePacks((prev) => {
+        const existingIds = new Set(incoming.map((p) => p.packId).filter(Boolean));
+        return [...incoming, ...prev.filter((p) => !p.packId || !existingIds.has(p.packId))];
+      });
+    };
+    window.addEventListener('cine-walk-pack-toast', onWalkPackToast);
+    return () => window.removeEventListener('cine-walk-pack-toast', onWalkPackToast);
+  }, []);
 
   // Calcula diretores, roteiristas, estúdios e distribuidoras frequentes no catálogo + contagens por filme único
   const {
@@ -492,6 +537,10 @@ export default function Dashboard() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    fetchWalkOfFamePacks();
+  }, [fetchWalkOfFamePacks]);
 
   // Extrai tags, gêneros, países e áudios únicos de todos os filmes da base para os filtros
   useEffect(() => {
@@ -833,6 +882,7 @@ export default function Dashboard() {
       await axios.delete(`${API_BASE_URL}/movies/${movieId}`);
       console.log(`[Dashboard] Filme ${movieId} deletado com sucesso.`);
       await fetchData(); // Recarrega os dados do banco após a exclusão
+      await fetchWalkOfFamePacks();
     } catch (err) {
       console.error('[Dashboard] Erro ao excluir filme:', err);
       alert('Erro ao excluir filme do banco de dados.');
@@ -1072,6 +1122,7 @@ export default function Dashboard() {
         distributorCounts={distributorCounts}
         platformCounts={platformCounts}
         audioCounts={audioCounts}
+        walkOfFamePackCount={walkOfFamePacks.length}
       />
 
       {/* Painel Central e Conteúdo da Grelha em Largura Total */}
@@ -1115,7 +1166,31 @@ export default function Dashboard() {
             }}
           />
         ) : activeTab === 'trophies' ? (
-          <TrophiesPage movies={allMovies} />
+          <TrophiesPage
+            movies={allMovies}
+            onOpenWalkOfFame={() => setActiveTab('walk_of_fame')}
+          />
+        ) : activeTab === 'walk_of_fame' ? (
+          <WalkOfFamePage
+            key={walkOfFameRefreshKey}
+            onPacksChanged={handleWalkOfFamePacksChanged}
+            onOpenAddMovieForStar={(title, year) => {
+              setEditingMovie(null);
+              setInitialReleaseYear(year ? String(year) : '');
+              setReviewSearchQuery(title || '');
+              setIsFormOpen(true);
+            }}
+          />
+        ) : activeTab === 'universes' ? (
+          <UniverseCodexPage
+            navbarSearchQuery={searchQuery}
+            onOpenAddMovieForUniverse={(movieTitle, releaseYear) => {
+              setEditingMovie(null);
+              setInitialReleaseYear(releaseYear ? String(releaseYear) : '');
+              setReviewSearchQuery(movieTitle || '');
+              setIsFormOpen(true);
+            }}
+          />
         ) : activeTab === 'time_machine' ? (
           <TimeMachinePage
             movies={allMovies}
@@ -1298,6 +1373,7 @@ export default function Dashboard() {
         onImportComplete={async () => {
           const prevXp = xpStatusRef.current;
           const loaded = await fetchData({ runTrophyScan: false });
+          await fetchWalkOfFamePacks();
           const nextXp = await checkTrophyUnlocks(loaded, true);
           if (prevXp && nextXp) {
             const gain = computeXpGainEvent(prevXp, nextXp);
@@ -1335,7 +1411,7 @@ export default function Dashboard() {
         existingMovies={allMovies}
         prevXpStatus={xpStatus}
         onApiRefreshed={handleApplyApiRefreshPayload}
-        onSave={(_newlyUnlocked, _savedMovie, updatedXpStatus) => {
+        onSave={(_newlyUnlocked, savedMovie, updatedXpStatus) => {
           if (editingMovie?.movie_id) {
             setReviewedMovieIds((prev) =>
               prev.includes(editingMovie.movie_id) ? prev : [...prev, editingMovie.movie_id]
@@ -1347,7 +1423,38 @@ export default function Dashboard() {
           // O MovieFormModal já disparou as notificações de troféus e XP diretamente.
           // Aqui apenas atualizamos a listagem de filmes sem re-disparar scans redundantes.
           fetchData({ runTrophyScan: !updatedXpStatus });
+
+          const savedMovieId = savedMovie?.movie_id || savedMovie?.id || null;
+          const savedMovieTitle = savedMovie?.title || null;
+          if (savedMovieId || savedMovieTitle) {
+            axios
+              .post(`${API_BASE_URL}/walk-of-fame/check-movie`, {
+                movieId: savedMovieId,
+                movieTitle: savedMovieTitle,
+              })
+              .then((res) => {
+                if (res.data?.success && res.data?.data) {
+                  const { createdPacks = [], pendingPacks = [] } = res.data.data;
+                  setWalkOfFamePacks(pendingPacks);
+                  if (createdPacks.length > 0) {
+                    setToastWalkOfFamePacks(createdPacks);
+                  }
+                  if (activeTab === 'walk_of_fame') {
+                    setWalkOfFameRefreshKey((k) => k + 1);
+                  }
+                }
+              })
+              .catch(() => {
+                // ignora se a checagem de pacotinho falhar em modo offline
+              });
+          }
         }}
+      />
+
+      {/* Notificação discreta de Pacotinho de Figurinha do Álbum da Fama */}
+      <WalkOfFamePackToast
+        packs={toastWalkOfFamePacks}
+        onDismiss={() => setToastWalkOfFamePacks([])}
       />
 
       {/* Toast Comparativo de Atualização Seletiva de Métricas da API */}
@@ -1362,8 +1469,12 @@ export default function Dashboard() {
       {/* 3º Estágio: Conquistas Territoriais & Duelos do Desafio 195 */}
       <WorldChallengeToastContainer />
 
-      {/* 4º Estágio: Pop-up / HUD Animado de Ganho de XP e Level Up (Dispara por último!) */}
+      {/* 4º Estágio (ATO 2): Pop-up / HUD Animado de Ganho de XP, Checkpoints e Level Up */}
       <XPGainToastContainer />
+
+      {/* 5º Estágio (ATO 3): Letreiro Panorâmico de Vitória 100% do Códice dos Universos */}
+      <UniverseVictoryBanner />
+      <UniverseMusicPlayer />
     </div>
   );
 }

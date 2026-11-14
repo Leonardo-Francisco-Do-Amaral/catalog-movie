@@ -43,6 +43,20 @@ import {
   computeTimeMachineEvents,
   computeWorldChallengeEvents,
 } from './services/xpService';
+import {
+  seedUniverses,
+  evaluateAndBuildUniverseCodex,
+} from './services/universeCodexService';
+import {
+  buildWalkOfFamePayload,
+  getWalkOfFamePendingPacksSummary,
+  checkWalkOfFameMovieTrigger,
+  stickWalkOfFameStar,
+  unstickWalkOfFameStar,
+  openWalkOfFamePack,
+  updateWalkOfFamePreferences,
+  saveWalkOfFameCustomSkin,
+} from './services/walkOfFameService';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -413,6 +427,36 @@ async function evaluatePostMovieSaveEvents(params: {
   isGhost?: boolean;
 }) {
   const { prevXp, prevWorld, prevTm, movieId, movieTitle, sourceTrigger, isGhost = false } = params;
+  let universeEvents: {
+    checkpoints: any[];
+    completedSagas: any[];
+    completedMegaSagas: any[];
+  } = {
+    checkpoints: [],
+    completedSagas: [],
+    completedMegaSagas: [],
+  };
+
+  try {
+    const codexResult = await evaluateAndBuildUniverseCodex({
+      persist: true,
+      triggerMovieId: movieId,
+    });
+    universeEvents = {
+      checkpoints: codexResult.newlyHitCheckpoints.map((cp) =>
+        isGhost ? { ...cp, isGhost: true } : cp
+      ),
+      completedSagas: codexResult.newlyCompletedSagas.map((s) =>
+        isGhost ? { ...s, isGhost: true } : s
+      ),
+      completedMegaSagas: codexResult.newlyCompletedMegaSagas.map((ms) =>
+        isGhost ? { ...ms, isGhost: true } : ms
+      ),
+    };
+  } catch (uErr: any) {
+    console.error(`[Universes] Erro na auto-avaliação (${sourceTrigger}):`, uErr.message);
+  }
+
   let newlyUnlocked: any[] = [];
   let progressedTrophies: any[] = [];
   let xpStatus: any = null;
@@ -420,6 +464,7 @@ async function evaluatePostMovieSaveEvents(params: {
     const trophyResult = await evaluateTrophies({
       markNew: true,
       dryRun: isGhost,
+      skipUnlocked: sourceTrigger === 'movie_add',
       recordLastMovie:
         isGhost || sourceTrigger !== 'movie_add' ? undefined : { movieId, title: movieTitle },
     });
@@ -451,6 +496,7 @@ async function evaluatePostMovieSaveEvents(params: {
     progressedTrophies,
     timeMachineUnlocks,
     worldChallengeUnlocks,
+    universeEvents,
     xpStatus,
     xpGain,
   };
@@ -1087,8 +1133,10 @@ app.delete('/api/movies/:id', async (req: Request, res: Response) => {
     
     await dbClient.query('COMMIT');
     console.log(`[Express] Filme com ID ${movieId} foi deletado permanentemente.`);
-    // Reavalia troféus após deletar filme
-    evaluateTrophies({ markNew: false }).catch((e) => console.error('[Trophies] Erro na auto-avaliação pós-delete:', e.message));
+    // Reavalia Códice dos Universos e troféus após deletar filme
+    evaluateAndBuildUniverseCodex({ persist: true })
+      .then(() => evaluateTrophies({ markNew: false }))
+      .catch((e) => console.error('[Trophies/Universes] Erro na auto-avaliação pós-delete:', e.message));
     return res.json({ success: true, message: 'Filme excluído com sucesso.' });
   } catch (err: any) {
     await dbClient.query('ROLLBACK');
@@ -1564,7 +1612,7 @@ app.put('/api/challenge/time-machine/wishlist/:year', async (req: Request, res: 
 // Rota: Obter todos os troféus, resumo geral, contagem por tier e novidades
 app.get('/api/trophies', async (req: Request, res: Response) => {
   try {
-    const data = await evaluateTrophies({ markNew: false });
+    const data = await evaluateTrophies({ markNew: false, skipUnlocked: true });
     return res.json({ success: true, data });
   } catch (err: any) {
     console.error('[Trophies] Erro ao listar troféus:', err.message);
@@ -1575,8 +1623,9 @@ app.get('/api/trophies', async (req: Request, res: Response) => {
 // Rota: Reavaliar todos os troféus contra os filmes reais salvos no banco
 app.post('/api/trophies/evaluate', async (req: Request, res: Response) => {
   try {
+    await evaluateAndBuildUniverseCodex({ persist: true }).catch(() => {});
     const markNew = req.body.markNew !== undefined ? Boolean(req.body.markNew) : true;
-    const data = await evaluateTrophies({ markNew });
+    const data = await evaluateTrophies({ markNew, forceSeed: true, skipUnlocked: false });
     return res.json({ success: true, data });
   } catch (err: any) {
     console.error('[Trophies] Erro ao avaliar troféus:', err.message);
@@ -1628,6 +1677,150 @@ app.post('/api/trophies/test/reset-all', async (req: Request, res: Response) => 
 });
 
 // ============================================================================
+// ROTAS DO CÓDICE DOS UNIVERSOS (MEGA-SAGAS MÍTICAS, SAGAS & CHECKPOINTS)
+// ============================================================================
+app.get('/api/universes', async (req: Request, res: Response) => {
+  try {
+    const data = await evaluateAndBuildUniverseCodex({ persist: true });
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[Universes] Erro ao carregar Códice dos Universos:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/universes/sync', async (req: Request, res: Response) => {
+  try {
+    const data = await evaluateAndBuildUniverseCodex({ persist: true });
+    const xpStatus = await getQuickXpSnapshot();
+    return res.json({ success: true, data, xpStatus });
+  } catch (err: any) {
+    console.error('[Universes] Erro na sincronização retroativa do Códice:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ============================================================================
+// ROTAS DA CALÇADA DA FAMA (PROJETO / LAB VISUAL DE ARTISTAS & DUBLADORES)
+// ============================================================================
+app.get('/api/walk-of-fame', async (req: Request, res: Response) => {
+  try {
+    const forceRefresh = req.query.refresh === 'true';
+    const data = await buildWalkOfFamePayload({ forceRefresh });
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[WalkOfFame] Erro ao carregar Calçada da Fama:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/walk-of-fame/refresh', async (_req: Request, res: Response) => {
+  try {
+    const data = await buildWalkOfFamePayload({ forceRefresh: true });
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[WalkOfFame] Erro ao atualizar cache da Calçada da Fama:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/walk-of-fame/packs', async (_req: Request, res: Response) => {
+  try {
+    const data = await getWalkOfFamePendingPacksSummary();
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[WalkOfFame] Erro ao listar pacotinhos:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/walk-of-fame/check-movie', async (req: Request, res: Response) => {
+  try {
+    const movieId = req.body?.movieId ? Number(req.body.movieId) : null;
+    const movieTitle = req.body?.movieTitle ? String(req.body.movieTitle) : null;
+    const data = await checkWalkOfFameMovieTrigger({ movieId, movieTitle });
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[WalkOfFame] Erro ao checar pacotinho pós-cadastro:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/walk-of-fame/packs/:packId/open', async (req: Request, res: Response) => {
+  try {
+    const packId = Number(req.params.packId);
+    const stickImmediately = req.body?.stickImmediately !== false;
+    const prevXp = await getQuickXpSnapshot();
+    const data = await openWalkOfFamePack(packId, stickImmediately);
+    const xpStatus = await getQuickXpSnapshot();
+    const xpGain = computeXpGainEvent(prevXp, xpStatus);
+    return res.json({ success: true, data: { ...data, xpStatus, xpGain } });
+  } catch (err: any) {
+    console.error('[WalkOfFame] Erro ao abrir pacotinho:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/walk-of-fame/stickers/:starId/stick', async (req: Request, res: Response) => {
+  try {
+    const prevXp = await getQuickXpSnapshot();
+    const data = await stickWalkOfFameStar(String(req.params.starId));
+    const xpStatus = await getQuickXpSnapshot();
+    const xpGain = computeXpGainEvent(prevXp, xpStatus);
+    return res.json({ success: true, data: { ...data, xpStatus, xpGain } });
+  } catch (err: any) {
+    console.error('[WalkOfFame] Erro ao colar figurinha:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/walk-of-fame/stickers/:starId/unstick', async (req: Request, res: Response) => {
+  try {
+    const data = await unstickWalkOfFameStar(String(req.params.starId));
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[WalkOfFame] Erro ao descolar figurinha:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/walk-of-fame/stickers/:starId/preferences', async (req: Request, res: Response) => {
+  try {
+    const data = await updateWalkOfFamePreferences(String(req.params.starId), req.body || {});
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[WalkOfFame] Erro ao salvar preferências da figurinha:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/walk-of-fame/stickers/:starId/custom-skin', (req: Request, res: Response) => {
+  upload.single('skin_file')(req, res, async (uploadErr: any) => {
+    if (uploadErr) {
+      return res.status(400).json({ success: false, error: uploadErr.message || 'Erro no upload da imagem.' });
+    }
+    try {
+      const skinUrl = req.file
+        ? `/uploads/${req.file.filename}`
+        : String(req.body?.skin_url || req.body?.skinUrl || '').trim();
+      const skinLabel = String(req.body?.skin_label || req.body?.skinLabel || 'Foto Personalizada').trim();
+      const data = await saveWalkOfFameCustomSkin(String(req.params.starId), skinUrl, skinLabel);
+      return res.json({ success: true, data });
+    } catch (err: any) {
+      if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch {
+          // ignore cleanup failure
+        }
+      }
+      console.error('[WalkOfFame] Erro ao salvar foto personalizada:', err.message);
+      return res.status(400).json({ success: false, error: err.message });
+    }
+  });
+});
+
+// ============================================================================
 // ROTA DO SISTEMA OFICIAL DE XP E NÍVEIS DO USUÁRIO
 // ============================================================================
 app.get('/api/xp', async (req: Request, res: Response) => {
@@ -1645,12 +1838,17 @@ app.listen(PORT, async () => {
   await testConnection();
   try {
     await ensureTimeMachineTables();
+    await seedUniverses();
+    const initialCodex = await evaluateAndBuildUniverseCodex({ persist: true });
+    console.log(
+      `[Universes] Códice dos Universos sincronizado: ${initialCodex.summary.completedSagas}/${initialCodex.summary.totalSagas} Sagas, ${initialCodex.summary.unlockedCheckpoints} Marcos, ${initialCodex.summary.completedMegaSagas}/${initialCodex.summary.totalMegaSagas} Mega-Sagas (+${initialCodex.summary.totalUniverseXp} XP)`
+    );
     await seedTrophies();
     const initialTrophies = await evaluateTrophies({ markNew: false });
     console.log(
       `[Trophies] Motor PS5 iniciado com sucesso! Desbloqueados: ${initialTrophies.unlockedCount}/${initialTrophies.totalTrophies} (${initialTrophies.overallPercentage}%)`
     );
   } catch (tErr: any) {
-    console.error('[Trophies] Erro ao inicializar troféus no boot:', tErr.message);
+    console.error('[Trophies] Erro ao inicializar troféus/universos no boot:', tErr.message);
   }
 });

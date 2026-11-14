@@ -333,6 +333,21 @@ export default function Sidebar({
             <button
               type="button"
               onClick={() => {
+                setActiveTab('universes');
+                setIsOpen(false);
+              }}
+              className={`w-full py-2 text-[9px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer flex items-center justify-center gap-1.5 ${
+                activeTab === 'universes'
+                  ? 'bg-indigo-400 text-slate-950 font-black shadow-md shadow-indigo-500/20'
+                  : 'text-indigo-300/85 hover:text-indigo-200 bg-indigo-500/10 hover:bg-indigo-500/15'
+              }`}
+            >
+              <span>🌌 Códice dos Universos</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
                 setActiveTab('avatar_lab');
                 setIsOpen(false);
               }}

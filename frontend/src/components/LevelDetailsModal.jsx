@@ -7,13 +7,11 @@ import {
   Clock,
   Star,
   Trophy,
-  Globe,
   Zap,
-  Award,
   ChevronRight,
   AlertCircle,
 } from 'lucide-react';
-import { COUNTRY_RARITY_META, TROPHY_TIER_META, TIME_MACHINE_RARITY_META, DECADE_COMPLETION_XP } from '../utils/xpSystem';
+import { COUNTRY_RARITY_META, TROPHY_TIER_META, TIME_MACHINE_RARITY_META } from '../utils/xpSystem';
 
 export default function LevelDetailsModal({
   isOpen,
@@ -65,6 +63,24 @@ export default function LevelDetailsModal({
     byRarity: {},
     yearsXp: 0,
     decadesXp: 0,
+    totalXp: 0,
+  };
+  const universesSource = sources?.universes || {
+    completedSagasCount: 0,
+    totalSagasCount: 91,
+    completedMegaSagasCount: 0,
+    totalMegaSagasCount: 14,
+    unlockedCheckpointsCount: 0,
+    checkpointsXp: 0,
+    sagasXp: 0,
+    megaSagasXp: 0,
+    totalXp: 0,
+  };
+  const walkOfFameSource = sources?.walkOfFame || {
+    claimedStarsCount: 0,
+    totalClaimedExtraStars: 0,
+    milestonesXp: 0,
+    extraStarsXp: 0,
     totalXp: 0,
   };
   const completedDecadesCount = Object.keys(timeMachineSource.completedDecades || {}).length;
@@ -468,7 +484,7 @@ export default function LevelDetailsModal({
                         </span>
                       </div>
                       <div className="text-[11px] text-zinc-400">
-                        Cada ano inédito do cinema gera XP pela raridade histórica + {DECADE_COMPLETION_XP} XP por década completa.
+                        Cada ano inédito do cinema gera XP pela raridade histórica + bônus progressivo de 100 a 1.100 XP por década completa.
                       </div>
                     </div>
                   </div>
@@ -531,8 +547,141 @@ export default function LevelDetailsModal({
                       +{(timeMachineSource.decadesXp || 0).toLocaleString('pt-BR')} XP
                     </div>
                     <div className="text-[9px] text-zinc-500 font-mono">
-                      ({DECADE_COMPLETION_XP} XP / 10 anos)
+                      (100 a 1.100 XP / década)
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Fonte 5: Códice dos Universos (Marcos +30 XP, Sagas 100%, Mega-Sagas Míticas) */}
+              <div className="bg-zinc-900/65 border border-indigo-500/30 rounded-2xl p-3.5 flex flex-col gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl select-none">🌌</span>
+                    <div>
+                      <div className="text-xs font-black text-zinc-100 uppercase tracking-wide flex items-center gap-2 flex-wrap">
+                        <span>XP do Códice dos Universos</span>
+                        <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/10 border border-indigo-500/30 px-2 py-0.2 rounded-full">
+                          {universesSource.completedSagasCount || 0}/{universesSource.totalSagasCount || 91} sagas • {universesSource.completedMegaSagasCount || 0}/{universesSource.totalMegaSagasCount || 14} míticas
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-zinc-400">
+                        Marcos intermediários (+30 XP cada) + conclusão de Sagas e Mega-Sagas Míticas.
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    {onNavigateTab && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onNavigateTab('universes');
+                          onClose();
+                        }}
+                        className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-indigo-500/15 text-indigo-300 border border-indigo-500/35 hover:bg-indigo-500/25 transition-colors cursor-pointer"
+                      >
+                        Abrir Códice
+                      </button>
+                    )}
+                    <span className="font-mono text-sm font-black text-indigo-300 bg-indigo-500/10 border border-indigo-500/30 px-3 py-1 rounded-xl">
+                      +{(universesSource.totalXp || 0).toLocaleString('pt-BR')} XP
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="bg-zinc-950/80 border border-zinc-800 rounded-xl px-2.5 py-2 flex flex-col gap-0.5">
+                    <div className="flex items-center justify-between text-[10px] font-black">
+                      <span className="text-indigo-300">💬 Checkpoints</span>
+                      <span className="font-mono text-zinc-400">{universesSource.unlockedCheckpointsCount || 0}x</span>
+                    </div>
+                    <div className="text-xs font-mono font-black text-zinc-100">
+                      +{(universesSource.checkpointsXp || 0).toLocaleString('pt-BR')} XP
+                    </div>
+                    <div className="text-[9px] text-zinc-500 font-mono">(30 XP cada)</div>
+                  </div>
+
+                  <div className="bg-zinc-950/80 border border-zinc-800 rounded-xl px-2.5 py-2 flex flex-col gap-0.5">
+                    <div className="flex items-center justify-between text-[10px] font-black">
+                      <span className="text-amber-300">🏆 Sagas 100%</span>
+                      <span className="font-mono text-zinc-400">{universesSource.completedSagasCount || 0}x</span>
+                    </div>
+                    <div className="text-xs font-mono font-black text-zinc-100">
+                      +{(universesSource.sagasXp || 0).toLocaleString('pt-BR')} XP
+                    </div>
+                    <div className="text-[9px] text-zinc-500 font-mono">(Bronze 15 a Ouro 70 XP)</div>
+                  </div>
+
+                  <div className="bg-zinc-950/80 border border-fuchsia-500/30 rounded-xl px-2.5 py-2 flex flex-col gap-0.5">
+                    <div className="flex items-center justify-between text-[10px] font-black">
+                      <span className="text-fuchsia-300">💎 Mega-Sagas</span>
+                      <span className="font-mono text-zinc-400">{universesSource.completedMegaSagasCount || 0}x</span>
+                    </div>
+                    <div className="text-xs font-mono font-black text-fuchsia-200">
+                      +{(universesSource.megaSagasXp || 0).toLocaleString('pt-BR')} XP
+                    </div>
+                    <div className="text-[9px] text-zinc-500 font-mono">(500 XP + 25 XP/filme)</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Fonte 6: Calçada da Fama (XP computado ao abrir pacotes / colar figurinhas) */}
+              <div className="bg-zinc-900/65 border border-amber-500/30 rounded-2xl p-3.5 flex flex-col gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl select-none">🌟</span>
+                    <div>
+                      <div className="text-xs font-black text-zinc-100 uppercase tracking-wide flex items-center gap-2 flex-wrap">
+                        <span>XP da Calçada da Fama</span>
+                        <span className="text-[10px] font-mono text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-0.2 rounded-full">
+                          {walkOfFameSource.claimedStarsCount || 0} estrelas resgatadas • {walkOfFameSource.totalClaimedExtraStars || 0} ★
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-zinc-400">
+                        Marcos de 15% a 90% (+20 a +105 XP) e bônus de +60 XP por ★ (a cada 2 filmes extras), computados ao abrir pacotes.
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    {onNavigateTab && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onNavigateTab('walk_of_fame');
+                          onClose();
+                        }}
+                        className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/35 hover:bg-amber-500/25 transition-colors cursor-pointer"
+                      >
+                        Abrir Álbum
+                      </button>
+                    )}
+                    <span className="font-mono text-sm font-black text-amber-300 bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-xl">
+                      +{(walkOfFameSource.totalXp || 0).toLocaleString('pt-BR')} XP
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="bg-zinc-950/80 border border-zinc-800 rounded-xl px-2.5 py-2 flex flex-col gap-0.5">
+                    <div className="flex items-center justify-between text-[10px] font-black">
+                      <span className="text-amber-300">🎟️ Marcos Desbloqueados</span>
+                      <span className="font-mono text-zinc-400">{walkOfFameSource.claimedStarsCount || 0}x</span>
+                    </div>
+                    <div className="text-xs font-mono font-black text-zinc-100">
+                      +{(walkOfFameSource.milestonesXp || 0).toLocaleString('pt-BR')} XP
+                    </div>
+                    <div className="text-[9px] text-zinc-500 font-mono">(15% +20 XP até 90% +105 XP)</div>
+                  </div>
+
+                  <div className="bg-zinc-950/80 border border-yellow-500/30 rounded-xl px-2.5 py-2 flex flex-col gap-0.5">
+                    <div className="flex items-center justify-between text-[10px] font-black">
+                      <span className="text-yellow-300">★ Estrelas Além do Teto</span>
+                      <span className="font-mono text-zinc-400">{walkOfFameSource.totalClaimedExtraStars || 0}★</span>
+                    </div>
+                    <div className="text-xs font-mono font-black text-yellow-200">
+                      +{(walkOfFameSource.extraStarsXp || 0).toLocaleString('pt-BR')} XP
+                    </div>
+                    <div className="text-[9px] text-zinc-500 font-mono">(60 XP / ★ a cada 2 filmes extras)</div>
                   </div>
                 </div>
               </div>

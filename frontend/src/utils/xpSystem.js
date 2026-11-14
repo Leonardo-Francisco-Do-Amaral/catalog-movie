@@ -6,6 +6,38 @@ export const XP_PER_MOVIE = 10;
 export const MIN_TIME_MACHINE_YEAR = 1920;
 export const DECADE_COMPLETION_XP = 100;
 
+export const DECADE_COMPLETION_XP_BY_DECADE = {
+  '1920s': 1100,
+  '1930s': 1000,
+  '1940s': 900,
+  '1950s': 800,
+  '1960s': 700,
+  '1970s': 600,
+  '1980s': 500,
+  '1990s': 400,
+  '2000s': 300,
+  '2010s': 200,
+  '2020s': 100,
+};
+
+export function getDecadeCompletionXp(decadeIdOrStart) {
+  if (typeof decadeIdOrStart === 'string') {
+    const key = decadeIdOrStart.trim();
+    if (key === 'pioneers') return 0;
+    if (DECADE_COMPLETION_XP_BY_DECADE[key] !== undefined) {
+      return DECADE_COMPLETION_XP_BY_DECADE[key];
+    }
+    const parsed = parseInt(key, 10);
+    if (!Number.isFinite(parsed) || parsed < MIN_TIME_MACHINE_YEAR) return 0;
+    const decStart = Math.floor(parsed / 10) * 10;
+    return DECADE_COMPLETION_XP_BY_DECADE[`${decStart}s`] ?? Math.max(100, 100 + ((2020 - decStart) / 10) * 100);
+  }
+  const num = Number(decadeIdOrStart);
+  if (!Number.isFinite(num) || num < MIN_TIME_MACHINE_YEAR) return 0;
+  const decStart = Math.floor(num / 10) * 10;
+  return DECADE_COMPLETION_XP_BY_DECADE[`${decStart}s`] ?? Math.max(100, 100 + ((2020 - decStart) / 10) * 100);
+}
+
 export function getMaxTimeMachineYear() {
   return Math.max(2027, new Date().getFullYear());
 }
@@ -337,12 +369,13 @@ export function computeClientTimeMachineXpSummary(uniqueMovies = []) {
     }
     if (allTen) {
       const meta = DECADE_META[decKey] || { id: decKey, label: `Anos ${decStart}` };
+      const decadeXp = getDecadeCompletionXp(decKey);
       completedDecades[decKey] = {
         id: decKey,
         label: meta.label,
-        xp: DECADE_COMPLETION_XP,
+        xp: decadeXp,
       };
-      decadesXp += DECADE_COMPLETION_XP;
+      decadesXp += decadeXp;
     }
   }
 
@@ -743,9 +776,20 @@ let pendingTimeMachineQueue = [];
 let isWorldChallengeActiveFlag = false;
 let pendingWorldChallengeQueue = [];
 
+let isXpBarActiveFlag = false;
+let pendingUniverseVictoryQueue = [];
+
 let bufferedXpEvent = null;
 let bufferedXpStatus = null;
 let fallbackFlushTimer = null;
+
+function flushPendingUniverseVictories() {
+  if (typeof window === 'undefined' || pendingUniverseVictoryQueue.length === 0) return false;
+  const items = [...pendingUniverseVictoryQueue];
+  pendingUniverseVictoryQueue = [];
+  window.dispatchEvent(new CustomEvent('cine-universe-victory', { detail: items }));
+  return true;
+}
 
 function armSafetyFlushTimer() {
   if (fallbackFlushTimer) clearTimeout(fallbackFlushTimer);
@@ -755,7 +799,9 @@ function armSafetyFlushTimer() {
       isTimeMachineActiveFlag ||
       pendingWorldChallengeQueue.length > 0 ||
       isWorldChallengeActiveFlag ||
-      bufferedXpEvent
+      bufferedXpEvent ||
+      isXpBarActiveFlag ||
+      pendingUniverseVictoryQueue.length > 0
     ) {
       console.warn('[XP System] Fallback safety timer acionado para liberar fila pendente.');
       isTrophyActiveFlag = false;
@@ -765,6 +811,8 @@ function armSafetyFlushTimer() {
       isWorldChallengeActiveFlag = false;
       pendingWorldChallengeQueue = [];
       flushBufferedXpGain();
+      isXpBarActiveFlag = false;
+      flushPendingUniverseVictories();
     }
   }, 55000);
 }
@@ -968,6 +1016,14 @@ export function mergeXpGainEvents(baseEvent, incomingEvent) {
         label = `+${sumXp.toLocaleString('pt-BR')} XP Anos (${tmName})`;
       } else if (inTag.type === 'time_decade') {
         label = `+${sumXp.toLocaleString('pt-BR')} XP Relíquias de Década`;
+      } else if (inTag.type === 'universe_checkpoint') {
+        label = `+${sumXp.toLocaleString('pt-BR')} XP Marcos de Saga`;
+      } else if (inTag.type === 'universe_saga') {
+        label = `+${sumXp.toLocaleString('pt-BR')} XP Sagas Dominadas`;
+      } else if (inTag.type === 'universe_mega') {
+        label = `+${sumXp.toLocaleString('pt-BR')} XP Mega-Sagas Míticas`;
+      } else if (inTag.type === 'walk_of_fame') {
+        label = `+${sumXp.toLocaleString('pt-BR')} XP Calçada da Fama`;
       }
       mergedTags[existingIndex] = {
         ...existing,
@@ -999,6 +1055,10 @@ export function mergeXpGainEvents(baseEvent, incomingEvent) {
   });
 
   const unlockedClass = incomingEvent.unlockedClass || baseEvent.unlockedClass || null;
+  const mergedUniverseCheckpoints = [
+    ...(baseEvent.universeCheckpoints || []),
+    ...(incomingEvent.universeCheckpoints || []),
+  ];
 
   return {
     gainedXp,
@@ -1018,6 +1078,7 @@ export function mergeXpGainEvents(baseEvent, incomingEvent) {
     xpRemaining: incomingEvent.xpRemaining ?? baseEvent.xpRemaining,
     tags: mergedTags,
     statGains: mergedStatGains.length > 0 ? mergedStatGains : undefined,
+    universeCheckpoints: mergedUniverseCheckpoints.length > 0 ? mergedUniverseCheckpoints : undefined,
     unlockedClass,
     isGhost: Boolean(incomingEvent.isGhost || baseEvent.isGhost),
   };
@@ -1028,8 +1089,41 @@ function hasMeaningfulXpFeedback(xpGainEvent) {
   return (
     (xpGainEvent.gainedXp || 0) > 0 ||
     Boolean(xpGainEvent.unlockedClass) ||
+    (Array.isArray(xpGainEvent.universeCheckpoints) && xpGainEvent.universeCheckpoints.length > 0) ||
     (Array.isArray(xpGainEvent.statGains) && xpGainEvent.statGains.length > 0)
   );
+}
+
+export function notifyXpBarStarted() {
+  isXpBarActiveFlag = true;
+  armSafetyFlushTimer();
+}
+
+export function notifyXpBarCleared() {
+  isXpBarActiveFlag = false;
+  if (fallbackFlushTimer) {
+    clearTimeout(fallbackFlushTimer);
+    fallbackFlushTimer = null;
+  }
+  flushPendingUniverseVictories();
+}
+
+export function triggerUniverseVictory(victoryItems, forceImmediate = false) {
+  if (typeof window === 'undefined') return;
+  const list = Array.isArray(victoryItems)
+    ? victoryItems.filter(Boolean)
+    : victoryItems
+    ? [victoryItems]
+    : [];
+  if (list.length === 0) return;
+
+  if (!forceImmediate && (shouldHoldXpBar() || isXpBarActiveFlag || bufferedXpEvent)) {
+    pendingUniverseVictoryQueue.push(...list);
+    armSafetyFlushTimer();
+    return;
+  }
+
+  window.dispatchEvent(new CustomEvent('cine-universe-victory', { detail: list }));
 }
 
 export function flushBufferedXpGain() {
@@ -1038,6 +1132,7 @@ export function flushBufferedXpGain() {
       dispatchXpStatusUpdate(bufferedXpStatus);
       bufferedXpStatus = null;
     }
+    flushPendingUniverseVictories();
     return;
   }
 
@@ -1050,7 +1145,11 @@ export function flushBufferedXpGain() {
     dispatchXpStatusUpdate(statusToDispatch);
   }
   if (hasMeaningfulXpFeedback(eventToDispatch)) {
+    isXpBarActiveFlag = true;
+    armSafetyFlushTimer();
     window.dispatchEvent(new CustomEvent('cine-xp-gain-toast', { detail: eventToDispatch }));
+  } else {
+    flushPendingUniverseVictories();
   }
 }
 
@@ -1069,6 +1168,9 @@ export function triggerXPGainToast(xpGainEvent, updatedXpStatus = null, forceImm
     if (updatedXpStatus) {
       dispatchXpStatusUpdate(updatedXpStatus);
     }
+    if (!shouldHoldXpBar() && !isXpBarActiveFlag) {
+      flushPendingUniverseVictories();
+    }
     return;
   }
 
@@ -1085,5 +1187,7 @@ export function triggerXPGainToast(xpGainEvent, updatedXpStatus = null, forceImm
   if (updatedXpStatus) {
     dispatchXpStatusUpdate(updatedXpStatus);
   }
+  isXpBarActiveFlag = true;
+  armSafetyFlushTimer();
   window.dispatchEvent(new CustomEvent('cine-xp-gain-toast', { detail: xpGainEvent }));
 }
