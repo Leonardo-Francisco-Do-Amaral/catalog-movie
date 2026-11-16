@@ -5397,26 +5397,6 @@ export const TROPHY_DEFINITIONS = [
     "sort_order": 403
   },
   {
-    "id": "mafia_dir_jordan_peele",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "bronze",
-    "title": "A Máfia de Hollywood: É Terror ou Crítica Social? Não Sei, Só Sei que É Bom!",
-    "description": "Conquistar 3 filmes do diretor Jordan Peele (3 filmes).",
-    "icon": "☕",
-    "target_type": "hollywood_director_count",
-    "target_value": 3,
-    "target_metadata": {
-      "director": "Jordan Peele",
-      "patterns": [
-        "jordan peele"
-      ]
-    },
-    "sort_order": 404
-  },
-  {
     "id": "mafia_writer_fil_braz",
     "category": "mafia_hollywood",
     "categories": [
@@ -5460,209 +5440,6 @@ export const TROPHY_DEFINITIONS = [
     "sort_order": 406
   },
   {
-    "id": "mafia_dir_michael_bay_3",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "bronze",
-    "title": "A Máfia de Hollywood: BUM! Explosão ao Pôr do Sol ao Som de Linkin Park!",
-    "description": "Conquistar 3 filmes dirigidos por Michael Bay (3 filmes).",
-    "icon": "💥",
-    "target_type": "hollywood_director_count",
-    "target_value": 3,
-    "target_metadata": {
-      "director": "Michael Bay",
-      "patterns": [
-        "michael bay"
-      ]
-    },
-    "sort_order": 407
-  },
-  {
-    "id": "mafia_dir_zack_snyder_3",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "bronze",
-    "title": "A Máfia de Hollywood: Câmera Lenta de 40 Minutos, Filtro Cinza e \"Hallelujah\" Tocando!",
-    "description": "Conquistar 3 filmes dirigidos por Zack Snyder (3 filmes).",
-    "icon": "⏳",
-    "target_type": "hollywood_director_count",
-    "target_value": 3,
-    "target_metadata": {
-      "director": "Zack Snyder",
-      "patterns": [
-        "zack snyder"
-      ]
-    },
-    "sort_order": 408
-  },
-  {
-    "id": "mafia_person_tarantino_3",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "bronze",
-    "title": "A Máfia de Hollywood: Close no Pé, Diálogo Aleatório e Banho de Sangue!",
-    "description": "Conquistar 3 filmes dirigidos ou escritos por Quentin Tarantino (3 filmes).",
-    "icon": "🩸",
-    "target_type": "hollywood_director_or_writer_count",
-    "target_value": 3,
-    "target_metadata": {
-      "person": "Quentin Tarantino",
-      "patterns": [
-        "quentin tarantino",
-        "tarantino"
-      ]
-    },
-    "sort_order": 409
-  },
-  {
-    "id": "mafia_dir_wes_anderson_3",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "bronze",
-    "title": "A Máfia de Hollywood: Simetria Perfeita, Cores Pastel e Olhar Parado pro Centro da Câmera!",
-    "description": "Conquistar 3 filmes dirigidos por Wes Anderson (3 filmes).",
-    "icon": "📐",
-    "target_type": "hollywood_director_count",
-    "target_value": 3,
-    "target_metadata": {
-      "director": "Wes Anderson",
-      "patterns": [
-        "wes anderson"
-      ]
-    },
-    "sort_order": 410
-  },
-  {
-    "id": "mafia_person_del_toro_3",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "bronze",
-    "title": "A Máfia de Hollywood: Monstros Bonzinhos, Humanos Malvados e Muita Maquiagem!",
-    "description": "Conquistar 3 filmes dirigidos ou escritos por Guillermo del Toro (3 filmes).",
-    "icon": "👹",
-    "target_type": "hollywood_director_or_writer_count",
-    "target_value": 3,
-    "target_metadata": {
-      "person": "Guillermo del Toro",
-      "patterns": [
-        "guillermo del toro",
-        "del toro"
-      ]
-    },
-    "sort_order": 411
-  },
-  {
-    "id": "mafia_dir_david_fincher_3",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "bronze",
-    "title": "A Máfia de Hollywood: 99 Takes pra Abrir uma Porta e Filtro Amarelo-Esverdeado!",
-    "description": "Conquistar 3 filmes dirigidos por David Fincher (3 filmes).",
-    "icon": "🚪",
-    "target_type": "hollywood_director_count",
-    "target_value": 3,
-    "target_metadata": {
-      "director": "David Fincher",
-      "patterns": [
-        "david fincher"
-      ]
-    },
-    "sort_order": 412
-  },
-  {
-    "id": "mafia_dir_tim_burton_5",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "silver",
-    "title": "A Máfia de Hollywood: Só Tem Batman, Johnny Depp e Gótico Aqui?",
-    "description": "Conquistar 5 filmes do diretor Tim Burton (5 filmes).",
-    "icon": "🖤",
-    "target_type": "hollywood_director_count",
-    "target_value": 5,
-    "target_metadata": {
-      "director": "Tim Burton",
-      "patterns": [
-        "tim burton"
-      ]
-    },
-    "sort_order": 413
-  },
-  {
-    "id": "mafia_dir_taika_waititi_5",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "silver",
-    "title": "A Máfia de Hollywood: Ele Só Sabe Fazer Piada?! (Até no Thor e na Guerra!)",
-    "description": "Conquistar 5 filmes do diretor Taika Waititi (5 filmes).",
-    "icon": "😂",
-    "target_type": "hollywood_director_count",
-    "target_value": 5,
-    "target_metadata": {
-      "director": "Taika Waititi",
-      "patterns": [
-        "taika waititi"
-      ]
-    },
-    "sort_order": 414
-  },
-  {
-    "id": "mafia_dir_james_wan_5",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "silver",
-    "title": "A Máfia de Hollywood: O Rei do Terror Moderno (Ou Quase)",
-    "description": "Conquistar 5 filmes do diretor James Wan (5 filmes).",
-    "icon": "👑",
-    "target_type": "hollywood_director_count",
-    "target_value": 5,
-    "target_metadata": {
-      "director": "James Wan",
-      "patterns": [
-        "james wan"
-      ]
-    },
-    "sort_order": 415
-  },
-  {
-    "id": "mafia_dir_darren_bousman_5",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "silver",
-    "title": "A Máfia de Hollywood: Alguém Me Explica se Ele Faz Filme Bom Mesmo?!",
-    "description": "Conquistar 5 filmes do diretor Darren Lynn Bousman (5 filmes).",
-    "icon": "🤔",
-    "target_type": "hollywood_director_count",
-    "target_value": 5,
-    "target_metadata": {
-      "director": "Darren Lynn Bousman",
-      "patterns": [
-        "darren lynn bousman",
-        "darren bousman"
-      ]
-    },
-    "sort_order": 416
-  },
-  {
     "id": "mafia_writer_bob_kane_5",
     "category": "mafia_hollywood",
     "categories": [
@@ -5683,73 +5460,6 @@ export const TROPHY_DEFINITIONS = [
     "sort_order": 417
   },
   {
-    "id": "mafia_person_paul_ws_anderson_5",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "silver",
-    "title": "A Máfia de Hollywood: Olha a Minha Mulher! Olha Como Ela É Linda Batendo em Monstro!",
-    "description": "Conquistar 5 filmes onde Paul W.S. Anderson seja diretor ou roteirista (5 filmes).",
-    "icon": "🧟‍♀️",
-    "target_type": "hollywood_director_or_writer_count",
-    "target_value": 5,
-    "target_metadata": {
-      "person": "Paul W.S. Anderson",
-      "patterns": [
-        "paul w.s. anderson",
-        "paul w. s. anderson",
-        "paul ws anderson",
-        "paul w s anderson"
-      ]
-    },
-    "sort_order": 418
-  },
-  {
-    "id": "mafia_person_mike_flanagan_5",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "silver",
-    "title": "A Máfia de Hollywood: Monólogos de 10 Minutos e Fantasmas na Sala (Terapia com Mike Flanagan)",
-    "description": "Conquistar 5 filmes dirigidos ou escritos por Mike Flanagan (5 filmes).",
-    "icon": "🛋️",
-    "target_type": "hollywood_director_or_writer_count",
-    "target_value": 5,
-    "target_metadata": {
-      "person": "Mike Flanagan",
-      "patterns": [
-        "mike flanagan"
-      ]
-    },
-    "sort_order": 419
-  },
-  {
-    "id": "mafia_person_jj_abrams_bad_robot_5",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "silver",
-    "title": "A Máfia de Hollywood: Cuidado com o Lens Flare no Olho! (A Caixa de Mistério)",
-    "description": "Conquistar 5 filmes dirigidos/escritos por J.J. Abrams ou produzidos pelo estúdio Bad Robot (5 filmes).",
-    "icon": "🤖",
-    "target_type": "hollywood_director_writer_or_studio_count",
-    "target_value": 5,
-    "target_metadata": {
-      "personPatterns": [
-        "j.j. abrams",
-        "j. j. abrams",
-        "jj abrams"
-      ],
-      "studioPatterns": [
-        "bad robot"
-      ]
-    },
-    "sort_order": 420
-  },
-  {
     "id": "mafia_writer_gary_dauberman_5",
     "category": "mafia_hollywood",
     "categories": [
@@ -5768,87 +5478,6 @@ export const TROPHY_DEFINITIONS = [
       ]
     },
     "sort_order": 421
-  },
-  {
-    "id": "mafia_dir_russo_brothers_4",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "silver",
-    "title": "A Máfia de Hollywood: Salvadores da Pátria da Marvel (A Panelinha dos Irmãos Russo)",
-    "description": "Conquistar 4 filmes dirigidos por Anthony Russo ou Joe Russo (4 filmes).",
-    "icon": "🛡️",
-    "target_type": "hollywood_director_count",
-    "target_value": 4,
-    "target_metadata": {
-      "director": "Irmãos Russo",
-      "patterns": [
-        "anthony russo",
-        "joe russo"
-      ]
-    },
-    "sort_order": 422
-  },
-  {
-    "id": "mafia_dir_christopher_nolan_5",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "silver",
-    "title": "A Máfia de Hollywood: Não Entendi Nada do Final, a Música Tá Alta Demais, Mas Foi Filmado em IMAX!",
-    "description": "Conquistar 5 filmes dirigidos por Christopher Nolan (5 filmes).",
-    "icon": "🔊",
-    "target_type": "hollywood_director_count",
-    "target_value": 5,
-    "target_metadata": {
-      "director": "Christopher Nolan",
-      "patterns": [
-        "christopher nolan"
-      ]
-    },
-    "sort_order": 423
-  },
-  {
-    "id": "mafia_dir_martin_scorsese_5",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "silver",
-    "title": "A Máfia de Hollywood: \"Isso Não É Cinema, É Parque de Diversões!\"",
-    "description": "Conquistar 5 filmes dirigidos por Martin Scorsese (5 filmes).",
-    "icon": "🎡",
-    "target_type": "hollywood_director_count",
-    "target_value": 5,
-    "target_metadata": {
-      "director": "Martin Scorsese",
-      "patterns": [
-        "martin scorsese"
-      ]
-    },
-    "sort_order": 424
-  },
-  {
-    "id": "mafia_dir_steven_spielberg_5",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "silver",
-    "title": "A Máfia de Hollywood: Pais Ausentes, Crianças Olhando pro Céu e Trilha do John Williams!",
-    "description": "Conquistar 5 filmes dirigidos por Steven Spielberg (5 filmes).",
-    "icon": "🚲",
-    "target_type": "hollywood_director_count",
-    "target_value": 5,
-    "target_metadata": {
-      "director": "Steven Spielberg",
-      "patterns": [
-        "steven spielberg"
-      ]
-    },
-    "sort_order": 425
   },
   {
     "id": "mafia_studio_disney_pixar_10",
@@ -6094,49 +5723,6 @@ export const TROPHY_DEFINITIONS = [
     "sort_order": 437
   },
   {
-    "id": "mafia_person_paul_ws_anderson_10",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "epic",
-    "title": "A Máfia de Hollywood: Nepotismo Existe em Todos os Lugares (Mas Aqui Tem Câmera Lenta!)",
-    "description": "Conquistar 10 filmes onde Paul W.S. Anderson seja diretor ou roteirista (10 filmes).",
-    "icon": "🎬",
-    "target_type": "hollywood_director_or_writer_count",
-    "target_value": 10,
-    "target_metadata": {
-      "person": "Paul W.S. Anderson",
-      "patterns": [
-        "paul w.s. anderson",
-        "paul w. s. anderson",
-        "paul ws anderson",
-        "paul w s anderson"
-      ]
-    },
-    "sort_order": 438
-  },
-  {
-    "id": "mafia_dir_stephen_daldry_5",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "epic",
-    "title": "A Máfia de Hollywood: Do Balé de Billy Elliot ao Lixão do Brasil (Quase 100% no Oscar!)",
-    "description": "Conquistar 5 filmes do diretor Stephen Daldry (5 filmes).",
-    "icon": "🩰",
-    "target_type": "hollywood_director_count",
-    "target_value": 5,
-    "target_metadata": {
-      "director": "Stephen Daldry",
-      "patterns": [
-        "stephen daldry"
-      ]
-    },
-    "sort_order": 439
-  },
-  {
     "id": "mafia_studio_twisted_pictures_10",
     "category": "mafia_hollywood",
     "categories": [
@@ -6275,46 +5861,6 @@ export const TROPHY_DEFINITIONS = [
     "sort_order": 446
   },
   {
-    "id": "mafia_dir_zack_snyder_6",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "epic",
-    "title": "A Máfia de Hollywood: Liberem o Snyder Cut de 4 Horas em Preto e Branco!",
-    "description": "Conquistar 6 filmes dirigidos por Zack Snyder (6 filmes).",
-    "icon": "🎥",
-    "target_type": "hollywood_director_count",
-    "target_value": 6,
-    "target_metadata": {
-      "director": "Zack Snyder",
-      "patterns": [
-        "zack snyder"
-      ]
-    },
-    "sort_order": 447
-  },
-  {
-    "id": "mafia_dir_michael_bay_6",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "epic",
-    "title": "A Máfia de Hollywood: Haja Dinamite no Set de Filmagem! (Orçamento em Pólvora)",
-    "description": "Conquistar 6 filmes dirigidos por Michael Bay (6 filmes).",
-    "icon": "🧨",
-    "target_type": "hollywood_director_count",
-    "target_value": 6,
-    "target_metadata": {
-      "director": "Michael Bay",
-      "patterns": [
-        "michael bay"
-      ]
-    },
-    "sort_order": 448
-  },
-  {
     "id": "mafia_oscar_winner_15",
     "category": "mafia_hollywood",
     "categories": [
@@ -6358,29 +5904,6 @@ export const TROPHY_DEFINITIONS = [
     "target_type": "hollywood_oscar_5_noms_5_wins_count",
     "target_value": 5,
     "sort_order": 451
-  },
-  {
-    "id": "mafia_dir_shyamalan_10",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "gold",
-    "title": "A Máfia de Hollywood: Esse Diretor É uma Montanha-Russa! (Uma Hora É Gênio, na Outra a Planta Mata!)",
-    "description": "Conquistar 10 filmes do diretor M. Night Shyamalan (ou do estúdio Blinding Edge Pictures) (10 filmes).",
-    "icon": "🎢",
-    "target_type": "hollywood_director_or_studio_count",
-    "target_value": 10,
-    "target_metadata": {
-      "directorPatterns": [
-        "m. night shyamalan",
-        "shyamalan"
-      ],
-      "studioPatterns": [
-        "blinding edge pictures"
-      ]
-    },
-    "sort_order": 452
   },
   {
     "id": "mafia_studio_warner_30",
@@ -6614,10 +6137,10 @@ export const TROPHY_DEFINITIONS = [
     ],
     "tier": "platinum",
     "title": "A Máfia de Hollywood: O Poderoso Chefão dos Estúdios",
-    "description": "Conquistar TODOS os troféus da categoria A Máfia de Hollywood (desbloqueio automático dinâmico ao atingir 100% dos outros 89 troféus desta categoria, incluindo multicategoria).",
+    "description": "Conquistar TODOS os troféus da categoria A Máfia de Hollywood (desbloqueio automático dinâmico ao atingir 100% dos outros 82 troféus desta categoria, incluindo multicategoria).",
     "icon": "🏆",
     "target_type": "platinum_dynamic",
-    "target_value": 89,
+    "target_value": 82,
     "target_metadata": {
       "category": "mafia_hollywood",
       "categoryScope": "mafia_hollywood"
@@ -12983,27 +12506,6 @@ export const TROPHY_DEFINITIONS = [
     "sort_order": 775
   },
   {
-    "id": "mh_guillermo_del_toro_6",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "gold",
-    "title": "A Máfia de Hollywood: Feito à Mão com Gosma e Poesia",
-    "description": "Conquistar 6 filmes que tenham Guillermo del Toro creditado no campo de Direção ou Roteiro (6 filmes).",
-    "icon": "👁️",
-    "target_type": "hollywood_director_or_writer_count",
-    "target_value": 6,
-    "target_metadata": {
-      "person": "Guillermo del Toro",
-      "patterns": [
-        "guillermo del toro",
-        "del toro"
-      ]
-    },
-    "sort_order": 778
-  },
-  {
     "id": "tc_you_died_terror_tragico_nota_3",
     "category": "dna_cinefilo",
     "categories": [
@@ -13674,54 +13176,6 @@ export const TROPHY_DEFINITIONS = [
       "requiredMusicGenreCount": 15
     },
     "sort_order": 801
-  },
-  {
-    "id": "mafia_dir_hirokazu_koreeda_5",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "epic",
-    "title": "A Máfia de Hollywood: Quem É o Monstro Aqui? (A Poesia Silenciosa de Kore-eda)",
-    "description": "Conquistar 5 filmes dirigidos por Hirokazu Kore-eda (5 filmes).",
-    "icon": "👹",
-    "target_type": "hollywood_director_count",
-    "target_value": 5,
-    "target_metadata": {
-      "director": "Hirokazu Kore-eda",
-      "patterns": [
-        "hirokazu kore-eda",
-        "hirokazu koreeda",
-        "kore-eda hirokazu",
-        "kore-eda",
-        "koreeda"
-      ]
-    },
-    "sort_order": 802
-  },
-  {
-    "id": "mafia_dir_hirokazu_koreeda_10",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "gold",
-    "title": "A Máfia de Hollywood: O Arquiteto dos Laços Invisíveis (Filmografia de Hirokazu Kore-eda)",
-    "description": "Conquistar 10 filmes dirigidos por Hirokazu Kore-eda (10 filmes).",
-    "icon": "🏮",
-    "target_type": "hollywood_director_count",
-    "target_value": 10,
-    "target_metadata": {
-      "director": "Hirokazu Kore-eda",
-      "patterns": [
-        "hirokazu kore-eda",
-        "hirokazu koreeda",
-        "kore-eda hirokazu",
-        "kore-eda",
-        "koreeda"
-      ]
-    },
-    "sort_order": 803
   }
 ];
 export const CLIENT_TROPHY_DEFINITIONS = TROPHY_DEFINITIONS;

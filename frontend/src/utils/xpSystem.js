@@ -778,6 +778,8 @@ let pendingWorldChallengeQueue = [];
 
 let isXpBarActiveFlag = false;
 let pendingUniverseVictoryQueue = [];
+let pendingWalkPackQueue = [];
+let walkPackFlushTimer = null;
 
 let bufferedXpEvent = null;
 let bufferedXpStatus = null;
@@ -791,6 +793,26 @@ function flushPendingUniverseVictories() {
   return true;
 }
 
+function flushPendingWalkPackToasts(delayMs = 0) {
+  if (typeof window === 'undefined' || pendingWalkPackQueue.length === 0) return false;
+  const items = [...pendingWalkPackQueue];
+  pendingWalkPackQueue = [];
+  if (walkPackFlushTimer) {
+    clearTimeout(walkPackFlushTimer);
+    walkPackFlushTimer = null;
+  }
+  const dispatch = () => {
+    walkPackFlushTimer = null;
+    window.dispatchEvent(new CustomEvent('cine-walk-pack-toast', { detail: items }));
+  };
+  if (delayMs > 0) {
+    walkPackFlushTimer = setTimeout(dispatch, delayMs);
+  } else {
+    dispatch();
+  }
+  return true;
+}
+
 function armSafetyFlushTimer() {
   if (fallbackFlushTimer) clearTimeout(fallbackFlushTimer);
   fallbackFlushTimer = setTimeout(() => {
@@ -801,7 +823,8 @@ function armSafetyFlushTimer() {
       isWorldChallengeActiveFlag ||
       bufferedXpEvent ||
       isXpBarActiveFlag ||
-      pendingUniverseVictoryQueue.length > 0
+      pendingUniverseVictoryQueue.length > 0 ||
+      pendingWalkPackQueue.length > 0
     ) {
       console.warn('[XP System] Fallback safety timer acionado para liberar fila pendente.');
       isTrophyActiveFlag = false;
@@ -813,6 +836,7 @@ function armSafetyFlushTimer() {
       flushBufferedXpGain();
       isXpBarActiveFlag = false;
       flushPendingUniverseVictories();
+      flushPendingWalkPackToasts(0);
     }
   }, 55000);
 }
@@ -1126,6 +1150,24 @@ export function triggerUniverseVictory(victoryItems, forceImmediate = false) {
   window.dispatchEvent(new CustomEvent('cine-universe-victory', { detail: list }));
 }
 
+export function triggerWalkOfFamePackToast(packs, forceImmediate = false) {
+  if (typeof window === 'undefined') return;
+  const list = Array.isArray(packs) ? packs.filter(Boolean) : packs ? [packs] : [];
+  if (list.length === 0) return;
+
+  if (!forceImmediate && shouldHoldXpBar()) {
+    const existingIds = new Set(pendingWalkPackQueue.map((p) => p.packId).filter(Boolean));
+    const unique = list.filter((p) => !p.packId || !existingIds.has(p.packId));
+    if (unique.length > 0) {
+      pendingWalkPackQueue.push(...unique);
+      armSafetyFlushTimer();
+    }
+    return;
+  }
+
+  window.dispatchEvent(new CustomEvent('cine-walk-pack-toast', { detail: list }));
+}
+
 export function flushBufferedXpGain() {
   if (!bufferedXpEvent) {
     if (bufferedXpStatus) {
@@ -1133,6 +1175,7 @@ export function flushBufferedXpGain() {
       bufferedXpStatus = null;
     }
     flushPendingUniverseVictories();
+    flushPendingWalkPackToasts(0);
     return;
   }
 
@@ -1148,8 +1191,10 @@ export function flushBufferedXpGain() {
     isXpBarActiveFlag = true;
     armSafetyFlushTimer();
     window.dispatchEvent(new CustomEvent('cine-xp-gain-toast', { detail: eventToDispatch }));
+    flushPendingWalkPackToasts(450);
   } else {
     flushPendingUniverseVictories();
+    flushPendingWalkPackToasts(0);
   }
 }
 

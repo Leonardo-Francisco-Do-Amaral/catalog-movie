@@ -53,6 +53,13 @@ import {
   computeUniverseOverview,
   computeUniverseRelics,
 } from '../utils/analyticsEngine';
+import {
+  ACTOR_RANK_ORDER,
+  DIRECTOR_RANK_ORDER,
+  WALK_RANK_DISPLAY_META,
+  resolveWalkRpgRank,
+  resolveWalkRpgRankFromTier,
+} from '../utils/walkOfFameStickers';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
@@ -68,6 +75,80 @@ const CanisterBar = (props) => {
     </g>
   );
 };
+
+const WALK_RANK_ACCENT_STYLES = {
+  rose: {
+    xpText: 'text-rose-300',
+  },
+  amber: {
+    xpText: 'text-amber-300',
+  },
+  cyan: {
+    xpText: 'text-cyan-300',
+  },
+};
+
+function WalkRankBreakdownList({
+  rows = [],
+  lockedCount = 0,
+  lockedHint = '< 15%',
+  isDirector = false,
+  accent = 'rose',
+  entityLabel = null,
+}) {
+  const accentStyle = WALK_RANK_ACCENT_STYLES[accent] || WALK_RANK_ACCENT_STYLES.rose;
+  const resolvedEntityLabel = entityLabel || (isDirector ? 'cineasta(s)' : 'estrela(s)');
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      {rows.map((r) => {
+        const xpVal = Number(r.xp || 0);
+        return (
+          <div
+            key={r.rank}
+            className="rounded-xl bg-zinc-900/70 border border-zinc-800/90 px-2.5 py-1.5 flex flex-col gap-1"
+          >
+            <div className="flex items-center justify-between text-[11px] gap-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span
+                  className={`px-1.5 py-0.5 rounded border text-[9px] font-black uppercase tracking-wider shrink-0 ${r.badgeClass}`}
+                >
+                  RANK {r.rank}
+                </span>
+                <span className="text-[11px] font-mono text-zinc-400 truncate">
+                  {r.hint}
+                  {r.poolTotal != null ? ` (${r.poolTotal})` : ''}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px] font-bold">
+                <span className={r.stuck > 0 ? 'text-zinc-200' : 'text-zinc-500'}>
+                  {r.stuck} col.
+                </span>
+                <span className={xpVal > 0 ? accentStyle.xpText : 'text-zinc-500'}>
+                  +{xpVal.toLocaleString('pt-BR')} XP
+                </span>
+              </div>
+            </div>
+
+            <div className="w-full h-1 rounded-full bg-zinc-950 overflow-hidden">
+              <div
+                className={`h-full rounded-full bg-gradient-to-r ${r.barGradient} transition-all`}
+                style={{ width: `${r.barPct}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
+      <div className="rounded-xl bg-zinc-900/45 border border-zinc-800/70 px-2.5 py-1 flex items-center justify-between text-[10px] font-mono text-zinc-400">
+        <span>🔒 Bloqueadas ({lockedHint} • Rank E)</span>
+        <span className="font-bold text-zinc-300">
+          {lockedCount} {resolvedEntityLabel}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 const RARITY_CARD_THEMES = {
   mythic: {
@@ -399,8 +480,8 @@ export default function AnalyticsDashboard({
 
   // Motores Analíticos Principais
   const rpgData = useMemo(
-    () => computeRpgAndGuilds(filteredMovies, movies, liveXp, trophiesList),
-    [filteredMovies, movies, liveXp, trophiesList]
+    () => computeRpgAndGuilds(filteredMovies, movies, liveXp, trophiesList, walkOfFameData),
+    [filteredMovies, movies, liveXp, trophiesList, walkOfFameData]
   );
 
   const pantheon = useMemo(
@@ -639,44 +720,139 @@ export default function AnalyticsDashboard({
 
   const walkOfFameOverview = useMemo(() => {
     const stars = Array.isArray(walkOfFameData?.stars) ? walkOfFameData.stars : [];
-    const alamedas = Array.isArray(walkOfFameData?.alamedas) ? walkOfFameData.alamedas : [];
     const summary = walkOfFameData?.summary || {};
     const xpWalk = xpSources.walkOfFame || {};
+    const hasStarsById = Boolean(xpWalk.starsById && Object.keys(xpWalk.starsById).length > 0);
+
+    const isDirStar = (s) => s?.kind === 'director' || s?.alameda === 'diretores';
+    const isDubStar = (s) => s?.kind === 'dublador' || s?.alameda === 'vozes';
+    const isUnlockedStar = (s) => Boolean(s?.isStickerUnlocked ?? s?.isInaugurated);
+    const isDiamondStar = (s) => Boolean(s?.isDiamond) || Number(s?.percentage || 0) >= 100;
+    const sumStarsXp = (list) =>
+      list.reduce((acc, s) => acc + Number((hasStarsById ? xpWalk.starsById[s.id]?.xp : s.rpgXp) || 0), 0);
+
+    const getLiveRank = (s, isDirGroup) =>
+      s?.rpgRank ||
+      resolveWalkRpgRank(
+        Number(s?.percentage || 0),
+        Number(s?.extraStars || 0),
+        isDirGroup,
+        Boolean(s?.isNewEraVisionary)
+      );
+
+    const getStuckRank = (s, isDirGroup) => {
+      if (!s?.isStuck || !isUnlockedStar(s)) return 'E';
+      return resolveWalkRpgRankFromTier(
+        s.stuckTier || s.statusTierKey,
+        Number(s.stuckExtraStars ?? s.extraStars ?? 0),
+        isDirGroup,
+        Boolean(s.isNewEraVisionary)
+      );
+    };
+
+    const actorStars = stars.filter((s) => !isDirStar(s) && !isDubStar(s));
+    const dubladorStars = stars.filter(isDubStar);
+    const directorStars = stars.filter(isDirStar);
+
+    const buildRankRows = (list, rankOrder, isDirGroup) => {
+      const risingPoolTotal = isDirGroup
+        ? list.filter((s) => Boolean(s.isNewEraVisionary)).length
+        : 0;
+      const rows = rankOrder.map((rankKey) => {
+        const meta = WALK_RANK_DISPLAY_META[rankKey];
+        const unlockedCount = list.filter(
+          (s) => isUnlockedStar(s) && getLiveRank(s, isDirGroup) === rankKey
+        ).length;
+        const stuckStarsInRank = list.filter(
+          (s) => s.isStuck && isUnlockedStar(s) && getStuckRank(s, isDirGroup) === rankKey
+        );
+        const stuckCountRank = stuckStarsInRank.length;
+        const xpInRank = sumStarsXp(stuckStarsInRank);
+        const carPoints = Math.round(stuckCountRank * meta.points * 10) / 10;
+        const poolTotal = rankKey === 'X' && isDirGroup ? risingPoolTotal : null;
+        const barDenominator = poolTotal && poolTotal > 0 ? poolTotal : Math.max(1, list.length);
+        const barPct =
+          stuckCountRank > 0
+            ? Math.max(6, Math.min(100, Math.round((stuckCountRank / barDenominator) * 100)))
+            : 0;
+        return {
+          rank: rankKey,
+          label: meta.label,
+          shortLabel: meta.shortLabel,
+          badgeClass: meta.badgeClass,
+          barGradient: meta.barGradient,
+          points: meta.points,
+          hint: isDirGroup ? meta.directorHint : meta.actorHint,
+          unlocked: unlockedCount,
+          stuck: stuckCountRank,
+          xp: xpInRank,
+          carPoints,
+          poolTotal,
+          barPct,
+        };
+      });
+      const lockedRankECount = list.filter(
+        (s) => !isUnlockedStar(s) && !(isDirGroup && s.isNewEraVisionary)
+      ).length;
+      const totalCar =
+        Math.round(rows.reduce((acc, r) => acc + r.carPoints, 0) * 10) / 10;
+      return { rows, lockedRankECount, totalCar };
+    };
+
+    const buildGroupStats = (list, rankOrder, isDirGroup) => {
+      const total = list.length;
+      const unlocked = list.filter(isUnlockedStar).length;
+      const stuck = list.filter((s) => s.isStuck && isUnlockedStar(s)).length;
+      const diamond = list.filter(isDiamondStar).length;
+      const extraStars = list.reduce((acc, s) => acc + Number(s.extraStars || 0), 0);
+      const appearances = list.reduce((acc, s) => acc + Number(s.watchedCount || 0), 0);
+      const xp = sumStarsXp(list);
+      const podium = [...list]
+        .filter((s) => Number(s.watchedCount || 0) > 0)
+        .sort(
+          (a, b) =>
+            Number(b.watchedCount || 0) - Number(a.watchedCount || 0) ||
+            (b.avgUserRating ?? -1) - (a.avgUserRating ?? -1) ||
+            Number(b.percentage || 0) - Number(a.percentage || 0) ||
+            Number(a.albumNumber || 0) - Number(b.albumNumber || 0)
+        )
+        .slice(0, 3);
+      const rankBreakdown = buildRankRows(list, rankOrder, isDirGroup);
+      return {
+        total,
+        unlocked,
+        stuck,
+        diamond,
+        extraStars,
+        appearances,
+        xp,
+        carPoints: rankBreakdown.totalCar,
+        rankRows: rankBreakdown.rows,
+        lockedRankECount: rankBreakdown.lockedRankECount,
+        topStar: podium[0] || null,
+        podium,
+      };
+    };
+
+    const actors = buildGroupStats(actorStars, ACTOR_RANK_ORDER, false);
+    const dubladores = buildGroupStats(dubladorStars, ACTOR_RANK_ORDER, false);
+    const directors = buildGroupStats(directorStars, DIRECTOR_RANK_ORDER, true);
+
     const totalStars = summary.totalStars ?? stars.length ?? 0;
     const inauguratedCount =
-      summary.inauguratedCount ?? stars.filter((s) => Number(s.percentage || 0) >= 15).length;
+      summary.inauguratedCount ?? stars.filter(isUnlockedStar).length;
     const stuckCount = summary.stuckCount ?? stars.filter((s) => s.isStuck).length;
-    const diamondCount = summary.diamondCount ?? stars.filter((s) => Number(s.percentage || 0) >= 100).length;
+    const diamondCount = summary.diamondCount ?? stars.filter(isDiamondStar).length;
     const pendingPackCount =
       summary.pendingPackCount ??
       (Array.isArray(walkOfFameData?.pendingPacks) ? walkOfFameData.pendingPacks.length : 0);
     const totalExtraStars = summary.totalExtraStars ?? xpWalk.totalExtraStars ?? 0;
     const totalWatchedAppearances = summary.totalWatchedAppearances ?? 0;
-    const byAlameda = alamedas.map((al) => {
-      const group = stars.filter((s) => s.alameda === al.id);
-      const total = group.length;
-      const unlocked = group.filter((s) => Number(s.percentage || 0) >= 15).length;
-      const stuck = group.filter((s) => s.isStuck).length;
-      const avgPct =
-        total > 0
-          ? Math.round(group.reduce((acc, s) => acc + Math.min(100, Number(s.percentage || 0)), 0) / total)
-          : 0;
-      const appearances = group.reduce((acc, s) => acc + Number(s.watchedCount || 0), 0);
-      return {
-        id: al.id,
-        label: al.label,
-        icon: al.icon,
-        total,
-        unlocked,
-        stuck,
-        avgPct,
-        appearances,
-      };
-    });
     const topStar =
-      Array.isArray(summary.topWatchedPodium) && summary.topWatchedPodium.length > 0
+      actors.topStar ||
+      (Array.isArray(summary.topWatchedPodium) && summary.topWatchedPodium.length > 0
         ? summary.topWatchedPodium[0]
-        : null;
+        : null);
     return {
       totalStars,
       inauguratedCount,
@@ -687,8 +863,10 @@ export default function AnalyticsDashboard({
       totalWatchedAppearances,
       rpgClassTitle: summary.rpgClassTitle || null,
       rpgRankTitle: summary.rpgRankTitle || null,
-      byAlameda,
       topStar,
+      actors,
+      dubladores,
+      directors,
     };
   }, [walkOfFameData, xpSources.walkOfFame]);
 
@@ -1072,7 +1250,10 @@ export default function AnalyticsDashboard({
                   <div className="flex items-center justify-between rounded-xl bg-zinc-950/90 border border-rose-500/30 px-3 py-2">
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
-                      <span className="text-xs font-bold text-zinc-200">🌟 Álbum da Fama</span>
+                      <span className="text-xs font-bold text-zinc-200">
+                        🌟 Álbum da Fama{' '}
+                        <span className="text-[10px] font-normal text-zinc-400">(Atores &amp; Diretores)</span>
+                      </span>
                     </div>
                     <span className="text-xs font-mono font-black text-rose-300">
                       +{walkOfFameXp.toLocaleString('pt-BR')} XP ({pctWalkOfFameXp}%)
@@ -1135,8 +1316,8 @@ export default function AnalyticsDashboard({
             </div>
           </div>
 
-          {/* DETALHAMENTO PROFUNDO DOS 5 SUBSISTEMAS DE XP */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+          {/* DETALHAMENTO PROFUNDO DOS SUBSISTEMAS DE XP */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {/* Subsistema 1: Troféus PS5 por Tier */}
             <div className="rounded-3xl bg-zinc-950/90 border border-purple-500/30 p-5 flex flex-col justify-between gap-4">
               <div className="flex flex-col gap-3">
@@ -1441,33 +1622,41 @@ export default function AnalyticsDashboard({
                 </button>
               )}
             </div>
+          </div>
 
-            {/* Subsistema 5: Álbum da Fama (Calçada da Fama) */}
-            <div className="relative overflow-hidden rounded-3xl bg-zinc-950/90 border border-rose-500/35 p-5 flex flex-col justify-between gap-4 lg:col-span-2 xl:col-span-1">
+          {/* ÁLBUNS DA FAMA (3 ÁLBUNS SEPARADOS) */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+            {/* Subsistema 5: Álbum da Fama — Atores, Casais & Elencos */}
+            <div className="relative overflow-hidden rounded-3xl bg-zinc-950/90 border border-rose-500/35 p-5 flex flex-col justify-between gap-4">
               <div className="pointer-events-none absolute -top-16 -right-14 w-48 h-48 rounded-full bg-rose-500/10 blur-3xl" />
 
               <div className="relative z-10 flex flex-col gap-3">
-                <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+                <div className="flex items-start justify-between gap-2 border-b border-zinc-800/80 pb-3">
                   <div>
                     <span className="text-[10px] font-black uppercase tracking-widest text-rose-400">
-                      Calçada da Fama do Catálogo
+                      Álbum da Fama • Atores, Casais &amp; Elencos
                     </span>
                     <h3 className="text-base font-black text-white">
-                      🌟 {walkOfFameOverview.stuckCount} / {walkOfFameOverview.totalStars} Coladas
+                      🎭 {walkOfFameOverview.actors.stuck} / {walkOfFameOverview.actors.total} Coladas
                     </h3>
                     <div className="text-[11px] font-mono text-zinc-400 mt-0.5">
-                      🔓 {walkOfFameOverview.inauguratedCount} Liberadas • 💎 {walkOfFameOverview.diamondCount} Diamante • ⭐ +{walkOfFameOverview.totalExtraStars} ★
+                      🔓 {walkOfFameOverview.actors.unlocked} Liberadas • 💎 {walkOfFameOverview.actors.diamond} Diamante • ⭐ +{walkOfFameOverview.actors.extraStars} ★
                     </div>
                   </div>
-                  <span className="text-xs font-mono font-black px-2.5 py-1 rounded-xl bg-rose-500/20 border border-rose-400/40 text-rose-200 shrink-0">
-                    +{walkOfFameXp.toLocaleString('pt-BR')} XP
-                  </span>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="text-xs font-mono font-black px-2.5 py-1 rounded-xl bg-rose-500/20 border border-rose-400/40 text-rose-200">
+                      +{walkOfFameOverview.actors.xp.toLocaleString('pt-BR')} XP
+                    </span>
+                    <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-400/35 text-amber-200">
+                      🌟 +{walkOfFameOverview.actors.carPoints.toFixed(1)} CAR
+                    </span>
+                  </div>
                 </div>
 
-                {/* Radar do Álbum da Fama */}
+                {/* Radar do Álbum da Fama (Atores) */}
                 <div className="rounded-xl bg-zinc-900/80 border border-rose-500/25 px-3 py-2.5 flex flex-col gap-1.5 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-zinc-300 font-bold">🎁 Pacotes Pendentes:</span>
+                    <span className="text-zinc-300 font-bold">🎁 Pacotes Misteriosos:</span>
                     <span
                       className={`font-mono font-black ${
                         walkOfFameOverview.pendingPackCount > 0 ? 'text-amber-300' : 'text-zinc-400'
@@ -1477,9 +1666,9 @@ export default function AnalyticsDashboard({
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-zinc-400">
-                    <span>🎬 Créditos Catalogados nas Estrelas:</span>
+                    <span>🎭 Créditos nas Estrelas:</span>
                     <span className="font-mono font-bold text-rose-200">
-                      {walkOfFameOverview.totalWatchedAppearances} aparições
+                      {walkOfFameOverview.actors.appearances} aparições
                     </span>
                   </div>
                   {(walkOfFameOverview.topStar || walkOfFameOverview.rpgClassTitle) && (
@@ -1499,40 +1688,164 @@ export default function AnalyticsDashboard({
                   )}
                 </div>
 
-                {/* Quebra por Alameda */}
-                <div className="flex flex-col gap-2">
-                  {walkOfFameOverview.byAlameda.map((al) => (
-                    <div key={al.id} className="rounded-xl bg-zinc-900/70 border border-zinc-800/90 px-3 py-2 flex flex-col gap-1">
-                      <div className="flex items-center justify-between text-xs gap-2">
-                        <span className="font-black text-rose-200 truncate">
-                          {al.icon} {al.label}{' '}
-                          <span className="text-[10px] font-normal text-zinc-500">
-                            ({al.appearances} filmes)
-                          </span>
-                        </span>
-                        <span className="font-mono font-bold text-zinc-200 shrink-0">
-                          {al.unlocked}/{al.total} lib.
-                          <span className="text-amber-300 ml-1.5">{al.stuck} col.</span>
-                        </span>
-                      </div>
-                      <div className="w-full h-1.5 rounded-full bg-zinc-950 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-rose-500 to-amber-400 transition-all"
-                          style={{ width: `${al.avgPct}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                {/* Quebra por Rank das Figurinhas (Atores) */}
+                <WalkRankBreakdownList
+                  rows={walkOfFameOverview.actors.rankRows}
+                  lockedCount={walkOfFameOverview.actors.lockedRankECount}
+                  lockedHint="< 15%"
+                  accent="rose"
+                  entityLabel="estrela(s)"
+                />
               </div>
 
               {onNavigateTab && (
                 <button
                   type="button"
-                  onClick={() => onNavigateTab('walk_of_fame')}
+                  onClick={() => onNavigateTab('walk_of_fame', 'actors')}
                   className="relative z-10 w-full py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-400/40 text-xs font-black uppercase tracking-wider text-rose-200 flex items-center justify-center gap-1.5 cursor-pointer transition-all"
                 >
-                  <span>Abrir Álbum da Fama</span>
+                  <span>Abrir Álbum — Atores</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Subsistema 6: Álbum da Fama — Dubladores */}
+            <div className="relative overflow-hidden rounded-3xl bg-zinc-950/90 border border-amber-500/35 p-5 flex flex-col justify-between gap-4">
+              <div className="pointer-events-none absolute -top-16 -right-14 w-48 h-48 rounded-full bg-amber-500/10 blur-3xl" />
+
+              <div className="relative z-10 flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-2 border-b border-zinc-800/80 pb-3">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">
+                      Álbum da Fama • Dubladores
+                    </span>
+                    <h3 className="text-base font-black text-white">
+                      🎙️ {walkOfFameOverview.dubladores.stuck} / {walkOfFameOverview.dubladores.total} Coladas
+                    </h3>
+                    <div className="text-[11px] font-mono text-zinc-400 mt-0.5">
+                      🔓 {walkOfFameOverview.dubladores.unlocked} Liberadas • 💎 {walkOfFameOverview.dubladores.diamond} Diamante • ⭐ +{walkOfFameOverview.dubladores.extraStars} ★
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="text-xs font-mono font-black px-2.5 py-1 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-200">
+                      +{walkOfFameOverview.dubladores.xp.toLocaleString('pt-BR')} XP
+                    </span>
+                    <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-400/35 text-amber-200">
+                      🌟 +{walkOfFameOverview.dubladores.carPoints.toFixed(1)} CAR
+                    </span>
+                  </div>
+                </div>
+
+                {/* Radar de Dubladores */}
+                <div className="rounded-xl bg-zinc-900/80 border border-amber-500/25 px-3 py-2.5 flex flex-col gap-1.5 text-xs">
+                  <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                    <span className="text-zinc-300 font-bold">🎙️ Créditos nas Vozes:</span>
+                    <span className="font-mono font-black text-amber-200">
+                      {walkOfFameOverview.dubladores.appearances} aparições
+                    </span>
+                  </div>
+                  {walkOfFameOverview.dubladores.topStar && (
+                    <div className="pt-0.5 flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-400/40 text-amber-200 truncate max-w-full">
+                        👑 Líder: {walkOfFameOverview.dubladores.topStar.icon}{' '}
+                        {walkOfFameOverview.dubladores.topStar.name} (
+                        {walkOfFameOverview.dubladores.topStar.watchedCount} filmes)
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Quebra por Rank das Figurinhas (Dubladores) */}
+                <WalkRankBreakdownList
+                  rows={walkOfFameOverview.dubladores.rankRows}
+                  lockedCount={walkOfFameOverview.dubladores.lockedRankECount}
+                  lockedHint="< 15%"
+                  accent="amber"
+                  entityLabel="dublador(es)"
+                />
+              </div>
+
+              {onNavigateTab && (
+                <button
+                  type="button"
+                  onClick={() => onNavigateTab('walk_of_fame', 'dubladores')}
+                  className="relative z-10 w-full py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-xs font-black uppercase tracking-wider text-amber-200 flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                >
+                  <span>Abrir Álbum — Dubladores</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Subsistema 7: Álbum da Fama — Diretores & Roteiristas */}
+            <div className="relative overflow-hidden rounded-3xl bg-zinc-950/90 border border-cyan-500/35 p-5 flex flex-col justify-between gap-4">
+              <div className="pointer-events-none absolute -top-16 -right-14 w-48 h-48 rounded-full bg-cyan-500/10 blur-3xl" />
+
+              <div className="relative z-10 flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-2 border-b border-zinc-800/80 pb-3">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400">
+                      Álbum da Fama • Diretores &amp; Roteiristas
+                    </span>
+                    <h3 className="text-base font-black text-white">
+                      🎬 {walkOfFameOverview.directors.stuck} / {walkOfFameOverview.directors.total} Coladas
+                    </h3>
+                    <div className="text-[11px] font-mono text-zinc-400 mt-0.5">
+                      🔓 {walkOfFameOverview.directors.unlocked} Liberadas • 💎 {walkOfFameOverview.directors.diamond} Cânone/Rank X • ⭐ +{walkOfFameOverview.directors.extraStars} ★
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="text-xs font-mono font-black px-2.5 py-1 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-200">
+                      +{walkOfFameOverview.directors.xp.toLocaleString('pt-BR')} XP
+                    </span>
+                    <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-400/35 text-amber-200">
+                      🌟 +{walkOfFameOverview.directors.carPoints.toFixed(1)} CAR
+                    </span>
+                  </div>
+                </div>
+
+                {/* Radar de Diretores & Roteiristas */}
+                <div className="rounded-xl bg-zinc-900/80 border border-cyan-500/25 px-3 py-2.5 flex flex-col gap-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-300 font-bold">🎥 Obras nos Cineastas:</span>
+                    <span className="font-mono font-black text-cyan-200">
+                      {walkOfFameOverview.directors.appearances} créditos
+                    </span>
+                  </div>
+                  {walkOfFameOverview.directors.topStar && (
+                    <div className="pt-0.5 flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-400/40 text-amber-200 truncate max-w-full">
+                        👑 Líder: {walkOfFameOverview.directors.topStar.icon}{' '}
+                        {walkOfFameOverview.directors.topStar.name} (
+                        {walkOfFameOverview.directors.topStar.watchedCount} filmes
+                        {walkOfFameOverview.directors.topStar.avgUserRating != null
+                          ? ` • ★${Number(walkOfFameOverview.directors.topStar.avgUserRating).toFixed(1)}`
+                          : ''}
+                        )
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Quebra por Rank das Figurinhas (Diretores) */}
+                <WalkRankBreakdownList
+                  rows={walkOfFameOverview.directors.rankRows}
+                  lockedCount={walkOfFameOverview.directors.lockedRankECount}
+                  lockedHint="< 20%"
+                  isDirector
+                  accent="cyan"
+                  entityLabel="cineasta(s)"
+                />
+              </div>
+
+              {onNavigateTab && (
+                <button
+                  type="button"
+                  onClick={() => onNavigateTab('walk_of_fame', 'directors')}
+                  className="relative z-10 w-full py-2.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 text-xs font-black uppercase tracking-wider text-cyan-200 flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                >
+                  <span>Abrir Diretores &amp; Roteiristas</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
               )}
@@ -1691,7 +2004,7 @@ export default function AnalyticsDashboard({
               </div>
             </div>
 
-            {/* Coluna da Direita (Os 6 Atributos em Linhas com Barra de XP - 6 colunas) */}
+            {/* Coluna da Direita (Os 7 Atributos em Linhas com Barra de XP - 6 colunas) */}
             <div className="xl:col-span-6 rounded-3xl bg-zinc-950/90 border border-zinc-800/90 p-5 sm:p-6 flex flex-col justify-between gap-3 shadow-xl">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800/80 pb-3">
                 <div>
@@ -1720,7 +2033,7 @@ export default function AnalyticsDashboard({
                 </div>
               </div>
 
-              {/* Lista dos 6 Atributos na Ordem Clássica com Mini-Barras de XP */}
+              {/* Lista dos 7 Atributos na Ordem Clássica com Mini-Barras de XP */}
               <div className="flex flex-col gap-2.5">
                 {rpgAttributes.map((attr) => (
                   <div
@@ -3208,7 +3521,7 @@ export default function AnalyticsDashboard({
               </button>
             </div>
 
-            {/* Conteúdo Explicativo das 6 Fórmulas */}
+            {/* Conteúdo Explicativo das 7 Fórmulas */}
             <div className="p-4 sm:p-6 overflow-y-auto flex flex-col gap-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 {/* AGI */}
@@ -3328,6 +3641,27 @@ export default function AnalyticsDashboard({
                     <div>• Cada <strong>Vitória / Estatueta do Oscar</strong>: <strong>+0.4 FOR</strong></div>
                   </div>
                 </div>
+
+                {/* CAR */}
+                <div className="rounded-2xl bg-zinc-900/70 border border-rose-500/35 p-4 flex flex-col gap-2 md:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-rose-300 flex items-center gap-1.5">
+                      <span>🌟</span> CAR • Aura de Estrela (Carisma)
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-300">
+                      Máx 99 pts
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-300 leading-relaxed">
+                    Mede o brilho da sua coleção de figurinhas <strong>efetivamente coladas</strong> no Álbum da Fama (Atores, Vozes, Casais &amp; Diretores):
+                  </p>
+                  <div className="rounded-xl bg-zinc-950/80 p-2.5 border border-zinc-800/80 text-[11px] font-mono grid grid-cols-1 sm:grid-cols-2 gap-1 text-zinc-300">
+                    <div>• 🥉 Rank D: <strong>+0.1 CAR</strong> | 🥈 Rank C: <strong>+0.2 CAR</strong></div>
+                    <div>• 🔮 Rank B: <strong>+0.3 CAR</strong> | 🏆 Rank A: <strong>+0.4 CAR</strong></div>
+                    <div>• ❤️‍🔥 Rank A+ / 🌟 Rank X: <strong>+0.5 CAR</strong></div>
+                    <div>• 💎 Rank S: <strong>+0.6 CAR</strong> | 👑 Rank SS: <strong>+0.7 CAR</strong></div>
+                  </div>
+                </div>
               </div>
 
               {/* Box de Resumo da Progressão */}
@@ -3335,7 +3669,7 @@ export default function AnalyticsDashboard({
                 <span className="font-black text-amber-300 uppercase tracking-wider block mb-1">
                   🌟 O que a soma total de pontos desbloqueia?
                 </span>
-                A soma dos seus 6 atributos (máximo de 594 pontos) destrava progressivamente todas as <strong>16 Classes Cinéfilas</strong> na sua Trilha Linear!
+                A soma dos seus 7 atributos (máximo de 693 pontos) destrava progressivamente todas as <strong>16 Classes Cinéfilas</strong> na sua Trilha Linear!
               </div>
             </div>
 

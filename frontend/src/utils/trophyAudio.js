@@ -1128,6 +1128,158 @@ export function playWalkOfFameSignatureSound() {
   return true;
 }
 
+export function playDirectorCardFlipSound() {
+  if (typeof window === 'undefined' || isAudioMuted()) {
+    return false;
+  }
+  playSynthTimelineTone({
+    frequency: 240,
+    endFrequency: 560,
+    duration: 0.11,
+    gainPeak: 0.055,
+    type: 'triangle',
+    delay: 0,
+  });
+  playSynthTimelineTone({
+    frequency: 660,
+    endFrequency: 880,
+    duration: 0.16,
+    gainPeak: 0.04,
+    type: 'sine',
+    delay: 0.06,
+  });
+  return true;
+}
+
+function playFilteredNoiseBurst({
+  startDelay = 0,
+  duration = 0.09,
+  filterType = 'bandpass',
+  frequency = 1400,
+  q = 2,
+  gainPeak = 0.045,
+}) {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  try {
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+    const sampleRate = ctx.sampleRate || 44100;
+    const frameCount = Math.max(1, Math.floor(sampleRate * duration));
+    const buffer = ctx.createBuffer(1, frameCount, sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < frameCount; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / frameCount, 1.4);
+    }
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = filterType;
+    filter.frequency.setValueAtTime(frequency, ctx.currentTime + startDelay);
+    filter.Q.setValueAtTime(q, ctx.currentTime + startDelay);
+
+    const gain = ctx.createGain();
+    const startAt = ctx.currentTime + startDelay;
+    gain.gain.setValueAtTime(0.0001, startAt);
+    gain.gain.linearRampToValueAtTime(gainPeak, startAt + Math.min(0.015, duration * 0.25));
+    gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    source.start(startAt);
+    source.stop(startAt + duration + 0.02);
+  } catch {
+    // Ignora caso autoplay bloqueie áudio
+  }
+}
+
+export function playDirectorOscarFanfareSound() {
+  if (typeof window === 'undefined' || isAudioMuted()) {
+    return false;
+  }
+  // Fanfarra triunfal + fogos de artifício + palmas sintéticas
+  const notes = [
+    { frequency: 392.0, duration: 0.18, gainPeak: 0.08, type: 'triangle', delay: 0 },
+    { frequency: 493.88, duration: 0.18, gainPeak: 0.085, type: 'triangle', delay: 0.14 },
+    { frequency: 587.33, duration: 0.22, gainPeak: 0.095, type: 'triangle', delay: 0.28 },
+    { frequency: 783.99, duration: 0.65, gainPeak: 0.11, type: 'triangle', delay: 0.44 },
+    { frequency: 987.77, duration: 0.72, gainPeak: 0.085, type: 'sine', delay: 0.48 },
+    { frequency: 1174.66, duration: 0.85, gainPeak: 0.075, type: 'sine', delay: 0.54 },
+  ];
+  notes.forEach((n) => playSynthTimelineTone(n));
+
+  // Fogos (whistle -> pop)
+  [0.25, 0.75, 1.35].forEach((t, i) => {
+    playSynthTimelineTone({
+      frequency: 620 + i * 110,
+      endFrequency: 1450 + i * 160,
+      duration: 0.16,
+      gainPeak: 0.032,
+      type: 'sine',
+      delay: t,
+    });
+    playFilteredNoiseBurst({
+      startDelay: t + 0.15,
+      duration: 0.22,
+      filterType: 'lowpass',
+      frequency: 1100 + i * 250,
+      q: 1.1,
+      gainPeak: 0.075,
+    });
+  });
+
+  // Palmas rítmicas da plateia
+  for (let i = 0; i < 16; i++) {
+    playFilteredNoiseBurst({
+      startDelay: 0.45 + i * 0.13 + (i % 3) * 0.02,
+      duration: 0.065,
+      filterType: 'bandpass',
+      frequency: 1650 + (i % 4) * 280,
+      q: 1.8,
+      gainPeak: Math.max(0.015, 0.045 - i * 0.0018),
+    });
+  }
+  return true;
+}
+
+export function playDirectorRazzieTomatoSound() {
+  if (typeof window === 'undefined' || isAudioMuted()) {
+    return false;
+  }
+  // Trombone cômico decrescente (wah-wah-waaaah)
+  const slideNotes = [
+    { frequency: 311.13, endFrequency: 293.66, duration: 0.22, gainPeak: 0.095, type: 'sawtooth', delay: 0 },
+    { frequency: 293.66, endFrequency: 277.18, duration: 0.22, gainPeak: 0.09, type: 'sawtooth', delay: 0.23 },
+    { frequency: 277.18, endFrequency: 261.63, duration: 0.24, gainPeak: 0.088, type: 'sawtooth', delay: 0.46 },
+    { frequency: 246.94, endFrequency: 146.83, duration: 0.72, gainPeak: 0.105, type: 'sawtooth', delay: 0.72 },
+  ];
+  slideNotes.forEach((n) => playSynthTimelineTone(n));
+
+  // Tomates esmagando na tela (splat!)
+  [0.18, 0.52, 0.88, 1.24, 1.56].forEach((delay, idx) => {
+    playSynthTimelineTone({
+      frequency: 240 - idx * 14,
+      endFrequency: 58,
+      duration: 0.14,
+      gainPeak: 0.085,
+      type: 'triangle',
+      delay,
+    });
+    playFilteredNoiseBurst({
+      startDelay: delay,
+      duration: 0.11,
+      filterType: 'lowpass',
+      frequency: 920,
+      q: 2.4,
+      gainPeak: 0.08,
+    });
+  });
+  return true;
+}
+
 function playSyntheticWorldConquestSound(rarity = 'common') {
   try {
     if (isAudioMuted()) return;

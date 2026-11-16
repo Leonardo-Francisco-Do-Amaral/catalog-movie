@@ -105,8 +105,11 @@ export async function ensureUniverseTables(): Promise<void> {
   universeTablesEnsured = true;
 }
 
-export async function seedUniverses(): Promise<void> {
+let universesSeeded = false;
+
+export async function seedUniverses(force = false): Promise<void> {
   await ensureUniverseTables();
+  if (!force && universesSeeded) return;
 
   for (const ms of UNIVERSE_MEGA_SAGAS) {
     await query(
@@ -169,7 +172,11 @@ export async function seedUniverses(): Promise<void> {
       ]
     );
   }
+
+  universesSeeded = true;
 }
+
+const TOKEN_PHRASE_RX_CACHE = new Map<string, RegExp>();
 
 function normalizeTokens(str: string | null | undefined): string {
   if (!str) return '';
@@ -188,7 +195,11 @@ function escapeRegExp(str: string): string {
 function containsTokenPhrase(normalizedTitle: string, normalizedPhrase: string): boolean {
   if (!normalizedTitle || !normalizedPhrase) return false;
   if (normalizedTitle === normalizedPhrase) return true;
-  const rx = new RegExp(`(?:^|\\s)${escapeRegExp(normalizedPhrase)}(?:$|\\s)`);
+  let rx = TOKEN_PHRASE_RX_CACHE.get(normalizedPhrase);
+  if (!rx) {
+    rx = new RegExp(`(?:^|\\s)${escapeRegExp(normalizedPhrase)}(?:$|\\s)`);
+    TOKEN_PHRASE_RX_CACHE.set(normalizedPhrase, rx);
+  }
   return rx.test(normalizedTitle);
 }
 
@@ -212,6 +223,8 @@ interface CatalogMovieRow {
   imdb_rating: number | null;
   metacritic_score: number | null;
   rotten_tomatoes_score: number | null;
+  _normalizedTitles?: string[];
+  _cjkTitles?: string[];
 }
 
 function matchesYearRequirement(movieYear: number | null, req: UniverseMovieRequirement): boolean {
@@ -236,11 +249,14 @@ export function matchUniverseMovie(m: CatalogMovieRow, req: UniverseMovieRequire
     return false;
   }
 
-  const rawTitles = [m.title, m.original_title].map((v) => String(v || '').trim()).filter(Boolean);
-  if (rawTitles.length === 0) return false;
+  const rawTitles =
+    m._normalizedTitles && m._cjkTitles
+      ? null
+      : [m.title, m.original_title].map((v) => String(v || '').trim()).filter(Boolean);
+  if (rawTitles && rawTitles.length === 0) return false;
 
-  const normalizedTitles = rawTitles.map(normalizeTokens).filter(Boolean);
-  const cjkTitles = rawTitles.map(normalizeCjkText).filter(Boolean);
+  const normalizedTitles = m._normalizedTitles || rawTitles!.map(normalizeTokens).filter(Boolean);
+  const cjkTitles = m._cjkTitles || rawTitles!.map(normalizeCjkText).filter(Boolean);
 
   if (Array.isArray(req.exclude) && req.exclude.length > 0) {
     for (const ex of req.exclude) {
@@ -420,10 +436,10 @@ export interface UniverseCodexPayload {
 }
 
 export async function evaluateAndBuildUniverseCodex(
-  options: { persist?: boolean; triggerMovieId?: number | null } = {}
+  options: { persist?: boolean; triggerMovieId?: number | null; forceSeed?: boolean } = {}
 ): Promise<UniverseCodexPayload> {
-  const { persist = false, triggerMovieId = null } = options;
-  await seedUniverses();
+  const { persist = false, triggerMovieId = null, forceSeed = false } = options;
+  await seedUniverses(forceSeed);
 
   const [moviesRes, prevCpRes, prevCompRes, audioMetaRes] = await Promise.all([
     query(`
@@ -456,24 +472,40 @@ export async function evaluateAndBuildUniverseCodex(
     `),
   ]);
 
-  const catalogMovies: CatalogMovieRow[] = moviesRes.rows.map((r: any) => ({
-    movie_id: Number(r.movie_id),
-    title: String(r.title || ''),
-    original_title: r.original_title ? String(r.original_title) : null,
-    release_year: r.release_year != null ? Number(r.release_year) : null,
-    poster_url: r.poster_url ? String(r.poster_url) : null,
-    user_rating: parseValidScore(r.user_rating),
-    imdb_rating: parseValidScore(r.imdb_rating),
-    metacritic_score: parseValidScore(r.metacritic_score),
-    rotten_tomatoes_score: parseValidScore(r.rotten_tomatoes_score, true),
-  }));
+  const catalogMovies: CatalogMovieRow[] = moviesRes.rows.map((r: any) => {
+    const title = String(r.title || '');
+    const originalTitle = r.original_title ? String(r.original_title) : null;
+    const rawTitles = [title, originalTitle].map((v) => String(v || '').trim()).filter(Boolean);
+    return {
+      movie_id: Number(r.movie_id),
+      title,
+      original_title: originalTitle,
+      release_year: r.release_year != null ? Number(r.release_year) : null,
+      poster_url: r.poster_url ? String(r.poster_url) : null,
+      user_rating: parseValidScore(r.user_rating),
+      imdb_rating: parseValidScore(r.imdb_rating),
+      metacritic_score: parseValidScore(r.metacritic_score),
+      rotten_tomatoes_score: parseValidScore(r.rotten_tomatoes_score, true),
+      _normalizedTitles: rawTitles.map(normalizeTokens).filter(Boolean),
+      _cjkTitles: rawTitles.map(normalizeCjkText).filter(Boolean),
+    };
+  });
 
   const prevCheckpointsSet = new Set(
     prevCpRes.rows.map((r: any) => `${r.saga_id}::${Number(r.threshold)}`)
   );
-  const prevCompletionsSet = new Set(
-    prevCompRes.rows.map((r: any) => `${r.entity_type}::${r.entity_id}`)
+  const prevCompletionsMap = new Map<string, { tier: string; xp: number }>(
+    prevCompRes.rows.map((r: any) => [
+      `${r.entity_type}::${r.entity_id}`,
+      { tier: String(r.tier || ''), xp: Number(r.xp_awarded || 0) },
+    ])
   );
+  const prevCompletionsSet = new Set(prevCompletionsMap.keys());
+  const desiredCheckpoints = new Map<string, { sagaId: string; threshold: number; xp: number }>();
+  const desiredCompletions = new Map<
+    string,
+    { entityType: 'saga' | 'mega_saga'; entityId: string; tier: string; xp: number }
+  >();
 
   const customAudioMap = new Map<string, string | null>();
   audioMetaRes.rows.forEach((r: any) => {
@@ -617,50 +649,22 @@ export async function evaluateAndBuildUniverseCodex(
     }
 
     if (persist) {
-      const validThresholds = cpStatuses.map((c) => c.threshold);
-      if (validThresholds.length > 0) {
-        await query(
-          `DELETE FROM user_universe_checkpoints WHERE saga_id = $1 AND NOT (threshold = ANY($2::int[]))`,
-          [sagaDef.id, validThresholds]
-        );
-      } else {
-        await query(`DELETE FROM user_universe_checkpoints WHERE saga_id = $1`, [sagaDef.id]);
-      }
-
       for (const cp of cpStatuses) {
         if (cp.unlocked) {
-          await query(
-            `
-            INSERT INTO user_universe_checkpoints (saga_id, threshold, xp_awarded, trigger_movie_id)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (saga_id, threshold) DO NOTHING
-            `,
-            [sagaDef.id, cp.threshold, cp.xp, triggerMovieId]
-          );
-        } else {
-          await query(
-            `DELETE FROM user_universe_checkpoints WHERE saga_id = $1 AND threshold = $2`,
-            [sagaDef.id, cp.threshold]
-          );
+          desiredCheckpoints.set(`${sagaDef.id}::${cp.threshold}`, {
+            sagaId: sagaDef.id,
+            threshold: cp.threshold,
+            xp: cp.xp,
+          });
         }
       }
-
       if (isCompleted) {
-        await query(
-          `
-          INSERT INTO user_universe_completions (entity_type, entity_id, tier, xp_awarded, trigger_movie_id)
-          VALUES ('saga', $1, $2, $3, $4)
-          ON CONFLICT (entity_type, entity_id) DO UPDATE SET
-            tier = EXCLUDED.tier,
-            xp_awarded = EXCLUDED.xp_awarded
-          `,
-          [sagaDef.id, sagaDef.tier, completionXp, triggerMovieId]
-        );
-      } else {
-        await query(
-          `DELETE FROM user_universe_completions WHERE entity_type = 'saga' AND entity_id = $1`,
-          [sagaDef.id]
-        );
+        desiredCompletions.set(`saga::${sagaDef.id}`, {
+          entityType: 'saga',
+          entityId: sagaDef.id,
+          tier: sagaDef.tier,
+          xp: completionXp,
+        });
       }
     }
 
@@ -756,23 +760,13 @@ export async function evaluateAndBuildUniverseCodex(
       }
     }
 
-    if (persist) {
-      if (isCompleted) {
-        await query(
-          `
-          INSERT INTO user_universe_completions (entity_type, entity_id, tier, xp_awarded, trigger_movie_id)
-          VALUES ('mega_saga', $1, 'mythic', $2, $3)
-          ON CONFLICT (entity_type, entity_id) DO UPDATE SET
-            xp_awarded = EXCLUDED.xp_awarded
-          `,
-          [msDef.id, completionXp, triggerMovieId]
-        );
-      } else {
-        await query(
-          `DELETE FROM user_universe_completions WHERE entity_type = 'mega_saga' AND entity_id = $1`,
-          [msDef.id]
-        );
-      }
+    if (persist && isCompleted) {
+      desiredCompletions.set(`mega_saga::${msDef.id}`, {
+        entityType: 'mega_saga',
+        entityId: msDef.id,
+        tier: 'mythic',
+        xp: completionXp,
+      });
     }
 
     megaSagasStatus.push({
@@ -794,6 +788,98 @@ export async function evaluateAndBuildUniverseCodex(
       sortOrder: msDef.sortOrder,
       posters,
     });
+  }
+
+  if (persist) {
+    const cpKeysToDelete: Array<{ sagaId: string; threshold: number }> = [];
+    for (const key of prevCheckpointsSet) {
+      if (!desiredCheckpoints.has(key)) {
+        const sep = key.lastIndexOf('::');
+        cpKeysToDelete.push({
+          sagaId: key.slice(0, sep),
+          threshold: Number(key.slice(sep + 2)),
+        });
+      }
+    }
+    if (cpKeysToDelete.length > 0) {
+      await query(
+        `
+        DELETE FROM user_universe_checkpoints u
+        USING UNNEST($1::text[], $2::int[]) AS d(saga_id, threshold)
+        WHERE u.saga_id = d.saga_id AND u.threshold = d.threshold
+        `,
+        [cpKeysToDelete.map((x) => x.sagaId), cpKeysToDelete.map((x) => x.threshold)]
+      );
+    }
+
+    const cpToInsert: Array<{ sagaId: string; threshold: number; xp: number }> = [];
+    for (const [key, item] of desiredCheckpoints.entries()) {
+      if (!prevCheckpointsSet.has(key)) cpToInsert.push(item);
+    }
+    if (cpToInsert.length > 0) {
+      await query(
+        `
+        INSERT INTO user_universe_checkpoints (saga_id, threshold, xp_awarded, trigger_movie_id)
+        SELECT d.saga_id, d.threshold, d.xp, $4
+        FROM UNNEST($1::text[], $2::int[], $3::int[]) AS d(saga_id, threshold, xp)
+        ON CONFLICT (saga_id, threshold) DO NOTHING
+        `,
+        [
+          cpToInsert.map((x) => x.sagaId),
+          cpToInsert.map((x) => x.threshold),
+          cpToInsert.map((x) => x.xp),
+          triggerMovieId,
+        ]
+      );
+    }
+
+    const compKeysToDelete: Array<{ entityType: string; entityId: string }> = [];
+    for (const key of prevCompletionsSet) {
+      if (!desiredCompletions.has(key)) {
+        const sep = key.indexOf('::');
+        compKeysToDelete.push({
+          entityType: key.slice(0, sep),
+          entityId: key.slice(sep + 2),
+        });
+      }
+    }
+    if (compKeysToDelete.length > 0) {
+      await query(
+        `
+        DELETE FROM user_universe_completions u
+        USING UNNEST($1::text[], $2::text[]) AS d(entity_type, entity_id)
+        WHERE u.entity_type = d.entity_type AND u.entity_id = d.entity_id
+        `,
+        [compKeysToDelete.map((x) => x.entityType), compKeysToDelete.map((x) => x.entityId)]
+      );
+    }
+
+    const compToUpsert: Array<{ entityType: string; entityId: string; tier: string; xp: number }> = [];
+    for (const [key, item] of desiredCompletions.entries()) {
+      const prev = prevCompletionsMap.get(key);
+      if (!prev || prev.tier !== item.tier || prev.xp !== item.xp) {
+        compToUpsert.push(item);
+      }
+    }
+    if (compToUpsert.length > 0) {
+      await query(
+        `
+        INSERT INTO user_universe_completions (entity_type, entity_id, tier, xp_awarded, trigger_movie_id)
+        SELECT d.entity_type, d.entity_id, d.tier, d.xp, $5
+        FROM UNNEST($1::text[], $2::text[], $3::text[], $4::int[]) AS d(entity_type, entity_id, tier, xp)
+        ON CONFLICT (entity_type, entity_id) DO UPDATE SET
+          tier = EXCLUDED.tier,
+          xp_awarded = EXCLUDED.xp_awarded
+        `,
+        [
+          compToUpsert.map((x) => x.entityType),
+          compToUpsert.map((x) => x.entityId),
+          compToUpsert.map((x) => x.tier),
+          compToUpsert.map((x) => x.xp),
+          triggerMovieId,
+        ]
+      );
+    }
   }
 
   const completedSagasCount = Object.keys(completedSagasMap).length;

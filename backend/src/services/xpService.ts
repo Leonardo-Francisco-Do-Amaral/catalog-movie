@@ -22,6 +22,8 @@ import {
   WalkOfFameXpStarEntry,
   EMPTY_WALK_OF_FAME_XP_SUMMARY,
   computeWalkXpSplit,
+  resolveRpgRankFromTier,
+  getWalkCarPointsForRank,
 } from '../data/walkOfFameData';
 
 export type WorldChallengePayload = Awaited<ReturnType<typeof buildWorldChallengePayload>>;
@@ -267,7 +269,7 @@ export interface WorldChallengeNotification {
 }
 
 export interface XpStatGain {
-  key: 'AGI' | 'INT' | 'DES' | 'SOR' | 'VIT' | 'FOR';
+  key: 'AGI' | 'INT' | 'DES' | 'SOR' | 'VIT' | 'FOR' | 'CAR';
   icon: string;
   label: string;
   gain?: number;
@@ -324,7 +326,9 @@ function isMovieCoproduction(m: any): boolean {
 export async function getQuickWalkOfFameXpSummary(): Promise<WalkOfFameXpSummary> {
   try {
     const res = await query(
-      `SELECT star_id, claimed_xp_pct, claimed_xp_extra_stars FROM walk_of_fame_album_state WHERE claimed_xp_pct > 0 OR claimed_xp_extra_stars > 0`
+      `SELECT star_id, stuck_tier, stuck_extra_stars, claimed_xp_pct, claimed_xp_extra_stars
+       FROM walk_of_fame_album_state
+       WHERE claimed_xp_pct > 0 OR claimed_xp_extra_stars > 0 OR stuck_tier IS NOT NULL`
     );
     const starMetaById = new Map(WALK_OF_FAME_STARS.map((s) => [s.id, s]));
     const starsById: Record<string, WalkOfFameXpStarEntry> = {};
@@ -332,14 +336,34 @@ export async function getQuickWalkOfFameXpSummary(): Promise<WalkOfFameXpSummary
     let extraStarsXp = 0;
     let claimedStarsCount = 0;
     let totalClaimedExtraStars = 0;
+    let stuckCount = 0;
+    let carPointsRaw = 0;
+    const stuckByRank: Record<string, number> = {};
 
     for (const r of res.rows || []) {
       const starId = String(r.star_id || '');
+      const def = starMetaById.get(starId);
+      const isDirector = def?.kind === 'director';
+      const isRisingStar = Boolean(isDirector && def?.isNewEraVisionary);
       const claimedPct = Math.max(0, Number(r.claimed_xp_pct || 0));
       const claimedExtraStars = Math.max(0, Number(r.claimed_xp_extra_stars || 0));
-      const split = computeWalkXpSplit(claimedPct, claimedExtraStars);
-      if (split.totalXp <= 0) continue;
-      const def = starMetaById.get(starId);
+      const split = computeWalkXpSplit(claimedPct, claimedExtraStars, isDirector);
+
+      const rawStuckTier = r.stuck_tier ? String(r.stuck_tier) : null;
+      const stuckExtraStars = Math.max(0, Number(r.stuck_extra_stars || 0));
+      const isValidStuck = Boolean(rawStuckTier && (!isRisingStar || rawStuckTier === 'diamond'));
+      const stuckRank = isValidStuck
+        ? resolveRpgRankFromTier(rawStuckTier, stuckExtraStars, isDirector, isRisingStar)
+        : null;
+      const starCarPoints = stuckRank ? getWalkCarPointsForRank(stuckRank) : 0;
+
+      if (isValidStuck && stuckRank && starCarPoints > 0) {
+        stuckCount += 1;
+        carPointsRaw += starCarPoints;
+        stuckByRank[stuckRank] = (stuckByRank[stuckRank] || 0) + 1;
+      }
+
+      if (split.totalXp <= 0 && starCarPoints <= 0) continue;
       starsById[starId] = {
         starId,
         name: def?.name || starId,
@@ -347,11 +371,16 @@ export async function getQuickWalkOfFameXpSummary(): Promise<WalkOfFameXpSummary
         claimedPct,
         claimedExtraStars,
         xp: split.totalXp,
+        stuckTier: isValidStuck ? rawStuckTier : null,
+        stuckRank,
+        carPoints: starCarPoints,
       };
-      milestonesXp += split.milestonesXp;
-      extraStarsXp += split.extraStarsXp;
-      claimedStarsCount += 1;
-      totalClaimedExtraStars += claimedExtraStars;
+      if (split.totalXp > 0) {
+        milestonesXp += split.milestonesXp;
+        extraStarsXp += split.extraStarsXp;
+        claimedStarsCount += 1;
+        totalClaimedExtraStars += claimedExtraStars;
+      }
     }
 
     return {
@@ -360,6 +389,9 @@ export async function getQuickWalkOfFameXpSummary(): Promise<WalkOfFameXpSummary
       milestonesXp,
       extraStarsXp,
       totalXp: milestonesXp + extraStarsXp,
+      stuckCount,
+      carPoints: Math.round(carPointsRaw * 10) / 10,
+      stuckByRank,
       starsById,
     };
   } catch {
@@ -467,7 +499,7 @@ export function buildUserXpStatus(
   // 5. XP do Códice dos Universos (Checkpoints +30 XP, Sagas 100%, Mega-Sagas Míticas)
   const universesSummary = universeSummary || EMPTY_UNIVERSE_XP_SUMMARY;
 
-  // 6. XP da Calçada da Fama (Computado apenas ao abrir pacotinho ou colar figurinha)
+  // 6. XP da Calçada da Fama (Computado exclusivamente ao abrir pacotinhos)
   const safeWalkOfFameSummary = walkOfFameSummary || EMPTY_WALK_OF_FAME_XP_SUMMARY;
 
   const totalXp =
@@ -713,9 +745,11 @@ export function computeWorldChallengeEvents(
 /**
  * Snapshot rápido do banco antes de uma mutação (evita reavaliar 432 regras duas vezes).
  */
-export async function getQuickXpSnapshot(): Promise<UserXpStatus> {
+export async function getQuickXpSnapshot(
+  options: { worldData?: WorldChallengePayload } = {}
+): Promise<UserXpStatus> {
   const [worldData, trophiesRes, universeSummary, walkOfFameSummary] = await Promise.all([
-    buildWorldChallengePayload(),
+    options.worldData ? Promise.resolve(options.worldData) : buildWorldChallengePayload(),
     query(`
       SELECT t.id, t.title, t.tier, COALESCE(ut.is_unlocked, FALSE) AS is_unlocked
       FROM trophies t
@@ -743,8 +777,11 @@ export function computeXpGainEvent(
   next: UserXpStatus | null | undefined
 ): XpGainEvent | null {
   if (!prev || !next) return null;
-  const gainedXp = next.totalXp - prev.totalXp;
-  if (gainedXp <= 0) return null;
+  const gainedXp = Math.max(0, next.totalXp - prev.totalXp);
+  const prevCar = Number(prev.sources?.walkOfFame?.carPoints || 0);
+  const nextCar = Number(next.sources?.walkOfFame?.carPoints || 0);
+  const carPointsDiff = Math.round((nextCar - prevCar) * 10) / 10;
+  if (gainedXp <= 0 && carPointsDiff <= 0) return null;
 
   const tags: XpGainTag[] = [];
 
@@ -938,7 +975,7 @@ export function computeXpGainEvent(
     }
   }
 
-  // 5. Ganhos da Calçada da Fama (apenas ao abrir pacote / colar figurinha)
+  // 5. Ganhos da Calçada da Fama (exclusivamente ao abrir pacote)
   const prevWalk = prev.sources?.walkOfFame || EMPTY_WALK_OF_FAME_XP_SUMMARY;
   const nextWalk = next.sources?.walkOfFame || EMPTY_WALK_OF_FAME_XP_SUMMARY;
   const changedWalkStars: Array<{ name: string; icon: string; deltaXp: number; claimedPct: number }> = [];
@@ -1034,15 +1071,36 @@ export function computeXpGainEvent(
       gain: vitPoints,
     });
   }
+  const prevCarPts = Number(prev.sources?.walkOfFame?.carPoints || 0);
+  const nextCarPts = Number(next.sources?.walkOfFame?.carPoints || 0);
+  const carDiff = Math.round((nextCarPts - prevCarPts) * 10) / 10;
+  if (carDiff > 0) {
+    statGains.push({
+      key: 'CAR',
+      icon: '🌟',
+      label: `+${carDiff.toFixed(1)} CAR`,
+      gain: carDiff,
+    });
+  }
 
   // Fallback de segurança caso o ganho venha de ajuste/reavaliação sem entrada individual acima
   if (tags.length === 0) {
-    tags.push({
-      type: 'movie',
-      icon: '✨',
-      label: `+${gainedXp.toLocaleString('pt-BR')} XP Catálogo`,
-      xp: gainedXp,
-    });
+    if (gainedXp > 0) {
+      tags.push({
+        type: 'movie',
+        icon: '✨',
+        label: `+${gainedXp.toLocaleString('pt-BR')} XP Catálogo`,
+        xp: gainedXp,
+      });
+    } else if (carDiff > 0) {
+      tags.push({
+        type: 'walk_of_fame',
+        icon: '🌟',
+        label: `Figurinha colada (+${carDiff.toFixed(1)} CAR)`,
+        xp: 0,
+        rarityOrTier: 'gold',
+      });
+    }
   }
 
   return {

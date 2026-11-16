@@ -21,9 +21,18 @@ import WalkOfFameDossierModal from '../components/WalkOfFameDossierModal';
 import WalkOfFameStickerCard from '../components/WalkOfFameStickerCard';
 import WalkOfFamePackModal from '../components/WalkOfFamePackModal';
 import WalkOfFameTimelineModal from '../components/WalkOfFameTimelineModal';
+import WalkOfFameDirectorVerdictModal from '../components/WalkOfFameDirectorVerdictModal';
 import {
   STICKER_TIER_THEMES,
+  DIRECTOR_TIER_THEMES,
+  RISING_STAR_THEME,
+  getThemeForTier,
   WALK_UNLOCK_ROADMAP,
+  DUBLADOR_UNLOCK_ROADMAP,
+  DIRECTOR_UNLOCK_ROADMAP,
+  getUnlockRoadmapForStar,
+  isDirectorStar,
+  isDubladorStar,
   IMMORTAL_AURA_LIST,
   resolveEffectiveImmortalAura,
   applySimulatedMilestoneToStar,
@@ -46,6 +55,69 @@ const TEST_MILESTONE_PRESETS = [
   { label: '100% +★', pct: 100, badge: '100%+★' },
 ];
 
+const DUBLADOR_TEST_MILESTONE_PRESETS = [
+  { label: 'Dados Reais', pct: null, badge: 'Real' },
+  { label: 'Bloqueada', pct: 0, badge: '0%' },
+  { label: 'Frase Marcante', pct: 15, badge: '15%' },
+  { label: '3 Curiosidades', pct: 30, badge: '30%' },
+  { label: '5 Skins + Foto', pct: 45, badge: '45%' },
+  { label: 'Vozes Marcantes', pct: 60, badge: '60%' },
+  { label: 'Linha do Tempo', pct: 75, badge: '75%' },
+  { label: 'Ed. Assinada', pct: 90, badge: '90%' },
+  { label: '100% +★', pct: 100, badge: '100%+★' },
+];
+
+const DUBLADOR_COUNTRY_TABS = [
+  {
+    id: 'all',
+    label: 'Todos os Dubladores',
+    icon: '🌐',
+    desc: 'Todas as vozes imortais da dublagem mundial',
+    match: () => true,
+  },
+  {
+    id: 'br',
+    label: 'Brasil',
+    icon: '🇧🇷',
+    desc: 'Teto 20–25 filmes • 30% Todas as Curiosidades • 60% Vozes Marcantes',
+    match: (s) =>
+      String(s.nationalityCode || '').toLowerCase() === 'br' ||
+      (Array.isArray(s.nationalityCodes) &&
+        s.nationalityCodes.some((c) => String(c).toLowerCase() === 'br')),
+  },
+  {
+    id: 'us',
+    label: 'EUA',
+    icon: '🇺🇸',
+    desc: 'Teto 15 filmes • Vozes originais de Hollywood • 30% Curiosidades • 60% Vozes Marcantes',
+    match: (s) =>
+      String(s.nationalityCode || '').toLowerCase() === 'us' ||
+      (Array.isArray(s.nationalityCodes) &&
+        s.nationalityCodes.some((c) => String(c).toLowerCase() === 'us')),
+  },
+  {
+    id: 'jp',
+    label: 'Japão',
+    icon: '🇯🇵',
+    desc: 'Teto 15 filmes • Seiyuus dos animes & cinema • 30% Curiosidades • 60% Vozes Marcantes',
+    match: (s) =>
+      String(s.nationalityCode || '').toLowerCase() === 'jp' ||
+      (Array.isArray(s.nationalityCodes) &&
+        s.nationalityCodes.some((c) => String(c).toLowerCase() === 'jp')),
+  },
+];
+
+const DIRECTOR_TEST_MILESTONE_PRESETS = [
+  { label: 'Dados Reais', pct: null, badge: 'Real' },
+  { label: 'Claquete Fechada', pct: 0, badge: '0%' },
+  { label: 'Take 1 • Claquete', pct: 20, badge: '20%' },
+  { label: 'Take 2 • Corte', pct: 40, badge: '40%' },
+  { label: 'Take 3 • DNA Autoral', pct: 60, badge: '60%' },
+  { label: 'Take 4 • Gala 70mm', pct: 80, badge: '80%' },
+  { label: 'Take 5 • Cânone', pct: 90, badge: '90%' },
+  { label: '100% +★', pct: 100, badge: '100%+★' },
+];
+
 const PACK_TEST_PRESETS = [
   { key: 'lock_15', label: '15% Estreia', desc: 'Marco 15%: Frase (+20 XP)', fromTier: null, toTier: 'bronze', fromPct: 0, toPct: 15, extraStarsUnlocked: 0, packType: 'new_sticker' },
   { key: 'lock_30', label: '30% Cena', desc: 'Marco 30%: Curios. #1 (+30 XP)', fromTier: 'bronze', toTier: 'silver', fromPct: 15, toPct: 30, extraStarsUnlocked: 0, packType: 'rarity_up' },
@@ -55,6 +127,57 @@ const PACK_TEST_PRESETS = [
   { key: 'lock_90', label: '90% Assinada', desc: 'Marco 90%: Assinatura (+105 XP)', fromTier: 'mythic', toTier: 'diamond', fromPct: 75, toPct: 90, extraStarsUnlocked: 0, packType: 'rarity_up' },
   { key: 'all_6', label: 'Jornada 15→90%', desc: 'Sequência (+385 XP)', fromTier: null, toTier: 'diamond', fromPct: 0, toPct: 90, extraStarsUnlocked: 1, packType: 'new_sticker' },
   { key: 'extra_star', label: '★ Estrela Bônus', desc: 'Nova Aura (+60 XP)', fromTier: 'diamond', toTier: 'diamond', fromPct: 90, toPct: 100, extraStarsUnlocked: 1, packType: 'extra_star' },
+];
+
+const DUBLADOR_PACK_TEST_PRESETS = [
+  { key: 'lock_15', label: '15% Estreia', desc: 'Marco 15%: Frase (+20 XP)', fromTier: null, toTier: 'bronze', fromPct: 0, toPct: 15, extraStarsUnlocked: 0, packType: 'new_sticker' },
+  { key: 'lock_30', label: '30% Bastidores', desc: 'Marco 30%: 3 Curiosidades (+30 XP)', fromTier: 'bronze', toTier: 'silver', fromPct: 15, toPct: 30, extraStarsUnlocked: 0, packType: 'rarity_up' },
+  { key: 'lock_45', label: '45% Holofote', desc: 'Marco 45%: 5 Skins (+40 XP)', fromTier: 'silver', toTier: 'epic', fromPct: 30, toPct: 45, extraStarsUnlocked: 0, packType: 'rarity_up' },
+  { key: 'lock_60', label: '60% Vozes', desc: 'Marco 60%: Vozes Marcantes (+55 XP)', fromTier: 'epic', toTier: 'gold', fromPct: 45, toPct: 60, extraStarsUnlocked: 0, packType: 'rarity_up' },
+  { key: 'lock_75', label: '75% Lenda', desc: 'Marco 75%: Timeline (+75 XP)', fromTier: 'gold', toTier: 'mythic', fromPct: 60, toPct: 75, extraStarsUnlocked: 0, packType: 'rarity_up' },
+  { key: 'lock_90', label: '90% Assinada', desc: 'Marco 90%: Assinatura (+105 XP)', fromTier: 'mythic', toTier: 'diamond', fromPct: 75, toPct: 90, extraStarsUnlocked: 0, packType: 'rarity_up' },
+  { key: 'all_6', label: 'Jornada 15→90%', desc: 'Sequência (+385 XP)', fromTier: null, toTier: 'diamond', fromPct: 0, toPct: 90, extraStarsUnlocked: 1, packType: 'new_sticker' },
+  { key: 'extra_star', label: '★ Estrela Bônus', desc: 'Nova Aura (+60 XP)', fromTier: 'diamond', toTier: 'diamond', fromPct: 90, toPct: 100, extraStarsUnlocked: 1, packType: 'extra_star' },
+];
+
+const DIRECTOR_PACK_TEST_PRESETS = [
+  { key: 'dir_20', label: '20% Take 1', desc: 'Take 1: Claquete + Frase de Set (+25 XP)', fromTier: null, toTier: 'bronze', fromPct: 0, toPct: 20, extraStarsUnlocked: 0, packType: 'new_sticker' },
+  { key: 'dir_40', label: '40% Take 2', desc: 'Take 2: Curios. #1 + Foto Própria (+45 XP)', fromTier: 'bronze', toTier: 'silver', fromPct: 20, toPct: 40, extraStarsUnlocked: 0, packType: 'rarity_up' },
+  { key: 'dir_60', label: '60% Take 3', desc: 'Take 3: DNA Autoral & Manias (+65 XP)', fromTier: 'silver', toTier: 'gold', fromPct: 40, toPct: 60, extraStarsUnlocked: 0, packType: 'rarity_up' },
+  { key: 'dir_80', label: '80% Take 4', desc: 'Take 4: Curios. #2–#3 + Gala 70mm (+85 XP)', fromTier: 'gold', toTier: 'mythic', fromPct: 60, toPct: 80, extraStarsUnlocked: 0, packType: 'rarity_up' },
+  { key: 'dir_90', label: '90% Take 5', desc: 'Take 5: Show Cartazes + Auras (+125 XP)', fromTier: 'mythic', toTier: 'diamond', fromPct: 80, toPct: 90, extraStarsUnlocked: 0, packType: 'rarity_up' },
+  { key: 'all_5', label: 'Jornada 20→90%', desc: 'Todos 5 Takes (+345 XP)', fromTier: null, toTier: 'diamond', fromPct: 0, toPct: 90, extraStarsUnlocked: 1, packType: 'new_sticker' },
+  { key: 'extra_star', label: '★ Estrela Bônus', desc: 'Nova Aura (+60 XP)', fromTier: 'diamond', toTier: 'diamond', fromPct: 90, toPct: 100, extraStarsUnlocked: 1, packType: 'extra_star' },
+];
+
+const DIRECTOR_FILTER_TABS = [
+  { id: 'all', label: 'Todos os Cineastas', icon: '🌟', match: () => true },
+  {
+    id: 'visionarios',
+    label: 'Estrela em Ascensão Rank X',
+    icon: '🌟',
+    match: (s) => s.directorTier === 'visionario_7' || Boolean(s.isNewEraVisionary),
+  },
+  {
+    id: 'autores_8',
+    label: 'Autores Consolidados',
+    icon: '🎬',
+    match: (s) => s.directorTier === 'autor_8',
+  },
+  {
+    id: 'mestres_12',
+    label: 'Mestres Consagrados',
+    icon: '🏛️',
+    match: (s) => s.directorTier === 'mestre_12',
+  },
+  {
+    id: 'hollywood',
+    label: 'Hollywood',
+    icon: '🇺🇸',
+    match: (s) =>
+      s.nationalityCode === 'us' ||
+      (Array.isArray(s.nationalityCodes) && s.nationalityCodes.includes('us')),
+  },
 ];
 
 function buildSimulatedWalkXpGain(pack) {
@@ -98,7 +221,39 @@ function buildSimulatedWalkXpGain(pack) {
   };
 }
 
-export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }) {
+export default function WalkOfFamePage({
+  albumScope = 'actors',
+  initialScope,
+  onScopeChange,
+  onOpenAddMovieForStar,
+  onPacksChanged,
+}) {
+  const [activeScope, setActiveScope] = useState(
+    initialScope || albumScope || 'actors'
+  );
+  useEffect(() => {
+    const next = initialScope || albumScope;
+    if (next && next !== activeScope) {
+      setActiveScope(next);
+    }
+  }, [initialScope, albumScope]);
+
+  const isDirectorsPage = activeScope === 'directors';
+  const isDubladoresPage = activeScope === 'dubladores';
+  const handleSwitchScope = useCallback(
+    (nextScope) => {
+      if (nextScope === activeScope) return;
+      setActiveScope(nextScope);
+      setSelectedAlameda('all');
+      setStatusFilter('all');
+      setSearchQuery('');
+      setTestStarId('');
+      setSimPct(null);
+      setSimApplyToGrid(false);
+      onScopeChange?.(nextScope);
+    },
+    [activeScope, onScopeChange]
+  );
   const [payload, setPayload] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -108,9 +263,10 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
   const [selectedAlameda, setSelectedAlameda] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('watched');
+  const [sortBy, setSortBy] = useState('progress');
   const [selectedDossier, setSelectedDossier] = useState(null);
   const [timelineStar, setTimelineStar] = useState(null);
+  const [directorVerdictStar, setDirectorVerdictStar] = useState(null);
 
   const [justStuckId, setJustStuckId] = useState(null);
   const [previewAllStickers, setPreviewAllStickers] = useState(false);
@@ -130,7 +286,23 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
 
   const applyPayload = useCallback(
     (nextPayload) => {
-      setPayload(nextPayload);
+      if (nextPayload?.compact && Array.isArray(nextPayload.updatedStars)) {
+        const updatedById = new Map(nextPayload.updatedStars.map((s) => [s.id, s]));
+        setPayload((prev) => {
+          if (!prev || !Array.isArray(prev.stars)) return prev;
+          return {
+            ...prev,
+            alamedas: nextPayload.alamedas || prev.alamedas,
+            milestones: nextPayload.milestones || prev.milestones,
+            directorMilestones: nextPayload.directorMilestones || prev.directorMilestones,
+            summary: nextPayload.summary || prev.summary,
+            pendingPacks: nextPayload.pendingPacks ?? prev.pendingPacks,
+            stars: prev.stars.map((s) => updatedById.get(s.id) || s),
+          };
+        });
+      } else {
+        setPayload(nextPayload);
+      }
       onPacksChanged?.(nextPayload?.pendingPacks || []);
     },
     [onPacksChanged]
@@ -175,14 +347,19 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
   const handleStick = useCallback(
     async (starId) => {
       try {
-        const res = await axios.post(`${API_BASE_URL}/walk-of-fame/stickers/${starId}/stick`);
+        const res = await axios.post(`${API_BASE_URL}/walk-of-fame/stickers/${starId}/stick`, {
+          compact: true,
+        });
         if (res.data?.success && res.data?.data) {
           applyPayload(res.data.data);
           triggerCardPasteAnim(starId);
           if (res.data.data.xpStatus) {
             dispatchXpStatusUpdate(res.data.data.xpStatus);
           }
-          if (res.data.data.xpGain) {
+          if (
+            res.data.data.xpGain &&
+            (res.data.data.xpGain.gainedXp > 0 || (res.data.data.xpGain.statGains?.length || 0) > 0)
+          ) {
             triggerXPGainToast(res.data.data.xpGain, res.data.data.xpStatus || null, true);
           }
         }
@@ -196,9 +373,14 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
   const handleUnstick = useCallback(
     async (starId) => {
       try {
-        const res = await axios.post(`${API_BASE_URL}/walk-of-fame/stickers/${starId}/unstick`);
+        const res = await axios.post(`${API_BASE_URL}/walk-of-fame/stickers/${starId}/unstick`, {
+          compact: true,
+        });
         if (res.data?.success && res.data?.data) {
           applyPayload(res.data.data);
+          if (res.data.data.xpStatus) {
+            dispatchXpStatusUpdate(res.data.data.xpStatus);
+          }
         }
       } catch (err) {
         console.warn('[WalkOfFame] Falha ao descolar:', err?.message);
@@ -224,6 +406,7 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
       try {
         const res = await axios.post(`${API_BASE_URL}/walk-of-fame/packs/${pack.packId}/open`, {
           stickImmediately: true,
+          compact: true,
         });
         if (res.data?.success && res.data?.data) {
           applyPayload(res.data.data);
@@ -260,6 +443,7 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
       try {
         const res = await axios.post(`${API_BASE_URL}/walk-of-fame/packs/${pack.packId}/open`, {
           stickImmediately: false,
+          compact: true,
         });
         if (res.data?.success && res.data?.data) {
           applyPayload(res.data.data);
@@ -284,9 +468,37 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
     [applyPayload]
   );
 
-  const stars = useMemo(() => payload?.stars || [], [payload]);
-  const alamedas = payload?.alamedas || [];
-  const pendingPacks = payload?.pendingPacks || [];
+  const allActorStars = useMemo(() => {
+    const raw = payload?.stars || [];
+    return raw.filter((s) => !isDirectorStar(s) && !isDubladorStar(s));
+  }, [payload]);
+
+  const allDubladorStars = useMemo(() => {
+    const raw = payload?.stars || [];
+    return raw.filter((s) => !isDirectorStar(s) && isDubladorStar(s));
+  }, [payload]);
+
+  const allDirectorStars = useMemo(() => {
+    const raw = payload?.stars || [];
+    return raw.filter((s) => isDirectorStar(s));
+  }, [payload]);
+
+  const stars = useMemo(
+    () =>
+      isDirectorsPage
+        ? allDirectorStars
+        : isDubladoresPage
+        ? allDubladorStars
+        : allActorStars,
+    [isDirectorsPage, isDubladoresPage, allDirectorStars, allDubladorStars, allActorStars]
+  );
+
+  const alamedas = useMemo(() => {
+    if (isDirectorsPage || isDubladoresPage) return [];
+    return (payload?.alamedas || []).filter((a) => a.id !== 'diretores' && a.id !== 'vozes');
+  }, [payload, isDirectorsPage, isDubladoresPage]);
+
+  const pendingPacks = useMemo(() => payload?.pendingPacks || [], [payload]);
 
   const sampleStars = useMemo(() => {
     const withPhoto = stars.filter((s) => s.photoUrl);
@@ -334,9 +546,6 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
   }, [stars, simApplyToGrid, simPct, effectiveLabStars, simOverridesByStar]);
 
   const topWatchedPodium = useMemo(() => {
-    if (!simApplyToGrid && Array.isArray(payload?.summary?.topWatchedPodium)) {
-      return payload.summary.topWatchedPodium;
-    }
     return [...displayStars]
       .filter((s) => s.watchedCount > 0)
       .sort(
@@ -362,23 +571,65 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
         extraStars: s.extraStars,
         isDeceased: s.isDeceased,
       }));
-  }, [payload, simApplyToGrid, displayStars]);
+  }, [displayStars]);
 
   const selectedStar = useMemo(() => {
     if (!selectedDossier?.starId) return null;
     if (selectedDossier.fromLab && testStarSimulated && testStarSimulated.id === selectedDossier.starId) {
       return testStarSimulated;
     }
-    return displayStars.find((s) => s.id === selectedDossier.starId) || null;
-  }, [selectedDossier, testStarSimulated, displayStars]);
+    return (
+      displayStars.find((s) => s.id === selectedDossier.starId) ||
+      (payload?.stars || []).find((s) => s.id === selectedDossier.starId) ||
+      null
+    );
+  }, [selectedDossier, testStarSimulated, displayStars, payload]);
 
   const activeTimelineStar = useMemo(() => {
     if (!timelineStar?.starId) return null;
     if (timelineStar.fromLab && testStarSimulated && testStarSimulated.id === timelineStar.starId) {
       return testStarSimulated;
     }
-    return displayStars.find((s) => s.id === timelineStar.starId) || null;
-  }, [timelineStar, testStarSimulated, displayStars]);
+    return (
+      displayStars.find((s) => s.id === timelineStar.starId) ||
+      (payload?.stars || []).find((s) => s.id === timelineStar.starId) ||
+      null
+    );
+  }, [timelineStar, testStarSimulated, displayStars, payload]);
+
+  const activeDirectorVerdictStar = useMemo(() => {
+    if (!directorVerdictStar?.starId) return null;
+    if (
+      directorVerdictStar.fromLab &&
+      testStarSimulated &&
+      testStarSimulated.id === directorVerdictStar.starId
+    ) {
+      return testStarSimulated;
+    }
+    return (
+      displayStars.find((s) => s.id === directorVerdictStar.starId) ||
+      (payload?.stars || []).find((s) => s.id === directorVerdictStar.starId) ||
+      null
+    );
+  }, [directorVerdictStar, testStarSimulated, displayStars, payload]);
+
+  const activeLabPackPresets = isDirectorsPage
+    ? DIRECTOR_PACK_TEST_PRESETS
+    : isDubladoresPage
+    ? DUBLADOR_PACK_TEST_PRESETS
+    : PACK_TEST_PRESETS;
+  const activeLabMilestonePresets = isDirectorsPage
+    ? DIRECTOR_TEST_MILESTONE_PRESETS
+    : isDubladoresPage
+    ? DUBLADOR_TEST_MILESTONE_PRESETS
+    : TEST_MILESTONE_PRESETS;
+  const activeLabRoadmap = testStarSimulated
+    ? getUnlockRoadmapForStar(testStarSimulated)
+    : isDirectorsPage
+    ? DIRECTOR_UNLOCK_ROADMAP
+    : isDubladoresPage
+    ? DUBLADOR_UNLOCK_ROADMAP
+    : WALK_UNLOCK_ROADMAP;
 
   const showPrefError = useCallback((msg) => {
     setPrefError(msg);
@@ -402,7 +653,7 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
       try {
         const res = await axios.post(
           `${API_BASE_URL}/walk-of-fame/stickers/${starId}/preferences`,
-          prefs
+          { ...prefs, compact: true }
         );
         if (res.data?.success && res.data?.data) {
           applyPayload(res.data.data);
@@ -447,6 +698,7 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
           const form = new FormData();
           form.append('skin_file', file);
           form.append('skin_label', label || 'Minha Foto');
+          form.append('compact', 'true');
           res = await axios.post(
             `${API_BASE_URL}/walk-of-fame/stickers/${starId}/custom-skin`,
             form
@@ -454,7 +706,7 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
         } else {
           res = await axios.post(
             `${API_BASE_URL}/walk-of-fame/stickers/${starId}/custom-skin`,
-            { skinUrl: url, skinLabel: label || 'Foto via Link' }
+            { skinUrl: url, skinLabel: label || 'Foto via Link', compact: true }
           );
         }
         if (res.data?.success && res.data?.data) {
@@ -473,8 +725,20 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
 
   const filteredStars = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
+    const activeDirectorTab = isDirectorsPage
+      ? DIRECTOR_FILTER_TABS.find((t) => t.id === selectedAlameda) || DIRECTOR_FILTER_TABS[0]
+      : null;
+    const activeDubladorTab = isDubladoresPage
+      ? DUBLADOR_COUNTRY_TABS.find((t) => t.id === selectedAlameda) || DUBLADOR_COUNTRY_TABS[0]
+      : null;
     const list = displayStars.filter((s) => {
-      if (selectedAlameda !== 'all' && s.alameda !== selectedAlameda) return false;
+      if (isDirectorsPage) {
+        if (activeDirectorTab && !activeDirectorTab.match(s)) return false;
+      } else if (isDubladoresPage) {
+        if (activeDubladorTab && !activeDubladorTab.match(s)) return false;
+      } else if (selectedAlameda !== 'all' && s.alameda !== selectedAlameda) {
+        return false;
+      }
       if (statusFilter === 'unlocked' && !s.isStickerUnlocked) return false;
       if (statusFilter === 'diamond' && !s.isDiamond) return false;
       if (statusFilter === 'progress_locked' && (s.watchedCount === 0 || s.isStickerUnlocked))
@@ -489,14 +753,23 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
 
     const sorted = [...list];
     sorted.sort((a, b) => {
-      if (sortBy === 'progress')
-        return b.percentage - a.percentage || b.watchedCount - a.watchedCount || a.albumNumber - b.albumNumber;
+      if (sortBy === 'progress') {
+        const tierA = a.isStuck ? 2 : a.isStickerUnlocked ? 1 : 0;
+        const tierB = b.isStuck ? 2 : b.isStickerUnlocked ? 1 : 0;
+        return (
+          tierB - tierA ||
+          b.percentage - a.percentage ||
+          (b.extraStars || 0) - (a.extraStars || 0) ||
+          b.watchedCount - a.watchedCount ||
+          a.albumNumber - b.albumNumber
+        );
+      }
       if (sortBy === 'watched') return b.watchedCount - a.watchedCount || b.percentage - a.percentage;
       if (sortBy === 'az') return a.name.localeCompare(b.name, 'pt-BR');
       return a.albumNumber - b.albumNumber;
     });
     return sorted;
-  }, [displayStars, selectedAlameda, statusFilter, searchQuery, sortBy]);
+  }, [displayStars, isDirectorsPage, isDubladoresPage, selectedAlameda, statusFilter, searchQuery, sortBy]);
 
   const unlockedCount = useMemo(
     () => displayStars.filter((s) => s.isStickerUnlocked).length,
@@ -510,10 +783,56 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
 
   const handleStickAllUnlocked = async () => {
     const toStick = stars.filter((s) => (s.isStickerUnlocked && !s.isStuck) || s.hasRarityUpgradeToStick);
-    for (const s of toStick) {
-      await handleStick(s.id);
+    if (toStick.length === 0) return;
+    try {
+      const res = await axios.post(`${API_BASE_URL}/walk-of-fame/stickers/stick-batch`, {
+        starIds: toStick.map((s) => s.id),
+        compact: true,
+      });
+      if (res.data?.success && res.data?.data) {
+        applyPayload(res.data.data);
+        if (res.data.data.xpStatus) {
+          dispatchXpStatusUpdate(res.data.data.xpStatus);
+        }
+        if (
+          res.data.data.xpGain &&
+          (res.data.data.xpGain.gainedXp > 0 || (res.data.data.xpGain.statGains?.length || 0) > 0)
+        ) {
+          triggerXPGainToast(res.data.data.xpGain, res.data.data.xpStatus || null, true);
+        }
+      }
+    } catch (err) {
+      console.warn('[WalkOfFame] Não foi possível colar figurinhas em lote:', err?.response?.data?.error || err.message);
     }
   };
+
+  const isSimGridActive = Boolean(simApplyToGrid && simPct != null);
+
+  const handleGridStick = useCallback(
+    (id) => (isSimGridActive ? triggerCardPasteAnim(id) : handleStick(id)),
+    [isSimGridActive, triggerCardPasteAnim, handleStick]
+  );
+
+  const handleGridSelectProtagonist = useCallback(
+    (id, memberName) =>
+      handleUpdatePreferences(id, { featuredMemberName: memberName }, isSimGridActive),
+    [handleUpdatePreferences, isSimGridActive]
+  );
+
+  const handleGridSelect = useCallback(
+    (s) => setSelectedDossier({ starId: s.id, fromLab: isSimGridActive }),
+    [isSimGridActive]
+  );
+
+  const handleGridOpenTimeline = useCallback(
+    (s) => setTimelineStar({ starId: s.id, fromLab: isSimGridActive }),
+    [isSimGridActive]
+  );
+
+  const handleGridOpenDirectorVerdict = useCallback(
+    (s) => setDirectorVerdictStar({ starId: s.id, fromLab: isSimGridActive }),
+    [isSimGridActive]
+  );
 
   const handleUnstickAll = async () => {
     const toUnstick = stars.filter((s) => s.isStuck);
@@ -528,26 +847,31 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
       sampleStars[preset.packType === 'new_sticker' ? 7 % Math.max(1, sampleStars.length) : 8 % Math.max(1, sampleStars.length)] ||
       stars[0];
     if (!base) return null;
+    const isRisingBase = isDirectorsPage && Boolean(base.isNewEraVisionary);
+    const effToPct =
+      isRisingBase && preset.packType !== 'extra_star'
+        ? Math.max(80, Number(preset.toPct || 80))
+        : preset.toPct;
     const simulatedStar = applySimulatedMilestoneToStar(
       base,
-      preset.toPct,
+      effToPct,
       preset.extraStarsUnlocked ?? 0
     );
     const packXp = Math.max(
       0,
-      computeWalkXpClient(preset.toPct, preset.extraStarsUnlocked ?? 0) -
-        computeWalkXpClient(preset.fromPct, 0)
+      computeWalkXpClient(effToPct, preset.extraStarsUnlocked ?? 0, isDirectorsPage) -
+        computeWalkXpClient(preset.fromPct, 0, isDirectorsPage)
     );
     const demoPack = {
       isDemo: true,
       packId: `demo_${preset.key}_${Date.now()}`,
       packType: preset.packType,
-      fromTier: preset.fromTier,
-      toTier: preset.toTier,
+      fromTier: isRisingBase ? null : preset.fromTier,
+      toTier: isRisingBase ? 'diamond' : preset.toTier,
       fromPct: preset.fromPct,
-      toPct: preset.toPct,
+      toPct: effToPct,
       fromPercentage: preset.fromPct,
-      toPercentage: preset.toPct,
+      toPercentage: effToPct,
       extraStarsBefore: 0,
       extraStarsAfter: preset.extraStarsUnlocked ?? 0,
       extraStarsUnlocked: preset.extraStarsUnlocked ?? 0,
@@ -580,18 +904,91 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
         <div className="absolute -bottom-24 left-12 w-72 h-72 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col gap-4">
+          {/* Seletor unificado interno (3 álbuns): Atores vs Dubladores vs Diretores */}
+          <div className="flex flex-wrap items-center gap-2 pb-1">
+            {[
+              {
+                id: 'actors',
+                icon: '🎭',
+                label: 'Atores, Casais & Elencos',
+                list: allActorStars,
+              },
+              {
+                id: 'dubladores',
+                icon: '🎙️',
+                label: 'Dubladores',
+                list: allDubladorStars,
+              },
+              {
+                id: 'directors',
+                icon: '🎬',
+                label: 'Diretores & Roteiristas',
+                list: allDirectorStars,
+              },
+            ].map((tab) => {
+              const isSelected = activeScope === tab.id;
+              const tabStuck = tab.list.filter((s) => s.isStuck).length;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => handleSwitchScope(tab.id)}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                    isSelected
+                      ? tab.id === 'directors'
+                        ? 'bg-cyan-500/20 border-cyan-400 text-cyan-200 shadow-[0_0_18px_rgba(34,211,238,0.22)] ring-1 ring-cyan-400/40'
+                        : tab.id === 'dubladores'
+                        ? 'bg-amber-500/20 border-amber-400 text-amber-200 shadow-[0_0_18px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/40'
+                        : 'bg-rose-500/20 border-rose-400 text-rose-200 shadow-[0_0_18px_rgba(244,63,94,0.22)] ring-1 ring-rose-400/40'
+                      : 'bg-zinc-900/75 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 hover:border-zinc-700'
+                  }`}
+                >
+                  <span className="text-base leading-none">{tab.icon}</span>
+                  <span className="uppercase tracking-wider text-[11px] font-black">{tab.label}</span>
+                  <span
+                    className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full ${
+                      isSelected
+                        ? tab.id === 'directors'
+                          ? 'bg-cyan-500/30 text-cyan-100'
+                          : tab.id === 'dubladores'
+                          ? 'bg-amber-500/30 text-amber-100'
+                          : 'bg-rose-500/30 text-rose-100'
+                        : 'bg-zinc-800 text-zinc-500'
+                    }`}
+                  >
+                    {tabStuck}/{tab.list.length}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/35 text-amber-300 font-mono">
-                  CALÇADA DA FAMA • ÁLBUM OFICIAL #001–#{String(stars.length || 38).padStart(3, '0')}
+                  {isDirectorsPage
+                    ? `CALÇADA DA FAMA • DIRETORES & ROTEIRISTAS #001–#${String(stars.length || 47).padStart(3, '0')}`
+                    : isDubladoresPage
+                    ? `CALÇADA DA FAMA • DUBLADORES #001–#${String(stars.length || 20).padStart(3, '0')}`
+                    : `CALÇADA DA FAMA • ATORES, CASAIS & ELENCOS #001–#${String(stars.length || 68).padStart(3, '0')}`}
                 </span>
-                <span className="text-[10px] font-mono text-zinc-400">
-                  Teto: 10 (≤20 filmes), 15 (21–28) ou 20 (&gt;28) • +1 ★ a cada 2 filmes extras • XP ao abrir pacotes
-                </span>
+                {isDubladoresPage ? (
+                  <span className="text-[10px] font-mono text-zinc-400">
+                    🇧🇷 Teto 20–25 Brasil • 🇺🇸🇯🇵 Teto 15 EUA &amp; Japão • 30% Curiosidades • 60% 🎙️ Vozes Marcantes
+                  </span>
+                ) : !isDirectorsPage ? (
+                  <span className="text-[10px] font-mono text-zinc-400">
+                    Teto: 10 (≤20 filmes), 15 (21–28) ou 20 (&gt;28) • +1 ★ a cada 2 filmes extras • XP ao abrir pacotes
+                  </span>
+                ) : null}
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1">
-                📖 Álbum de Figurinhas — Atores &amp; Dubladores
+                {isDirectorsPage
+                  ? '🎬✍️ Álbum da Fama — Diretores & Roteiristas'
+                  : isDubladoresPage
+                  ? '🎙️ Álbum da Fama — Dubladores'
+                  : '📖 Álbum de Figurinhas — Atores, Casais & Elencos'}
               </h1>
             </div>
 
@@ -603,7 +1000,7 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
                   </span>
                   <span className="text-zinc-600">|</span>
                   <span className="text-emerald-300 font-bold">
-                    🔓 {unlockedCount} liberadas (≥15%)
+                    🔓 {unlockedCount} liberadas ({isDirectorsPage ? '≥20% • Rank X: 80%' : '≥15%'})
                   </span>
                 </div>
               )}
@@ -699,18 +1096,47 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
             </div>
           )}
 
-          {/* Banner de Pacotinhos Pendentes */}
+          {/* Banner de Pacotinhos Pendentes (unificado & misterioso na aba Atores) */}
           <div className="flex flex-col gap-3 pt-3 border-t border-zinc-800/80">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              {pendingPacks.length > 0 ? (
+              {isDirectorsPage || isDubladoresPage ? (
+                pendingPacks.length > 0 ? (
+                  <div className="flex items-center gap-3 bg-gradient-to-r from-amber-500/15 via-zinc-900 to-cyan-500/10 border border-amber-400/50 rounded-2xl px-4 py-2.5 flex-1">
+                    <Gift className="w-5 h-5 text-amber-300 animate-pulse shrink-0" />
+                    <div className="text-xs">
+                      <strong className="text-amber-200 block">
+                        Você tem {pendingPacks.length} pacotinho(s) misterioso(s) aguardando na aba Atores!
+                      </strong>
+                      <span className="text-zinc-300">
+                        Os pacotes ficam todos juntos em Atores, Casais &amp; Elencos para manter o mistério se vem ator, dublador, casal ou diretor.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleSwitchScope('actors')}
+                      className="ml-auto px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-zinc-950 font-black text-xs shadow cursor-pointer shrink-0"
+                    >
+                      Abrir na Aba Atores
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-xs text-zinc-400 flex items-center gap-2">
+                    <Gift className="w-4 h-4 text-zinc-500 shrink-0" />
+                    <span>
+                      Todo pacotinho lacrado (de atores, dubladores ou diretores!) aparece como pacote misterioso na aba{' '}
+                      <strong className="text-amber-300">Atores, Casais &amp; Elencos</strong> para manter a surpresa ao abrir.
+                    </span>
+                  </div>
+                )
+              ) : pendingPacks.length > 0 ? (
                 <div className="flex items-center gap-3 bg-gradient-to-r from-amber-500/20 to-yellow-500/10 border border-amber-400/60 rounded-2xl px-4 py-2.5 flex-1">
                   <Gift className="w-5 h-5 text-amber-300 animate-bounce shrink-0" />
                   <div className="text-xs">
                     <strong className="text-amber-200 block">
-                      Você tem {pendingPacks.length} pacotinho(s) lacrado(s) aguardando abertura!
+                      Você tem {pendingPacks.length} pacotinho(s) misterioso(s) aguardando abertura!
                     </strong>
                     <span className="text-zinc-300">
-                      Abre 1 pacote por vez — rasgue para revelar quem saiu e resgatar o XP!
+                      Abre 1 pacote misterioso por vez — rasgue para revelar se saiu ator, dublador, casal ou diretor e resgatar o XP!
                     </span>
                   </div>
                   <button
@@ -725,13 +1151,13 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
                 <div className="text-xs text-zinc-400 flex items-center gap-2">
                   <Gift className="w-4 h-4 text-zinc-500 shrink-0" />
                   <span>
-                    Ao cadastrar um filme que libere (≥15%) ou aumente a raridade de um artista, você recebe um pacotinho para abrir um por vez e colar no álbum.
+                    Ao cadastrar um filme que libere ou aumente a raridade de um artista, dublador ou diretor, você recebe um pacotinho misterioso aqui para abrir um por vez.
                   </span>
                 </div>
               )}
             </div>
 
-            {nextPackChoiceCount > 0 && pendingPacks.length > 0 && !activePackModal && (
+            {!isDirectorsPage && !isDubladoresPage && nextPackChoiceCount > 0 && pendingPacks.length > 0 && !activePackModal && (
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-gradient-to-r from-emerald-950/80 via-zinc-900 to-amber-950/60 border border-emerald-400/50 px-4 py-2.5 shadow-lg">
                 <div className="flex items-center gap-2.5 text-xs">
                   <Sparkles className="w-4 h-4 text-emerald-300 shrink-0" />
@@ -770,56 +1196,101 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
         <div className="rounded-2xl bg-zinc-950/85 border border-zinc-800/90 p-4 flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2 flex-wrap">
-              <button
-                type="button"
-                onClick={() => setSelectedAlameda('all')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                  selectedAlameda === 'all'
-                    ? 'bg-amber-500/20 border-amber-500/50 text-amber-200'
-                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                🌐 Todas ({stars.length})
-              </button>
-              {alamedas.map((a) => {
-                const count = stars.filter((s) => s.alameda === a.id).length;
-                const active = selectedAlameda === a.id;
-                return (
+              {isDirectorsPage ? (
+                DIRECTOR_FILTER_TABS.map((tab) => {
+                  const count = stars.filter(tab.match).length;
+                  const active = selectedAlameda === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setSelectedAlameda(tab.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                        active
+                          ? 'bg-cyan-500/20 border-cyan-400/60 text-cyan-100'
+                          : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                      }`}
+                    >
+                      {tab.icon} {tab.label} ({count})
+                    </button>
+                  );
+                })
+              ) : isDubladoresPage ? (
+                DUBLADOR_COUNTRY_TABS.map((tab) => {
+                  const count = stars.filter(tab.match).length;
+                  const active = selectedAlameda === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setSelectedAlameda(tab.id)}
+                      title={tab.desc}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                        active
+                          ? 'bg-amber-500/20 border-amber-400/60 text-amber-100 shadow-[0_0_12px_rgba(245,158,11,0.2)]'
+                          : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                      }`}
+                    >
+                      {tab.icon} {tab.label} ({count})
+                    </button>
+                  );
+                })
+              ) : (
+                <>
                   <button
-                    key={a.id}
                     type="button"
-                    onClick={() => setSelectedAlameda(a.id)}
+                    onClick={() => setSelectedAlameda('all')}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                      active
+                      selectedAlameda === 'all'
                         ? 'bg-amber-500/20 border-amber-500/50 text-amber-200'
                         : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
                     }`}
                   >
-                    {a.icon} {a.label} ({count})
+                    🌐 Todas ({stars.length})
                   </button>
-                );
-              })}
+                  {alamedas.map((a) => {
+                    const count = stars.filter((s) => s.alameda === a.id).length;
+                    const active = selectedAlameda === a.id;
+                    return (
+                      <button
+                        key={a.id}
+                        type="button"
+                        onClick={() => setSelectedAlameda(a.id)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                          active
+                            ? 'bg-amber-500/20 border-amber-500/50 text-amber-200'
+                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                        }`}
+                      >
+                        {a.icon} {a.label} ({count})
+                      </button>
+                    );
+                  })}
+                </>
+              )}
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              <button
-                type="button"
-                disabled={pendingPacks.length === 0}
-                onClick={() => pendingPacks.length > 0 && openSinglePackModal(pendingPacks[0])}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black border flex items-center gap-1.5 transition-all ${
-                  pendingPacks.length > 0
-                    ? 'bg-gradient-to-r from-rose-500/25 via-amber-500/25 to-yellow-500/20 border-amber-400/70 text-amber-200 hover:brightness-110 shadow-lg shadow-amber-500/15 cursor-pointer'
-                    : 'bg-zinc-900/70 border-zinc-800 text-zinc-500 cursor-default opacity-70'
-                }`}
-                title={
-                  pendingPacks.length > 0
-                    ? `Abrir 1 dos ${pendingPacks.length} pacote(s) pendente(s)`
-                    : 'Nenhum pacote pendente no momento'
-                }
-              >
-                <Gift className={`w-3.5 h-3.5 ${pendingPacks.length > 0 ? 'text-amber-300 animate-bounce' : 'text-zinc-500'}`} />
-                <span>Pacotes Pendentes ({pendingPacks.length})</span>
-              </button>
+              {!isDirectorsPage && !isDubladoresPage && (
+                <button
+                  type="button"
+                  disabled={pendingPacks.length === 0}
+                  onClick={() => pendingPacks.length > 0 && openSinglePackModal(pendingPacks[0])}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black border flex items-center gap-1.5 transition-all ${
+                    pendingPacks.length > 0
+                      ? 'bg-gradient-to-r from-rose-500/25 via-amber-500/25 to-yellow-500/20 border-amber-400/70 text-amber-200 hover:brightness-110 shadow-lg shadow-amber-500/15 cursor-pointer'
+                      : 'bg-zinc-900/70 border-zinc-800 text-zinc-500 cursor-default opacity-70'
+                  }`}
+                  title={
+                    pendingPacks.length > 0
+                      ? `Abrir 1 dos ${pendingPacks.length} pacote(s) misterioso(s) pendente(s)`
+                      : 'Nenhum pacote pendente no momento'
+                  }
+                >
+                  <Gift className={`w-3.5 h-3.5 ${pendingPacks.length > 0 ? 'text-amber-300 animate-bounce' : 'text-zinc-500'}`} />
+                  <span>Pacotes Misteriosos ({pendingPacks.length})</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setIsTestLabOpen((o) => !o)}
@@ -830,7 +1301,13 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
                 }`}
               >
                 <FlaskConical className="w-3.5 h-3.5" />
-                <span>{isTestLabOpen ? 'Ocultar Testes' : '🧪 Lab de Testes'}</span>
+                <span>
+                  {isTestLabOpen
+                    ? 'Ocultar Testes'
+                    : isDirectorsPage
+                    ? '🧪 Lab Diretores'
+                    : '🧪 Lab de Testes'}
+                </span>
               </button>
               <button
                 type="button"
@@ -850,7 +1327,11 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar artista, dublador ou filme famoso..."
+                placeholder={
+                  isDirectorsPage
+                    ? 'Buscar diretor, roteirista ou filme famoso...'
+                    : 'Buscar ator, dublador, casal ou filme famoso...'
+                }
                 className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-amber-500/60"
               />
             </div>
@@ -862,9 +1343,15 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
                 className="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-bold text-zinc-200 focus:outline-none cursor-pointer"
               >
                 <option value="all">Todos os Estados</option>
-                <option value="unlocked">🔓 Liberadas (≥ 15%)</option>
-                <option value="diamond">💎 Cracked Ice (≥ 90%)</option>
-                <option value="progress_locked">⏳ Bloqueadas em Progresso (1%–14%)</option>
+                <option value="unlocked">
+                  🔓 Liberadas ({isDirectorsPage ? '≥ 20% • Rank X: 80%' : '≥ 15%'})
+                </option>
+                <option value="diamond">
+                  💎 {isDirectorsPage ? 'Take 5 Cânone / Rank X' : 'Cracked Ice (≥ 90%)'}
+                </option>
+                <option value="progress_locked">
+                  ⏳ Bloqueadas em Progresso
+                </option>
                 <option value="zero">🔒 Bloqueadas (0%)</option>
               </select>
 
@@ -873,9 +1360,11 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
                 onChange={(e) => setSortBy(e.target.value)}
                 className="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-bold text-zinc-200 focus:outline-none cursor-pointer"
               >
-                <option value="watched">Ordenar: Mais Filmes</option>
-                <option value="album">Ordenar: Nº Álbum (#001–#{String(stars.length || 38).padStart(3, '0')})</option>
                 <option value="progress">Ordenar: Maior %</option>
+                <option value="watched">Ordenar: Mais Filmes</option>
+                <option value="album">
+                  Ordenar: Nº Álbum (#001–#{String(stars.length || (isDirectorsPage ? 47 : isDubladoresPage ? 20 : 68)).padStart(3, '0')})
+                </option>
                 <option value="az">Ordenar: A–Z</option>
               </select>
             </div>
@@ -908,7 +1397,11 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
               </div>
               <h2 className="text-lg sm:text-xl font-black text-white mt-1 flex items-center gap-2">
                 <FlaskConical className="w-5 h-5 text-cyan-400" />
-                <span>Laboratório de Marcos, 10 Auras (★), 5 Skins &amp; Linha do Tempo</span>
+                <span>
+                  {isDirectorsPage
+                    ? 'Laboratório de Diretores: Marca Registrada (75%), 10 Auras (★) & Mesa Secreta (90%+)'
+                    : 'Laboratório de Marcos, 10 Auras (★), 5 Skins & Linha do Tempo'}
+                </span>
               </h2>
             </div>
 
@@ -920,7 +1413,7 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
               >
                 {stars.map((s) => (
                   <option key={s.id} value={s.id}>
-                    #{String(s.albumNumber).padStart(3, '0')} — {s.name} ({s.percentage}% real)
+                    #{String(s.albumNumber).padStart(3, '0')} — {s.name} ({s.percentage}% real{s.isNewEraVisionary ? ' • 🌟 Visionário' : ''})
                   </option>
                 ))}
               </select>
@@ -962,19 +1455,23 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
             </div>
           </div>
 
-          {/* Testador de Pacotes por Raridade (Desbloqueio Automático + Assinatura em 90%) */}
+          {/* Testador de Pacotes por Raridade */}
           <div className="rounded-2xl bg-zinc-950/75 border border-amber-500/35 p-3.5 flex flex-col gap-2.5">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <span className="text-[11px] font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Testar Pacotes por Raridade (Desbloqueio Automático + Assinatura ao Vivo em 90%)</span>
+                <span>
+                  {isDirectorsPage
+                    ? 'Testar Pacotes de Diretor (Desbloqueio Automático + Mesa Secreta em 90%)'
+                    : 'Testar Pacotes por Raridade (Desbloqueio Automático + Assinatura ao Vivo em 90%)'}
+                </span>
               </span>
               <span className="text-[10px] font-mono text-zinc-400">
-                Usa o artista selecionado acima
+                Usa {isDirectorsPage ? 'o cineasta' : isDubladoresPage ? 'o dublador' : 'o artista'} selecionado acima
               </span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1.5">
-              {PACK_TEST_PRESETS.map((preset) => (
+              {activeLabPackPresets.map((preset) => (
                 <button
                   key={preset.key}
                   type="button"
@@ -998,12 +1495,19 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
                 🔔 Simular Notificação do Pacotinho no Canto (XP só entra na barra após abrir):
               </span>
               <div className="flex flex-wrap items-center gap-1.5">
-                {[
-                  { key: 'lock_15', label: '🎟️ Notif. 15% (+20 XP)' },
-                  { key: 'lock_75', label: '🎞️ Notif. 75% Timeline (+75 XP)' },
-                  { key: 'lock_90', label: '💎 Notif. 90% Assinada (+105 XP)' },
-                ].map((btn) => {
-                  const preset = PACK_TEST_PRESETS.find((p) => p.key === btn.key);
+                {(isDirectorsPage
+                  ? [
+                      { key: 'dir_20', label: '🎬 Notif. 20% Take 1 (+25 XP)' },
+                      { key: 'dir_60', label: '🎯 Notif. 60% Take 3 (+65 XP)' },
+                      { key: 'dir_90', label: '🌟 Notif. 90% Take 5 (+125 XP)' },
+                    ]
+                  : [
+                      { key: 'lock_15', label: '🎟️ Notif. 15% (+20 XP)' },
+                      { key: 'lock_75', label: '🎞️ Notif. 75% Timeline (+75 XP)' },
+                      { key: 'lock_90', label: '💎 Notif. 90% Assinada (+105 XP)' },
+                    ]
+                ).map((btn) => {
+                  const preset = activeLabPackPresets.find((p) => p.key === btn.key);
                   if (!preset) return null;
                   return (
                     <button
@@ -1022,7 +1526,7 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
 
           {/* Seletor de Marcos 0% → 100%+★ */}
           <div className="flex flex-wrap items-center gap-1.5">
-            {TEST_MILESTONE_PRESETS.map((preset) => {
+            {activeLabMilestonePresets.map((preset) => {
               const active = simPct === preset.pct;
               return (
                 <button
@@ -1057,7 +1561,12 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
                       (previewAllStickers && testStarSimulated.isStickerUnlocked)
                   )}
                   justStuck={justStuckId === testStarSimulated.id}
-                  forceUnlocked={Boolean(previewAllStickers || (simPct != null && simPct >= 15))}
+                  forceUnlocked={Boolean(
+                    previewAllStickers ||
+                      (simPct != null &&
+                        simPct >=
+                          (isDirectorsPage ? (testStarSimulated.isNewEraVisionary ? 80 : 20) : 15))
+                  )}
                   onStick={(id) =>
                     simPct != null ? triggerCardPasteAnim(id) : handleStick(id)
                   }
@@ -1068,23 +1577,76 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
                   onSelect={() =>
                     setSelectedDossier({ starId: testStarSimulated.id, fromLab: true })
                   }
-                  onOpenTimeline={() =>
-                    setTimelineStar({ starId: testStarSimulated.id, fromLab: true })
+                  onOpenTimeline={
+                    !isDirectorsPage
+                      ? () => setTimelineStar({ starId: testStarSimulated.id, fromLab: true })
+                      : undefined
+                  }
+                  onOpenDirectorVerdict={
+                    isDirectorsPage
+                      ? (s) => setDirectorVerdictStar({ starId: s.id, fromLab: true })
+                      : undefined
                   }
                 />
               </div>
-              <p className="text-[11px] text-center text-zinc-400 max-w-[260px]">
-                {testStarSimulated.unlocks?.timelineUnlocked ? (
-                  <span className="text-cyan-300 font-semibold">
-                    💡 Clique em <strong>⏳ Linha</strong> no topo da carta para abrir a Linha do Tempo!
-                  </span>
-                ) : (
-                  <span>
-                    Atinja <strong>75%</strong> no simulador acima para testar a{' '}
-                    <strong>Linha do Tempo</strong> na carta.
-                  </span>
-                )}
-              </p>
+              {isDirectorsPage ? (
+                <div className="w-full max-w-[260px] flex flex-col gap-1.5">
+                  {(() => {
+                    const labVerdictOpen = Boolean(
+                      testStarSimulated.unlocks?.verdictUnlocked ??
+                        (!testStarSimulated.isNewEraVisionary &&
+                          testStarSimulated.unlocks?.immortalUnlocked)
+                    );
+                    return (
+                      <>
+                        <button
+                          type="button"
+                          disabled={!labVerdictOpen}
+                          onClick={() =>
+                            setDirectorVerdictStar({ starId: testStarSimulated.id, fromLab: true })
+                          }
+                          className={`w-full py-2 px-3 rounded-xl font-black text-[11px] flex items-center justify-center gap-1.5 transition-all ${
+                            labVerdictOpen
+                              ? 'bg-gradient-to-r from-amber-400 via-yellow-300 to-rose-400 hover:brightness-110 text-zinc-950 shadow-lg cursor-pointer'
+                              : 'bg-zinc-900 border border-zinc-800 text-zinc-500 cursor-not-allowed'
+                          }`}
+                        >
+                          <span>🃏 Testar Mesa Secreta (Oscar &amp; Framboesa)</span>
+                        </button>
+                        <p className="text-[10px] text-center text-indigo-200/85 leading-snug">
+                          {testStarSimulated.isNewEraVisionary
+                            ? '🌟 Estrela em Ascensão (≤7 filmes • Rank X): figurinha e Show de Cartazes abrem juntos aos 80%!'
+                            : `🎯 ${testStarSimulated.directorStats?.ceilingTierLabel || 'Diretor & Roteirista'}`}
+                        </p>
+                        <p className="text-[10px] text-center text-zinc-400 leading-snug">
+                          {testStarSimulated.isNewEraVisionary
+                            ? testStarSimulated.isStickerUnlocked
+                              ? '🌟 80%+: figurinha exclusiva e 🃏 Show de Cartazes desbloqueados!'
+                              : '🔒 Atinga 80% para desbloquear a figurinha e o 🃏 Show de Cartazes (demais seções já abertas).'
+                            : labVerdictOpen
+                            ? '💡 Clique em 🃏 Júri na carta ou acima para virar as cartas secretas!'
+                            : testStarSimulated.unlocks?.timelineUnlocked
+                            ? '🎯 60% liberado! Abra 🎯 Marca / Dossiê para ver as Manias de Set (e atinja 90% para 🃏 Júri).'
+                            : 'Atinja 60% para 🎯 Marca Registrada e 90% para 🃏 Mesa Secreta do Júri.'}
+                        </p>
+                      </>
+                    );
+                  })()}
+                </div>
+              ) : (
+                <p className="text-[11px] text-center text-zinc-400 max-w-[260px]">
+                  {testStarSimulated.unlocks?.timelineUnlocked ? (
+                    <span className="text-cyan-300 font-semibold">
+                      💡 Clique em <strong>⏳ Linha</strong> no topo da carta para abrir a Linha do Tempo!
+                    </span>
+                  ) : (
+                    <span>
+                      Atinja <strong>75%</strong> no simulador acima para testar a{' '}
+                      <strong>Linha do Tempo</strong> na carta.
+                    </span>
+                  )}
+                </p>
+              )}
             </div>
 
             {/* Controles de Skins, Poderes Imortais & Checklist */}
@@ -1094,65 +1656,107 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-black uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
                     <Palette className="w-4 h-4 text-purple-400" />
-                    <span>Skins Alternativas da Carta (Até 5 visuais • Libera em 45%)</span>
+                    <span>
+                      {isDirectorsPage
+                        ? testStarSimulated.isNewEraVisionary
+                          ? 'Foto da Figurinha (Liberado • Estrela em Ascensão Rank X)'
+                          : 'Foto da Figurinha (Retrato Oficial + Opção de Foto Própria em 40%)'
+                        : 'Skins Alternativas da Carta (Até 5 visuais • Libera em 45%)'}
+                    </span>
                   </span>
                   <span className="text-[10px] font-mono font-bold text-zinc-400">
-                    {testStarSimulated.unlocks?.skinsUnlocked ? '✓ Liberado' : '🔒 Bloqueado (<45%)'}
+                    {testStarSimulated.unlocks?.skinsUnlocked
+                      ? '✓ Liberado'
+                      : `🔒 Bloqueado (<${isDirectorsPage ? '40%' : '45%'})`}
                   </span>
                 </div>
 
-                {Array.isArray(testStarSimulated.skinOptions) &&
-                testStarSimulated.skinOptions.length > 0 ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                    {testStarSimulated.skinOptions.map((sk) => {
-                      const isSelected =
-                        (testStarSimulated.selectedSkinUrl &&
-                          testStarSimulated.selectedSkinUrl === sk.imageUrl) ||
-                        (!testStarSimulated.selectedSkinUrl && sk.id === 'default_portrait');
-                      const unlocked = Boolean(testStarSimulated.unlocks?.skinsUnlocked);
-                      return (
-                        <button
-                          key={sk.id}
-                          type="button"
-                          disabled={!unlocked}
-                          onClick={() =>
-                            handleUpdatePreferences(
-                              testStarSimulated.id,
-                              {
-                                selectedSkinUrl:
-                                  sk.id === 'default_portrait' ? null : sk.imageUrl,
-                                selectedSkinLabel:
-                                  sk.id === 'default_portrait' ? null : sk.label,
-                              },
-                              simPct != null
-                            )
-                          }
-                          className={`group relative rounded-xl overflow-hidden border-2 text-left transition-all ${
-                            !unlocked
-                              ? 'border-zinc-800 opacity-40 grayscale cursor-not-allowed'
-                              : isSelected
-                              ? 'border-purple-400 ring-2 ring-purple-400/50 cursor-pointer'
-                              : 'border-zinc-700 hover:border-purple-300/70 cursor-pointer'
-                          }`}
-                        >
-                          <div className="aspect-[3/4] w-full overflow-hidden bg-zinc-950">
-                            <img
-                              src={resolveWalkMediaUrl(sk.imageUrl)}
-                              alt={sk.label}
-                              className="w-full h-full object-cover object-top"
-                            />
-                          </div>
-                          <div className="px-1.5 py-1 bg-zinc-950/95">
-                            <p className="text-[10px] font-bold text-white truncate">{sk.label}</p>
-                            <p className="text-[9px] text-zinc-400 truncate">{sk.sublabel}</p>
-                          </div>
-                        </button>
-                      );
-                    })}
+                {!isDirectorsPage &&
+                  (Array.isArray(testStarSimulated.skinOptions) &&
+                  testStarSimulated.skinOptions.length > 0 ? (
+                    <div className="grid gap-2 grid-cols-3 sm:grid-cols-6">
+                      {testStarSimulated.skinOptions.map((sk) => {
+                        const isSelected =
+                          (testStarSimulated.selectedSkinUrl &&
+                            testStarSimulated.selectedSkinUrl === sk.imageUrl) ||
+                          (!testStarSimulated.selectedSkinUrl && sk.id === 'default_portrait');
+                        const unlocked = Boolean(testStarSimulated.unlocks?.skinsUnlocked);
+                        return (
+                          <button
+                            key={sk.id}
+                            type="button"
+                            disabled={!unlocked}
+                            onClick={() =>
+                              handleUpdatePreferences(
+                                testStarSimulated.id,
+                                {
+                                  selectedSkinUrl:
+                                    sk.id === 'default_portrait' ? null : sk.imageUrl,
+                                  selectedSkinLabel:
+                                    sk.id === 'default_portrait' ? null : sk.label,
+                                },
+                                simPct != null
+                              )
+                            }
+                            className={`group relative rounded-xl overflow-hidden border-2 text-left transition-all ${
+                              !unlocked
+                                ? 'border-zinc-800 opacity-40 grayscale cursor-not-allowed'
+                                : isSelected
+                                ? 'border-purple-400 ring-2 ring-purple-400/50 cursor-pointer'
+                                : 'border-zinc-700 hover:border-purple-300/70 cursor-pointer'
+                            }`}
+                          >
+                            <div className="aspect-[3/4] w-full overflow-hidden bg-zinc-950">
+                              <img
+                                src={resolveWalkMediaUrl(sk.imageUrl)}
+                                alt={sk.label}
+                                className="w-full h-full object-cover object-top"
+                              />
+                            </div>
+                            <div className="px-1.5 py-1 bg-zinc-950/95">
+                              <p className="text-[10px] font-bold text-white truncate">{sk.label}</p>
+                              <p className="text-[9px] text-zinc-400 truncate">{sk.sublabel}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-500">
+                      Clique em &quot;Atualizar Bios&quot; no topo se ainda não houver fotos extras em cache para esta estrela.
+                    </p>
+                  ))}
+
+                {isDirectorsPage && (
+                  <div className="flex items-center justify-between gap-2 text-[11px] text-zinc-400">
+                    <span className="truncate">
+                      Ativa:{' '}
+                      <strong className="text-purple-200">
+                        {testStarSimulated.selectedSkinLabel ||
+                          (testStarSimulated.selectedSkinUrl ? 'Foto Personalizada' : 'Retrato Oficial')}
+                      </strong>
+                    </span>
+                    {testStarSimulated.unlocks?.skinsUnlocked && testStarSimulated.selectedSkinUrl && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleUpdatePreferences(
+                            testStarSimulated.id,
+                            { selectedSkinUrl: null, selectedSkinLabel: null },
+                            simPct != null
+                          )
+                        }
+                        className="px-2 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-[10px] font-bold text-zinc-200 cursor-pointer shrink-0"
+                      >
+                        ↺ Retrato Oficial
+                      </button>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-xs text-zinc-500">
-                    Clique em &quot;Atualizar Bios&quot; no topo se ainda não houver fotos extras em cache para esta estrela.
+                )}
+
+                {isDirectorsPage && !testStarSimulated.unlocks?.skinsUnlocked && (
+                  <p className="text-[11px] text-zinc-400">
+                    Alcance <strong className="text-purple-300">40%</strong> (Take 2: Corte do Diretor) para enviar uma foto do seu computador ou link!
                   </p>
                 )}
 
@@ -1233,11 +1837,15 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
                 )}
               </div>
 
-              {/* 75%+ & 90%+ : 10 Auras por ★ + Obra-Prima + Linha do Tempo + Dossiê */}
+              {/* 75%+ & 90%+ : 10 Auras por ★ + Obra-Prima + Marco Especial + Dossiê */}
               <div className="rounded-2xl bg-zinc-900/75 border border-sky-500/30 p-3.5 flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <span className="text-[11px] font-black uppercase tracking-wider text-sky-300">
-                    💎 Testes de 75%+ / 90%+ (10 Auras por ★, Obra-Prima &amp; Linha do Tempo)
+                    {isDirectorsPage
+                      ? testStarSimulated.isNewEraVisionary
+                        ? '🌟 Estrela em Ascensão (Rank X — Obra-Prima & 10 Auras Liberados • Show de Cartazes aos 80%)'
+                        : '🌟 Testes dos Takes 3–5 (60% DNA • 80% Gala • 90% Show de Cartazes & 10 Auras)'
+                      : '💎 Testes de 75%+ / 90%+ (10 Auras por ★, Obra-Prima & Linha do Tempo)'}
                   </span>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {testStarSimulated.isDeceased && (
@@ -1252,7 +1860,8 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
                 </div>
 
                 {/* Simulador de Estrelas Bônus 0★ → 9★ para testar as 10 Auras */}
-                {simPct != null && simPct >= 90 && (
+                {simPct != null &&
+                  (simPct >= 90 || (isDirectorsPage && testStarSimulated.isNewEraVisionary)) && (
                   <div className="flex items-center justify-between gap-2 flex-wrap rounded-xl bg-zinc-950/75 border border-zinc-800 px-3 py-2">
                     <span className="text-[10px] font-black uppercase tracking-wider text-amber-300">
                       Simular Estrelas Bônus (desbloqueia 1 cor por ★):
@@ -1337,11 +1946,14 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center">
-                  {/* Obra-Prima Favorita 90%+ */}
+                  {/* Obra-Prima Favorita (Diretores 80%+ / Atores 90%+) */}
                   <div className="sm:col-span-8">
                     <select
                       disabled={
-                        !testStarSimulated.unlocks?.immortalUnlocked ||
+                        !(isDirectorsPage
+                          ? testStarSimulated.unlocks?.galaUnlocked ||
+                            testStarSimulated.unlocks?.immortalUnlocked
+                          : testStarSimulated.unlocks?.immortalUnlocked) ||
                         !testStarSimulated.watchedFilms?.length
                       }
                       value={testStarSimulated.signatureMovieId || ''}
@@ -1353,7 +1965,7 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
                         )
                       }
                       className="w-full px-2.5 py-2 rounded-xl bg-zinc-950 border border-zinc-700 text-xs font-bold text-zinc-100 disabled:opacity-45 focus:outline-none focus:border-amber-400 cursor-pointer"
-                      title="Obra-Prima fixada na figurinha (90%+)"
+                      title={`Obra-Prima fixada na figurinha (${isDirectorsPage ? '80%+' : '90%+'})`}
                     >
                       {(testStarSimulated.watchedFilms || []).map((f) => (
                         <option key={f.movieId} value={f.movieId}>
@@ -1362,27 +1974,59 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
                       ))}
                       {(!testStarSimulated.watchedFilms ||
                         testStarSimulated.watchedFilms.length === 0) && (
-                        <option value="">Obra-Prima (simule ≥90%)</option>
+                        <option value="">Obra-Prima (simule ≥{isDirectorsPage ? '80%' : '90%'})</option>
                       )}
                     </select>
                   </div>
 
-                  {/* Botão Linha do Tempo Cinemática (75%+) */}
-                  <button
-                    type="button"
-                    disabled={!testStarSimulated.unlocks?.timelineUnlocked}
-                    onClick={() =>
-                      setTimelineStar({ starId: testStarSimulated.id, fromLab: true })
-                    }
-                    className={`sm:col-span-2 py-2 px-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1 transition-all ${
-                      !testStarSimulated.unlocks?.timelineUnlocked
-                        ? 'bg-zinc-950 border border-zinc-800 text-zinc-500 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-sky-400 to-cyan-300 text-zinc-950 shadow-lg hover:brightness-110 cursor-pointer'
-                    }`}
-                  >
-                    <Clock className="w-3.5 h-3.5 shrink-0" />
-                    <span>Timeline</span>
-                  </button>
+                  {/* Botão Ação 75% (Atores: Timeline) ou 90% (Diretores: Show de Cartazes) */}
+                  {isDirectorsPage ? (
+                    (() => {
+                      const canOpenVerdict = Boolean(
+                        testStarSimulated.unlocks?.verdictUnlocked ??
+                          (!testStarSimulated.isNewEraVisionary &&
+                            testStarSimulated.unlocks?.immortalUnlocked)
+                      );
+                      return (
+                        <button
+                          type="button"
+                          disabled={!canOpenVerdict}
+                          onClick={() =>
+                            setDirectorVerdictStar({ starId: testStarSimulated.id, fromLab: true })
+                          }
+                          className={`sm:col-span-2 py-2 px-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1 transition-all ${
+                            !canOpenVerdict
+                              ? 'bg-zinc-950 border border-zinc-800 text-zinc-500 cursor-not-allowed'
+                              : 'bg-gradient-to-r from-amber-400 to-rose-400 text-zinc-950 shadow-lg hover:brightness-110 cursor-pointer'
+                          }`}
+                          title={
+                            testStarSimulated.isNewEraVisionary
+                              ? 'Abrir Show de Cartazes: Cartas Viradas, Oscar & Framboesa (80%+)'
+                              : 'Abrir Show de Cartazes: Cartas Viradas, Oscar & Framboesa (90%+)'
+                          }
+                        >
+                          <span>🃏</span>
+                          <span>Show</span>
+                        </button>
+                      );
+                    })()
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={!testStarSimulated.unlocks?.timelineUnlocked}
+                      onClick={() =>
+                        setTimelineStar({ starId: testStarSimulated.id, fromLab: true })
+                      }
+                      className={`sm:col-span-2 py-2 px-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1 transition-all ${
+                        !testStarSimulated.unlocks?.timelineUnlocked
+                          ? 'bg-zinc-950 border border-zinc-800 text-zinc-500 cursor-not-allowed'
+                          : 'bg-gradient-to-r from-sky-400 to-cyan-300 text-zinc-950 shadow-lg hover:brightness-110 cursor-pointer'
+                      }`}
+                    >
+                      <Clock className="w-3.5 h-3.5 shrink-0" />
+                      <span>Timeline</span>
+                    </button>
+                  )}
 
                   {/* Botão Dossiê */}
                   <button
@@ -1400,7 +2044,7 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
 
               {/* Resumo do Desbloqueio por Marco */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {WALK_UNLOCK_ROADMAP.map((step) => {
+                {activeLabRoadmap.map((step) => {
                   const unlocked = testStarSimulated.percentage >= step.pct;
                   return (
                     <div
@@ -1450,7 +2094,9 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
         </div>
       ) : filteredStars.length === 0 ? (
         <div className="rounded-2xl bg-zinc-950/80 border border-zinc-800 p-10 text-center text-sm text-zinc-400">
-          Nenhuma figurinha encontrada com esses filtros.
+          {isDubladoresPage && (selectedAlameda === 'us' || selectedAlameda === 'jp')
+            ? `🎙️ Nenhum dublador (${selectedAlameda === 'us' ? '🇺🇸 EUA' : '🇯🇵 Japão'}) cadastrado nesta aba ainda — pronto para os próximos cadastros!`
+            : 'Nenhuma figurinha encontrada com esses filtros.'}
         </div>
       ) : (
         <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
@@ -1461,31 +2107,17 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
               isStuck={Boolean(star.isStuck || (previewAllStickers && star.isStickerUnlocked))}
               justStuck={justStuckId === star.id}
               forceUnlocked={Boolean(
-                previewAllStickers || (simApplyToGrid && simPct != null && simPct >= 15)
+                previewAllStickers ||
+                  (simApplyToGrid &&
+                    simPct != null &&
+                    simPct >= (isDirectorsPage ? (star.isNewEraVisionary ? 80 : 20) : 15))
               )}
-              onStick={(id) =>
-                simApplyToGrid && simPct != null ? triggerCardPasteAnim(id) : handleStick(id)
-              }
-              onUnstick={simApplyToGrid && simPct != null ? undefined : handleUnstick}
-              onSelectProtagonist={(id, memberName) =>
-                handleUpdatePreferences(
-                  id,
-                  { featuredMemberName: memberName },
-                  Boolean(simApplyToGrid && simPct != null)
-                )
-              }
-              onSelect={(s) =>
-                setSelectedDossier({
-                  starId: s.id,
-                  fromLab: Boolean(simApplyToGrid && simPct != null),
-                })
-              }
-              onOpenTimeline={(s) =>
-                setTimelineStar({
-                  starId: s.id,
-                  fromLab: Boolean(simApplyToGrid && simPct != null),
-                })
-              }
+              onStick={handleGridStick}
+              onUnstick={isSimGridActive ? undefined : handleUnstick}
+              onSelectProtagonist={handleGridSelectProtagonist}
+              onSelect={handleGridSelect}
+              onOpenTimeline={!isDirectorsPage ? handleGridOpenTimeline : undefined}
+              onOpenDirectorVerdict={isDirectorsPage ? handleGridOpenDirectorVerdict : undefined}
             />
           ))}
         </div>
@@ -1497,10 +2129,15 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
           <Layers className="w-3.5 h-3.5" /> Acabamentos Oficiais:
         </span>
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-700 text-[11px] font-bold text-zinc-300">
-          🔒 <span className="font-mono text-zinc-400">0%–14%</span> Bloqueada
+          🔒 <span className="font-mono text-zinc-400">0%–{isDirectorsPage ? '19' : '14'}%</span> Bloqueada
         </span>
-        {['bronze', 'silver', 'epic', 'gold', 'mythic', 'diamond'].map((k) => {
-          const t = STICKER_TIER_THEMES[k];
+        {(isDirectorsPage
+          ? ['bronze', 'silver', 'gold', 'mythic', 'diamond']
+          : ['bronze', 'silver', 'epic', 'gold', 'mythic', 'diamond']
+        ).map((k) => {
+          const t = isDirectorsPage
+            ? getThemeForTier(k, true)
+            : STICKER_TIER_THEMES[k] || DIRECTOR_TIER_THEMES[k];
           return (
             <span
               key={k}
@@ -1515,6 +2152,18 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
             </span>
           );
         })}
+        {isDirectorsPage && (
+          <span
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-900 border text-[11px] font-bold"
+            style={{ borderColor: `${RISING_STAR_THEME.accentHex}55`, color: '#e4e4e7' }}
+          >
+            <span>{RISING_STAR_THEME.icon}</span>
+            <span className="font-mono" style={{ color: RISING_STAR_THEME.accentHex }}>
+              {RISING_STAR_THEME.pctHint}
+            </span>
+            <span>{RISING_STAR_THEME.label}</span>
+          </span>
+        )}
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-yellow-500/10 border border-yellow-400/40 text-[11px] font-bold text-yellow-200">
           <Star className="w-3 h-3 fill-yellow-300 text-yellow-300" /> +1 ★ / 2 filmes após o teto (+60 XP/★)
         </span>
@@ -1529,17 +2178,36 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
         }}
         onUpdatePreferences={handleUpdatePreferences}
         onUploadCustomSkin={handleUploadCustomSkin}
-        onOpenTimeline={(s) =>
-          setTimelineStar({
-            starId: s.id,
-            fromLab: Boolean(selectedDossier?.fromLab),
-          })
+        onOpenTimeline={
+          !isDirectorsPage
+            ? (s) =>
+                setTimelineStar({
+                  starId: s.id,
+                  fromLab: Boolean(selectedDossier?.fromLab),
+                })
+            : undefined
+        }
+        onOpenDirectorVerdict={
+          isDirectorsPage
+            ? (s) =>
+                setDirectorVerdictStar({
+                  starId: s.id,
+                  fromLab: Boolean(selectedDossier?.fromLab),
+                })
+            : undefined
         }
       />
 
-      <WalkOfFameTimelineModal
-        star={activeTimelineStar}
-        onClose={() => setTimelineStar(null)}
+      {!isDirectorsPage && (
+        <WalkOfFameTimelineModal
+          star={activeTimelineStar}
+          onClose={() => setTimelineStar(null)}
+        />
+      )}
+
+      <WalkOfFameDirectorVerdictModal
+        star={activeDirectorVerdictStar}
+        onClose={() => setDirectorVerdictStar(null)}
       />
 
       <WalkOfFamePackModal
@@ -1547,6 +2215,10 @@ export default function WalkOfFamePage({ onOpenAddMovieForStar, onPacksChanged }
         onStickPack={handleStickPack}
         onSaveForLater={handleSavePackForLater}
         onClose={() => setActivePackModal(null)}
+        onOpenDirectorVerdict={(s) => {
+          setActivePackModal(null);
+          setDirectorVerdictStar({ starId: s.id, fromLab: Boolean(s.isSimulated) });
+        }}
       />
     </div>
   );

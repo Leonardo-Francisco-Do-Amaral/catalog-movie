@@ -7,6 +7,7 @@ import {
   normalizeCountryName,
   normalizeGenre,
 } from './movieIntegration';
+import { invalidateWalkOfFameCache } from './walkOfFameService';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -897,6 +898,7 @@ async function processImportJob(
       );
 
       await dbClient.query('COMMIT');
+      invalidateWalkOfFameCache();
 
       // Registra em memória para evitar duplicatas dentro da própria planilha
       if (finalImdbId) byImdb.set(finalImdbId, { id: newMovieId, title: finalTitle });

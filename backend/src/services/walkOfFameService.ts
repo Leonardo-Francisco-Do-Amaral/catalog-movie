@@ -1,6 +1,7 @@
 import { query } from '../config/database';
 import { matchCuratedCandidate } from './trophyService';
 import {
+  DIRECTOR_WALK_MILESTONES,
   WALK_ALAMEDAS,
   WALK_FILMS_PER_EXTRA_STAR,
   WALK_MILESTONES,
@@ -8,6 +9,7 @@ import {
   WalkCuratedMovieReq,
   WalkMilestoneTier,
   WalkStarDefinition,
+  WalkStarKind,
   computeWalkXpForStar,
   getCuratedMoviesForStar,
   resolveRpgClassLabel,
@@ -33,6 +35,8 @@ interface CachedPersonCredit {
   vote_count: number;
   order: number;
   genre_ids: number[];
+  roleType?: 'both' | 'director' | 'writer';
+  _normTitles?: string[];
 }
 
 export interface WalkSkinOption {
@@ -61,6 +65,7 @@ interface CachedPersonProfile {
   popularity: number | null;
   imdbId: string | null;
   tmdbTotalFeatureCount: number;
+  hasCrewCredits?: boolean;
   extraImages?: CachedExtraImage[];
   extraImagesChecked?: boolean;
 }
@@ -208,15 +213,24 @@ function getTmdbHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+const NORM_LOOKUP_CACHE = new Map<string, string>();
+
 function normalizeLookupText(str: string | null | undefined): string {
   if (!str) return '';
-  return String(str)
+  const raw = String(str);
+  const cached = NORM_LOOKUP_CACHE.get(raw);
+  if (cached !== undefined) return cached;
+  const normalized = raw
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+  if (NORM_LOOKUP_CACHE.size < 12000) {
+    NORM_LOOKUP_CACHE.set(raw, normalized);
+  }
+  return normalized;
 }
 
 function filterEligibleFeatureCredits(rawCast: any[]): { eligible: CachedPersonCredit[]; totalCount: number } {
@@ -272,6 +286,105 @@ function filterEligibleFeatureCredits(rawCast: any[]): { eligible: CachedPersonC
   };
 }
 
+function isCrewDirectorJob(job: string): boolean {
+  return String(job || '').trim().toLowerCase() === 'director';
+}
+
+function isCrewWriterJob(job: string, department?: string): boolean {
+  const cleanDept = String(department || '').trim().toLowerCase();
+  const cleanJob = String(job || '').trim().toLowerCase();
+  if (cleanDept === 'writing') return true;
+  return ['writer', 'screenplay', 'story', 'original story', 'characters', 'adaptation'].includes(cleanJob);
+}
+
+function formatDirectorRoleLabel(roleType: 'both' | 'director' | 'writer'): string {
+  if (roleType === 'both') return '🎬✍️ Dirigiu & Roteirizou';
+  if (roleType === 'director') return '🎬 Dirigiu';
+  return '✍️ Roteirizou';
+}
+
+function filterEligibleDirectorCrewCredits(rawCrew: any[]): { eligible: CachedPersonCredit[]; totalCount: number } {
+  if (!Array.isArray(rawCrew)) return { eligible: [], totalCount: 0 };
+  const currentMaxYear = new Date().getFullYear() + 1;
+  const byMovieId = new Map<
+    number,
+    {
+      raw: any;
+      directed: boolean;
+      wrote: boolean;
+      releaseDate: string;
+      year: number;
+    }
+  >();
+
+  for (const c of rawCrew) {
+    const id = Number(c?.id || 0);
+    if (!id || c.adult || c.video) continue;
+    const isDir = isCrewDirectorJob(String(c.job || ''));
+    const isWrt = isCrewWriterJob(String(c.job || ''), String(c.department || ''));
+    if (!isDir && !isWrt) continue;
+
+    const releaseDate = String(c.release_date || '').trim();
+    const year = releaseDate.length >= 4 ? Number(releaseDate.slice(0, 4)) : null;
+    if (!year || year < 1920 || year > currentMaxYear) continue;
+
+    const genres: number[] = Array.isArray(c.genre_ids) ? c.genre_ids.map(Number) : [];
+    const titleLower = String(c.title || c.original_title || '').toLowerCase();
+    if (genres.includes(99) && (titleLower.includes('making') || titleLower.includes('behind the scenes'))) {
+      continue;
+    }
+
+    const existing = byMovieId.get(id);
+    if (existing) {
+      if (isDir) existing.directed = true;
+      if (isWrt) existing.wrote = true;
+    } else {
+      byMovieId.set(id, {
+        raw: c,
+        directed: isDir,
+        wrote: isWrt,
+        releaseDate,
+        year,
+      });
+    }
+  }
+
+  const eligible: CachedPersonCredit[] = [];
+  for (const [id, entry] of byMovieId.entries()) {
+    const c = entry.raw;
+    const roleType: 'both' | 'director' | 'writer' =
+      entry.directed && entry.wrote ? 'both' : entry.directed ? 'director' : 'writer';
+    const genres: number[] = Array.isArray(c.genre_ids) ? c.genre_ids.map(Number) : [];
+    eligible.push({
+      id,
+      title: String(c.title || c.original_title || ''),
+      original_title: String(c.original_title || c.title || ''),
+      poster_path: c.poster_path ? String(c.poster_path) : null,
+      backdrop_path: c.backdrop_path ? String(c.backdrop_path) : null,
+      release_date: entry.releaseDate,
+      release_year: entry.year,
+      character: formatDirectorRoleLabel(roleType),
+      popularity: Number(c.popularity || 0),
+      vote_average: Number(c.vote_average || 0),
+      vote_count: Number(c.vote_count || 0),
+      order: roleType === 'both' ? 0 : roleType === 'director' ? 1 : 2,
+      genre_ids: genres,
+      roleType,
+    });
+  }
+
+  eligible.sort((a, b) => {
+    const scoreA = a.popularity * 2 + Math.min(2000, a.vote_count) * 0.03;
+    const scoreB = b.popularity * 2 + Math.min(2000, b.vote_count) * 0.03;
+    return scoreB - scoreA;
+  });
+
+  return {
+    eligible: eligible.slice(0, 75),
+    totalCount: eligible.length,
+  };
+}
+
 async function fetchJsonSafe(url: string, headers: Record<string, string>): Promise<any | null> {
   try {
     const res = await fetch(url, {
@@ -306,7 +419,8 @@ async function fetchWikipediaSummaryPt(wikiTitle: string): Promise<{ extract: st
 async function fetchPersonFromApis(
   cacheKey: string,
   searchQuery: string,
-  wikiTitle: string
+  wikiTitle: string,
+  starKind: WalkStarKind | string = 'actor'
 ): Promise<PersonLookupResult> {
   const headers = { ...getTmdbHeaders(), Accept: 'application/json' };
   let tmdbId: number | null = null;
@@ -321,6 +435,7 @@ async function fetchPersonFromApis(
     popularity: null,
     imdbId: null,
     tmdbTotalFeatureCount: 0,
+    hasCrewCredits: starKind === 'director',
   };
   let credits: CachedPersonCredit[] = [];
 
@@ -328,13 +443,15 @@ async function fetchPersonFromApis(
     const searchUrl = `${TMDB_BASE}/search/person?query=${encodeURIComponent(searchQuery)}&language=pt-BR&include_adult=false`;
     const searchData = await fetchJsonSafe(searchUrl, headers);
     const results: any[] = searchData?.results || [];
+    const targetDepartments = starKind === 'director' ? ['Directing', 'Writing'] : ['Acting'];
     const best =
       results.find(
         (r) =>
           normalizeLookupText(r.name) === normalizeLookupText(searchQuery) &&
-          r.known_for_department === 'Acting'
+          targetDepartments.includes(String(r.known_for_department || ''))
       ) ||
-      results.find((r) => r.known_for_department === 'Acting') ||
+      results.find((r) => normalizeLookupText(r.name) === normalizeLookupText(searchQuery)) ||
+      results.find((r) => targetDepartments.includes(String(r.known_for_department || ''))) ||
       results[0];
 
     if (best?.id) {
@@ -346,7 +463,10 @@ async function fetchPersonFromApis(
         fetchJsonSafe(taggedUrl, headers),
       ]);
       if (d) {
-        const filtered = filterEligibleFeatureCredits(d.movie_credits?.cast || []);
+        const filtered =
+          starKind === 'director'
+            ? filterEligibleDirectorCrewCredits(d.movie_credits?.crew || [])
+            : filterEligibleFeatureCredits(d.movie_credits?.cast || []);
         credits = filtered.eligible;
 
         const extraImages: CachedExtraImage[] = [];
@@ -406,6 +526,7 @@ async function fetchPersonFromApis(
           popularity: d.popularity != null ? Number(d.popularity) : null,
           imdbId: d.imdb_id || null,
           tmdbTotalFeatureCount: filtered.totalCount,
+          hasCrewCredits: starKind === 'director',
           extraImages,
           extraImagesChecked: true,
         };
@@ -429,7 +550,8 @@ async function resolvePersonMetadata(
   searchQuery: string,
   wikiTitle: string,
   existingMap: Map<string, any>,
-  forceRefresh: boolean
+  forceRefresh: boolean,
+  starKind: WalkStarKind | string = 'actor'
 ): Promise<PersonLookupResult> {
   const existing = existingMap.get(cacheKey);
   if (existing && !forceRefresh) {
@@ -437,9 +559,11 @@ async function resolvePersonMetadata(
     const isFresh = updatedMs > 0 && Date.now() - updatedMs < CACHE_TTL_MS;
     const hasTmdbOrNotNeeded = Boolean(!process.env.TMDB_BEARER_TOKEN || existing.tmdb_person_id);
     const hasExtraChecked = Boolean(!process.env.TMDB_BEARER_TOKEN || existing.profile_json?.extraImagesChecked);
+    const hasCrewMatch = starKind !== 'director' || Boolean(existing.profile_json?.hasCrewCredits);
     const hasUsefulData = Boolean(
       hasTmdbOrNotNeeded &&
         hasExtraChecked &&
+        hasCrewMatch &&
         (existing.profile_json?.profilePath || existing.wiki_thumbnail || existing.wiki_extract)
     );
     if (isFresh && hasUsefulData) {
@@ -453,7 +577,7 @@ async function resolvePersonMetadata(
     }
   }
 
-  const fresh = await fetchPersonFromApis(cacheKey, searchQuery, wikiTitle);
+  const fresh = await fetchPersonFromApis(cacheKey, searchQuery, wikiTitle, starKind);
   const hasAnyData = Boolean(
     fresh.profile.tmdbId || fresh.profile.profilePath || fresh.wikiThumbnail || fresh.wikiExtract
   );
@@ -560,11 +684,66 @@ function filmsNeededForPct(currentCount: number, ceiling: number, targetPct: num
   return Math.max(1, ceiling - currentCount);
 }
 
-export function resolveWalkMilestones(watchedCount: number, ceiling: number) {
+export function resolveWalkMilestones(
+  watchedCount: number,
+  ceiling: number,
+  isDirector = false,
+  isNewEraVisionary = false
+) {
   const safeCeiling = Math.max(1, ceiling);
   const percentage = Math.min(100, Math.round((watchedCount / safeCeiling) * 100));
 
-  const milestones = WALK_MILESTONES.map((m) => {
+  if (isDirector && isNewEraVisionary) {
+    const target80 = Math.max(1, Math.round((80 / 100) * safeCeiling));
+    const unlocked80 = percentage >= 80;
+    const singleMilestone: WalkMilestoneTier & {
+      targetCount: number;
+      unlocked: boolean;
+      remainingFilms: number;
+    } = {
+      thresholdPct: 80,
+      id: 'estrela_ascensao_80',
+      label: 'Estrela em Ascensão (Rank X)',
+      tierKey: 'diamond',
+      icon: '🌟',
+      accentHex: '#38bdf8',
+      targetCount: target80,
+      unlocked: unlocked80,
+      remainingFilms: unlocked80 ? 0 : filmsNeededForPct(watchedCount, safeCeiling, 80),
+    };
+
+    const extraFilms = Math.max(0, watchedCount - safeCeiling);
+    const extraStars = Math.floor(extraFilms / WALK_FILMS_PER_EXTRA_STAR);
+    const filmsToNextExtraStar = WALK_FILMS_PER_EXTRA_STAR - (extraFilms % WALK_FILMS_PER_EXTRA_STAR);
+
+    return {
+      percentage,
+      watchedCount,
+      ceiling: safeCeiling,
+      extraFilms,
+      extraStars,
+      filmsToNextExtraStar,
+      isStickerUnlocked: unlocked80,
+      isInaugurated: unlocked80,
+      isDiamond: unlocked80,
+      statusLabel: unlocked80
+        ? 'Estrela em Ascensão'
+        : watchedCount > 0
+        ? 'Bloqueada (libera aos 80%)'
+        : 'Bloqueada',
+      statusIcon: unlocked80 ? '🌟' : '🔒',
+      statusTierKey: unlocked80 ? 'diamond' : watchedCount > 0 ? 'carving' : 'cement',
+      accentHex: unlocked80 ? '#38bdf8' : watchedCount > 0 ? '#a1a1aa' : '#71717a',
+      currentMilestone: unlocked80 ? singleMilestone : null,
+      nextMilestone: unlocked80 ? null : singleMilestone,
+      milestones: [singleMilestone],
+    };
+  }
+
+  const milestoneList = isDirector ? DIRECTOR_WALK_MILESTONES : WALK_MILESTONES;
+  const unlockThreshold = isDirector ? 20 : 15;
+
+  const milestones = milestoneList.map((m) => {
     const unlocked = percentage >= m.thresholdPct;
     const targetCount = Math.max(1, Math.round((m.thresholdPct / 100) * safeCeiling));
     const remainingFilms = unlocked ? 0 : filmsNeededForPct(watchedCount, safeCeiling, m.thresholdPct);
@@ -610,8 +789,8 @@ export function resolveWalkMilestones(watchedCount: number, ceiling: number) {
     extraFilms,
     extraStars,
     filmsToNextExtraStar,
-    isStickerUnlocked: percentage >= 15,
-    isInaugurated: percentage >= 15,
+    isStickerUnlocked: percentage >= unlockThreshold,
+    isInaugurated: percentage >= unlockThreshold,
     isDiamond,
     statusLabel,
     statusIcon,
@@ -638,41 +817,152 @@ interface CatalogMovieJoined {
   year_seen: number | null;
   tmdb_id: number | null;
   cast_json: any[] | null;
+  crew_json: any[] | null;
+  db_directors: string[];
+  db_writers: string[];
   tmdb_genres?: any[] | null;
+  _normTitles?: string[];
+  _castIdSet?: Set<number>;
+  _normDirectors?: Set<string>;
+  _normWriters?: Set<string>;
+  _crewRoleByPid?: Map<number, { directed: boolean; wrote: boolean }>;
+  _crewRoleByName?: Map<string, { directed: boolean; wrote: boolean }>;
+}
+
+function resolveDirectorRoleForCatalogMovie(
+  movie: CatalogMovieJoined,
+  personIds: Set<number>,
+  starNames: string[],
+  credits: CachedPersonCredit[],
+  creditByTmdbId?: Map<number, CachedPersonCredit>,
+  preNormNames?: Set<string>
+): { matched: boolean; roleType: 'both' | 'director' | 'writer' | null } {
+  const normNames = preNormNames || new Set(starNames.map(normalizeLookupText).filter(Boolean));
+  let directed = false;
+  let wrote = false;
+
+  if (movie._normDirectors) {
+    for (const nm of normNames) {
+      if (movie._normDirectors.has(nm)) {
+        directed = true;
+        break;
+      }
+    }
+  } else {
+    for (const dName of movie.db_directors || []) {
+      if (normNames.has(normalizeLookupText(dName))) directed = true;
+    }
+  }
+
+  if (movie._normWriters) {
+    for (const nm of normNames) {
+      if (movie._normWriters.has(nm)) {
+        wrote = true;
+        break;
+      }
+    }
+  } else {
+    for (const wName of movie.db_writers || []) {
+      if (normNames.has(normalizeLookupText(wName))) wrote = true;
+    }
+  }
+
+  if (movie._crewRoleByPid && movie._crewRoleByName) {
+    for (const pid of personIds) {
+      const r = movie._crewRoleByPid.get(pid);
+      if (r) {
+        if (r.directed) directed = true;
+        if (r.wrote) wrote = true;
+      }
+    }
+    for (const nm of normNames) {
+      const r = movie._crewRoleByName.get(nm);
+      if (r) {
+        if (r.directed) directed = true;
+        if (r.wrote) wrote = true;
+      }
+    }
+  } else if (Array.isArray(movie.crew_json)) {
+    for (const c of movie.crew_json) {
+      const pid = Number(c?.id || 0);
+      const cname = normalizeLookupText(c?.name);
+      if ((pid && personIds.has(pid)) || (cname && normNames.has(cname))) {
+        if (isCrewDirectorJob(String(c?.job || ''))) directed = true;
+        if (isCrewWriterJob(String(c?.job || ''), String(c?.department || ''))) wrote = true;
+      }
+    }
+  }
+
+  if (movie.tmdb_id) {
+    const cMatch = creditByTmdbId
+      ? creditByTmdbId.get(Number(movie.tmdb_id))
+      : credits.find((c) => Number(c.id) === Number(movie.tmdb_id));
+    if (cMatch?.roleType === 'both') {
+      directed = true;
+      wrote = true;
+    } else if (cMatch?.roleType === 'director') {
+      directed = true;
+    } else if (cMatch?.roleType === 'writer') {
+      wrote = true;
+    }
+  }
+
+  if (!directed && !wrote) {
+    return { matched: false, roleType: null };
+  }
+  return {
+    matched: true,
+    roleType: directed && wrote ? 'both' : directed ? 'director' : 'writer',
+  };
 }
 
 function findCharacterForCatalogMovie(
   movie: CatalogMovieJoined,
   credits: CachedPersonCredit[],
-  personIds: Set<number>
+  personIds: Set<number>,
+  creditByTmdbId?: Map<number, CachedPersonCredit>
 ): string | null {
   if (movie.tmdb_id) {
-    const hit = credits.find((c) => Number(c.id) === Number(movie.tmdb_id) && c.character);
-    if (hit) return hit.character;
+    const hit = creditByTmdbId
+      ? creditByTmdbId.get(Number(movie.tmdb_id))
+      : credits.find((c) => Number(c.id) === Number(movie.tmdb_id) && c.character);
+    if (hit?.character) return hit.character;
   }
   if (Array.isArray(movie.cast_json) && personIds.size > 0) {
     const memberHit = movie.cast_json.find((c) => personIds.has(Number(c?.id)) && c?.character);
     if (memberHit) return String(memberHit.character);
   }
-  const mNormTitles = [normalizeLookupText(movie.title), normalizeLookupText(movie.original_title)].filter(Boolean);
+  const mNormTitles =
+    movie._normTitles || [normalizeLookupText(movie.title), normalizeLookupText(movie.original_title)].filter(Boolean);
   const titleHit = credits.find((c) => {
-    const cNorm = [normalizeLookupText(c.title), normalizeLookupText(c.original_title)];
+    const cNorm = c._normTitles || [normalizeLookupText(c.title), normalizeLookupText(c.original_title)];
     return c.character && cNorm.some((t) => t && mNormTitles.includes(t));
   });
   return titleHit?.character || null;
 }
 
-function findPosterForCuratedReq(req: WalkCuratedMovieReq, credits: CachedPersonCredit[]): { posterUrl: string | null; tmdbYear: number | null; character: string | null } {
+function findPosterForCuratedReq(
+  req: WalkCuratedMovieReq,
+  credits: CachedPersonCredit[]
+): {
+  posterUrl: string | null;
+  tmdbYear: number | null;
+  character: string | null;
+  imdbRating: number | null;
+  roleType: 'both' | 'director' | 'writer' | null;
+} {
   const cleanPatterns = (req.patterns || []).map(normalizeLookupText).filter(Boolean);
   const match = credits.find((c) => {
     if (req.year && c.release_year && Math.abs(c.release_year - req.year) > 1) return false;
-    const cTitles = [normalizeLookupText(c.title), normalizeLookupText(c.original_title)].filter(Boolean);
+    const cTitles = c._normTitles || [normalizeLookupText(c.title), normalizeLookupText(c.original_title)].filter(Boolean);
     return cleanPatterns.some((p) => cTitles.some((t) => t === p || t.includes(p)));
   });
   return {
     posterUrl: match?.poster_path ? `${TMDB_IMG_W342}${match.poster_path}` : null,
     tmdbYear: match?.release_year || req.year || null,
     character: match?.character || null,
+    imdbRating: match?.vote_average ? Number(Number(match.vote_average).toFixed(1)) : null,
+    roleType: req.roleType || match?.roleType || null,
   };
 }
 
@@ -745,7 +1035,15 @@ function toCompactFilmRef(film: any) {
 }
 
 function buildGroupMemberSummary(
-  def: { name: string; roleLabel: string; oscarWins?: number; oscarNominations?: number },
+  def: {
+    name: string;
+    roleLabel: string;
+    oscarWins?: number;
+    oscarNominations?: number;
+    nationalityCode?: string;
+    nationalityCodes?: string[];
+    nationalityLabel?: string;
+  },
   resolved: PersonLookupResult,
   memberWatchedFilms: any[] = [],
   memberMovies: CatalogMovieJoined[] = []
@@ -784,6 +1082,13 @@ function buildGroupMemberSummary(
       ? 'Wikipedia PT-BR'
       : 'Curadoria';
 
+  const memberNatCodes =
+    Array.isArray(def.nationalityCodes) && def.nationalityCodes.length > 0
+      ? def.nationalityCodes
+      : def.nationalityCode
+      ? [def.nationalityCode]
+      : [];
+
   return {
     name: def.name,
     roleLabel: def.roleLabel,
@@ -806,6 +1111,9 @@ function buildGroupMemberSummary(
     }),
     oscarWins: Number(def.oscarWins || 0),
     oscarNominations: Number(def.oscarNominations || 0),
+    nationalityCode: def.nationalityCode || memberNatCodes[0] || null,
+    nationalityCodes: memberNatCodes,
+    nationalityLabel: def.nationalityLabel || null,
     watchedCount: memberWatchedFilms.length,
     avgUserRating,
     topUserFilm: toCompactFilmRef(topUserFilm),
@@ -913,6 +1221,23 @@ function buildSkinOptions(options: {
       imageUrl: photoUrl,
       kind: 'portrait',
     });
+  }
+
+  // Diretores mantêm apenas a foto oficial (+ upload/link próprio), sem skins extras de cenas/pôsteres
+  if (starKind === 'director') {
+    if (customSkinUrl) {
+      pushSkin(
+        {
+          id: 'custom_user_skin',
+          label: customSkinLabel || 'Minha Foto Customizada',
+          sublabel: 'Personalizada por Você',
+          imageUrl: customSkinUrl,
+          kind: 'custom',
+        },
+        6
+      );
+    }
+    return skins;
   }
 
   // Para grupos/elencos, prioriza os rostos dos integrantes reais
@@ -1068,8 +1393,306 @@ function buildDecadeBreakdown(watchedFilms: any[]) {
   return { decades, favoriteDecade };
 }
 
-export async function buildWalkOfFamePayload(options: { forceRefresh?: boolean } = {}) {
-  const forceRefresh = Boolean(options.forceRefresh);
+interface WalkStarInternalMeta {
+  id: string;
+  basePhotoUrl: string | null;
+  watchedFilmById: Map<number, any>;
+  topUserFilm: any;
+  potentialXp: number;
+  groupMembers: any[];
+  baseSkinOptions: WalkSkinOption[];
+  skinInputs: {
+    starKind: WalkStarDefinition['kind'];
+    primary: PersonLookupResult;
+    groupResolved: Array<{ def: { name: string; roleLabel: string }; resolved?: PersonLookupResult }>;
+    watchedFilms: any[];
+    pendingFilms: any[];
+    combinedCredits: CachedPersonCredit[];
+  };
+}
+
+interface WalkOfFameBaseCache {
+  baseStars: any[];
+  internalById: Map<string, WalkStarInternalMeta>;
+  totalWatchedAppearances: number;
+  builtAt: number;
+}
+
+let cachedWalkBase: WalkOfFameBaseCache | null = null;
+let walkCacheGeneration = 0;
+let inFlightWalkBase: Promise<{
+  base: WalkOfFameBaseCache;
+  albumRows: any[];
+  packRows: any[];
+}> | null = null;
+
+export function invalidateWalkOfFameCache(): void {
+  walkCacheGeneration += 1;
+  cachedWalkBase = null;
+  inFlightWalkBase = null;
+}
+
+function hydrateStarWithState(
+  baseStar: any,
+  internal: WalkStarInternalMeta,
+  albumRow: any | null,
+  pendingPackRow: any | null
+) {
+  const isDirector = baseStar.kind === 'director';
+  const stuckTier = albumRow?.stuck_tier ? String(albumRow.stuck_tier) : null;
+  const stuckRank = stuckTier ? WALK_TIER_RANK[stuckTier] || 0 : 0;
+  const currRank = WALK_TIER_RANK[baseStar.statusTierKey] || 0;
+  const isStuck = Boolean(stuckTier && baseStar.isStickerUnlocked);
+  const hasRarityUpgradeToStick = Boolean(
+    isStuck && currRank > stuckRank && !(isDirector && baseStar.isNewEraVisionary)
+  );
+
+  const rawFeaturedMemberName = albumRow?.featured_member_name
+    ? String(albumRow.featured_member_name)
+    : null;
+  const matchedFeaturedMember =
+    internal.groupMembers.length > 0
+      ? internal.groupMembers.find((m) => m.name === rawFeaturedMemberName) || internal.groupMembers[0]
+      : null;
+  const featuredMemberName = matchedFeaturedMember?.name || null;
+  const photoUrl = matchedFeaturedMember?.photoUrl || internal.basePhotoUrl;
+
+  const customSkinUrl = albumRow?.custom_skin_url ? String(albumRow.custom_skin_url) : null;
+  const customSkinLabel = albumRow?.custom_skin_label ? String(albumRow.custom_skin_label) : null;
+
+  const skinOptions =
+    !customSkinUrl && !matchedFeaturedMember
+      ? internal.baseSkinOptions
+      : buildSkinOptions({
+          starKind: internal.skinInputs.starKind,
+          photoUrl,
+          customSkinUrl,
+          customSkinLabel,
+          primary: internal.skinInputs.primary,
+          groupResolved: internal.skinInputs.groupResolved,
+          watchedFilms: internal.skinInputs.watchedFilms,
+          pendingFilms: internal.skinInputs.pendingFilms,
+          combinedCredits: internal.skinInputs.combinedCredits,
+        });
+
+  const selectedSkinUrl = albumRow?.selected_skin_url ? String(albumRow.selected_skin_url) : null;
+  const selectedSkinLabel = albumRow?.selected_skin_label ? String(albumRow.selected_skin_label) : null;
+  const activePhotoUrl = selectedSkinUrl || photoUrl;
+
+  const canCustomizeImmortal =
+    baseStar.percentage >= 90 || (isDirector && Boolean(baseStar.isNewEraVisionary));
+  const isFullArt = Boolean(canCustomizeImmortal && albumRow?.is_full_art);
+  const isFavoriteGuardian = Boolean(canCustomizeImmortal && albumRow?.is_favorite_guardian);
+  const rawAura = albumRow?.immortal_aura ? String(albumRow.immortal_aura) : 'prism';
+  const auraIdx = WALK_IMMORTAL_AURA_ORDER.indexOf(rawAura as WalkImmortalAuraId);
+  const immortalAura = (
+    auraIdx >= 0 && baseStar.extraStars >= auraIdx ? WALK_IMMORTAL_AURA_ORDER[auraIdx] : 'prism'
+  ) as WalkImmortalAuraId;
+
+  const rawSigMovieId = albumRow?.signature_movie_id ? Number(albumRow.signature_movie_id) : null;
+  const signatureFilm =
+    (rawSigMovieId ? internal.watchedFilmById.get(rawSigMovieId) : null) ||
+    internal.topUserFilm ||
+    null;
+  const signatureMovieId = signatureFilm ? Number(signatureFilm.movieId) : null;
+
+  const claimedXpPct = Math.max(0, Number(albumRow?.claimed_xp_pct || 0));
+  const claimedXpExtraStars = Math.max(0, Number(albumRow?.claimed_xp_extra_stars || 0));
+  const claimedXp = computeWalkXpForStar(claimedXpPct, claimedXpExtraStars, isDirector);
+  const unclaimedXp = Math.max(0, internal.potentialXp - claimedXp);
+
+  return {
+    ...baseStar,
+    photoUrl,
+    activePhotoUrl,
+    featuredMemberName,
+    skinOptions,
+    selectedSkinUrl,
+    selectedSkinLabel,
+    customSkinUrl,
+    customSkinLabel,
+    isFullArt,
+    isFavoriteGuardian,
+    immortalAura,
+    signatureMovieId,
+    signatureFilm: signatureFilm
+      ? {
+          movieId: Number(signatureFilm.movieId),
+          title: String(signatureFilm.title),
+          releaseYear: signatureFilm.releaseYear || null,
+          userRating: signatureFilm.userRating ?? null,
+          character: signatureFilm.character || null,
+        }
+      : null,
+    rpgXp: claimedXp,
+    claimedXp,
+    unclaimedXp,
+    claimedXpPct,
+    claimedXpExtraStars,
+    isStuck,
+    stuckTier,
+    previousStuckTier: albumRow?.previous_stuck_tier ? String(albumRow.previous_stuck_tier) : null,
+    stuckExtraStars: Number(albumRow?.stuck_extra_stars || 0),
+    hasRarityUpgradeToStick,
+    pendingPackId: pendingPackRow ? Number(pendingPackRow.id) : null,
+    pendingPackType: pendingPackRow ? String(pendingPackRow.pack_type) : null,
+  };
+}
+
+function hydrateWalkOfFamePayload(
+  base: WalkOfFameBaseCache,
+  albumRows: any[],
+  packRows: any[]
+) {
+  const albumStateMap = new Map<string, any>();
+  for (const row of albumRows) {
+    albumStateMap.set(String(row.star_id), row);
+  }
+  const pendingPackByStar = new Map<string, any>();
+  for (const row of packRows) {
+    const sid = String(row.star_id);
+    if (!pendingPackByStar.has(sid)) {
+      pendingPackByStar.set(sid, row);
+    }
+  }
+
+  const starsPayload = base.baseStars.map((baseStar) => {
+    const internal = base.internalById.get(baseStar.id)!;
+    return hydrateStarWithState(
+      baseStar,
+      internal,
+      albumStateMap.get(baseStar.id) || null,
+      pendingPackByStar.get(baseStar.id) || null
+    );
+  });
+
+  const starsById = new Map(starsPayload.map((s) => [s.id, s]));
+  const pendingPacks = packRows
+    .map((p: any) => {
+      const star = starsById.get(String(p.star_id));
+      if (!star) return null;
+      const packTargetPct = Math.max(Number(p.to_pct || 0), Number(star.percentage || 0));
+      const packTargetStars = Math.max(Number(p.extra_stars_unlocked || 0), Number(star.extraStars || 0));
+      const packXp = Math.max(
+        0,
+        computeWalkXpForStar(packTargetPct, packTargetStars, star.kind === 'director') -
+          Number(star.claimedXp || 0)
+      );
+      return {
+        packId: Number(p.id),
+        starId: String(p.star_id),
+        packType: String(p.pack_type),
+        fromTier: p.from_tier ? String(p.from_tier) : null,
+        toTier: String(p.to_tier),
+        fromPct: Number(p.from_pct || 0),
+        toPct: Number(p.to_pct || 0),
+        extraStarsUnlocked: Number(p.extra_stars_unlocked || 0),
+        packXp,
+        triggerMovieId: p.trigger_movie_id ? Number(p.trigger_movie_id) : null,
+        triggerMovieTitle: p.trigger_movie_title ? String(p.trigger_movie_title) : null,
+        createdAt: p.created_at,
+        star,
+      };
+    })
+    .filter(Boolean);
+
+  let inauguratedCount = 0;
+  let diamondCount = 0;
+  let stuckCount = 0;
+  let totalWalkXp = 0;
+  let totalExtraStars = 0;
+  const guardians: any[] = [];
+  const podiumCandidates: any[] = [];
+
+  for (const s of starsPayload) {
+    if (s.isInaugurated) inauguratedCount += 1;
+    if (s.isDiamond) diamondCount += 1;
+    if (s.isStuck) stuckCount += 1;
+    totalWalkXp += Number(s.rpgXp || 0);
+    totalExtraStars += Number(s.extraStars || 0);
+    if (s.isFavoriteGuardian && guardians.length < 3) {
+      guardians.push({
+        id: s.id,
+        albumNumber: s.albumNumber,
+        name: s.name,
+        icon: s.icon,
+        tagline: s.tagline,
+        photoUrl: s.activePhotoUrl || s.photoUrl,
+        percentage: s.percentage,
+        extraStars: s.extraStars,
+      });
+    }
+    if (s.watchedCount > 0) podiumCandidates.push(s);
+  }
+
+  podiumCandidates.sort(
+    (a, b) =>
+      b.watchedCount - a.watchedCount ||
+      (b.avgUserRating ?? -1) - (a.avgUserRating ?? -1) ||
+      b.percentage - a.percentage ||
+      a.albumNumber - b.albumNumber
+  );
+
+  const topWatchedPodium = podiumCandidates.slice(0, 3).map((s, idx) => ({
+    rankPosition: idx + 1,
+    id: s.id,
+    albumNumber: s.albumNumber,
+    name: s.name,
+    icon: s.icon,
+    tagline: s.tagline,
+    photoUrl: s.activePhotoUrl || s.photoUrl,
+    watchedCount: s.watchedCount,
+    ceiling: s.ceiling,
+    avgUserRating: s.avgUserRating,
+    percentage: s.percentage,
+    extraStars: s.extraStars,
+    isDeceased: s.isDeceased,
+  }));
+
+  const rpgMeta = resolveRpgLevelMeta(totalWalkXp);
+
+  return {
+    alamedas: WALK_ALAMEDAS,
+    milestones: WALK_MILESTONES,
+    directorMilestones: DIRECTOR_WALK_MILESTONES,
+    summary: {
+      totalStars: starsPayload.length,
+      inauguratedCount,
+      diamondCount,
+      stuckCount,
+      pendingPackCount: pendingPacks.length,
+      totalWatchedAppearances: base.totalWatchedAppearances,
+      totalExtraStars,
+      ...rpgMeta,
+      topWatchedPodium,
+      guardians,
+    },
+    pendingPacks,
+    stars: starsPayload,
+  };
+}
+
+function toCompactMutationResponse(hydrated: ReturnType<typeof hydrateWalkOfFamePayload>, updatedStarIds: string[]) {
+  const idSet = new Set(updatedStarIds);
+  return {
+    compact: true,
+    alamedas: hydrated.alamedas,
+    milestones: hydrated.milestones,
+    directorMilestones: hydrated.directorMilestones,
+    summary: hydrated.summary,
+    pendingPacks: hydrated.pendingPacks,
+    updatedStars: hydrated.stars.filter((s: any) => idSet.has(s.id)),
+  };
+}
+
+const ALBUM_STATE_SELECT_SQL = `SELECT star_id, stuck_tier, previous_stuck_tier, stuck_extra_stars, last_notified_tier, last_notified_extra_stars, stuck_at, selected_skin_url, selected_skin_label, custom_skin_url, custom_skin_label, is_full_art, is_favorite_guardian, immortal_aura, signature_movie_id, featured_member_name, claimed_xp_pct, claimed_xp_extra_stars FROM walk_of_fame_album_state`;
+const PENDING_PACKS_SELECT_SQL = `SELECT id, star_id, pack_type, from_tier, to_tier, from_pct, to_pct, extra_stars_unlocked, trigger_movie_id, trigger_movie_title, status, created_at FROM walk_of_fame_packs WHERE status = 'pending' ORDER BY created_at DESC, id DESC`;
+
+async function computeWalkOfFameBase(forceRefresh: boolean): Promise<{
+  base: WalkOfFameBaseCache;
+  albumRows: any[];
+  packRows: any[];
+}> {
   await ensureWalkOfFameTables();
 
   const [moviesRes, cacheRes, albumStateRes, packsRes] = await Promise.all([
@@ -1082,7 +1705,32 @@ export async function buildWalkOfFamePayload(options: { forceRefresh?: boolean }
         m.poster_url,
         m.imdb_rating,
         m.tmdb_id,
-        m.raw_api_data->'tmdb'->'credits'->'cast' AS cast_json,
+        CASE
+          WHEN jsonb_typeof(m.raw_api_data->'tmdb'->'credits'->'cast') = 'array' THEN
+            COALESCE((
+              SELECT jsonb_agg(jsonb_build_object('id', elem->'id', 'character', elem->'character'))
+              FROM jsonb_array_elements(m.raw_api_data->'tmdb'->'credits'->'cast') elem
+            ), '[]'::jsonb)
+          ELSE NULL
+        END AS cast_json,
+        CASE
+          WHEN jsonb_typeof(m.raw_api_data->'tmdb'->'credits'->'crew') = 'array' THEN
+            COALESCE((
+              SELECT jsonb_agg(jsonb_build_object('id', elem->'id', 'name', elem->'name', 'job', elem->'job', 'department', elem->'department'))
+              FROM jsonb_array_elements(m.raw_api_data->'tmdb'->'credits'->'crew') elem
+              WHERE lower(COALESCE(elem->>'job', '')) IN ('director', 'writer', 'screenplay', 'story', 'original story', 'characters', 'adaptation')
+                 OR lower(COALESCE(elem->>'department', '')) = 'writing'
+            ), '[]'::jsonb)
+          ELSE NULL
+        END AS crew_json,
+        COALESCE(
+          (SELECT json_agg(DISTINCT d.name) FROM movie_directors md JOIN directors d ON d.id = md.director_id WHERE md.movie_id = m.id),
+          '[]'::json
+        ) AS db_directors,
+        COALESCE(
+          (SELECT json_agg(DISTINCT w.name) FROM movie_writers mw JOIN writers w ON w.id = mw.writer_id WHERE mw.movie_id = m.id),
+          '[]'::json
+        ) AS db_writers,
         m.raw_api_data->'tmdb'->'genres' AS genres_json,
         m.raw_api_data->'tmdb'->>'backdrop_path' AS backdrop_path,
         mv.view_id,
@@ -1101,51 +1749,104 @@ export async function buildWalkOfFamePayload(options: { forceRefresh?: boolean }
       ORDER BY m.id ASC
     `),
     query(`SELECT cache_key, tmdb_person_id, profile_json, credits_json, wiki_extract, wiki_thumbnail, updated_at FROM walk_of_fame_person_cache`),
-    query(`SELECT star_id, stuck_tier, previous_stuck_tier, stuck_extra_stars, last_notified_tier, last_notified_extra_stars, stuck_at, selected_skin_url, selected_skin_label, custom_skin_url, custom_skin_label, is_full_art, is_favorite_guardian, immortal_aura, signature_movie_id, featured_member_name, claimed_xp_pct, claimed_xp_extra_stars FROM walk_of_fame_album_state`),
-    query(`SELECT id, star_id, pack_type, from_tier, to_tier, from_pct, to_pct, extra_stars_unlocked, trigger_movie_id, trigger_movie_title, status, created_at FROM walk_of_fame_packs WHERE status = 'pending' ORDER BY created_at DESC, id DESC`),
+    query(ALBUM_STATE_SELECT_SQL),
+    query(PENDING_PACKS_SELECT_SQL),
   ]);
 
-  const albumStateMap = new Map<string, any>();
-  for (const row of albumStateRes.rows) {
-    albumStateMap.set(String(row.star_id), row);
-  }
-  const pendingPackByStar = new Map<string, any>();
-  for (const row of packsRes.rows) {
-    if (!pendingPackByStar.has(String(row.star_id))) {
-      pendingPackByStar.set(String(row.star_id), row);
-    }
-  }
+  const albumStateSet = new Set<string>(albumStateRes.rows.map((r: any) => String(r.star_id)));
 
-  const catalogMovies: CatalogMovieJoined[] = moviesRes.rows.map((r: any) => ({
-    movie_id: Number(r.movie_id),
-    title: String(r.title || ''),
-    original_title: r.original_title ? String(r.original_title) : null,
-    release_year: r.release_year != null ? Number(r.release_year) : null,
-    poster_url: r.poster_url ? String(r.poster_url) : null,
-    backdrop_path: r.backdrop_path ? String(r.backdrop_path) : null,
-    imdb_rating: r.imdb_rating != null && Number.isFinite(Number(r.imdb_rating)) ? Number(r.imdb_rating) : null,
-    user_rating: r.user_rating != null && Number.isFinite(Number(r.user_rating)) ? Number(r.user_rating) : null,
-    view_id: r.view_id != null ? Number(r.view_id) : null,
-    watched_at: r.watched_at ? new Date(r.watched_at).toISOString() : null,
-    month_seen: r.month_seen != null ? Number(r.month_seen) : null,
-    year_seen: r.year_seen != null ? Number(r.year_seen) : null,
-    tmdb_id: r.tmdb_id != null && Number.isFinite(Number(r.tmdb_id)) ? Number(r.tmdb_id) : null,
-    cast_json: Array.isArray(r.cast_json) ? r.cast_json : null,
-    tmdb_genres: Array.isArray(r.genres_json) ? r.genres_json : null,
-  }));
+  const catalogMovies: CatalogMovieJoined[] = moviesRes.rows.map((r: any) => {
+    const title = String(r.title || '');
+    const originalTitle = r.original_title ? String(r.original_title) : null;
+    const castJson = Array.isArray(r.cast_json) ? r.cast_json : null;
+    const crewJson = Array.isArray(r.crew_json) ? r.crew_json : null;
+    const dbDirectors = Array.isArray(r.db_directors) ? r.db_directors.map(String) : [];
+    const dbWriters = Array.isArray(r.db_writers) ? r.db_writers.map(String) : [];
+
+    const castIdSet = new Set<number>();
+    if (castJson) {
+      for (const c of castJson) {
+        const cid = Number(c?.id || 0);
+        if (cid) castIdSet.add(cid);
+      }
+    }
+
+    const normDirectors = new Set<string>();
+    for (const d of dbDirectors) {
+      const n = normalizeLookupText(d);
+      if (n) normDirectors.add(n);
+    }
+    const normWriters = new Set<string>();
+    for (const w of dbWriters) {
+      const n = normalizeLookupText(w);
+      if (n) normWriters.add(n);
+    }
+
+    const crewRoleByPid = new Map<number, { directed: boolean; wrote: boolean }>();
+    const crewRoleByName = new Map<string, { directed: boolean; wrote: boolean }>();
+    if (crewJson) {
+      for (const c of crewJson) {
+        const pid = Number(c?.id || 0);
+        const cname = normalizeLookupText(c?.name);
+        const isD = isCrewDirectorJob(String(c?.job || ''));
+        const isW = isCrewWriterJob(String(c?.job || ''), String(c?.department || ''));
+        if (!isD && !isW) continue;
+        if (pid) {
+          const prev = crewRoleByPid.get(pid) || { directed: false, wrote: false };
+          if (isD) prev.directed = true;
+          if (isW) prev.wrote = true;
+          crewRoleByPid.set(pid, prev);
+        }
+        if (cname) {
+          const prev = crewRoleByName.get(cname) || { directed: false, wrote: false };
+          if (isD) prev.directed = true;
+          if (isW) prev.wrote = true;
+          crewRoleByName.set(cname, prev);
+        }
+      }
+    }
+
+    return {
+      movie_id: Number(r.movie_id),
+      title,
+      original_title: originalTitle,
+      release_year: r.release_year != null ? Number(r.release_year) : null,
+      poster_url: r.poster_url ? String(r.poster_url) : null,
+      backdrop_path: r.backdrop_path ? String(r.backdrop_path) : null,
+      imdb_rating: r.imdb_rating != null && Number.isFinite(Number(r.imdb_rating)) ? Number(r.imdb_rating) : null,
+      user_rating: r.user_rating != null && Number.isFinite(Number(r.user_rating)) ? Number(r.user_rating) : null,
+      view_id: r.view_id != null ? Number(r.view_id) : null,
+      watched_at: r.watched_at ? new Date(r.watched_at).toISOString() : null,
+      month_seen: r.month_seen != null ? Number(r.month_seen) : null,
+      year_seen: r.year_seen != null ? Number(r.year_seen) : null,
+      tmdb_id: r.tmdb_id != null && Number.isFinite(Number(r.tmdb_id)) ? Number(r.tmdb_id) : null,
+      cast_json: castJson,
+      crew_json: crewJson,
+      db_directors: dbDirectors,
+      db_writers: dbWriters,
+      tmdb_genres: Array.isArray(r.genres_json) ? r.genres_json : null,
+      _normTitles: [normalizeLookupText(title), normalizeLookupText(originalTitle)].filter(Boolean),
+      _castIdSet: castIdSet,
+      _normDirectors: normDirectors,
+      _normWriters: normWriters,
+      _crewRoleByPid: crewRoleByPid,
+      _crewRoleByName: crewRoleByName,
+    };
+  });
 
   const cacheMap = new Map<string, any>();
   for (const row of cacheRes.rows) {
     cacheMap.set(String(row.cache_key), row);
   }
 
-  // Enrich all 23 lead stars + group members with bounded concurrency
-  const lookupJobs: Array<{ cacheKey: string; searchQuery: string; wikiTitle: string }> = [];
+  // Enrich all lead stars + group members with bounded concurrency
+  const lookupJobs: Array<{ cacheKey: string; searchQuery: string; wikiTitle: string; starKind: WalkStarKind }> = [];
   for (const star of WALK_OF_FAME_STARS) {
     lookupJobs.push({
       cacheKey: star.id,
       searchQuery: star.searchQuery,
       wikiTitle: star.wikiTitle,
+      starKind: star.kind,
     });
     if (Array.isArray(star.groupMembers)) {
       for (const gm of star.groupMembers) {
@@ -1153,21 +1854,28 @@ export async function buildWalkOfFamePayload(options: { forceRefresh?: boolean }
           cacheKey: `${star.id}::${normalizeLookupText(gm.name).replace(/\s+/g, '_')}`,
           searchQuery: gm.searchQuery,
           wikiTitle: gm.wikiTitle,
+          starKind: star.kind === 'director' ? 'director' : 'actor',
         });
       }
     }
   }
 
   const resolvedList = await runInChunks(lookupJobs, 3, (job) =>
-    resolvePersonMetadata(job.cacheKey, job.searchQuery, job.wikiTitle, cacheMap, forceRefresh)
+    resolvePersonMetadata(job.cacheKey, job.searchQuery, job.wikiTitle, cacheMap, forceRefresh, job.starKind)
   );
 
   const resolvedByKey = new Map<string, PersonLookupResult>();
   for (const item of resolvedList) {
+    for (const c of item.credits) {
+      if (!c._normTitles) {
+        c._normTitles = [normalizeLookupText(c.title), normalizeLookupText(c.original_title)].filter(Boolean);
+      }
+    }
     resolvedByKey.set(item.cacheKey, item);
   }
 
-  const starsPayload = WALK_OF_FAME_STARS.map((star: WalkStarDefinition) => {
+  const internalById = new Map<string, WalkStarInternalMeta>();
+  const baseStars = WALK_OF_FAME_STARS.map((star: WalkStarDefinition) => {
     const primary = resolvedByKey.get(star.id)!;
     const curatedReqs = getCuratedMoviesForStar(star.id);
 
@@ -1178,11 +1886,13 @@ export async function buildWalkOfFamePayload(options: { forceRefresh?: boolean }
 
     const seenCreditIds = new Set<number>();
     const combinedCredits: CachedPersonCredit[] = [];
+    const creditByTmdbId = new Map<number, CachedPersonCredit>();
     const pushCredit = (c: CachedPersonCredit) => {
       const cid = Number(c?.id || 0);
       if (!cid || seenCreditIds.has(cid)) return;
       seenCreditIds.add(cid);
       combinedCredits.push(c);
+      creditByTmdbId.set(cid, c);
     };
     for (const c of primary.credits) pushCredit(c);
     const personIds = new Set<number>();
@@ -1202,40 +1912,44 @@ export async function buildWalkOfFamePayload(options: { forceRefresh?: boolean }
     }
 
     const creditMovieIds = seenCreditIds;
+    const groupCreditIdSets = groupResolved.map((g) => {
+      const mCredits = Array.isArray(g.resolved?.credits) ? g.resolved!.credits : [];
+      return {
+        g,
+        mPid: g.resolved?.profile?.tmdbId ? Number(g.resolved.profile.tmdbId) : null,
+        mCredits,
+        mCreditIds: new Set(mCredits.map((c) => Number(c.id))),
+      };
+    });
 
     const resolveMemberNamesForMovie = (movie: CatalogMovieJoined, fromCurated: boolean): string[] => {
-      if (star.kind !== 'group' || groupResolved.length === 0) return [];
+      if (groupResolved.length === 0) return [];
       const names: string[] = [];
-      const normMovieTitles = [
-        normalizeLookupText(movie.title),
-        normalizeLookupText(movie.original_title),
-      ].filter(Boolean);
-      for (const g of groupResolved) {
-        if (!g.resolved) continue;
-        const mPid = g.resolved.profile?.tmdbId ? Number(g.resolved.profile.tmdbId) : null;
-        const mCredits = Array.isArray(g.resolved.credits) ? g.resolved.credits : [];
-        const mCreditIds = new Set(mCredits.map((c) => Number(c.id)));
-        const hitByTmdb = Boolean(movie.tmdb_id && mCreditIds.has(Number(movie.tmdb_id)));
+      const normMovieTitles =
+        movie._normTitles || [normalizeLookupText(movie.title), normalizeLookupText(movie.original_title)].filter(Boolean);
+      for (const entry of groupCreditIdSets) {
+        if (!entry.g.resolved) continue;
+        const hitByTmdb = Boolean(movie.tmdb_id && entry.mCreditIds.has(Number(movie.tmdb_id)));
         const hitByCast = Boolean(
-          mPid &&
-            Array.isArray(movie.cast_json) &&
-            movie.cast_json.some((c: any) => Number(c?.id) === mPid)
+          entry.mPid &&
+            (movie._castIdSet
+              ? movie._castIdSet.has(entry.mPid)
+              : Array.isArray(movie.cast_json) && movie.cast_json.some((c: any) => Number(c?.id) === entry.mPid))
         );
         const hitByTitle =
           !hitByTmdb &&
           !hitByCast &&
           normMovieTitles.length > 0 &&
-          mCredits.some((c) => {
+          entry.mCredits.some((c) => {
             if (movie.release_year && c.release_year && Math.abs(c.release_year - movie.release_year) > 1) {
               return false;
             }
-            const cTitles = [normalizeLookupText(c.title), normalizeLookupText(c.original_title)].filter(
-              Boolean
-            );
+            const cTitles =
+              c._normTitles || [normalizeLookupText(c.title), normalizeLookupText(c.original_title)].filter(Boolean);
             return cTitles.some((t) => normMovieTitles.includes(t));
           });
         if (hitByTmdb || hitByCast || hitByTitle) {
-          names.push(g.def.name);
+          names.push(entry.g.def.name);
         }
       }
       if (names.length === 0 && fromCurated) {
@@ -1244,21 +1958,62 @@ export async function buildWalkOfFamePayload(options: { forceRefresh?: boolean }
       return names;
     };
 
-    // 1. Curated list matching (guarantees compatibility with all 283 catalog entries & dubladores)
+    // 1. Curated list matching (guarantees compatibility with catalog entries, dubladores & directors)
+    const isBrazilianDublador =
+      star.kind === 'dublador' && String(star.nationalityCode || '').toLowerCase() === 'br';
     const matchedCatalogIds = new Set<number>();
     const matchedCatalogMovies: CatalogMovieJoined[] = [];
     const watchedFilms: any[] = [];
     const pendingFilms: any[] = [];
+    const starNameCandidates = [
+      star.name,
+      star.searchQuery,
+      primary.profile.name,
+      ...(star.groupMembers || []).flatMap((gm) => [gm.name, gm.searchQuery]),
+    ].filter(Boolean);
+    const starNormNames = new Set(starNameCandidates.map(normalizeLookupText).filter(Boolean));
 
     for (const req of curatedReqs) {
-      const hit = catalogMovies.find((m) => !matchedCatalogIds.has(m.movie_id) && matchCuratedCandidate(m, req));
+      const hit = catalogMovies.find((m) => {
+        if (matchedCatalogIds.has(m.movie_id) || !matchCuratedCandidate(m, req)) return false;
+        if (star.kind === 'director') {
+          const checkRole = resolveDirectorRoleForCatalogMovie(
+            m,
+            personIds,
+            starNameCandidates,
+            combinedCredits,
+            creditByTmdbId,
+            starNormNames
+          );
+          const hasCrewMetadata = Boolean(
+            (m.db_directors && m.db_directors.length > 0) ||
+              (m.db_writers && m.db_writers.length > 0) ||
+              (Array.isArray(m.crew_json) && m.crew_json.length > 0)
+          );
+          if (!checkRole.matched && hasCrewMetadata) return false;
+        }
+        return true;
+      });
       if (hit) {
         matchedCatalogIds.add(hit.movie_id);
         matchedCatalogMovies.push(hit);
-        const char = req.character || findCharacterForCatalogMovie(hit, combinedCredits, personIds);
-        const creditMatch = hit.tmdb_id
-          ? combinedCredits.find((c) => Number(c.id) === Number(hit.tmdb_id))
-          : null;
+        const creditMatch = hit.tmdb_id ? creditByTmdbId.get(Number(hit.tmdb_id)) || null : null;
+        let roleType: 'both' | 'director' | 'writer' | null = null;
+        if (star.kind === 'director') {
+          const dirInfo = resolveDirectorRoleForCatalogMovie(
+            hit,
+            personIds,
+            starNameCandidates,
+            combinedCredits,
+            creditByTmdbId,
+            starNormNames
+          );
+          roleType = req.roleType || dirInfo.roleType || creditMatch?.roleType || 'director';
+        }
+        const char =
+          star.kind === 'director'
+            ? req.character || formatDirectorRoleLabel(roleType || 'director')
+            : req.character || findCharacterForCatalogMovie(hit, combinedCredits, personIds, creditByTmdbId);
         const rawBd = hit.backdrop_path || creditMatch?.backdrop_path || null;
         watchedFilms.push({
           movieId: hit.movie_id,
@@ -1274,7 +2029,11 @@ export async function buildWalkOfFamePayload(options: { forceRefresh?: boolean }
           monthSeen: hit.month_seen,
           yearSeen: hit.year_seen,
           character: char,
-          memberNames: resolveMemberNamesForMovie(hit, true),
+          roleType,
+          memberNames:
+            Array.isArray(req.memberNames) && req.memberNames.length > 0
+              ? req.memberNames
+              : resolveMemberNamesForMovie(hit, true),
           source: 'curated',
         });
       } else {
@@ -1283,30 +2042,75 @@ export async function buildWalkOfFamePayload(options: { forceRefresh?: boolean }
           title: req.name,
           releaseYear: enriched.tmdbYear,
           posterUrl: enriched.posterUrl,
-          character: req.character || enriched.character,
+          imdbRating: enriched.imdbRating,
+          character:
+            star.kind === 'director'
+              ? req.character || formatDirectorRoleLabel(enriched.roleType || 'director')
+              : req.character || enriched.character,
+          roleType: star.kind === 'director' ? enriched.roleType || 'director' : null,
           source: 'curated',
         });
       }
     }
 
-    // 2. Dynamic TMDB Cast/Credits matching for actors & groups (excludes dubladores)
-    if (star.kind !== 'dublador') {
+    // 2. Dynamic TMDB matching (actors/groups via cast, directors via director/writer crew)
+    if (star.kind === 'director') {
+      for (const m of catalogMovies) {
+        if (matchedCatalogIds.has(m.movie_id)) continue;
+        const dirInfo = resolveDirectorRoleForCatalogMovie(
+          m,
+          personIds,
+          starNameCandidates,
+          combinedCredits,
+          creditByTmdbId,
+          starNormNames
+        );
+        if (!dirInfo.matched || !dirInfo.roleType) continue;
+
+        matchedCatalogIds.add(m.movie_id);
+        matchedCatalogMovies.push(m);
+        const creditMatch = m.tmdb_id ? creditByTmdbId.get(Number(m.tmdb_id)) || null : null;
+        const rawBd = m.backdrop_path || creditMatch?.backdrop_path || null;
+        watchedFilms.push({
+          movieId: m.movie_id,
+          title: m.title,
+          originalTitle: m.original_title,
+          releaseYear: m.release_year,
+          posterUrl: m.poster_url,
+          backdropUrl: rawBd ? `${TMDB_IMG_W500}${rawBd}` : null,
+          userRating: m.user_rating,
+          imdbRating: m.imdb_rating,
+          viewId: m.view_id,
+          watchedAt: m.watched_at,
+          monthSeen: m.month_seen,
+          yearSeen: m.year_seen,
+          character: formatDirectorRoleLabel(dirInfo.roleType),
+          roleType: dirInfo.roleType,
+          memberNames: [],
+          source: 'tmdb_crew',
+        });
+      }
+    } else if (!isBrazilianDublador) {
       for (const m of catalogMovies) {
         if (matchedCatalogIds.has(m.movie_id)) continue;
         const matchViaTmdbId = Boolean(m.tmdb_id && creditMovieIds.has(m.tmdb_id));
-        const matchViaRawCast = Boolean(
-          Array.isArray(m.cast_json) &&
-            personIds.size > 0 &&
-            m.cast_json.some((c: any) => personIds.has(Number(c?.id)))
-        );
+        let matchViaRawCast = false;
+        if (personIds.size > 0 && m._castIdSet) {
+          for (const pid of personIds) {
+            if (m._castIdSet.has(pid)) {
+              matchViaRawCast = true;
+              break;
+            }
+          }
+        } else if (Array.isArray(m.cast_json) && personIds.size > 0) {
+          matchViaRawCast = m.cast_json.some((c: any) => personIds.has(Number(c?.id)));
+        }
 
         if (matchViaTmdbId || matchViaRawCast) {
           matchedCatalogIds.add(m.movie_id);
           matchedCatalogMovies.push(m);
-          const char = findCharacterForCatalogMovie(m, combinedCredits, personIds);
-          const creditMatch = m.tmdb_id
-            ? combinedCredits.find((c) => Number(c.id) === Number(m.tmdb_id))
-            : null;
+          const char = findCharacterForCatalogMovie(m, combinedCredits, personIds, creditByTmdbId);
+          const creditMatch = m.tmdb_id ? creditByTmdbId.get(Number(m.tmdb_id)) || null : null;
           const rawBd = m.backdrop_path || creditMatch?.backdrop_path || null;
           watchedFilms.push({
             movieId: m.movie_id,
@@ -1322,6 +2126,7 @@ export async function buildWalkOfFamePayload(options: { forceRefresh?: boolean }
             monthSeen: m.month_seen,
             yearSeen: m.year_seen,
             character: char,
+            roleType: null,
             memberNames: resolveMemberNamesForMovie(m, false),
             source: 'tmdb_cast',
           });
@@ -1329,8 +2134,9 @@ export async function buildWalkOfFamePayload(options: { forceRefresh?: boolean }
       }
     }
 
-    // Preenche filmes pendentes notáveis do TMDB para atores e grupos quando a curadoria estiver vazia ou curta
-    if (star.kind !== 'dublador' && pendingFilms.length < 10) {
+    // Preenche filmes pendentes notáveis do TMDB quando a curadoria estiver vazia ou curta
+    // (mantém apenas lista curada para dubladores brasileiros, pois o TMDB traz apenas o elenco original)
+    if (!isBrazilianDublador && (star.kind !== 'director' || curatedReqs.length === 0) && pendingFilms.length < 10) {
       const seenPendingNorm = new Set([
         ...pendingFilms.map((p) => normalizeLookupText(p.title)),
         ...watchedFilms.map((w) => normalizeLookupText(w.title)),
@@ -1347,7 +2153,9 @@ export async function buildWalkOfFamePayload(options: { forceRefresh?: boolean }
             title: c.title,
             releaseYear: c.release_year,
             posterUrl: `${TMDB_IMG_W342}${c.poster_path}`,
+            imdbRating: c.vote_average ? Number(Number(c.vote_average).toFixed(1)) : null,
             character: c.character || null,
+            roleType: star.kind === 'director' ? c.roleType || 'director' : null,
             source: 'tmdb_credit',
           });
         }
@@ -1365,30 +2173,109 @@ export async function buildWalkOfFamePayload(options: { forceRefresh?: boolean }
     const curatedCount = curatedReqs.length;
     const tmdbFeatureTotal = primary.profile.tmdbTotalFeatureCount || curatedCount || 20;
     const uniqueCombinedCount = seenCreditIds.size;
-    // Regra geral retroativa: <=20 filmes -> teto 10 | 21-28 filmes -> teto 15 | >28 filmes -> teto 20
-    const effectiveFilmPool =
-      star.kind === 'dublador'
-        ? curatedCount || 20
+
+    let ceiling = 20;
+    let isNewEraVisionary = false;
+    let directorTier: 'visionario_7' | 'autor_8' | 'mestre_12' | null = null;
+    let directorStats: {
+      bothCount: number;
+      directedOnlyCount: number;
+      writtenOnlyCount: number;
+      totalDirectedWatched: number;
+      totalWrittenWatched: number;
+      careerBothCount: number;
+      careerDirectedOnlyCount: number;
+      careerWrittenOnlyCount: number;
+      careerTotalFilms: number;
+      ceilingTierLabel: string;
+    } | null = null;
+
+    if (star.kind === 'director') {
+      const bothCount = watchedFilms.filter((f) => f.roleType === 'both').length;
+      const directedOnlyCount = watchedFilms.filter((f) => f.roleType === 'director').length;
+      const writtenOnlyCount = watchedFilms.filter((f) => f.roleType === 'writer').length;
+      const seenCareerNorm = new Set<string>();
+      const careerPool: any[] = [];
+      for (const f of [...watchedFilms, ...pendingFilms]) {
+        const key = normalizeLookupText(f.title);
+        if (!key || seenCareerNorm.has(key)) continue;
+        seenCareerNorm.add(key);
+        careerPool.push(f);
+      }
+      const careerBothCount = careerPool.filter((f) => f.roleType === 'both').length;
+      const careerDirectedOnlyCount = careerPool.filter((f) => f.roleType === 'director').length;
+      const careerWrittenOnlyCount = careerPool.filter((f) => f.roleType === 'writer').length;
+      const effectiveDirectorPool = Math.max(
+        watchedFilms.length,
+        curatedCount > 0 ? curatedCount : Math.max(careerPool.length, tmdbFeatureTotal)
+      );
+
+      if (star.isNewEraVisionary || effectiveDirectorPool <= 7) {
+        isNewEraVisionary = true;
+        ceiling = star.ceilingOverride || Math.max(4, Math.min(7, effectiveDirectorPool || 6));
+        directorTier = 'visionario_7';
+      } else if (effectiveDirectorPool <= 10) {
+        isNewEraVisionary = false;
+        ceiling = star.ceilingOverride || 8;
+        directorTier = 'autor_8';
+      } else {
+        isNewEraVisionary = false;
+        ceiling = star.ceilingOverride || 12;
+        directorTier = 'mestre_12';
+      }
+
+      directorStats = {
+        bothCount,
+        directedOnlyCount,
+        writtenOnlyCount,
+        totalDirectedWatched: bothCount + directedOnlyCount,
+        totalWrittenWatched: bothCount + writtenOnlyCount,
+        careerBothCount,
+        careerDirectedOnlyCount,
+        careerWrittenOnlyCount,
+        careerTotalFilms: effectiveDirectorPool,
+        ceilingTierLabel: isNewEraVisionary
+          ? 'Estrela em Ascensão Rank X'
+          : ceiling <= 8
+          ? 'Autor Consolidado (8 a 10 filmes)'
+          : 'Mestre Consagrado (11+ filmes)',
+      };
+    } else {
+      // Regra geral retroativa: respeita teto explícito quando definido (ex.: Thadeu Matos = 20); caso contrário, dubladores BR -> 25 | JP/US -> 15 | atores -> por pool
+      const isForeignDublador = star.kind === 'dublador' && !isBrazilianDublador;
+      const effectiveFilmPool = isBrazilianDublador
+        ? curatedCount || 15
+        : star.kind === 'dublador'
+        ? Math.max(curatedCount || 15, tmdbFeatureTotal)
         : star.kind === 'group'
         ? Math.max(curatedCount, uniqueCombinedCount)
         : tmdbFeatureTotal;
-    const ceiling =
-      star.ceilingOverride === 10 || star.ceilingOverride === 15 || star.ceilingOverride === 20
-        ? star.ceilingOverride
+      const hasExplicitCeiling =
+        star.ceilingOverride === 10 ||
+        star.ceilingOverride === 15 ||
+        star.ceilingOverride === 20 ||
+        star.ceilingOverride === 25;
+      ceiling = hasExplicitCeiling
+        ? Number(star.ceilingOverride)
+        : isBrazilianDublador
+        ? 25
+        : isForeignDublador
+        ? 15
         : effectiveFilmPool <= 20
         ? 10
         : effectiveFilmPool <= 28
         ? 15
         : 20;
+    }
 
-    const progress = resolveWalkMilestones(watchedFilms.length, ceiling);
-    const albumRow = albumStateMap.get(star.id) || null;
-    const pendingPackRow = pendingPackByStar.get(star.id) || null;
-    const stuckTier = albumRow?.stuck_tier ? String(albumRow.stuck_tier) : null;
-    const stuckRank = stuckTier ? (WALK_TIER_RANK[stuckTier] || 0) : 0;
-    const currRank = WALK_TIER_RANK[progress.statusTierKey] || 0;
-    const isStuck = Boolean(stuckTier);
-    const hasRarityUpgradeToStick = Boolean(isStuck && currRank > stuckRank);
+    const isDirector = star.kind === 'director';
+    const isDublador = star.kind === 'dublador';
+    const progress = resolveWalkMilestones(
+      watchedFilms.length,
+      ceiling,
+      isDirector,
+      isNewEraVisionary
+    );
     const ageMeta = calculateAgeMetadata(
       primary.profile.birthday,
       primary.profile.deathday,
@@ -1402,6 +2289,7 @@ export async function buildWalkOfFamePayload(options: { forceRefresh?: boolean }
         : null;
     const topUserFilm = ratedFilms.length > 0 ? ratedFilms[0] : watchedFilms[0] || null;
     const worstUserFilm = ratedFilms.length > 0 ? ratedFilms[ratedFilms.length - 1] : null;
+    const watchedFilmById = new Map<number, any>(watchedFilms.map((f) => [Number(f.movieId), f]));
 
     const catalogMovieById = new Map(matchedCatalogMovies.map((m) => [Number(m.movie_id), m]));
     const groupMembersSummary = groupResolved
@@ -1416,29 +2304,17 @@ export async function buildWalkOfFamePayload(options: { forceRefresh?: boolean }
         return buildGroupMemberSummary(g.def, g.resolved!, memberFilms, memberMovies);
       });
 
-    const rawFeaturedMemberName = albumRow?.featured_member_name
-      ? String(albumRow.featured_member_name)
-      : null;
-    const matchedFeaturedMember =
-      star.kind === 'group' && groupMembersSummary.length > 0
-        ? groupMembersSummary.find((m) => m.name === rawFeaturedMemberName) || groupMembersSummary[0]
-        : null;
-    const featuredMemberName = matchedFeaturedMember?.name || null;
-
-    const photoUrl =
-      matchedFeaturedMember?.photoUrl ||
+    const basePhotoUrl =
+      (groupMembersSummary.length > 0 ? groupMembersSummary[0].photoUrl : null) ||
       (primary.profile.profilePath
         ? `${TMDB_IMG_W500}${primary.profile.profilePath}`
-        : primary.wikiThumbnail || null);
+        : primary.wikiThumbnail || star.photoFallback || null);
 
-    const customSkinUrl = albumRow?.custom_skin_url ? String(albumRow.custom_skin_url) : null;
-    const customSkinLabel = albumRow?.custom_skin_label ? String(albumRow.custom_skin_label) : null;
-
-    const skinOptions = buildSkinOptions({
+    const baseSkinOptions = buildSkinOptions({
       starKind: star.kind,
-      photoUrl,
-      customSkinUrl,
-      customSkinLabel,
+      photoUrl: basePhotoUrl,
+      customSkinUrl: null,
+      customSkinLabel: null,
       primary,
       groupResolved,
       watchedFilms,
@@ -1446,56 +2322,101 @@ export async function buildWalkOfFamePayload(options: { forceRefresh?: boolean }
       combinedCredits,
     });
 
-    const selectedSkinUrl = albumRow?.selected_skin_url ? String(albumRow.selected_skin_url) : null;
-    const selectedSkinLabel = albumRow?.selected_skin_label ? String(albumRow.selected_skin_label) : null;
-    const activePhotoUrl = selectedSkinUrl || photoUrl;
-    const isFullArt = Boolean(progress.percentage >= 90 && albumRow?.is_full_art);
-    const isFavoriteGuardian = Boolean(progress.percentage >= 90 && albumRow?.is_favorite_guardian);
-    const rawAura = albumRow?.immortal_aura ? String(albumRow.immortal_aura) : 'prism';
-    const auraIdx = WALK_IMMORTAL_AURA_ORDER.indexOf(rawAura as WalkImmortalAuraId);
-    const immortalAura = (
-      auraIdx >= 0 && progress.extraStars >= auraIdx ? WALK_IMMORTAL_AURA_ORDER[auraIdx] : 'prism'
-    ) as WalkImmortalAuraId;
-    const rawSigMovieId = albumRow?.signature_movie_id ? Number(albumRow.signature_movie_id) : null;
-    const signatureFilm =
-      (rawSigMovieId && watchedFilms.find((f) => Number(f.movieId) === rawSigMovieId)) ||
-      topUserFilm ||
-      null;
-    const signatureMovieId = signatureFilm ? Number(signatureFilm.movieId) : null;
-
-    const unlocks = {
-      quoteUnlocked: progress.percentage >= 15,
-      curiosity1Unlocked: progress.percentage >= 30,
-      skinsUnlocked: progress.percentage >= 45,
-      curiosities23Unlocked: progress.percentage >= 60,
-      timelineUnlocked: progress.percentage >= 75,
-      immortalUnlocked: progress.percentage >= 90,
-    };
+    const unlocks =
+      isDirector && isNewEraVisionary
+        ? {
+            quoteUnlocked: true,
+            curiosity1Unlocked: true,
+            skinsUnlocked: true,
+            timelineUnlocked: true,
+            curiosities23Unlocked: true,
+            galaUnlocked: true,
+            immortalUnlocked: true,
+            verdictUnlocked: progress.percentage >= 80,
+            voiceClipsUnlocked: false,
+          }
+        : isDirector
+        ? {
+            quoteUnlocked: progress.percentage >= 20,
+            curiosity1Unlocked: progress.percentage >= 40,
+            skinsUnlocked: progress.percentage >= 40,
+            timelineUnlocked: progress.percentage >= 60,
+            curiosities23Unlocked: progress.percentage >= 80,
+            galaUnlocked: progress.percentage >= 80,
+            immortalUnlocked: progress.percentage >= 90,
+            verdictUnlocked: progress.percentage >= 90,
+            voiceClipsUnlocked: false,
+          }
+        : isDublador
+        ? {
+            quoteUnlocked: progress.percentage >= 15,
+            curiosity1Unlocked: progress.percentage >= 30,
+            skinsUnlocked: progress.percentage >= 45,
+            curiosities23Unlocked: progress.percentage >= 30,
+            timelineUnlocked: progress.percentage >= 75,
+            immortalUnlocked: progress.percentage >= 90,
+            verdictUnlocked: false,
+            voiceClipsUnlocked: progress.percentage >= 60,
+          }
+        : {
+            quoteUnlocked: progress.percentage >= 15,
+            curiosity1Unlocked: progress.percentage >= 30,
+            skinsUnlocked: progress.percentage >= 45,
+            curiosities23Unlocked: progress.percentage >= 60,
+            timelineUnlocked: progress.percentage >= 75,
+            immortalUnlocked: progress.percentage >= 90,
+            verdictUnlocked: false,
+            voiceClipsUnlocked: false,
+          };
 
     const decadeBreakdown = buildDecadeBreakdown(watchedFilms);
     const dominantGenre = computeDominantGenre(matchedCatalogMovies, combinedCredits);
-    const rpgRank = resolveRpgRank(progress.percentage, progress.extraStars);
+    const rpgRank = resolveRpgRank(
+      progress.percentage,
+      progress.extraStars,
+      isDirector,
+      isNewEraVisionary
+    );
     const rpgClassLabel = resolveRpgClassLabel({
       kind: star.kind,
+      alameda: star.alameda,
       isDeceased: ageMeta.isDeceased,
+      isNewEraVisionary,
       dominantGenre,
       fallbackTitle: star.rpgTitle,
     });
 
-    const claimedXpPct = Math.max(0, Number(albumRow?.claimed_xp_pct || 0));
-    const claimedXpExtraStars = Math.max(0, Number(albumRow?.claimed_xp_extra_stars || 0));
-    const claimedXp = computeWalkXpForStar(claimedXpPct, claimedXpExtraStars);
-    const potentialXp = computeWalkXpForStar(progress.percentage, progress.extraStars);
-    const unclaimedXp = Math.max(0, potentialXp - claimedXp);
-    const rpgXp = claimedXp;
+    const potentialXp = computeWalkXpForStar(progress.percentage, progress.extraStars, isDirector);
 
+    const hasRichPtWiki =
+      typeof primary.wikiExtract === 'string' && primary.wikiExtract.trim().length >= 90;
     const biography =
       (primary.profile.biography && primary.profile.biography.length >= 40
         ? primary.profile.biography
         : null) ||
+      (hasRichPtWiki ? primary.wikiExtract : null) ||
+      star.bioFallback ||
       primary.wikiExtract ||
       primary.profile.biography ||
       star.quote;
+
+    internalById.set(star.id, {
+      id: star.id,
+      basePhotoUrl,
+      watchedFilmById,
+      topUserFilm,
+      potentialXp,
+      groupMembers: groupMembersSummary,
+      baseSkinOptions,
+      skinInputs: {
+        starKind: star.kind,
+        primary,
+        groupResolved,
+        watchedFilms,
+        pendingFilms,
+        combinedCredits,
+      },
+    });
 
     return {
       id: star.id,
@@ -1503,6 +2424,12 @@ export async function buildWalkOfFamePayload(options: { forceRefresh?: boolean }
       name: star.name,
       alameda: star.alameda,
       kind: star.kind,
+      isNewEraVisionary,
+      directorTier,
+      directorStats,
+      directorObsessions: Array.isArray(star.directorObsessions) ? star.directorObsessions : [],
+      voiceClips: Array.isArray(star.voiceClips) ? star.voiceClips : [],
+      voiceClipsUnlocked: Boolean(unlocks.voiceClipsUnlocked),
       icon: star.icon,
       tagline: star.tagline,
       knownFor: star.knownFor,
@@ -1511,54 +2438,37 @@ export async function buildWalkOfFamePayload(options: { forceRefresh?: boolean }
       secretFact: star.secretFact || null,
       oscarWins: Number(star.oscarWins || 0),
       oscarNominations: Number(star.oscarNominations || 0),
+      nationalityCode:
+        star.nationalityCode || (Array.isArray(star.nationalityCodes) ? star.nationalityCodes[0] : 'us'),
+      nationalityCodes:
+        Array.isArray(star.nationalityCodes) && star.nationalityCodes.length > 0
+          ? star.nationalityCodes
+          : [star.nationalityCode || 'us'],
+      nationalityLabel: star.nationalityLabel || 'Estados Unidos',
       rpgTitle: star.rpgTitle || star.tagline,
       rpgRank,
       rpgClassLabel,
       dominantGenre,
-      photoUrl,
-      activePhotoUrl,
-      featuredMemberName,
-      skinOptions,
-      selectedSkinUrl,
-      selectedSkinLabel,
-      customSkinUrl,
-      customSkinLabel,
-      isFullArt,
-      isFavoriteGuardian,
-      immortalAura,
-      signatureMovieId,
-      signatureFilm: signatureFilm
-        ? {
-            movieId: Number(signatureFilm.movieId),
-            title: String(signatureFilm.title),
-            releaseYear: signatureFilm.releaseYear || null,
-            userRating: signatureFilm.userRating ?? null,
-            character: signatureFilm.character || null,
-          }
-        : null,
       decadeBreakdown,
       unlocks,
-      rpgXp,
-      claimedXp,
       potentialXp,
-      unclaimedXp,
-      claimedXpPct,
-      claimedXpExtraStars,
       tmdbPersonId: primary.profile.tmdbId,
       tmdbTotalFeatureCount: tmdbFeatureTotal,
       biography,
-      bioSource: primary.profile.biography && primary.profile.biography.length >= 40 ? 'TMDB PT-BR' : primary.wikiExtract ? 'Wikipedia PT-BR' : 'Curadoria',
+      bioSource:
+        primary.profile.biography && primary.profile.biography.length >= 40
+          ? 'TMDB PT-BR'
+          : hasRichPtWiki
+          ? 'Wikipedia PT-BR'
+          : star.bioFallback
+          ? 'Curadoria'
+          : primary.wikiExtract
+          ? 'Wikipedia PT-BR'
+          : 'Curadoria',
       placeOfBirth: primary.profile.placeOfBirth,
       ...ageMeta,
       groupMembers: groupMembersSummary,
       ...progress,
-      isStuck,
-      stuckTier,
-      previousStuckTier: albumRow?.previous_stuck_tier ? String(albumRow.previous_stuck_tier) : null,
-      stuckExtraStars: Number(albumRow?.stuck_extra_stars || 0),
-      hasRarityUpgradeToStick,
-      pendingPackId: pendingPackRow ? Number(pendingPackRow.id) : null,
-      pendingPackType: pendingPackRow ? String(pendingPackRow.pack_type) : null,
       avgUserRating,
       topUserFilm: toCompactFilmRef(topUserFilm),
       worstUserFilm: toCompactFilmRef(worstUserFilm),
@@ -1569,114 +2479,178 @@ export async function buildWalkOfFamePayload(options: { forceRefresh?: boolean }
   });
 
   // Inicializa baseline silencioso para qualquer estrela recém-adicionada sem registro em walk_of_fame_album_state
-  const missingStateStars = starsPayload.filter((s) => !albumStateMap.has(s.id));
-  for (const s of missingStateStars) {
+  const missingStateStars = baseStars.filter((s) => !albumStateSet.has(s.id));
+  if (missingStateStars.length > 0) {
     await query(
       `
         INSERT INTO walk_of_fame_album_state
           (star_id, stuck_tier, stuck_extra_stars, last_notified_tier, last_notified_extra_stars)
-        VALUES ($1, NULL, 0, $2, $3)
+        SELECT sid, NULL, 0, tier_key, extra_stars
+        FROM UNNEST($1::text[], $2::text[], $3::int[]) AS t(sid, tier_key, extra_stars)
         ON CONFLICT (star_id) DO NOTHING
       `,
-      [s.id, s.statusTierKey, s.extraStars]
+      [
+        missingStateStars.map((s) => s.id),
+        missingStateStars.map((s) => s.statusTierKey),
+        missingStateStars.map((s) => s.extraStars),
+      ]
     );
   }
 
-  const starsById = new Map(starsPayload.map((s) => [s.id, s]));
-  const pendingPacks = packsRes.rows
-    .map((p: any) => {
-      const star = starsById.get(String(p.star_id));
-      if (!star) return null;
-      const packTargetPct = Math.max(Number(p.to_pct || 0), Number(star.percentage || 0));
-      const packTargetStars = Math.max(Number(p.extra_stars_unlocked || 0), Number(star.extraStars || 0));
-      const packXp = Math.max(0, computeWalkXpForStar(packTargetPct, packTargetStars) - Number(star.claimedXp || 0));
-      return {
-        packId: Number(p.id),
-        starId: String(p.star_id),
-        packType: String(p.pack_type),
-        fromTier: p.from_tier ? String(p.from_tier) : null,
-        toTier: String(p.to_tier),
-        fromPct: Number(p.from_pct || 0),
-        toPct: Number(p.to_pct || 0),
-        extraStarsUnlocked: Number(p.extra_stars_unlocked || 0),
-        packXp,
-        triggerMovieId: p.trigger_movie_id ? Number(p.trigger_movie_id) : null,
-        triggerMovieTitle: p.trigger_movie_title ? String(p.trigger_movie_title) : null,
-        createdAt: p.created_at,
-        star,
-      };
-    })
-    .filter(Boolean);
+  // Reconcilia dubladores cujo teto foi ampliado (ex.: 20 -> 25 filmes no Brasil) para manter rank, XP e pacotes consistentes
+  const albumRowByStarId = new Map<string, any>();
+  for (const r of albumStateRes.rows) {
+    albumRowByStarId.set(String(r.star_id), r);
+  }
+  const staleDubRowsToSync: Array<{
+    starId: string;
+    stuckTier: string | null;
+    stuckExtraStars: number;
+    lastNotifiedTier: string;
+    lastNotifiedExtraStars: number;
+    claimedXpPct: number;
+    claimedXpExtraStars: number;
+  }> = [];
+  for (const s of baseStars) {
+    if (s.kind !== 'dublador') continue;
+    const row = albumRowByStarId.get(s.id);
+    if (!row) continue;
+    const currTierRank = WALK_TIER_RANK[s.statusTierKey] || 0;
+    const rowStuckRank = row.stuck_tier ? WALK_TIER_RANK[String(row.stuck_tier)] || 0 : 0;
+    const rowNotifRank = row.last_notified_tier ? WALK_TIER_RANK[String(row.last_notified_tier)] || 0 : 0;
+    const rowClaimedPct = Math.max(0, Number(row.claimed_xp_pct || 0));
+    const rowClaimedExtra = Math.max(0, Number(row.claimed_xp_extra_stars || 0));
+    const rowStuckExtra = Math.max(0, Number(row.stuck_extra_stars || 0));
+    const needsSync =
+      rowStuckRank > currTierRank ||
+      rowNotifRank > currTierRank ||
+      rowClaimedPct > s.percentage ||
+      rowStuckExtra > s.extraStars ||
+      rowClaimedExtra > s.extraStars;
+    if (!needsSync) continue;
 
-  const inauguratedCount = starsPayload.filter((s) => s.isInaugurated).length;
-  const diamondCount = starsPayload.filter((s) => s.isDiamond).length;
-  const totalWatchedAppearances = starsPayload.reduce((acc, s) => acc + s.watchedCount, 0);
-  const totalWalkXp = starsPayload.reduce((acc, s) => acc + Number(s.rpgXp || 0), 0);
-  const totalExtraStars = starsPayload.reduce((acc, s) => acc + Number(s.extraStars || 0), 0);
-  const rpgMeta = resolveRpgLevelMeta(totalWalkXp);
-  const topWatchedPodium = [...starsPayload]
-    .filter((s) => s.watchedCount > 0)
-    .sort(
-      (a, b) =>
-        b.watchedCount - a.watchedCount ||
-        (b.avgUserRating ?? -1) - (a.avgUserRating ?? -1) ||
-        b.percentage - a.percentage ||
-        a.albumNumber - b.albumNumber
-    )
-    .slice(0, 3)
-    .map((s, idx) => ({
-      rankPosition: idx + 1,
-      id: s.id,
-      albumNumber: s.albumNumber,
-      name: s.name,
-      icon: s.icon,
-      tagline: s.tagline,
-      photoUrl: s.activePhotoUrl || s.photoUrl,
-      watchedCount: s.watchedCount,
-      ceiling: s.ceiling,
-      avgUserRating: s.avgUserRating,
-      percentage: s.percentage,
-      extraStars: s.extraStars,
-      isDeceased: s.isDeceased,
-    }));
-  const guardians = starsPayload
-    .filter((s) => s.isFavoriteGuardian)
-    .slice(0, 3)
-    .map((s) => ({
-      id: s.id,
-      albumNumber: s.albumNumber,
-      name: s.name,
-      icon: s.icon,
-      tagline: s.tagline,
-      photoUrl: s.activePhotoUrl || s.photoUrl,
-      percentage: s.percentage,
-      extraStars: s.extraStars,
-    }));
+    const nextStuckTier = row.stuck_tier ? (s.isStickerUnlocked ? s.statusTierKey : null) : null;
+    const nextStuckExtra = nextStuckTier ? Math.min(rowStuckExtra, s.extraStars) : 0;
+    const nextClaimedPct = rowClaimedPct > 0 ? Math.min(rowClaimedPct, s.percentage) : 0;
+    const nextClaimedExtra = Math.min(rowClaimedExtra, s.extraStars);
+    const nextNotifTier = s.statusTierKey;
+    const nextNotifExtra = s.extraStars;
+
+    row.stuck_tier = nextStuckTier;
+    row.previous_stuck_tier = null;
+    row.stuck_extra_stars = nextStuckExtra;
+    row.last_notified_tier = nextNotifTier;
+    row.last_notified_extra_stars = nextNotifExtra;
+    row.claimed_xp_pct = nextClaimedPct;
+    row.claimed_xp_extra_stars = nextClaimedExtra;
+
+    staleDubRowsToSync.push({
+      starId: s.id,
+      stuckTier: nextStuckTier,
+      stuckExtraStars: nextStuckExtra,
+      lastNotifiedTier: nextNotifTier,
+      lastNotifiedExtraStars: nextNotifExtra,
+      claimedXpPct: nextClaimedPct,
+      claimedXpExtraStars: nextClaimedExtra,
+    });
+  }
+  if (staleDubRowsToSync.length > 0) {
+    await query(
+      `
+        UPDATE walk_of_fame_album_state AS dst
+        SET
+          stuck_tier = src.stuck_tier,
+          previous_stuck_tier = NULL,
+          stuck_extra_stars = src.stuck_extra_stars,
+          last_notified_tier = src.last_notified_tier,
+          last_notified_extra_stars = src.last_notified_extra_stars,
+          claimed_xp_pct = src.claimed_xp_pct,
+          claimed_xp_extra_stars = src.claimed_xp_extra_stars,
+          updated_at = CURRENT_TIMESTAMP
+        FROM UNNEST(
+          $1::text[],
+          $2::text[],
+          $3::int[],
+          $4::text[],
+          $5::int[],
+          $6::int[],
+          $7::int[]
+        ) AS src(star_id, stuck_tier, stuck_extra_stars, last_notified_tier, last_notified_extra_stars, claimed_xp_pct, claimed_xp_extra_stars)
+        WHERE dst.star_id = src.star_id
+      `,
+      [
+        staleDubRowsToSync.map((r) => r.starId),
+        staleDubRowsToSync.map((r) => r.stuckTier),
+        staleDubRowsToSync.map((r) => r.stuckExtraStars),
+        staleDubRowsToSync.map((r) => r.lastNotifiedTier),
+        staleDubRowsToSync.map((r) => r.lastNotifiedExtraStars),
+        staleDubRowsToSync.map((r) => r.claimedXpPct),
+        staleDubRowsToSync.map((r) => r.claimedXpExtraStars),
+      ]
+    );
+  }
+
+  const totalWatchedAppearances = baseStars.reduce((acc, s) => acc + s.watchedCount, 0);
+  const base: WalkOfFameBaseCache = {
+    baseStars,
+    internalById,
+    totalWatchedAppearances,
+    builtAt: Date.now(),
+  };
 
   return {
-    alamedas: WALK_ALAMEDAS,
-    milestones: WALK_MILESTONES,
-    summary: {
-      totalStars: starsPayload.length,
-      inauguratedCount,
-      diamondCount,
-      stuckCount: starsPayload.filter((s) => s.isStuck).length,
-      pendingPackCount: pendingPacks.length,
-      totalWatchedAppearances,
-      totalExtraStars,
-      ...rpgMeta,
-      topWatchedPodium,
-      guardians,
-    },
-    pendingPacks,
-    stars: starsPayload,
+    base,
+    albumRows: albumStateRes.rows,
+    packRows: packsRes.rows,
   };
+}
+
+export async function buildWalkOfFamePayload(options?: { forceRefresh?: boolean; bypassCache?: boolean }) {
+  const forceRefresh = Boolean(options?.forceRefresh);
+  const bypassCache = Boolean(options?.bypassCache);
+
+  if (!forceRefresh && !bypassCache && cachedWalkBase) {
+    const [albumStateRes, packsRes] = await Promise.all([
+      query(ALBUM_STATE_SELECT_SQL),
+      query(PENDING_PACKS_SELECT_SQL),
+    ]);
+    return hydrateWalkOfFamePayload(cachedWalkBase, albumStateRes.rows, packsRes.rows);
+  }
+
+  if (bypassCache) {
+    const computed = await computeWalkOfFameBase(forceRefresh);
+    return hydrateWalkOfFamePayload(computed.base, computed.albumRows, computed.packRows);
+  }
+
+  if (!inFlightWalkBase) {
+    const reqGen = walkCacheGeneration;
+    const promise = computeWalkOfFameBase(forceRefresh)
+      .then((computed) => {
+        if (reqGen === walkCacheGeneration) {
+          cachedWalkBase = computed.base;
+        }
+        return computed;
+      })
+      .finally(() => {
+        if (inFlightWalkBase === promise) {
+          inFlightWalkBase = null;
+        }
+      });
+    inFlightWalkBase = promise;
+  }
+
+  const computed = await inFlightWalkBase;
+  return hydrateWalkOfFamePayload(computed.base, computed.albumRows, computed.packRows);
 }
 
 export async function getWalkOfFamePendingPacksSummary() {
   const data = await buildWalkOfFamePayload({ forceRefresh: false });
+  const isDirectorPack = (p: any) =>
+    p?.star?.kind === 'director' || p?.star?.alameda === 'diretores';
   return {
     pendingPackCount: data.pendingPacks.length,
+    actorsPendingPackCount: data.pendingPacks.filter((p: any) => !isDirectorPack(p)).length,
+    directorsPendingPackCount: data.pendingPacks.filter((p: any) => isDirectorPack(p)).length,
     pendingPacks: data.pendingPacks,
   };
 }
@@ -1693,7 +2667,22 @@ export async function checkWalkOfFameMovieTrigger(options: {
   const stateById = new Map<string, any>();
   for (const r of stateRes.rows) stateById.set(String(r.star_id), r);
 
-  const newlyCreatedPackIds: number[] = [];
+  const packsToInsert: Array<{
+    starId: string;
+    packType: string;
+    prevTier: string;
+    toTier: string;
+    fromPct: number;
+    toPct: number;
+    extraStars: number;
+  }> = [];
+  const statesToUpsert: Array<{
+    starId: string;
+    stuckTier: string | null;
+    stuckExtraStars: number;
+    lastNotifiedTier: string;
+    lastNotifiedExtraStars: number;
+  }> = [];
 
   for (const star of payload.stars) {
     if (movieId) {
@@ -1715,50 +2704,78 @@ export async function checkWalkOfFameMovieTrigger(options: {
     }
 
     if (packType) {
-      const ins = await query(
-        `
-          INSERT INTO walk_of_fame_packs
-            (star_id, pack_type, from_tier, to_tier, from_pct, to_pct, extra_stars_unlocked, trigger_movie_id, trigger_movie_title, status)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending')
-          RETURNING id
-        `,
-        [
-          star.id,
-          packType,
-          prevTier,
-          star.statusTierKey,
-          Number(row?.claimed_xp_pct || 0),
-          star.percentage,
-          star.extraStars,
-          movieId,
-          movieTitle,
-        ]
-      );
-      if (ins.rows[0]?.id) newlyCreatedPackIds.push(Number(ins.rows[0].id));
+      packsToInsert.push({
+        starId: star.id,
+        packType,
+        prevTier,
+        toTier: star.statusTierKey,
+        fromPct: Number(row?.claimed_xp_pct || 0),
+        toPct: star.percentage,
+        extraStars: star.extraStars,
+      });
     }
 
+    statesToUpsert.push({
+      starId: star.id,
+      stuckTier: row?.stuck_tier ? String(row.stuck_tier) : null,
+      stuckExtraStars: Number(row?.stuck_extra_stars || 0),
+      lastNotifiedTier: star.statusTierKey,
+      lastNotifiedExtraStars: star.extraStars,
+    });
+  }
+
+  let newlyCreatedPackIds: number[] = [];
+  if (packsToInsert.length > 0) {
+    const insRes = await query(
+      `
+        INSERT INTO walk_of_fame_packs
+          (star_id, pack_type, from_tier, to_tier, from_pct, to_pct, extra_stars_unlocked, trigger_movie_id, trigger_movie_title, status)
+        SELECT sid, p_type, f_tier, t_tier, f_pct, t_pct, e_stars, $8, $9, 'pending'
+        FROM UNNEST($1::text[], $2::text[], $3::text[], $4::text[], $5::int[], $6::int[], $7::int[])
+          AS u(sid, p_type, f_tier, t_tier, f_pct, t_pct, e_stars)
+        RETURNING id
+      `,
+      [
+        packsToInsert.map((p) => p.starId),
+        packsToInsert.map((p) => p.packType),
+        packsToInsert.map((p) => p.prevTier),
+        packsToInsert.map((p) => p.toTier),
+        packsToInsert.map((p) => p.fromPct),
+        packsToInsert.map((p) => p.toPct),
+        packsToInsert.map((p) => p.extraStars),
+        movieId,
+        movieTitle,
+      ]
+    );
+    newlyCreatedPackIds = insRes.rows.map((r: any) => Number(r.id)).filter(Boolean);
+  }
+
+  if (statesToUpsert.length > 0) {
     await query(
       `
         INSERT INTO walk_of_fame_album_state
           (star_id, stuck_tier, stuck_extra_stars, last_notified_tier, last_notified_extra_stars, updated_at)
-        VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+        SELECT sid, s_tier, s_extra, n_tier, n_extra, CURRENT_TIMESTAMP
+        FROM UNNEST($1::text[], $2::text[], $3::int[], $4::text[], $5::int[])
+          AS u(sid, s_tier, s_extra, n_tier, n_extra)
         ON CONFLICT (star_id) DO UPDATE SET
           last_notified_tier = EXCLUDED.last_notified_tier,
           last_notified_extra_stars = EXCLUDED.last_notified_extra_stars,
           updated_at = CURRENT_TIMESTAMP
       `,
       [
-        star.id,
-        row?.stuck_tier || null,
-        Number(row?.stuck_extra_stars || 0),
-        star.statusTierKey,
-        star.extraStars,
+        statesToUpsert.map((s) => s.starId),
+        statesToUpsert.map((s) => s.stuckTier),
+        statesToUpsert.map((s) => s.stuckExtraStars),
+        statesToUpsert.map((s) => s.lastNotifiedTier),
+        statesToUpsert.map((s) => s.lastNotifiedExtraStars),
       ]
     );
   }
 
   const refreshed = await buildWalkOfFamePayload({ forceRefresh: false });
-  const createdPacks = refreshed.pendingPacks.filter((p: any) => newlyCreatedPackIds.includes(p.packId));
+  const createdPackIdSet = new Set(newlyCreatedPackIds);
+  const createdPacks = refreshed.pendingPacks.filter((p: any) => createdPackIdSet.has(p.packId));
 
   return {
     createdPacks,
@@ -1767,12 +2784,13 @@ export async function checkWalkOfFameMovieTrigger(options: {
   };
 }
 
-export async function stickWalkOfFameStar(starId: string) {
+export async function stickWalkOfFameStar(starId: string, options: { compact?: boolean } = {}) {
   const payload = await buildWalkOfFamePayload({ forceRefresh: false });
   const star = payload.stars.find((s) => s.id === starId);
   if (!star) throw new Error('Estrela não encontrada.');
   if (!star.isStickerUnlocked) {
-    throw new Error('Alcance pelo menos 15% para liberar e colar esta figurinha.');
+    const reqPct = star.kind === 'director' ? (star.isNewEraVisionary ? 80 : 20) : 15;
+    throw new Error(`Alcance pelo menos ${reqPct}% para liberar e colar esta figurinha.`);
   }
 
   const currRank = WALK_TIER_RANK[star.statusTierKey] || 0;
@@ -1808,10 +2826,72 @@ export async function stickWalkOfFameStar(starId: string) {
     [star.id]
   );
 
-  return buildWalkOfFamePayload({ forceRefresh: false });
+  const refreshed = await buildWalkOfFamePayload({ forceRefresh: false });
+  return options.compact ? toCompactMutationResponse(refreshed, [star.id]) : refreshed;
 }
 
-export async function unstickWalkOfFameStar(starId: string) {
+export async function stickWalkOfFameStarsBatch(starIds: string[], options: { compact?: boolean } = {}) {
+  const uniqueIds = Array.from(new Set((Array.isArray(starIds) ? starIds : []).map(String).filter(Boolean)));
+  const payload = await buildWalkOfFamePayload({ forceRefresh: false });
+  if (uniqueIds.length === 0) {
+    return options.compact ? toCompactMutationResponse(payload, []) : payload;
+  }
+
+  const targetSet = new Set(uniqueIds);
+  const toStick = payload.stars.filter((s: any) => targetSet.has(s.id) && s.isStickerUnlocked);
+
+  if (toStick.length === 0) {
+    return options.compact ? toCompactMutationResponse(payload, []) : payload;
+  }
+
+  const nextPrevTiers = toStick.map((star: any) => {
+    const currRank = WALK_TIER_RANK[star.statusTierKey] || 0;
+    const stuckRank = star.stuckTier ? (WALK_TIER_RANK[star.stuckTier] || 0) : 0;
+    return star.stuckTier && currRank > stuckRank ? star.stuckTier : star.previousStuckTier || null;
+  });
+
+  await query(
+    `
+      INSERT INTO walk_of_fame_album_state
+        (star_id, stuck_tier, previous_stuck_tier, stuck_extra_stars, last_notified_tier, last_notified_extra_stars, claimed_xp_pct, claimed_xp_extra_stars, stuck_at, updated_at)
+      SELECT sid, s_tier, prev_tier, extra_s, s_tier, extra_s, pct, extra_s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+      FROM UNNEST($1::text[], $2::text[], $3::text[], $4::int[], $5::int[])
+        AS u(sid, s_tier, prev_tier, extra_s, pct)
+      ON CONFLICT (star_id) DO UPDATE SET
+        stuck_tier = EXCLUDED.stuck_tier,
+        previous_stuck_tier = EXCLUDED.previous_stuck_tier,
+        stuck_extra_stars = EXCLUDED.stuck_extra_stars,
+        last_notified_tier = EXCLUDED.last_notified_tier,
+        last_notified_extra_stars = EXCLUDED.last_notified_extra_stars,
+        claimed_xp_pct = GREATEST(COALESCE(walk_of_fame_album_state.claimed_xp_pct, 0), EXCLUDED.claimed_xp_pct),
+        claimed_xp_extra_stars = GREATEST(COALESCE(walk_of_fame_album_state.claimed_xp_extra_stars, 0), EXCLUDED.claimed_xp_extra_stars),
+        stuck_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+    `,
+    [
+      toStick.map((s: any) => s.id),
+      toStick.map((s: any) => s.statusTierKey),
+      nextPrevTiers,
+      toStick.map((s: any) => s.extraStars),
+      toStick.map((s: any) => s.percentage),
+    ]
+  );
+
+  const stuckIds = toStick.map((s: any) => s.id);
+  await query(
+    `
+      UPDATE walk_of_fame_packs
+      SET status = 'stuck', opened_at = COALESCE(opened_at, CURRENT_TIMESTAMP)
+      WHERE star_id = ANY($1::text[]) AND status IN ('pending', 'opened')
+    `,
+    [stuckIds]
+  );
+
+  const refreshed = await buildWalkOfFamePayload({ forceRefresh: false });
+  return options.compact ? toCompactMutationResponse(refreshed, stuckIds) : refreshed;
+}
+
+export async function unstickWalkOfFameStar(starId: string, options: { compact?: boolean } = {}) {
   await ensureWalkOfFameTables();
   await query(
     `
@@ -1821,42 +2901,94 @@ export async function unstickWalkOfFameStar(starId: string) {
     `,
     [starId]
   );
-  return buildWalkOfFamePayload({ forceRefresh: false });
+  const refreshed = await buildWalkOfFamePayload({ forceRefresh: false });
+  return options.compact ? toCompactMutationResponse(refreshed, [starId]) : refreshed;
 }
 
-export async function openWalkOfFamePack(packId: number, stickImmediately = true) {
+export async function openWalkOfFamePack(
+  packId: number,
+  stickImmediately = true,
+  options: { compact?: boolean } = {}
+) {
   await ensureWalkOfFameTables();
-  const res = await query(`SELECT id, star_id, to_pct, extra_stars_unlocked FROM walk_of_fame_packs WHERE id = $1`, [packId]);
+  const res = await query(
+    `SELECT id, star_id, to_pct, extra_stars_unlocked, status FROM walk_of_fame_packs WHERE id = $1`,
+    [packId]
+  );
   const row = res.rows[0];
   if (!row) throw new Error('Pacotinho não encontrado.');
 
-  if (stickImmediately) {
-    return stickWalkOfFameStar(String(row.star_id));
-  }
-
+  const starId = String(row.star_id);
   const payloadBefore = await buildWalkOfFamePayload({ forceRefresh: false });
-  const star = payloadBefore.stars.find((s) => s.id === String(row.star_id));
+  const star = payloadBefore.stars.find((s) => s.id === starId);
   const claimPct = Math.max(Number(row.to_pct || 0), Number(star?.percentage || 0));
   const claimExtra = Math.max(Number(row.extra_stars_unlocked || 0), Number(star?.extraStars || 0));
 
-  await query(
-    `
-      INSERT INTO walk_of_fame_album_state
-        (star_id, last_notified_tier, last_notified_extra_stars, claimed_xp_pct, claimed_xp_extra_stars, updated_at)
-      VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
-      ON CONFLICT (star_id) DO UPDATE SET
-        claimed_xp_pct = GREATEST(COALESCE(walk_of_fame_album_state.claimed_xp_pct, 0), EXCLUDED.claimed_xp_pct),
-        claimed_xp_extra_stars = GREATEST(COALESCE(walk_of_fame_album_state.claimed_xp_extra_stars, 0), EXCLUDED.claimed_xp_extra_stars),
-        updated_at = CURRENT_TIMESTAMP
-    `,
-    [String(row.star_id), star?.statusTierKey || 'bronze', claimExtra, claimPct, claimExtra]
-  );
+  if (stickImmediately) {
+    if (!star) throw new Error('Estrela não encontrada.');
+    if (!star.isStickerUnlocked) {
+      const reqPct = star.kind === 'director' ? (star.isNewEraVisionary ? 80 : 20) : 15;
+      throw new Error(`Alcance pelo menos ${reqPct}% para liberar e colar esta figurinha.`);
+    }
 
-  await query(
-    `UPDATE walk_of_fame_packs SET status = 'opened', opened_at = CURRENT_TIMESTAMP WHERE id = $1`,
-    [packId]
-  );
-  return buildWalkOfFamePayload({ forceRefresh: false });
+    const currRank = WALK_TIER_RANK[star.statusTierKey] || 0;
+    const stuckRank = star.stuckTier ? (WALK_TIER_RANK[star.stuckTier] || 0) : 0;
+    const nextPreviousTier =
+      star.stuckTier && currRank > stuckRank ? star.stuckTier : star.previousStuckTier || null;
+
+    await query(
+      `
+        INSERT INTO walk_of_fame_album_state
+          (star_id, stuck_tier, previous_stuck_tier, stuck_extra_stars, last_notified_tier, last_notified_extra_stars, claimed_xp_pct, claimed_xp_extra_stars, stuck_at, updated_at)
+        VALUES ($1, $2, $3, $4, $2, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ON CONFLICT (star_id) DO UPDATE SET
+          stuck_tier = EXCLUDED.stuck_tier,
+          previous_stuck_tier = EXCLUDED.previous_stuck_tier,
+          stuck_extra_stars = EXCLUDED.stuck_extra_stars,
+          last_notified_tier = EXCLUDED.last_notified_tier,
+          last_notified_extra_stars = EXCLUDED.last_notified_extra_stars,
+          claimed_xp_pct = GREATEST(COALESCE(walk_of_fame_album_state.claimed_xp_pct, 0), EXCLUDED.claimed_xp_pct),
+          claimed_xp_extra_stars = GREATEST(COALESCE(walk_of_fame_album_state.claimed_xp_extra_stars, 0), EXCLUDED.claimed_xp_extra_stars),
+          stuck_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+      `,
+      [star.id, star.statusTierKey, nextPreviousTier, star.extraStars, claimPct, claimExtra]
+    );
+
+    await query(
+      `
+        UPDATE walk_of_fame_packs
+        SET status = 'stuck', opened_at = COALESCE(opened_at, CURRENT_TIMESTAMP)
+        WHERE id = $1 OR (star_id = $2 AND status IN ('pending', 'opened'))
+      `,
+      [packId, star.id]
+    );
+  } else {
+    await query(
+      `
+        INSERT INTO walk_of_fame_album_state
+          (star_id, last_notified_tier, last_notified_extra_stars, claimed_xp_pct, claimed_xp_extra_stars, updated_at)
+        VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+        ON CONFLICT (star_id) DO UPDATE SET
+          claimed_xp_pct = GREATEST(COALESCE(walk_of_fame_album_state.claimed_xp_pct, 0), EXCLUDED.claimed_xp_pct),
+          claimed_xp_extra_stars = GREATEST(COALESCE(walk_of_fame_album_state.claimed_xp_extra_stars, 0), EXCLUDED.claimed_xp_extra_stars),
+          updated_at = CURRENT_TIMESTAMP
+      `,
+      [starId, star?.statusTierKey || 'bronze', claimExtra, claimPct, claimExtra]
+    );
+
+    await query(
+      `
+        UPDATE walk_of_fame_packs
+        SET status = 'opened', opened_at = COALESCE(opened_at, CURRENT_TIMESTAMP)
+        WHERE id = $1
+      `,
+      [packId]
+    );
+  }
+
+  const refreshed = await buildWalkOfFamePayload({ forceRefresh: false });
+  return options.compact ? toCompactMutationResponse(refreshed, [starId]) : refreshed;
 }
 
 export async function updateWalkOfFamePreferences(
@@ -1871,24 +3003,35 @@ export async function updateWalkOfFamePreferences(
     isFavoriteGuardian?: boolean;
     immortalAura?: WalkImmortalAuraId;
     signatureMovieId?: number | null;
-  }
+  },
+  options: { compact?: boolean } = {}
 ) {
   const payload = await buildWalkOfFamePayload({ forceRefresh: false });
   const star = payload.stars.find((s) => s.id === starId);
   if (!star) throw new Error('Estrela não encontrada.');
 
+  const isDir = star.kind === 'director';
+
   if (prefs.selectedSkinUrl !== undefined && prefs.selectedSkinUrl !== null && !star.unlocks.skinsUnlocked) {
-    throw new Error('Alcance 45% (Queridinho dos Holofotes) para equipar skins alternativas.');
+    throw new Error(
+      isDir
+        ? 'Alcance 40% (Take 2 • Corte do Diretor) para equipar visuais alternativos.'
+        : 'Alcance 45% (Queridinho dos Holofotes) para equipar skins alternativas.'
+    );
   }
   if (prefs.customSkinUrl !== undefined && prefs.customSkinUrl !== null && !star.unlocks.skinsUnlocked) {
-    throw new Error('Alcance 45% (Queridinho dos Holofotes) para personalizar sua foto da estrela.');
+    throw new Error(
+      isDir
+        ? 'Alcance 40% (Take 2 • Corte do Diretor) para personalizar a foto do cineasta.'
+        : 'Alcance 45% (Queridinho dos Holofotes) para personalizar sua foto da estrela.'
+    );
   }
   if (prefs.featuredMemberName !== undefined) {
-    if (star.kind !== 'group') {
+    if (!(Array.isArray(star.groupMembers) && star.groupMembers.length > 0)) {
       throw new Error('Escolha de protagonista disponível apenas para estrelas de grupo/elenco.');
     }
     if (!star.isStickerUnlocked) {
-      throw new Error('Alcance 15% para escolher o protagonista na carta deste conjunto.');
+      throw new Error(`Alcance ${isDir ? 20 : 15}% para escolher o protagonista na carta deste conjunto.`);
     }
     if (
       prefs.featuredMemberName !== null &&
@@ -2003,23 +3146,29 @@ export async function updateWalkOfFamePreferences(
     ]
   );
 
-  return buildWalkOfFamePayload({ forceRefresh: false });
+  const refreshed = await buildWalkOfFamePayload({ forceRefresh: false });
+  return options.compact ? toCompactMutationResponse(refreshed, [star.id]) : refreshed;
 }
 
 export async function saveWalkOfFameCustomSkin(
   starId: string,
   skinUrl: string,
-  skinLabel = 'Foto Personalizada'
+  skinLabel = 'Foto Personalizada',
+  options: { compact?: boolean } = {}
 ) {
   const trimmedUrl = String(skinUrl || '').trim();
   if (!trimmedUrl) {
     throw new Error('Informe um link válido ou selecione uma imagem do computador.');
   }
   const cleanLabel = String(skinLabel || 'Foto Personalizada').trim().slice(0, 120) || 'Foto Personalizada';
-  return updateWalkOfFamePreferences(starId, {
-    customSkinUrl: trimmedUrl,
-    customSkinLabel: cleanLabel,
-    selectedSkinUrl: trimmedUrl,
-    selectedSkinLabel: cleanLabel,
-  });
+  return updateWalkOfFamePreferences(
+    starId,
+    {
+      customSkinUrl: trimmedUrl,
+      customSkinLabel: cleanLabel,
+      selectedSkinUrl: trimmedUrl,
+      selectedSkinLabel: cleanLabel,
+    },
+    options
+  );
 }

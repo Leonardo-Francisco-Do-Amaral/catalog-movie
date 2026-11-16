@@ -295,6 +295,8 @@ function compareChallengeCandidates(a: ChallengeMovieItem, b: ChallengeMovieItem
   return b.movie_id - a.movie_id;
 }
 
+export type WorldChallengePayload = Awaited<ReturnType<typeof buildWorldChallengePayload>>;
+
 /**
  * Monta todo o estado consolidado do Desafio Volta ao Mundo em 195 Filmes.
  * Regra de Unicidade Estrita: CADA FILME OCUPA NO MÁXIMO UM ÚNICO PAÍS NO DESAFIO.
@@ -319,7 +321,29 @@ export async function buildWorldChallengePayload() {
              m.distributor,
              m.oscar_wins,
              m.oscar_nominations,
-             m.raw_api_data,
+             CASE
+               WHEN m.raw_api_data IS NULL THEN NULL
+               ELSE jsonb_strip_nulls(jsonb_build_object(
+                 'omdb', m.raw_api_data->'omdb',
+                 'tmdb', jsonb_strip_nulls(jsonb_build_object(
+                   'release_date', m.raw_api_data->'tmdb'->'release_date',
+                   'vote_count', m.raw_api_data->'tmdb'->'vote_count',
+                   'production_companies', m.raw_api_data->'tmdb'->'production_companies',
+                   'credits', CASE
+                     WHEN jsonb_typeof(m.raw_api_data->'tmdb'->'credits'->'crew') = 'array' THEN
+                       jsonb_build_object(
+                         'crew',
+                         COALESCE((
+                           SELECT jsonb_agg(jsonb_build_object('name', elem->'name', 'job', elem->'job'))
+                           FROM jsonb_array_elements(m.raw_api_data->'tmdb'->'credits'->'crew') elem
+                           WHERE elem->>'job' IN ('Director', 'Writer', 'Screenplay', 'Story', 'Characters', 'Producer', 'Executive Producer')
+                         ), '[]'::jsonb)
+                       )
+                     ELSE NULL
+                   END
+                 ))
+               ))
+             END as raw_api_data,
              mv.user_rating,
              mv.month_seen,
              mv.year_seen,

@@ -7,9 +7,12 @@ export default function WalkOfFamePackToast({
   onDismiss,
 }) {
   const lastPlayedKeyRef = useRef(null);
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
 
   const first = Array.isArray(packs) && packs.length > 0 ? packs[0] : null;
   const count = Array.isArray(packs) ? packs.length : 0;
+  const firstPackId = first?.packId || null;
 
   useEffect(() => {
     if (!first) {
@@ -32,10 +35,10 @@ export default function WalkOfFamePackToast({
   useEffect(() => {
     if (!first) return undefined;
     const timer = setTimeout(() => {
-      onDismiss?.();
-    }, 6500);
+      onDismissRef.current?.();
+    }, 8500);
     return () => clearTimeout(timer);
-  }, [first, count, onDismiss]);
+  }, [firstPackId, count]);
 
   if (!first) return null;
 
@@ -51,13 +54,26 @@ export default function WalkOfFamePackToast({
 
   return (
     <div
-      className="fixed bottom-5 left-5 z-[9850] max-w-xs sm:max-w-sm w-[calc(100vw-2.5rem)] rounded-2xl p-[2px] animate-fadeIn transition-all"
+      className="fixed bottom-5 left-5 z-[9850] max-w-xs sm:max-w-sm w-[calc(100vw-2.5rem)] rounded-2xl p-[2px] transition-all"
       style={{
+        animation: 'walkPackSlideUp 0.36s cubic-bezier(0.16, 1, 0.3, 1) forwards',
         background:
           'linear-gradient(135deg, rgba(253,224,71,0.9), rgba(245,158,11,0.85), rgba(244,63,94,0.8), rgba(56,189,248,0.85))',
         boxShadow: '0 14px 40px rgba(245,158,11,0.28)',
       }}
     >
+      <style>{`
+        @keyframes walkPackSlideUp {
+          0% {
+            opacity: 0;
+            transform: translate3d(0, 22px, 0) scale(0.95);
+          }
+          100% {
+            opacity: 1;
+            transform: translate3d(0, 0, 0) scale(1);
+          }
+        }
+      `}</style>
       <div className="rounded-[14px] bg-zinc-950/95 backdrop-blur-xl p-3.5 relative overflow-hidden">
         <div
           className="absolute inset-x-0 top-0 h-14 opacity-20 pointer-events-none"
@@ -91,7 +107,7 @@ export default function WalkOfFamePackToast({
               </div>
               <button
                 type="button"
-                onClick={onDismiss}
+                onClick={() => onDismissRef.current?.()}
                 className="text-zinc-500 hover:text-zinc-200 cursor-pointer p-0.5"
                 title="Fechar aviso"
               >

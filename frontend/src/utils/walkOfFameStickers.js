@@ -125,7 +125,143 @@ const FIXED_TIER_THEMES = {
   },
 };
 
-export function getThemeForTier(tierKey) {
+export const RISING_STAR_RANK_X_TOOLTIP =
+  'Estrela em Ascensão (Rank X): diretores com até 7 filmes na carreira. Frase de set, curiosidades, foto própria, manias, obra-prima e auras já vêm liberados; apenas a figurinha exclusiva e o Show de Cartazes & Veredito desbloqueiam juntos ao atingir 80% da filmografia.';
+
+export const RISING_STAR_THEME = {
+  id: 'rising_5_titanium_hud',
+  key: 'rising',
+  shortTag: 'ESTRELA EM ASCENSÃO',
+  label: 'Estrela em Ascensão (≤ 7 filmes)',
+  name: 'Visor IMAX Titânio & Safira',
+  badge: 'Visor IMAX',
+  icon: '🌟',
+  pctHint: '80%+ • Rank X (Dossiê Liberado)',
+  accentHex: '#38bdf8',
+  frameBackground:
+    'linear-gradient(135deg, #09090b 0%, #38bdf8 26%, #f8fafc 50%, #818cf8 74%, #09090b 100%)',
+  innerTrimColor: 'rgba(186, 230, 253, 0.9)',
+  boxShadow: '0 12px 30px -6px rgba(56, 189, 248, 0.52), 0 0 24px rgba(129, 140, 248, 0.35)',
+  badgeStyle: {
+    backgroundColor: 'rgba(9, 9, 11, 0.92)',
+    color: '#e0f2fe',
+    borderColor: '#38bdf8',
+  },
+  metallicType: 'rising_titanium_hud',
+  film35mmStyle: 'reel_scroll',
+  filmTrackBg: 'rgba(9, 9, 11, 0.95)',
+  filmHoleColor: 'rgba(224, 242, 254, 0.8)',
+  filmCode: 'IMAX CAM',
+};
+
+export const DIRECTOR_TIER_THEMES = {
+  carving: {
+    ...FIXED_TIER_THEMES.carving,
+    label: 'Claquete Fechada',
+    pctHint: '0%–19%',
+    film35mmStyle: 'classic',
+    filmCode: 'BLOQUEADA',
+  },
+  bronze: {
+    key: 'bronze',
+    shortTag: 'TAKE 1 • CLAQUETE',
+    label: 'Take 1: Claquete Inicial',
+    icon: '🎬',
+    pctHint: '20%+',
+    accentHex: '#fbbf24',
+    frameBackground:
+      'linear-gradient(135deg, #713f12 0%, #d97706 25%, #fde68a 50%, #b45309 75%, #451a03 100%)',
+    innerTrimColor: 'rgba(253, 224, 71, 0.72)',
+    boxShadow: '0 10px 30px rgba(245, 158, 11, 0.42)',
+    badgeStyle: FIXED_TIER_THEMES.bronze.badgeStyle,
+    metallicType: 'film35_scrolling_ember',
+    film35mmStyle: 'reel_scroll',
+    filmTrackBg: 'rgba(24, 14, 5, 0.76)',
+    filmHoleColor: 'rgba(253, 230, 138, 0.48)',
+    filmCode: '24FPS',
+  },
+  silver: {
+    key: 'silver',
+    shortTag: 'TAKE 2 • CORTE DO DIRETOR',
+    label: 'Take 2: Corte do Diretor',
+    icon: '✂️',
+    pctHint: '40%+',
+    accentHex: '#7dd3fc',
+    frameBackground:
+      'linear-gradient(135deg, #0f172a 0%, #38bdf8 26%, #e0f2fe 50%, #64748b 76%, #0f172a 100%)',
+    innerTrimColor: 'rgba(125, 211, 252, 0.85)',
+    boxShadow: '0 12px 32px rgba(56, 189, 248, 0.34)',
+    badgeStyle: FIXED_TIER_THEMES.silver.badgeStyle,
+    metallicType: 'film35_moviola_cut',
+    film35mmStyle: 'reel_scroll',
+    filmTrackBg: 'rgba(15, 23, 42, 0.8)',
+    filmHoleColor: 'rgba(125, 211, 252, 0.62)',
+    filmCode: 'MOVIOLA',
+  },
+  gold: {
+    key: 'gold',
+    shortTag: 'TAKE 3 • DNA AUTORAL',
+    label: 'Take 3: DNA Autoral & Manias',
+    icon: '🎯',
+    pctHint: '60%+',
+    accentHex: '#fbbf24',
+    frameBackground:
+      'linear-gradient(135deg, #1c1917 0%, #b45309 22%, #fde047 50%, #f59e0b 78%, #1c1917 100%)',
+    innerTrimColor: 'rgba(253, 224, 71, 0.88)',
+    boxShadow: '0 12px 34px rgba(234, 179, 8, 0.5)',
+    badgeStyle: FIXED_TIER_THEMES.gold.badgeStyle,
+    metallicType: 'film35_gala_confetti',
+    film35mmStyle: 'reel_scroll',
+    filmTrackBg: 'rgba(12, 10, 9, 0.84)',
+    filmHoleColor: 'rgba(250, 204, 21, 0.72)',
+    filmCode: 'PREMIERE',
+  },
+  mythic: {
+    key: 'mythic',
+    shortTag: 'TAKE 4 • SESSÃO DE GALA',
+    label: 'Take 4: Sessão de Gala',
+    icon: '🎞️',
+    pctHint: '80%+',
+    accentHex: '#fb7185',
+    frameBackground:
+      'linear-gradient(135deg, #4c0519 0%, #e11d48 28%, #fbbf24 52%, #7e22ce 78%, #1f030d 100%)',
+    innerTrimColor: 'rgba(251, 113, 133, 0.88)',
+    boxShadow: '0 14px 38px rgba(225, 29, 72, 0.46)',
+    badgeStyle: {
+      backgroundColor: 'rgba(76, 5, 25, 0.94)',
+      borderColor: '#fb7185',
+      color: '#ffe4e6',
+    },
+    metallicType: 'film35_premiere_flash',
+    film35mmStyle: 'reel_scroll',
+    filmTrackBg: 'rgba(24, 3, 10, 0.84)',
+    filmHoleColor: 'rgba(251, 113, 133, 0.78)',
+    filmCode: 'GALA',
+  },
+  diamond: {
+    key: 'diamond',
+    shortTag: 'TAKE 5 • CÂNONE ABSOLUTO',
+    label: 'Take 5: Cânone Absoluto',
+    icon: '🌟',
+    pctHint: '90%+',
+    accentHex: '#fde047',
+    frameBackground:
+      'linear-gradient(135deg, #0f172a 0%, #38bdf8 22%, #ffffff 48%, #fde047 72%, #1e1b4b 100%)',
+    innerTrimColor: 'rgba(255, 255, 255, 0.96)',
+    boxShadow: '0 14px 42px rgba(255, 255, 255, 0.42), 0 0 32px rgba(250, 204, 21, 0.38)',
+    badgeStyle: FIXED_TIER_THEMES.diamond.badgeStyle,
+    metallicType: 'film35_celestial_reel',
+    film35mmStyle: 'reel_scroll',
+    filmTrackBg: 'rgba(15, 23, 42, 0.78)',
+    filmHoleColor: 'rgba(254, 249, 195, 0.9)',
+    filmCode: 'MASTER',
+  },
+};
+
+export function getThemeForTier(tierKey, isDirector = false) {
+  if (isDirector) {
+    return DIRECTOR_TIER_THEMES[tierKey] || DIRECTOR_TIER_THEMES.carving;
+  }
   return FIXED_TIER_THEMES[tierKey] || FIXED_TIER_THEMES.carving;
 }
 
@@ -271,27 +407,178 @@ export const WALK_MILESTONE_XP = {
   90: 105,
 };
 
+export const DIRECTOR_MILESTONE_XP = {
+  20: 25,
+  40: 45,
+  60: 65,
+  80: 85,
+  90: 125,
+};
+
 export const WALK_EXTRA_STAR_XP = 60;
 export const WALK_FILMS_PER_EXTRA_STAR = 2;
 
-export function computeWalkXpClient(percentage = 0, extraStars = 0) {
+export function computeWalkXpClient(percentage = 0, extraStars = 0, isDirector = false) {
   let xp = 0;
-  for (const [th, reward] of Object.entries(WALK_MILESTONE_XP)) {
+  const table = isDirector ? DIRECTOR_MILESTONE_XP : WALK_MILESTONE_XP;
+  for (const [th, reward] of Object.entries(table)) {
     if (percentage >= Number(th)) xp += reward;
   }
   xp += Math.max(0, Number(extraStars || 0)) * WALK_EXTRA_STAR_XP;
   return xp;
 }
 
-export function resolveWalkRpgRank(percentage = 0, extraStars = 0) {
+export function resolveWalkRpgRank(
+  percentage = 0,
+  extraStars = 0,
+  isDirector = false,
+  isNewEraVisionary = false
+) {
+  if (isDirector && isNewEraVisionary) return 'X';
   if (percentage >= 90 && extraStars > 0) return 'SS';
   if (percentage >= 90) return 'S';
+  if (isDirector) {
+    if (percentage >= 80) return 'A+';
+    if (percentage >= 60) return 'A';
+    if (percentage >= 40) return 'B';
+    if (percentage >= 20) return 'C';
+    return 'E';
+  }
   if (percentage >= 75) return 'A+';
   if (percentage >= 60) return 'A';
   if (percentage >= 45) return 'B';
   if (percentage >= 30) return 'C';
   if (percentage >= 15) return 'D';
   return 'E';
+}
+
+export const WALK_CAR_POINTS_BY_RANK = {
+  D: 0.1,
+  C: 0.2,
+  B: 0.3,
+  A: 0.4,
+  'A+': 0.5,
+  S: 0.6,
+  SS: 0.7,
+  X: 0.5,
+};
+
+export const ACTOR_RANK_ORDER = ['D', 'C', 'B', 'A', 'A+', 'S', 'SS'];
+export const DIRECTOR_RANK_ORDER = ['C', 'B', 'A', 'A+', 'S', 'SS', 'X'];
+
+export const WALK_RANK_DISPLAY_META = {
+  D: {
+    rank: 'D',
+    label: 'Figurinhas Rank D',
+    shortLabel: 'Rank D',
+    badgeClass: 'bg-[#cd7f32]/25 text-amber-200 border-[#cd7f32]/65',
+    barGradient: 'from-amber-700 to-orange-400',
+    points: 0.1,
+    actorHint: '15%–29%',
+    directorHint: null,
+  },
+  C: {
+    rank: 'C',
+    label: 'Figurinhas Rank C',
+    shortLabel: 'Rank C',
+    badgeClass: 'bg-slate-400/20 text-slate-200 border-slate-300/60',
+    barGradient: 'from-slate-400 to-zinc-200',
+    points: 0.2,
+    actorHint: '30%–44%',
+    directorHint: '20%–39%',
+  },
+  B: {
+    rank: 'B',
+    label: 'Figurinhas Rank B',
+    shortLabel: 'Rank B',
+    badgeClass: 'bg-purple-500/25 text-purple-200 border-purple-400/65',
+    barGradient: 'from-purple-500 to-fuchsia-400',
+    points: 0.3,
+    actorHint: '45%–59%',
+    directorHint: '40%–59%',
+  },
+  A: {
+    rank: 'A',
+    label: 'Figurinhas Rank A',
+    shortLabel: 'Rank A',
+    badgeClass: 'bg-amber-500/25 text-amber-200 border-amber-400/65',
+    barGradient: 'from-amber-500 to-yellow-300',
+    points: 0.4,
+    actorHint: '60%–74%',
+    directorHint: '60%–79%',
+  },
+  'A+': {
+    rank: 'A+',
+    label: 'Figurinhas Rank A+',
+    shortLabel: 'Rank A+',
+    badgeClass: 'bg-rose-500/25 text-rose-200 border-rose-400/70',
+    barGradient: 'from-rose-500 to-pink-400',
+    points: 0.5,
+    actorHint: '75%–89%',
+    directorHint: '80%–89%',
+  },
+  S: {
+    rank: 'S',
+    label: 'Figurinhas Rank S',
+    shortLabel: 'Rank S',
+    badgeClass: 'bg-sky-500/25 text-sky-200 border-sky-400/75',
+    barGradient: 'from-sky-500 to-cyan-300',
+    points: 0.6,
+    actorHint: '90%+',
+    directorHint: '90%+',
+  },
+  SS: {
+    rank: 'SS',
+    label: 'Figurinhas Rank SS',
+    shortLabel: 'Rank SS',
+    badgeClass:
+      'bg-gradient-to-r from-amber-400/35 via-yellow-300/25 to-sky-400/35 text-amber-100 border-amber-300/80',
+    barGradient: 'from-amber-300 via-yellow-200 to-sky-400',
+    points: 0.7,
+    actorHint: '90%+ ★',
+    directorHint: '90%+ ★',
+  },
+  X: {
+    rank: 'X',
+    label: 'Estrela em Ascensão • Rank X',
+    shortLabel: 'Rank X',
+    badgeClass:
+      'bg-gradient-to-r from-sky-500/35 via-indigo-500/35 to-cyan-400/35 text-sky-100 border-sky-300/85',
+    barGradient: 'from-sky-400 via-indigo-400 to-cyan-300',
+    points: 0.5,
+    actorHint: null,
+    directorHint: '≤7 filmes • 80%+',
+  },
+};
+
+export function resolveWalkRpgRankFromTier(
+  tierKey,
+  extraStars = 0,
+  isDirector = false,
+  isNewEraVisionary = false
+) {
+  const key = String(tierKey || '').toLowerCase();
+  if (!key || key === 'cement' || key === 'carving') return 'E';
+  if (isDirector && isNewEraVisionary) {
+    return key === 'diamond' ? 'X' : 'E';
+  }
+  if (key === 'diamond') return extraStars > 0 ? 'SS' : 'S';
+  if (key === 'mythic') return 'A+';
+  if (key === 'gold') return 'A';
+  if (isDirector) {
+    if (key === 'silver') return 'B';
+    if (key === 'bronze') return 'C';
+    return 'E';
+  }
+  if (key === 'epic') return 'B';
+  if (key === 'silver') return 'C';
+  if (key === 'bronze') return 'D';
+  return 'E';
+}
+
+export function getWalkCarPointsForRank(rank) {
+  if (!rank) return 0;
+  return WALK_CAR_POINTS_BY_RANK[String(rank)] || 0;
 }
 
 export const WALK_UNLOCK_ROADMAP = [
@@ -317,7 +604,118 @@ export const WALK_UNLOCK_ROADMAP = [
   },
 ];
 
-export function tierKeyForPct(pct) {
+export const DIRECTOR_UNLOCK_ROADMAP = [
+  {
+    pct: 20,
+    take: 1,
+    xpReward: 25,
+    tierKey: 'bronze',
+    icon: '🎬',
+    title: 'Take 1: Claquete Inicial — Figurinha + Frase de Set',
+    short: '20% Take 1 (+25 XP)',
+  },
+  {
+    pct: 40,
+    take: 2,
+    xpReward: 45,
+    tierKey: 'silver',
+    icon: '✂️',
+    title: 'Take 2: Corte do Diretor — 1ª Curiosidade + Opção de Foto Própria',
+    short: '40% Take 2 (+45 XP)',
+  },
+  {
+    pct: 60,
+    take: 3,
+    xpReward: 65,
+    tierKey: 'gold',
+    icon: '🎯',
+    title: 'Take 3: DNA Autoral & Manias — Bingo de Manias de Set',
+    short: '60% Take 3 (+65 XP)',
+  },
+  {
+    pct: 80,
+    take: 4,
+    xpReward: 85,
+    tierKey: 'mythic',
+    icon: '🎞️',
+    title: 'Take 4: Sessão de Gala 70mm — Curiosidades #2–#3 + Obra-Prima',
+    short: '80% Take 4 (+85 XP)',
+  },
+  {
+    pct: 90,
+    take: 5,
+    xpReward: 125,
+    tierKey: 'diamond',
+    icon: '🌟',
+    title: 'Take 5: Cânone Absoluto — Show de Cartazes (Oscar & Framboesa) + 10 Auras',
+    short: '90% Take 5 (+125 XP)',
+  },
+];
+
+export const DUBLADOR_UNLOCK_ROADMAP = [
+  { pct: 15, xpReward: 15, tierKey: 'bronze', icon: '💬', title: 'Frase Marcante + Colar no Álbum', short: '15% Frase (+15 XP)' },
+  { pct: 30, xpReward: 25, tierKey: 'silver', icon: '🔍', title: 'Todas as 3 Curiosidades de Bastidores', short: '30% 3 Curiosidades (+25 XP)' },
+  { pct: 45, xpReward: 35, tierKey: 'epic', icon: '🎨', title: '5 Skins (Fotos Reais + Upload/Link)', short: '45% 5 Skins + Foto (+35 XP)' },
+  { pct: 60, xpReward: 50, tierKey: 'gold', icon: '🎙️', title: 'Vozes Marcantes (Player de Áudio)', short: '60% Vozes Marcantes (+50 XP)' },
+  {
+    pct: 75,
+    xpReward: 70,
+    tierKey: 'mythic',
+    icon: '🎞️',
+    title: 'Linha do Tempo Cinemática & Raio-X das Décadas',
+    short: '75% Linha do Tempo (+70 XP)',
+  },
+  {
+    pct: 90,
+    xpReward: 100,
+    tierKey: 'diamond',
+    icon: '💎',
+    title: 'Edição Assinada + 10 Auras por ★ + Obra-Prima',
+    short: '90% Assinada + Auras (+100 XP)',
+  },
+];
+
+export const RISING_STAR_UNLOCK_ROADMAP = [
+  {
+    pct: 80,
+    xpReward: 345,
+    tierKey: 'diamond',
+    icon: '🌟',
+    title: 'Estrela em Ascensão (Rank X) — Figurinha Exclusiva + 🃏 Show de Cartazes',
+    short: '80% Figurinha + Show de Cartazes (Rank X)',
+  },
+];
+
+export function isDirectorStar(star) {
+  return Boolean(star && (star.kind === 'director' || star.alameda === 'diretores'));
+}
+
+export function isDubladorStar(star) {
+  return Boolean(star && (star.kind === 'dublador' || star.alameda === 'vozes'));
+}
+
+export function getUnlockRoadmapForStar(star) {
+  if (isDirectorStar(star) && star?.isNewEraVisionary) {
+    return RISING_STAR_UNLOCK_ROADMAP;
+  }
+  if (isDirectorStar(star)) {
+    return DIRECTOR_UNLOCK_ROADMAP;
+  }
+  if (isDubladorStar(star)) {
+    return DUBLADOR_UNLOCK_ROADMAP;
+  }
+  return WALK_UNLOCK_ROADMAP;
+}
+
+export function tierKeyForPct(pct, isDirector = false) {
+  if (isDirector) {
+    if (pct >= 90) return 'diamond';
+    if (pct >= 80) return 'mythic';
+    if (pct >= 60) return 'gold';
+    if (pct >= 40) return 'silver';
+    if (pct >= 20) return 'bronze';
+    return 'carving';
+  }
   if (pct >= 90) return 'diamond';
   if (pct >= 75) return 'mythic';
   if (pct >= 60) return 'gold';
@@ -327,14 +725,56 @@ export function tierKeyForPct(pct) {
   return 'carving';
 }
 
-export function resolveUnlocksForPct(pct) {
+export function resolveUnlocksForPct(pct, isDirector = false, isNewEraVisionary = false, isDublador = false) {
+  if (isDirector && isNewEraVisionary) {
+    return {
+      quoteUnlocked: true,
+      curiosity1Unlocked: true,
+      skinsUnlocked: true,
+      timelineUnlocked: true,
+      curiosities23Unlocked: true,
+      galaUnlocked: true,
+      immortalUnlocked: true,
+      verdictUnlocked: pct >= 80,
+      voiceClipsUnlocked: false,
+    };
+  }
+  if (isDirector) {
+    return {
+      quoteUnlocked: pct >= 20,
+      curiosity1Unlocked: pct >= 40,
+      skinsUnlocked: pct >= 40,
+      timelineUnlocked: pct >= 60,
+      curiosities23Unlocked: pct >= 80,
+      galaUnlocked: pct >= 80,
+      immortalUnlocked: pct >= 90,
+      verdictUnlocked: pct >= 90,
+      voiceClipsUnlocked: false,
+    };
+  }
+  if (isDublador) {
+    return {
+      quoteUnlocked: pct >= 15,
+      curiosity1Unlocked: pct >= 30,
+      skinsUnlocked: pct >= 45,
+      curiosities23Unlocked: pct >= 30,
+      timelineUnlocked: pct >= 75,
+      galaUnlocked: pct >= 90,
+      immortalUnlocked: pct >= 90,
+      verdictUnlocked: false,
+      voiceClipsUnlocked: pct >= 60,
+    };
+  }
   return {
     quoteUnlocked: pct >= 15,
     curiosity1Unlocked: pct >= 30,
     skinsUnlocked: pct >= 45,
     curiosities23Unlocked: pct >= 60,
     timelineUnlocked: pct >= 75,
+    galaUnlocked: pct >= 90,
     immortalUnlocked: pct >= 90,
+    verdictUnlocked: false,
+    voiceClipsUnlocked: false,
   };
 }
 
@@ -387,9 +827,22 @@ export function resolveEffectiveImmortalAura(rawAuraId, extraStars = 0) {
  */
 export function applySimulatedMilestoneToStar(star, simPct, simExtraStars = null, simOverrides = null) {
   if (!star) return star;
+  const isDir = isDirectorStar(star);
+  const isDub = isDubladorStar(star);
+  const isNewEraVisionary = isDir && Boolean(star.isNewEraVisionary);
   const pct = simPct != null ? simPct : star.percentage;
-  const tierKey = tierKeyForPct(pct);
-  const theme = getThemeForTier(tierKey);
+  const tierKey = isNewEraVisionary
+    ? pct >= 80
+      ? 'diamond'
+      : pct > 0
+      ? 'carving'
+      : 'cement'
+    : tierKeyForPct(pct, isDir);
+  const theme = isNewEraVisionary
+    ? pct >= 80
+      ? RISING_STAR_THEME
+      : DIRECTOR_TIER_THEMES.carving
+    : getThemeForTier(tierKey, isDir);
   const ceiling = Number(star.ceiling || 20);
   const extraStars =
     simExtraStars != null ? simExtraStars : simPct != null ? (pct >= 100 ? 2 : 0) : Number(star.extraStars || 0);
@@ -400,7 +853,7 @@ export function applySimulatedMilestoneToStar(star, simPct, simExtraStars = null
         : Math.max(pct === 0 ? 0 : 1, Math.round((pct / 100) * ceiling))
       : star.watchedCount;
 
-  const unlocks = resolveUnlocksForPct(pct);
+  const unlocks = resolveUnlocksForPct(pct, isDir, isNewEraVisionary, isDub);
   const featuredMemberName =
     simOverrides?.featuredMemberName !== undefined
       ? simOverrides.featuredMemberName
@@ -435,6 +888,11 @@ export function applySimulatedMilestoneToStar(star, simPct, simExtraStars = null
     : star.selectedSkinLabel || null;
 
   let nextSkinOptions = Array.isArray(star.skinOptions) ? [...star.skinOptions] : [];
+  if (isDir) {
+    nextSkinOptions = nextSkinOptions.filter(
+      (s) => s.id === 'default_portrait' || s.kind === 'custom'
+    );
+  }
   if (customSkinUrl) {
     nextSkinOptions = nextSkinOptions.filter((s) => s.id !== 'custom_user_skin');
     nextSkinOptions.push({
@@ -453,37 +911,69 @@ export function applySimulatedMilestoneToStar(star, simPct, simExtraStars = null
     ? resolveEffectiveImmortalAura(requestedAura, extraStars).id
     : 'prism';
 
-  // Para testar a Linha do Tempo e Obra-Prima em 75%+ mesmo se a estrela tiver poucos filmes no DB:
+  // Para testar a Linha do Tempo, Estrela em Abertura e Mesa Secreta (90%+) com dados ricos:
   let effectiveWatchedFilms = Array.isArray(star.watchedFilms) ? [...star.watchedFilms] : [];
-  if (simPct != null && pct >= 75 && effectiveWatchedFilms.length < 5 && Array.isArray(star.pendingFilms)) {
-    const existingNorm = new Set(effectiveWatchedFilms.map((f) => String(f.title || '').toLowerCase()));
-    const fillers = star.pendingFilms.filter((p) => p?.title && !existingNorm.has(p.title.toLowerCase()));
-    const synthScores = [9.5, 6.2, 8.9, 7.1, 9.8, 7.6];
-    const baseYear = 2024;
-    const allGroupNames = Array.isArray(star.groupMembers)
-      ? star.groupMembers.map((m) => m.name).filter(Boolean)
-      : [];
-    fillers.slice(0, 6 - effectiveWatchedFilms.length).forEach((pf, idx) => {
-      effectiveWatchedFilms.push({
-        movieId: -(idx + 101),
-        title: pf.title,
-        originalTitle: pf.title,
-        releaseYear: pf.releaseYear || 2005 + idx * 3,
-        posterUrl: pf.posterUrl || null,
-        backdropUrl: null,
-        userRating: synthScores[idx % synthScores.length],
-        imdbRating: 8.1,
-        viewId: idx + 1,
-        watchedAt: new Date(baseYear, idx, 10 + idx).toISOString(),
-        monthSeen: (idx % 12) + 1,
-        yearSeen: 2023 + Math.floor(idx / 3),
-        character: pf.character || 'Papel Icônico',
-        memberNames: allGroupNames,
-        source: 'sim_timeline',
-        isSimulatedDemo: true,
+  if (simPct != null) {
+    if (pct === 0) {
+      effectiveWatchedFilms = [];
+    } else if (simWatchedCount < effectiveWatchedFilms.length) {
+      effectiveWatchedFilms = effectiveWatchedFilms.slice(0, simWatchedCount);
+    } else if (
+      (pct >= (isDir ? 60 : 75) || (isDir && simWatchedCount > effectiveWatchedFilms.length)) &&
+      Array.isArray(star.pendingFilms)
+    ) {
+      const targetFilmTotal =
+        star.kind === 'director'
+          ? Math.min(ceiling + Math.max(0, extraStars) * 2, Math.max(simWatchedCount, pct >= 90 ? ceiling : simWatchedCount))
+          : Math.max(6, simWatchedCount);
+      const existingNorm = new Set(effectiveWatchedFilms.map((f) => String(f.title || '').toLowerCase()));
+      const fillers = star.pendingFilms.filter((p) => p?.title && !existingNorm.has(p.title.toLowerCase()));
+      const synthScores = [9.5, 5.1, 8.9, 6.2, 9.8, 4.7, 8.3, 7.1, 9.1, 5.6, 8.6, 7.8];
+      const baseYear = 2024;
+      const allGroupNames = Array.isArray(star.groupMembers)
+        ? star.groupMembers.map((m) => m.name).filter(Boolean)
+        : [];
+      const needed = Math.max(0, targetFilmTotal - effectiveWatchedFilms.length);
+      fillers.slice(0, needed).forEach((pf, idx) => {
+        effectiveWatchedFilms.push({
+          movieId: -(idx + 101),
+          title: pf.title,
+          originalTitle: pf.title,
+          releaseYear: pf.releaseYear || 2005 + idx * 3,
+          posterUrl: pf.posterUrl || null,
+          backdropUrl: null,
+          userRating: synthScores[idx % synthScores.length],
+          imdbRating: typeof pf.imdbRating === 'number' ? pf.imdbRating : 7.4,
+          viewId: idx + 1,
+          watchedAt: new Date(baseYear, idx, 10 + idx).toISOString(),
+          monthSeen: (idx % 12) + 1,
+          yearSeen: 2023 + Math.floor(idx / 3),
+          character: pf.character || 'Papel Icônico',
+          roleType: pf.roleType || (star.kind === 'director' ? 'director' : null),
+          memberNames: allGroupNames,
+          source: 'sim_timeline',
+          isSimulatedDemo: true,
+        });
       });
-    });
+    }
   }
+
+  const simDirectorStats =
+    star.kind === 'director' && star.directorStats
+      ? (() => {
+          const bothCount = effectiveWatchedFilms.filter((f) => f.roleType === 'both').length;
+          const directedOnlyCount = effectiveWatchedFilms.filter((f) => f.roleType === 'director').length;
+          const writtenOnlyCount = effectiveWatchedFilms.filter((f) => f.roleType === 'writer').length;
+          return {
+            ...star.directorStats,
+            bothCount,
+            directedOnlyCount,
+            writtenOnlyCount,
+            totalDirectedWatched: bothCount + directedOnlyCount,
+            totalWrittenWatched: bothCount + writtenOnlyCount,
+          };
+        })()
+      : star.directorStats || null;
 
   const ratedEffective = effectiveWatchedFilms
     .filter((f) => typeof f.userRating === 'number')
@@ -491,9 +981,11 @@ export function applySimulatedMilestoneToStar(star, simPct, simExtraStars = null
   const simAvgRating =
     ratedEffective.length > 0
       ? Number((ratedEffective.reduce((acc, f) => acc + f.userRating, 0) / ratedEffective.length).toFixed(1))
+      : pct === 0
+      ? null
       : star.avgUserRating;
-  const topUserFilm = ratedEffective.length > 0 ? ratedEffective[0] : effectiveWatchedFilms[0] || star.topUserFilm || null;
-  const worstUserFilm = ratedEffective.length > 0 ? ratedEffective[ratedEffective.length - 1] : star.worstUserFilm || null;
+  const topUserFilm = ratedEffective.length > 0 ? ratedEffective[0] : effectiveWatchedFilms[0] || (pct === 0 ? null : star.topUserFilm) || null;
+  const worstUserFilm = ratedEffective.length > 0 ? ratedEffective[ratedEffective.length - 1] : (pct === 0 ? null : star.worstUserFilm) || null;
 
   const chosenSigId =
     simOverrides?.signatureMovieId !== undefined
@@ -511,32 +1003,54 @@ export function applySimulatedMilestoneToStar(star, simPct, simExtraStars = null
       ? buildSimulatedDecades(effectiveWatchedFilms)
       : star.decadeBreakdown;
 
-  const baseMilestones = Array.isArray(star.milestones) ? star.milestones : [];
+  const rawBaseMilestones = Array.isArray(star.milestones) ? star.milestones : [];
+  const baseMilestones = isNewEraVisionary
+    ? RISING_STAR_UNLOCK_ROADMAP.map((r) => ({
+        thresholdPct: r.pct,
+        id: 'estrela_ascensao_80',
+        tierKey: r.tierKey,
+        label: r.title,
+        icon: r.icon,
+        accentHex: '#38bdf8',
+        xpReward: r.xpReward,
+        targetCount: Math.max(1, Math.round((r.pct / 100) * ceiling)),
+      }))
+    : isDir && rawBaseMilestones.length !== 5
+    ? DIRECTOR_UNLOCK_ROADMAP.map((r) => ({
+        thresholdPct: r.pct,
+        tierKey: r.tierKey,
+        label: r.title,
+        icon: r.icon,
+        xpReward: r.xpReward,
+        targetCount: Math.max(1, Math.round((r.pct / 100) * ceiling)),
+      }))
+    : rawBaseMilestones;
   const nextMilestones = baseMilestones.map((m) => ({
     ...m,
     unlocked: pct >= m.thresholdPct,
     remainingFilms: pct >= m.thresholdPct ? 0 : Math.max(1, (m.targetCount || 1) - simWatchedCount),
   }));
 
+  const unlockFloor = isDir ? (isNewEraVisionary ? 80 : 20) : 15;
   const nextMilestone = nextMilestones.find((m) => !m.unlocked) || null;
-  const simPotentialXp = computeWalkXpClient(Math.min(100, pct), extraStars);
+  const simPotentialXp = computeWalkXpClient(Math.min(100, pct), extraStars, isDir);
 
   return {
     ...star,
     percentage: Math.min(100, pct),
     watchedCount: simWatchedCount,
     extraStars,
-    rpgRank: resolveWalkRpgRank(Math.min(100, pct), extraStars),
+    rpgRank: resolveWalkRpgRank(Math.min(100, pct), extraStars, isDir, isNewEraVisionary),
     rpgClassLabel: star.rpgClassLabel || star.rpgTitle || star.tagline,
     statusTierKey: tierKey,
     statusLabel: theme.label,
     statusIcon: theme.icon,
     accentHex: theme.accentHex,
-    isStickerUnlocked: pct >= 15,
-    isInaugurated: pct >= 15,
-    isDiamond: pct >= 90,
-    isStuck: pct >= 15,
-    stuckTier: pct >= 15 ? tierKey : null,
+    isStickerUnlocked: pct >= unlockFloor,
+    isInaugurated: pct >= unlockFloor,
+    isDiamond: isNewEraVisionary ? pct >= 80 : pct >= 90,
+    isStuck: pct >= unlockFloor,
+    stuckTier: pct >= unlockFloor ? tierKey : null,
     featuredMemberName: featuredMemberObj?.name || featuredMemberName,
     photoUrl: resolvedBasePhoto,
     skinOptions: nextSkinOptions,
@@ -557,6 +1071,29 @@ export function applySimulatedMilestoneToStar(star, simPct, simExtraStars = null
         }
       : null,
     watchedFilms: effectiveWatchedFilms,
+    directorStats: simDirectorStats,
+    directorObsessions:
+      Array.isArray(star.directorObsessions) && star.directorObsessions.length > 0
+        ? star.directorObsessions
+        : isDirectorStar(star)
+        ? [
+            {
+              icon: '🎬',
+              title: 'Assinatura Visual de Enquadramento',
+              description: 'Planos sequência, enquadramentos simétricos e ritmo de montagem inconfundível.',
+            },
+            {
+              icon: '✍️',
+              title: 'Subtexto & Virada no Terceiro Ato',
+              description: 'Camadas ocultas nos diálogos que mudam de sentido perto do desfecho.',
+            },
+            {
+              icon: '🔊',
+              title: 'Clima Sonoro Tenso',
+              description: 'Silêncios calculados e trilha musical usada como armadilha narrativa.',
+            },
+          ]
+        : [],
     avgUserRating: simAvgRating,
     topUserFilm,
     worstUserFilm,
@@ -564,6 +1101,7 @@ export function applySimulatedMilestoneToStar(star, simPct, simExtraStars = null
     rpgXp: star.isSimulated ? simPotentialXp : star.claimedXp ?? simPotentialXp,
     decadeBreakdown: simDecadeBreakdown,
     unlocks,
+    voiceClipsUnlocked: Boolean(unlocks.voiceClipsUnlocked),
     milestones: nextMilestones,
     nextMilestone,
     rpgStats: undefined,

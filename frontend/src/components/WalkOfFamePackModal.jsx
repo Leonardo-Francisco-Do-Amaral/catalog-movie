@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { X, Sparkles, ArrowRight, Gift, Layers } from 'lucide-react';
+import { X, Sparkles, ArrowRight, Gift, Layers, Play, Square, Volume2 } from 'lucide-react';
 import WalkOfFameStickerCard from './WalkOfFameStickerCard';
 import {
   getThemeForTier,
-  WALK_UNLOCK_ROADMAP,
+  getUnlockRoadmapForStar,
+  isDirectorStar,
+  isDubladorStar,
   resolveWalkMediaUrl,
+  RISING_STAR_THEME,
 } from '../utils/walkOfFameStickers';
 import {
   playWalkOfFamePackSound,
@@ -22,6 +25,17 @@ const TIER_DEFAULT_PCT = {
   epic: 45,
   gold: 60,
   mythic: 75,
+  diamond: 90,
+};
+
+const DIRECTOR_TIER_DEFAULT_PCT = {
+  cement: 0,
+  carving: 0,
+  bronze: 20,
+  silver: 40,
+  epic: 40,
+  gold: 60,
+  mythic: 80,
   diamond: 90,
 };
 
@@ -212,7 +226,7 @@ function SigningPenShowcase({ starName, accentHex = '#38bdf8', isDone = false })
 }
 
 /**
- * Mini prévia luminosa da Linha do Tempo flutuando no espaço ao desbloquear 75%.
+ * Mini prévia luminosa da Linha do Tempo flutuando no espaço ao desbloquear 75% (Atores/Vozes/Casais).
  */
 function FloatingTimelinePreview({ accentHex = '#22d3ee' }) {
   return (
@@ -250,11 +264,57 @@ function FloatingTimelinePreview({ accentHex = '#22d3ee' }) {
   );
 }
 
+/**
+ * Prévia das Manias & Marca Registrada de Set para Diretores (75%).
+ */
+function DirectorObsessionsPreview({ obsessions = [] }) {
+  const list = Array.isArray(obsessions) ? obsessions.slice(0, 3) : [];
+  if (list.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 select-none">
+      {list.map((obs, idx) => (
+        <div
+          key={idx}
+          className="px-3 py-1.5 rounded-xl bg-cyan-950/75 border border-cyan-400/50 text-xs font-bold text-cyan-100 flex items-center gap-1.5 shadow"
+        >
+          <span>{obs.icon || '🎯'}</span>
+          <span>{obs.title}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Prévia da Mesa Secreta do Júri com Cartas Viradas + Oscar & Framboesa para Diretores (90%+).
+ */
+function DirectorJuryTablePreview() {
+  return (
+    <div className="flex items-center justify-center md:justify-start gap-2.5 py-1 select-none">
+      {[0, 1, 2].map((idx) => (
+        <div
+          key={idx}
+          style={{ transform: `rotate(${(idx - 1) * 8}deg)` }}
+          className="w-14 h-20 rounded-xl bg-gradient-to-br from-zinc-900 via-indigo-950 to-zinc-950 border-2 border-amber-400/80 shadow-[0_10px_24px_rgba(245,158,11,0.3)] flex flex-col items-center justify-center gap-1"
+        >
+          <span className="text-xl">{idx === 1 ? '🎬' : '🃏'}</span>
+          <span className="text-[9px] font-mono font-black text-amber-300">?</span>
+        </div>
+      ))}
+      <div className="flex flex-col gap-1 pl-2 text-left text-xs font-black">
+        <span className="text-amber-300">🏆 Melhor Filme (Oscar)</span>
+        <span className="text-rose-300">🫐 Pior Filme (Framboesa)</span>
+      </div>
+    </div>
+  );
+}
+
 export default function WalkOfFamePackModal({
   pack,
   onStickPack,
   onSaveForLater,
   onClose,
+  onOpenDirectorVerdict,
 }) {
   // 'sealed' | 'opening' | 'revealed' | 'pasting'
   const [phase, setPhase] = useState('sealed');
@@ -265,19 +325,84 @@ export default function WalkOfFamePackModal({
   const [autoAdvanceEnabled, setAutoAdvanceEnabled] = useState(true);
   // 'idle' | 'writing' | 'done'
   const [signatureState, setSignatureState] = useState('idle');
+  const [playingVoiceClipId, setPlayingVoiceClipId] = useState(null);
 
   const openingDoneRef = useRef(false);
   const autoAdvanceTimerRef = useRef(null);
+  const actionSubmittedRef = useRef(false);
+  const voiceAudioRef = useRef(null);
+
+  const stopPackVoiceAudio = useCallback(() => {
+    if (voiceAudioRef.current) {
+      try {
+        voiceAudioRef.current.pause();
+        voiceAudioRef.current.currentTime = 0;
+      } catch {
+        // ignore audio reset failures
+      }
+      voiceAudioRef.current = null;
+    }
+    setPlayingVoiceClipId(null);
+  }, []);
+
+  const handleTogglePackVoiceClip = useCallback(
+    (clip) => {
+      if (!clip?.audioUrl) return;
+      if (playingVoiceClipId === clip.id && voiceAudioRef.current) {
+        stopPackVoiceAudio();
+        return;
+      }
+      stopPackVoiceAudio();
+      const audio = new Audio(resolveWalkMediaUrl(clip.audioUrl));
+      voiceAudioRef.current = audio;
+      setPlayingVoiceClipId(clip.id);
+      audio.onended = () => {
+        if (voiceAudioRef.current === audio) {
+          voiceAudioRef.current = null;
+          setPlayingVoiceClipId(null);
+        }
+      };
+      audio.onerror = () => {
+        if (voiceAudioRef.current === audio) {
+          voiceAudioRef.current = null;
+          setPlayingVoiceClipId(null);
+        }
+      };
+      audio.play().catch(() => {
+        setPlayingVoiceClipId(null);
+      });
+    },
+    [playingVoiceClipId, stopPackVoiceAudio]
+  );
+
+  useEffect(() => () => stopPackVoiceAudio(), [stopPackVoiceAudio]);
+
+  const submitSaveForLater = useCallback(() => {
+    if (!pack || actionSubmittedRef.current) return;
+    actionSubmittedRef.current = true;
+    onSaveForLater?.(pack);
+  }, [onSaveForLater, pack]);
+
+  const submitStickPack = useCallback(() => {
+    if (!pack || actionSubmittedRef.current) return;
+    actionSubmittedRef.current = true;
+    onStickPack?.(pack);
+  }, [onStickPack, pack]);
 
   const handleClose = useCallback(() => {
     clearTimeout(autoAdvanceTimerRef.current);
     stopAllTrophyAudio();
-    if (pack && phase !== 'sealed' && phase !== 'pasting') {
-      onSaveForLater?.(pack);
+    stopPackVoiceAudio();
+    if (pack && phase === 'pasting') {
+      submitStickPack();
+      return;
+    }
+    if (pack && phase !== 'sealed') {
+      submitSaveForLater();
       return;
     }
     onClose?.();
-  }, [onClose, onSaveForLater, pack, phase]);
+  }, [onClose, pack, phase, stopPackVoiceAudio, submitSaveForLater, submitStickPack]);
 
   // Lista ordenada de marcos desbloqueados dentro deste pacotinho (15% -> 90% + Estrela Bônus)
   const unlockAnalysis = useMemo(() => {
@@ -288,6 +413,9 @@ export default function WalkOfFamePackModal({
       };
     }
 
+    const isDir = isDirectorStar(pack.star);
+    const isRisingDir = isDir && Boolean(pack.star?.isNewEraVisionary);
+    const defaultPctTable = isDir ? DIRECTOR_TIER_DEFAULT_PCT : TIER_DEFAULT_PCT;
     const resolvedTier = pack.toTier || pack.star.statusTierKey || 'bronze';
     const effFromTier =
       pack.fromTier && pack.fromTier !== 'cement' && pack.fromTier !== 'carving'
@@ -295,13 +423,16 @@ export default function WalkOfFamePackModal({
         : null;
 
     const rawFromPct =
-      pack.fromPct != null ? Number(pack.fromPct) : effFromTier ? TIER_DEFAULT_PCT[effFromTier] || 0 : 0;
+      pack.fromPct != null ? Number(pack.fromPct) : effFromTier ? defaultPctTable[effFromTier] || 0 : 0;
+    const minFallbackPct = isRisingDir ? 80 : isDir ? 20 : 15;
     const rawToPct =
       pack.toPct != null
         ? Number(pack.toPct)
-        : Math.max(TIER_DEFAULT_PCT[resolvedTier] || 15, Number(pack.star.percentage || 0));
+        : Math.max(defaultPctTable[resolvedTier] || minFallbackPct, Number(pack.star.percentage || 0));
 
-    let items = WALK_UNLOCK_ROADMAP.filter((step) => step.pct > rawFromPct && step.pct <= rawToPct).map(
+    const roadmap = getUnlockRoadmapForStar(pack.star);
+
+    let items = roadmap.filter((step) => step.pct > rawFromPct && step.pct <= rawToPct).map(
       (step) => ({ ...step, key: step.pct })
     );
 
@@ -318,12 +449,12 @@ export default function WalkOfFamePackModal({
       ];
     } else if (items.length === 0) {
       const targetStep =
-        WALK_UNLOCK_ROADMAP.find((s) => s.tierKey === resolvedTier) || WALK_UNLOCK_ROADMAP[0];
+        roadmap.find((s) => s.tierKey === resolvedTier) || roadmap[0];
       items = [{ ...targetStep, key: targetStep.pct }];
     }
 
     const packStepKeys = new Set(items.map((i) => i.key));
-    const roadmapWithState = WALK_UNLOCK_ROADMAP.map((step) => ({
+    const roadmapWithState = roadmap.map((step) => ({
       ...step,
       key: step.pct,
       isAlreadyUnlocked: step.pct <= rawFromPct && !packStepKeys.has(step.pct),
@@ -340,7 +471,8 @@ export default function WalkOfFamePackModal({
       clearTimeout(autoAdvanceTimerRef.current);
       if (idx < 0 || idx >= packUnlockItems.length) return;
       const item = packUnlockItems[idx];
-      const isFinal = item.key === 90;
+      const isRisingDir = isDirectorStar(pack?.star) && Boolean(pack?.star?.isNewEraVisionary);
+      const isFinal = item.key === 90 || (isRisingDir && item.key === 80);
 
       if (stopAuto) {
         setAutoAdvanceEnabled(false);
@@ -352,11 +484,15 @@ export default function WalkOfFamePackModal({
       playWalkOfFameLockUnlockSound({ isFinal });
 
       if (isFinal) {
-        setSignatureState('writing');
-        playWalkOfFameSignatureSound();
+        if (isDirectorStar(pack?.star)) {
+          setSignatureState('done');
+        } else {
+          setSignatureState('writing');
+          playWalkOfFameSignatureSound();
+        }
       }
     },
-    [packUnlockItems]
+    [packUnlockItems, pack?.star]
   );
 
   const enterRevealedDirectly = useCallback(() => {
@@ -370,6 +506,7 @@ export default function WalkOfFamePackModal({
 
   useEffect(() => {
     clearTimeout(autoAdvanceTimerRef.current);
+    stopPackVoiceAudio();
     setPhase('sealed');
     setActiveStepIndex(0);
     setUnlockedKeys([]);
@@ -378,7 +515,8 @@ export default function WalkOfFamePackModal({
     setAutoAdvanceEnabled(true);
     setSignatureState('idle');
     openingDoneRef.current = false;
-  }, [pack?.packId, pack?.star?.id, pack?.packType]);
+    actionSubmittedRef.current = false;
+  }, [pack?.packId, pack?.star?.id, pack?.packType, stopPackVoiceAudio]);
 
   // Garantia de transição ao fim do giro 3D (2.85s) caso onEnded do áudio dispare antes/depois
   useEffect(() => {
@@ -437,10 +575,10 @@ export default function WalkOfFamePackModal({
   useEffect(() => {
     if (phase !== 'pasting' || !pack) return undefined;
     const t = setTimeout(() => {
-      onStickPack?.(pack);
+      submitStickPack();
     }, 2450);
     return () => clearTimeout(t);
-  }, [phase, pack, onStickPack]);
+  }, [phase, pack, submitStickPack]);
 
   const startOpening = () => {
     openingDoneRef.current = false;
@@ -458,28 +596,37 @@ export default function WalkOfFamePackModal({
   if (!pack || !pack.star) return null;
 
   const { star, packType, fromTier, toTier, extraStarsUnlocked } = pack;
+  const isDirectorPack = isDirectorStar(star);
+  const isDubPack = isDubladorStar(star);
+  const isRisingDirectorPack = isDirectorPack && Boolean(star.isNewEraVisionary);
   const resolvedToTier = toTier || star.statusTierKey || 'bronze';
-  const toTheme = getThemeForTier(resolvedToTier);
+  const toTheme = isRisingDirectorPack
+    ? RISING_STAR_THEME
+    : getThemeForTier(resolvedToTier, isDirectorPack);
   const effectiveFromTier =
-    fromTier && fromTier !== 'cement' && fromTier !== 'carving' ? fromTier : null;
-  const fromTheme = effectiveFromTier ? getThemeForTier(effectiveFromTier) : null;
+    !isRisingDirectorPack && fromTier && fromTier !== 'cement' && fromTier !== 'carving'
+      ? fromTier
+      : null;
+  const fromTheme = effectiveFromTier ? getThemeForTier(effectiveFromTier, isDirectorPack) : null;
   const isOverlayUpgrade = Boolean((packType === 'rarity_up' || star.isStuck) && effectiveFromTier);
 
   const currentItem = packUnlockItems[activeStepIndex] || packUnlockItems[0] || null;
   const activeRewardKey = currentItem?.key ?? null;
-  const activeStepTheme = getThemeForTier(currentItem?.tierKey || resolvedToTier);
+  const activeStepTheme = isRisingDirectorPack
+    ? RISING_STAR_THEME
+    : getThemeForTier(currentItem?.tierKey || resolvedToTier, isDirectorPack);
 
   const hasFinal90InPack = packUnlockItems.some((item) => item.key === 90);
   const is90Reached = unlockedKeys.includes(90);
 
   let cardSignatureMode = 'normal';
   if (hasFinal90InPack) {
-    cardSignatureMode = is90Reached ? 'writing' : 'hidden';
+    cardSignatureMode = is90Reached ? (isDirectorPack ? 'normal' : 'writing') : 'hidden';
   }
 
   const allMilestonesRevealed =
     activeStepIndex >= packUnlockItems.length - 1 &&
-    (activeRewardKey === 90
+    (activeRewardKey === 90 && !isDirectorPack
       ? signatureState === 'done' && stepFinishedTyping
       : stepFinishedTyping);
 
@@ -501,6 +648,194 @@ export default function WalkOfFamePackModal({
   const renderLooseAutoStage = () => {
     const key = activeRewardKey;
     const handleTyped = () => setStepFinishedTyping(true);
+
+    if (isDirectorPack) {
+      if (isRisingDirectorPack && key === 80) {
+        const galaTitle = star.signatureFilm?.title || star.topUserFilm?.title || 'Obra-Prima Favorita';
+        return (
+          <div
+            key={`stage_${key}_${burstNonce}`}
+            className="flex flex-col items-center md:items-start text-center md:text-left gap-3 rare-reveal-enter max-w-md"
+          >
+            <span className="text-[11px] font-mono font-black uppercase tracking-[0.24em] text-cyan-200">
+              🌟 ESTRELA EM ASCENSÃO • RANK X (80%+): FIGURINHA &amp; SHOW DE CARTAZES LIBERADOS!
+            </span>
+            <div className="px-3.5 py-1.5 rounded-xl bg-cyan-950/75 border border-cyan-400/50 text-xs font-black text-cyan-100 flex items-center gap-2 shadow">
+              <span>🏆</span>
+              <span>Destaque na Carta: {galaTitle}</span>
+            </div>
+            <TypewriterTextBlock
+              key={`${star.id}_rising_80_${burstNonce}`}
+              lines={[
+                'Você atingiu 80% da filmografia e desbloqueou a figurinha exclusiva Estrela em Ascensão (Rank X)!',
+                '🃏 O Show de Cartazes & Veredito (Oscar e Framboesa de Ouro) também foi liberado junto com a figurinha!',
+              ]}
+              speedMs={21}
+              accentHex="#22d3ee"
+              onComplete={handleTyped}
+              className="text-xs sm:text-sm font-medium text-cyan-50/95 leading-relaxed drop-shadow-[0_4px_14px_rgba(0,0,0,0.95)]"
+            />
+            {onOpenDirectorVerdict && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenDirectorVerdict(star);
+                }}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-400 via-amber-300 to-rose-400 hover:brightness-110 text-zinc-950 font-black text-xs shadow-lg cursor-pointer transition-transform active:scale-95"
+              >
+                🃏 Abrir Show de Cartazes em Tela Cheia →
+              </button>
+            )}
+          </div>
+        );
+      }
+
+      if (key === 20) {
+        return (
+          <div
+            key={`stage_${key}_${burstNonce}`}
+            className="flex flex-col items-center md:items-start text-center md:text-left gap-3 rare-reveal-enter max-w-md"
+          >
+            <span className="text-[11px] font-mono font-black uppercase tracking-[0.24em] text-amber-300">
+              🎬 TAKE 1 • CLAQUETE INICIAL: FRASE DE SET!
+            </span>
+            <div className="relative pl-1">
+              <span className="text-4xl font-serif text-amber-400/50 leading-none select-none block -mb-3">
+                “
+              </span>
+              <TypewriterTextBlock
+                key={`${star.id}_dir_20_${burstNonce}`}
+                lines={[`${star.quote ? star.quote : 'Frase autoral de set liberada!'}”`]}
+                speedMs={26}
+                accentHex="#fbbf24"
+                onComplete={handleTyped}
+                className="text-lg sm:text-xl italic font-serif text-amber-100 leading-relaxed drop-shadow-[0_4px_14px_rgba(0,0,0,0.95)]"
+              />
+            </div>
+          </div>
+        );
+      }
+
+      if (key === 40) {
+        return (
+          <div
+            key={`stage_${key}_${burstNonce}`}
+            className="flex flex-col items-center md:items-start text-center md:text-left gap-3 rare-reveal-enter max-w-md"
+          >
+            <span className="text-[11px] font-mono font-black uppercase tracking-[0.24em] text-sky-200">
+              ✂️ TAKE 2 • CORTE DO DIRETOR: 1ª CURIOSIDADE + FOTO PRÓPRIA!
+            </span>
+            <TypewriterTextBlock
+              key={`${star.id}_dir_40_${burstNonce}`}
+              lines={[
+                star.curiosities?.[0]
+                  ? `🔍 Curiosidade #1: ${star.curiosities[0]}`
+                  : '🔍 1ª curiosidade de bastidores liberada!',
+                '📸 Opção de subir foto própria do PC ou Link liberada no Dossiê!',
+              ]}
+              speedMs={22}
+              accentHex="#bae6fd"
+              onComplete={handleTyped}
+              className="text-xs sm:text-sm font-medium text-sky-50/95 leading-relaxed drop-shadow-[0_4px_14px_rgba(0,0,0,0.95)]"
+            />
+          </div>
+        );
+      }
+
+      if (key === 60) {
+        return (
+          <div
+            key={`stage_${key}_${burstNonce}`}
+            className="flex flex-col items-center md:items-start text-center md:text-left gap-3 rare-reveal-enter max-w-md"
+          >
+            <span className="text-[11px] font-mono font-black uppercase tracking-[0.24em] text-yellow-300">
+              🎯 TAKE 3 • DNA AUTORAL &amp; MANIAS DE SET!
+            </span>
+            <DirectorObsessionsPreview obsessions={star.directorObsessions} />
+            <TypewriterTextBlock
+              key={`${star.id}_dir_60_${burstNonce}`}
+              lines={[
+                `O Bingo de Manias Autorais e marca registrada de set de ${star.name} agora estão abertos no Dossiê!`,
+              ]}
+              speedMs={21}
+              accentHex="#facc15"
+              onComplete={handleTyped}
+              className="text-xs sm:text-sm font-medium text-amber-50/95 leading-relaxed drop-shadow-[0_4px_14px_rgba(0,0,0,0.95)]"
+            />
+          </div>
+        );
+      }
+
+      if (key === 80) {
+        const galaTitle = star.signatureFilm?.title || star.topUserFilm?.title || 'Obra-Prima Favorita';
+        return (
+          <div
+            key={`stage_${key}_${burstNonce}`}
+            className="flex flex-col items-center md:items-start text-center md:text-left gap-3 rare-reveal-enter max-w-md"
+          >
+            <span className="text-[11px] font-mono font-black uppercase tracking-[0.24em] text-cyan-300">
+              🎞️ TAKE 4 • SESSÃO DE GALA 70MM: CURIOSIDADES #2–#3 + OBRA-PRIMA!
+            </span>
+            <div className="px-3.5 py-1.5 rounded-xl bg-cyan-950/75 border border-cyan-400/50 text-xs font-black text-cyan-100 flex items-center gap-2 shadow">
+              <span>🏆</span>
+              <span>Destaque na Carta: {galaTitle}</span>
+            </div>
+            <TypewriterTextBlock
+              key={`${star.id}_dir_80_${burstNonce}`}
+              lines={[
+                star.curiosities?.[1]
+                  ? `• Curiosidade #2: ${star.curiosities[1]}`
+                  : '• Segunda curiosidade de bastidores liberada!',
+                star.curiosities?.[2]
+                  ? `• Curiosidade #3: ${star.curiosities[2]}`
+                  : '• Terceira curiosidade + selo de Obra-Prima fixada liberados!',
+              ]}
+              speedMs={22}
+              accentHex="#22d3ee"
+              onComplete={handleTyped}
+              className="text-xs sm:text-sm font-medium text-cyan-50/95 leading-relaxed drop-shadow-[0_4px_14px_rgba(0,0,0,0.95)]"
+            />
+          </div>
+        );
+      }
+
+      if (key === 90) {
+        return (
+          <div
+            key={`stage_${key}_${burstNonce}`}
+            className="flex flex-col items-center md:items-start text-center md:text-left gap-3 rare-reveal-enter max-w-md"
+          >
+            <span className="text-[11px] font-mono font-black uppercase tracking-[0.24em] text-amber-300">
+              🌟 TAKE 5 • CÂNONE ABSOLUTO: SHOW DE CARTAZES (OSCAR &amp; FRAMBOESA)!
+            </span>
+            <DirectorJuryTablePreview />
+            <TypewriterTextBlock
+              key={`${star.id}_dir_90_${burstNonce}`}
+              lines={[
+                'Tela escura, cartazes virados pela tela! Clique para virar cada pôster, ler a reação Nota da Crítica × Sua Nota e entregar o Oscar 🏆 e a Framboesa 🫐 (+10 Auras por ★)!',
+              ]}
+              speedMs={22}
+              accentHex="#fbbf24"
+              onComplete={handleTyped}
+              className="text-xs sm:text-sm text-amber-100/95 leading-relaxed"
+            />
+            {onOpenDirectorVerdict && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenDirectorVerdict(star);
+                }}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-300 to-rose-400 hover:brightness-110 text-zinc-950 font-black text-xs shadow-lg cursor-pointer transition-transform active:scale-95"
+              >
+                🃏 Abrir Show de Cartazes em Tela Cheia →
+              </button>
+            )}
+          </div>
+        );
+      }
+    }
 
     if (key === 15) {
       return (
@@ -529,6 +864,36 @@ export default function WalkOfFamePackModal({
     }
 
     if (key === 30) {
+      if (isDubPack) {
+        const curiosLines = [
+          star.curiosities?.[0] ? `• ${star.curiosities[0]}` : null,
+          star.curiosities?.[1] ? `• ${star.curiosities[1]}` : null,
+          star.curiosities?.[2] ? `• ${star.curiosities[2]}` : null,
+        ].filter(Boolean);
+        return (
+          <div
+            key={`stage_${key}_${burstNonce}`}
+            className="flex flex-col items-center md:items-start text-center md:text-left gap-3 rare-reveal-enter max-w-md"
+          >
+            <span className="text-[11px] font-mono font-black uppercase tracking-[0.24em] text-sky-200">
+              🔍 VOCÊ DESBLOQUEOU TODAS AS 3 CURIOSIDADES!
+            </span>
+            <TypewriterTextBlock
+              key={`${star.id}_dub_30_${burstNonce}`}
+              lines={
+                curiosLines.length > 0
+                  ? curiosLines
+                  : ['Todas as 3 curiosidades de dublagem foram liberadas no dossiê!']
+              }
+              speedMs={20}
+              accentHex="#bae6fd"
+              onComplete={handleTyped}
+              className="text-xs sm:text-sm font-medium text-zinc-100 leading-relaxed drop-shadow-[0_4px_14px_rgba(0,0,0,0.95)]"
+            />
+          </div>
+        );
+      }
+
       return (
         <div
           key={`stage_${key}_${burstNonce}`}
@@ -590,6 +955,84 @@ export default function WalkOfFamePackModal({
     }
 
     if (key === 60) {
+      if (isDubPack) {
+        const voiceClips = Array.isArray(star.voiceClips) ? star.voiceClips : [];
+        return (
+          <div
+            key={`stage_${key}_${burstNonce}`}
+            className="flex flex-col items-center md:items-start text-center md:text-left gap-3 rare-reveal-enter max-w-md"
+          >
+            <span className="text-[11px] font-mono font-black uppercase tracking-[0.24em] text-amber-300 flex items-center gap-1.5">
+              <span>🎙️ VOCÊ DESBLOQUEOU AS VOZES MARCANTES!</span>
+              <span className="text-rose-300">♫</span>
+            </span>
+
+            {voiceClips.length > 0 && (
+              <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
+                {voiceClips.map((clip) => {
+                  const isPlaying = playingVoiceClipId === clip.id;
+                  return (
+                    <button
+                      key={clip.id}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTogglePackVoiceClip(clip);
+                      }}
+                      className={`w-full text-left rounded-xl px-3 py-2 border transition-all cursor-pointer flex items-center justify-between gap-2.5 ${
+                        isPlaying
+                          ? 'bg-amber-500/25 border-amber-300 shadow-[0_0_18px_rgba(245,158,11,0.3)]'
+                          : 'bg-zinc-900/90 border-amber-500/40 hover:border-amber-300 hover:bg-zinc-800/90'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                            isPlaying
+                              ? 'bg-amber-400 text-zinc-950'
+                              : 'bg-amber-500/20 text-amber-300 border border-amber-400/40'
+                          }`}
+                        >
+                          {isPlaying ? (
+                            <Square className="w-3 h-3 fill-current" />
+                          ) : (
+                            <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                          )}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-xs font-black text-white truncate">
+                            {clip.character ? `“${clip.title}”` : clip.title}
+                          </p>
+                          {(clip.character || clip.workTitle) && (
+                            <p className="text-[10px] font-mono text-zinc-400 truncate">
+                              {[clip.character, clip.workTitle].filter(Boolean).join(' • ')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <Volume2 className="w-4 h-4 text-amber-300/80 shrink-0" />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <TypewriterTextBlock
+              key={`${star.id}_dub_60_${burstNonce}`}
+              lines={[
+                voiceClips.length > 0
+                  ? `♪ ♫ Mesa de Som & Bordões aberta para ${star.name}! Clique nos áudios acima ou abra o dossiê a qualquer momento.`
+                  : `♪ ♫ Mesa de Som & Bordões liberada no dossiê de ${star.name} ao atingir 60% da carreira!`,
+              ]}
+              speedMs={21}
+              accentHex="#fbbf24"
+              onComplete={handleTyped}
+              className="text-xs sm:text-sm font-medium text-amber-100/95 leading-relaxed drop-shadow-[0_4px_14px_rgba(0,0,0,0.95)]"
+            />
+          </div>
+        );
+      }
+
       return (
         <div
           key={`stage_${key}_${burstNonce}`}
@@ -946,7 +1389,7 @@ export default function WalkOfFamePackModal({
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>
-                    {signatureState === 'writing'
+                    {signatureState === 'writing' && !isDirectorPack
                       ? '✍️ Assinando... (Colar agora)'
                       : isOverlayUpgrade
                       ? 'Colar nova edição agora'
@@ -957,7 +1400,7 @@ export default function WalkOfFamePackModal({
 
               <button
                 type="button"
-                onClick={() => onSaveForLater?.(pack)}
+                onClick={submitSaveForLater}
                 className="px-5 py-2.5 rounded-full text-xs font-bold text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               >
                 Deixar para colar no Álbum

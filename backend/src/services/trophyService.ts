@@ -6,7 +6,10 @@ import {
   TIER_CONFIG,
 } from '../data/trophyDefinitions';
 import { UN_COUNTRIES_195, CountryRarityTier } from '../data/unCountries195';
-import { buildWorldChallengePayload, ChallengeCountryEntry } from './worldChallengeService';
+import {
+  buildWorldChallengePayload,
+  ChallengeCountryEntry,
+} from './worldChallengeService';
 import { buildUserXpStatus, getQuickWalkOfFameXpSummary, UserXpStatus } from './xpService';
 import { getQuickUniverseXpSummary } from './universeCodexService';
 
@@ -60,7 +63,12 @@ export async function seedTrophies(force = true): Promise<void> {
   await ensureTrophyTables();
 
   // Remove troféus legados migrados para páginas próprias (Códice dos Universos e Álbum da Calçada da Fama)
-  await query(`DELETE FROM trophies WHERE category IN ('universos_sagas', 'calcada_da_fama')`);
+  // e quaisquer definições removidas do catálogo oficial (ex.: diretores migrados para o álbum próprio).
+  const activeTrophyIds = TROPHY_DEFINITIONS.map((t) => t.id);
+  await query(
+    `DELETE FROM trophies WHERE category IN ('universos_sagas', 'calcada_da_fama') OR NOT (id = ANY($1::text[]))`,
+    [activeTrophyIds]
+  );
 
   for (const t of TROPHY_DEFINITIONS) {
     await query(
@@ -505,8 +513,19 @@ export function matchCuratedCandidate(
     }
   }
 
-  const patterns = (req.patterns || []).map(cleanMovieTitleStr);
-  const matchesBase = patterns.some((p) => mTitles.some((t) => t === p || t.includes(p)));
+  const patterns = (req.patterns || []).map(cleanMovieTitleStr).filter(Boolean);
+  const matchesBase = patterns.some((p) =>
+    mTitles.some((t) => {
+      if (t === p) return true;
+      // Single/two-char titles ("w", "ma", "if", "it") must match the full normalized title exactly
+      if (p.length <= 2) return false;
+      // Short single-word patterns must match on word boundaries so e.g. "prime" never matches "primeiro"
+      if (p.length <= 6 && !p.includes(' ')) {
+        return ` ${t} `.includes(` ${p} `);
+      }
+      return t.includes(p);
+    })
+  );
   if (!matchesBase) return false;
 
   if (Array.isArray(req.requireAdditionalPatterns) && req.requireAdditionalPatterns.length > 0) {
@@ -6712,10 +6731,30 @@ function parseChecklistColumn(raw: unknown): TrophyChecklistItem[] {
   return [];
 }
 
+/**
+ * Serialização determinística (independente da ordem de chaves) para comparar colunas JSONB do Postgres.
+ */
+function stableJsonStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((v) => stableJsonStringify(v)).join(',')}]`;
+  }
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj).sort();
+  const entries: string[] = [];
+  for (const k of keys) {
+    if (obj[k] === undefined) continue;
+    entries.push(`${JSON.stringify(k)}:${stableJsonStringify(obj[k])}`);
+  }
+  return `{${entries.join(',')}}`;
+}
+
 function hasTrophyStateChanged(
   prev: PreviousTrophyStateMap extends Map<string, infer V> ? V | undefined : never,
   ev: EvaluatedTrophy,
-  checklistJson: string
+  checklistCanonicalJson: string
 ): boolean {
   if (!prev) return true;
   if (prev.is_unlocked !== ev.is_unlocked) return true;
@@ -6725,7 +6764,7 @@ function hasTrophyStateChanged(
   if (prev.progress_percentage !== ev.progress_percentage) return true;
   if (prev.is_new !== ev.is_new) return true;
   if (prev.test_override !== ev.test_override) return true;
-  if (prev.checklistJson !== checklistJson) return true;
+  if (prev.checklistJson !== checklistCanonicalJson) return true;
   return false;
 }
 
@@ -6736,6 +6775,7 @@ export async function evaluateTrophies(
     skipUnlocked?: boolean;
     forceSeed?: boolean;
     recordLastMovie?: { movieId: number; title: string };
+    existingWorldData?: WorldChallengePayload;
   } = {}
 ): Promise<TrophiesSummaryResponse> {
   const dryRun = Boolean(options.dryRun);
@@ -6748,8 +6788,8 @@ export async function evaluateTrophies(
 
   const markNew = options.markNew ?? true;
 
-  // 1. Obtém dados consolidados do desafio mundial e catálogo
-  const worldData = await buildWorldChallengePayload();
+  // 1. Obtém dados consolidados do desafio mundial e catálogo (reaproveita se o chamador já carregou)
+  const worldData = options.existingWorldData || (await buildWorldChallengePayload());
 
   // 2. Lê o estado atual salvo de user_trophies e a última atividade registrada
   const [userTrophiesRes, lastActRes] = await Promise.all([
@@ -6771,7 +6811,7 @@ export async function evaluateTrophies(
       progress_target: Number(r.progress_target) || 1,
       progress_percentage: Number(r.progress_percentage) || 0,
       checklist,
-      checklistJson: JSON.stringify(checklist),
+      checklistJson: stableJsonStringify(checklist),
       is_new: Boolean(r.is_new),
     });
   });
@@ -6862,7 +6902,8 @@ export async function evaluateTrophies(
     }
   }
 
-  // 5. Salva apenas os troféus cujo estado mudou no banco (ignorado em modo dryRun / Filme Fantasma)
+  // 5. Salva apenas os troféus cujo estado mudou no banco em lote único (ignorado em modo dryRun / Filme Fantasma)
+  const changedTrophies: Array<{ ev: EvaluatedTrophy; rawChecklistJson: string }> = [];
   for (const ev of evaluatedTrophies) {
     if (ev.is_new) {
       newlyUnlocked.push(ev);
@@ -6873,18 +6914,38 @@ export async function evaluateTrophies(
     }
 
     const prev = previousStateMap.get(ev.id);
-    const checklistJson = JSON.stringify(ev.checklist);
-    if (!hasTrophyStateChanged(prev, ev, checklistJson)) {
+    const canonicalChecklistJson = stableJsonStringify(ev.checklist);
+    if (!hasTrophyStateChanged(prev, ev, canonicalChecklistJson)) {
       continue;
     }
 
+    changedTrophies.push({ ev, rawChecklistJson: JSON.stringify(ev.checklist) });
+  }
+
+  if (!dryRun && changedTrophies.length > 0) {
     await query(
       `
       INSERT INTO user_trophies (
         trophy_id, is_unlocked, unlocked_at, progress_current, progress_target,
         progress_percentage, checklist, is_new, test_override, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
+      SELECT
+        d.trophy_id, d.is_unlocked, d.unlocked_at, d.progress_current, d.progress_target,
+        d.progress_percentage, d.checklist, d.is_new, d.test_override, CURRENT_TIMESTAMP
+      FROM UNNEST(
+        $1::text[],
+        $2::boolean[],
+        $3::timestamp[],
+        $4::int[],
+        $5::int[],
+        $6::int[],
+        $7::jsonb[],
+        $8::boolean[],
+        $9::boolean[]
+      ) AS d(
+        trophy_id, is_unlocked, unlocked_at, progress_current, progress_target,
+        progress_percentage, checklist, is_new, test_override
+      )
       ON CONFLICT (trophy_id) DO UPDATE SET
         is_unlocked = EXCLUDED.is_unlocked,
         unlocked_at = CASE
@@ -6904,17 +6965,17 @@ export async function evaluateTrophies(
         is_new = EXCLUDED.is_new,
         test_override = EXCLUDED.test_override,
         updated_at = CURRENT_TIMESTAMP;
-    `,
+      `,
       [
-        ev.id,
-        ev.is_unlocked,
-        ev.unlocked_at,
-        ev.progress_current,
-        ev.progress_target,
-        ev.progress_percentage,
-        checklistJson,
-        ev.is_new,
-        ev.test_override,
+        changedTrophies.map((c) => c.ev.id),
+        changedTrophies.map((c) => c.ev.is_unlocked),
+        changedTrophies.map((c) => c.ev.unlocked_at),
+        changedTrophies.map((c) => c.ev.progress_current),
+        changedTrophies.map((c) => c.ev.progress_target),
+        changedTrophies.map((c) => c.ev.progress_percentage),
+        changedTrophies.map((c) => c.rawChecklistJson),
+        changedTrophies.map((c) => c.ev.is_new),
+        changedTrophies.map((c) => c.ev.test_override),
       ]
     );
   }

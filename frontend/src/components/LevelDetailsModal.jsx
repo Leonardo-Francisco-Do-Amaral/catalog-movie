@@ -625,7 +625,7 @@ export default function LevelDetailsModal({
                 </div>
               </div>
 
-              {/* Fonte 6: Calçada da Fama (XP computado ao abrir pacotes / colar figurinhas) */}
+              {/* Fonte 6: Calçada da Fama (XP computado exclusivamente ao abrir pacotes) */}
               <div className="bg-zinc-900/65 border border-amber-500/30 rounded-2xl p-3.5 flex flex-col gap-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-3">
@@ -661,7 +661,7 @@ export default function LevelDetailsModal({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div className="bg-zinc-950/80 border border-zinc-800 rounded-xl px-2.5 py-2 flex flex-col gap-0.5">
                     <div className="flex items-center justify-between text-[10px] font-black">
                       <span className="text-amber-300">🎟️ Marcos Desbloqueados</span>
@@ -682,6 +682,17 @@ export default function LevelDetailsModal({
                       +{(walkOfFameSource.extraStarsXp || 0).toLocaleString('pt-BR')} XP
                     </div>
                     <div className="text-[9px] text-zinc-500 font-mono">(60 XP / ★ a cada 2 filmes extras)</div>
+                  </div>
+
+                  <div className="bg-zinc-950/80 border border-rose-500/30 rounded-xl px-2.5 py-2 flex flex-col gap-0.5">
+                    <div className="flex items-center justify-between text-[10px] font-black">
+                      <span className="text-rose-300">🌟 Aura CAR (Coladas)</span>
+                      <span className="font-mono text-zinc-400">{walkOfFameSource.stuckCount || 0} col.</span>
+                    </div>
+                    <div className="text-xs font-mono font-black text-rose-200">
+                      +{Number(walkOfFameSource.carPoints || 0).toFixed(1)} CAR
+                    </div>
+                    <div className="text-[9px] text-zinc-500 font-mono">(D +0.1 até SS +0.7 • X +0.5)</div>
                   </div>
                 </div>
               </div>

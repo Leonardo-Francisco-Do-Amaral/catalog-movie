@@ -1,15 +1,22 @@
 import React, { useState, useCallback } from 'react';
-import { Lock, Sparkles, CheckCircle2, Star, Layers, Clock, RefreshCw, Users } from 'lucide-react';
+import { Lock, Sparkles, CheckCircle2, Star, Layers, Clock, RefreshCw, Users, Heart } from 'lucide-react';
 import {
   getThemeForTier,
   IMMORTAL_AURA_PRESETS,
+  isDirectorStar,
+  isDubladorStar,
   resolveEffectiveImmortalAura,
+  resolveUnlocksForPct,
   resolveWalkMediaUrl,
   resolveWalkRpgRank,
+  RISING_STAR_RANK_X_TOOLTIP,
+  RISING_STAR_THEME,
 } from '../utils/walkOfFameStickers';
 
 function getRankBadgeClass(rank) {
   switch (rank) {
+    case 'X':
+      return 'bg-gradient-to-r from-sky-500/35 via-indigo-500/35 to-cyan-400/35 text-sky-100 border-sky-300/85 shadow-[0_0_12px_rgba(56,189,248,0.35)]';
     case 'SS':
       return 'bg-gradient-to-r from-amber-400/35 via-yellow-300/25 to-sky-400/35 text-amber-100 border-amber-300/80 shadow-[0_0_10px_rgba(251,191,36,0.3)]';
     case 'S':
@@ -29,8 +36,48 @@ function getRankBadgeClass(rank) {
   }
 }
 
+function RankBadge({
+  rank,
+  isRisingStar = false,
+  prefixRankWord = false,
+  tooltipPlacement = 'down',
+}) {
+  const label = prefixRankWord ? `RANK ${rank}` : rank;
+  const pill = (
+    <span
+      className={`px-1.5 py-0.5 rounded border text-[9px] font-black ${
+        prefixRankWord ? 'uppercase tracking-wider ' : ''
+      }${getRankBadgeClass(rank)} ${isRisingStar ? 'cursor-help inline-flex items-center' : ''}`}
+    >
+      {label}
+    </span>
+  );
+
+  if (!isRisingStar) return pill;
+
+  return (
+    <span className="relative inline-flex group/rank shrink-0">
+      {pill}
+      <span
+        role="tooltip"
+        className={`hidden group-hover/rank:block pointer-events-none absolute left-0 ${
+          tooltipPlacement === 'up' ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
+        } w-44 sm:w-48 z-50 rounded-xl bg-zinc-950/95 border border-sky-400/75 px-2.5 py-2 text-left shadow-2xl`}
+      >
+        <span className="block text-[9.5px] font-black text-sky-200 uppercase tracking-wider">
+          🌟 Estrela em Ascensão (Rank X)
+        </span>
+        <span className="block text-[10px] font-medium text-zinc-200 leading-snug normal-case tracking-normal mt-0.5">
+          Diretor com até 7 filmes na carreira. Figurinha e Show de Cartazes liberam juntos aos 80%; demais seções já liberadas.
+        </span>
+      </span>
+    </span>
+  );
+}
+
 function GroupProtagonistBackFace({ star, members, selectedName, onPick, onCloseFlip }) {
   const useCompactGrid = members.length >= 5;
+  const isCouple = star?.alameda === 'casais';
 
   return (
     <div
@@ -39,9 +86,13 @@ function GroupProtagonistBackFace({ star, members, selectedName, onPick, onClose
     >
       <div className="flex items-center justify-between gap-1.5 border-b border-zinc-800 pb-1.5 shrink-0">
         <div className="flex items-center gap-1.5 min-w-0">
-          <Users className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+          {isCouple ? (
+            <Heart className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+          ) : (
+            <Users className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+          )}
           <span className="text-[10px] font-black uppercase tracking-wider text-amber-200 truncate">
-            Protagonista
+            {isCouple ? 'Par na Carta' : 'Protagonista'}
           </span>
         </div>
         <button
@@ -313,6 +364,129 @@ function FoilEffectOverlays({ effectId, pointer }) {
         </>
       )}
 
+      {/* ===================================================================
+          EFEITOS ESPECIAIS 35MM OFICIAIS DOS DIRETORES (TAKES 1–5 + ASCENSÃO)
+         =================================================================== */}
+      {/* Take 1 (Bronze • 20%): Carretel Kodak em Movimento 35mm */}
+      {effectId === 'film35_scrolling_ember' && (
+        <>
+          <div
+            className="absolute inset-0 pointer-events-none opacity-35"
+            style={{
+              background:
+                'linear-gradient(125deg, rgba(251,191,36,0.35), transparent 45%, rgba(217,119,6,0.45) 88%)',
+            }}
+          />
+          <div
+            className="absolute inset-y-0 left-0 w-16 pointer-events-none sticker-beam-sweep mix-blend-screen"
+            style={{
+              background:
+                'linear-gradient(90deg, transparent, rgba(253,224,71,0.34), transparent)',
+            }}
+          />
+        </>
+      )}
+
+      {/* Take 2 (Prata • 40%): Moviola de Montagem 35mm */}
+      {effectId === 'film35_moviola_cut' && (
+        <>
+          <div
+            className="absolute inset-0 pointer-events-none opacity-25"
+            style={{
+              backgroundImage:
+                'repeating-linear-gradient(0deg, rgba(125,211,252,0.18) 0px 1px, transparent 1px 6px)',
+            }}
+          />
+          <div
+            className="absolute -inset-y-8 w-20 pointer-events-none sticker-sheen-bar"
+            style={{
+              background:
+                'linear-gradient(90deg, transparent, rgba(186,230,253,0.75), rgba(56,189,248,0.4), transparent)',
+            }}
+          />
+        </>
+      )}
+
+      {/* Take 3 (Ouro • 60%): Carretel Gala Dourado 35mm */}
+      {effectId === 'film35_gala_confetti' && (
+        <>
+          <div
+            className="absolute inset-0 pointer-events-none opacity-32"
+            style={{
+              background:
+                'radial-gradient(circle at 50% 85%, rgba(250,204,21,0.5), transparent 65%)',
+            }}
+          />
+          {BRONZE_SPARKS.map((sp, idx) => (
+            <span
+              key={idx}
+              className="absolute bottom-5 rounded-full pointer-events-none"
+              style={{
+                left: sp.left,
+                width: `${sp.size}px`,
+                height: `${sp.size}px`,
+                backgroundColor: '#fef08a',
+                boxShadow: '0 0 8px 2px rgba(250,204,21,0.85)',
+                animation: `stickerFloatUp ${sp.dur} ease-out ${sp.delay} infinite`,
+              }}
+            />
+          ))}
+        </>
+      )}
+
+      {/* Take 4 (Mítico • 80%): Tapete Vermelho Paparazzi 35mm */}
+      {effectId === 'film35_premiere_flash' && (
+        <>
+          <div
+            className="absolute inset-0 pointer-events-none opacity-35"
+            style={{
+              background:
+                'radial-gradient(circle at 80% 18%, rgba(251,113,133,0.48), transparent 55%), radial-gradient(circle at 20% 82%, rgba(250,204,21,0.38), transparent 55%)',
+            }}
+          />
+          <div
+            className="absolute inset-0 pointer-events-none bg-white sticker-flash-burst mix-blend-screen"
+          />
+        </>
+      )}
+
+      {/* Take 5 (Diamante • 90%+): Celuloide Platina Solar 35mm */}
+      {effectId === 'film35_celestial_reel' && (
+        <>
+          <div
+            className="absolute inset-[-40%] pointer-events-none opacity-38 mix-blend-screen sticker-conic-spin"
+            style={{
+              background:
+                'conic-gradient(from 0deg, transparent 0deg, rgba(254,240,138,0.55) 45deg, transparent 90deg, rgba(56,189,248,0.5) 180deg, transparent 225deg, rgba(255,255,255,0.55) 310deg, transparent 360deg)',
+            }}
+          />
+          {PLATINA_GLINTS.map((sp, idx) => (
+            <FourPointGlint key={idx} {...sp} color="#fef08a" />
+          ))}
+        </>
+      )}
+
+      {/* Estrela em Ascensão (≤ 7 filmes): Visor IMAX Titânio & Safira 35mm */}
+      {effectId === 'rising_titanium_hud' && (
+        <>
+          <div
+            className="absolute -inset-y-8 w-20 pointer-events-none sticker-sheen-bar"
+            style={{
+              background:
+                'linear-gradient(90deg, transparent, rgba(186,230,253,0.8), rgba(129,140,248,0.4), transparent)',
+            }}
+          />
+          <span className="absolute top-8 left-2.5 px-1.5 py-0.5 rounded bg-zinc-950/75 border border-sky-300/60 text-[7.5px] font-mono font-black tracking-wider text-sky-200 flex items-center gap-1 pointer-events-none z-[7]">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+            REC
+          </span>
+          <div className="absolute top-8 left-2 w-3.5 h-3.5 border-t-2 border-l-2 border-sky-300/90 pointer-events-none" />
+          <div className="absolute top-8 right-2 w-3.5 h-3.5 border-t-2 border-r-2 border-sky-300/90 pointer-events-none" />
+          <div className="absolute bottom-14 left-2 w-3.5 h-3.5 border-b-2 border-l-2 border-indigo-300/90 pointer-events-none" />
+          <div className="absolute bottom-14 right-2 w-3.5 h-3.5 border-b-2 border-r-2 border-indigo-300/90 pointer-events-none" />
+        </>
+      )}
+
       {/* Reflexo especular do cursor */}
       <div
         className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 mix-blend-overlay"
@@ -324,7 +498,276 @@ function FoilEffectOverlays({ effectId, pointer }) {
   );
 }
 
-export default function WalkOfFameStickerCard({
+function Director35mmRails({
+  variant = 'classic',
+  trackBg = 'rgba(9, 9, 11, 0.78)',
+  holeColor = 'rgba(255, 255, 255, 0.35)',
+  compact = false,
+}) {
+  const isScroll = variant === 'reel_scroll';
+  const isLocked = variant === 'locked';
+  const isUnlockedDashed = variant === 'unlocked_dashed';
+  const trackWidth = compact ? 'w-[8px]' : 'w-[9px]';
+
+  if (isLocked || isUnlockedDashed) {
+    const holeBg = isUnlockedDashed ? 'rgba(251, 191, 36, 0.28)' : 'rgba(113, 113, 122, 0.25)';
+    const railBg = isUnlockedDashed ? 'rgba(245, 158, 11, 0.1)' : 'rgba(9, 9, 11, 0.55)';
+    return (
+      <>
+        {['left', 'right'].map((side) => (
+          <div
+            key={side}
+            aria-hidden="true"
+            className={`absolute inset-y-2 ${side === 'left' ? 'left-1 rounded-l' : 'right-1 rounded-r'} ${trackWidth} pointer-events-none z-[4] flex flex-col justify-between py-1.5 items-center`}
+            style={{ backgroundColor: railBg }}
+          >
+            {Array.from({ length: 12 }).map((_, i) => (
+              <span
+                key={i}
+                className="w-[5px] h-[7px] rounded-[1.5px] border"
+                style={{
+                  backgroundColor: holeBg,
+                  borderColor: isUnlockedDashed ? 'rgba(251,191,36,0.45)' : 'rgba(161,161,170,0.28)',
+                }}
+              />
+            ))}
+          </div>
+        ))}
+      </>
+    );
+  }
+
+  return (
+    <>
+      {['left', 'right'].map((side) => (
+        <div
+          key={side}
+          aria-hidden="true"
+          className={`absolute inset-y-[6px] ${side === 'left' ? 'left-[1.5px]' : 'right-[1.5px]'} w-[9px] rounded-sm pointer-events-none z-[8] overflow-hidden flex flex-col items-center`}
+          style={{
+            backgroundColor: trackBg,
+            boxShadow: 'inset 0 0 4px rgba(0,0,0,0.85)',
+          }}
+        >
+          {isScroll ? (
+            <div
+              className="w-full h-full film35-reel-scroll"
+              style={{
+                backgroundImage: `repeating-linear-gradient(to bottom, transparent 0px 4px, ${holeColor} 4px 11px, transparent 11px 16px)`,
+                backgroundSize: '5px 16px',
+                backgroundPositionX: 'center',
+                backgroundRepeat: 'repeat-y',
+              }}
+            />
+          ) : (
+            <div className="w-full h-full flex flex-col justify-between py-1 items-center">
+              {Array.from({ length: 13 }).map((_, i) => (
+                <span
+                  key={i}
+                  className="w-[5px] h-[7px] rounded-[1.5px] border"
+                  style={{
+                    backgroundColor: holeColor,
+                    borderColor: 'rgba(255,255,255,0.28)',
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </>
+  );
+}
+
+const SOUNDWAVE_BAR_WIDTHS = [38, 82, 54, 95, 44, 76, 98, 60, 88, 48, 72];
+
+function DubladorSoundwaveRails({
+  variant = 'studio',
+  accentHex = '#f59e0b',
+  compact = false,
+}) {
+  const isLocked = variant === 'locked';
+  const isUnlockedDashed = variant === 'unlocked_dashed';
+  const railWidth = compact ? 'w-[8px]' : 'w-[9px]';
+  const trackBg = isLocked
+    ? 'rgba(9, 9, 11, 0.55)'
+    : isUnlockedDashed
+    ? 'rgba(245, 158, 11, 0.12)'
+    : 'rgba(9, 9, 11, 0.82)';
+
+  return (
+    <>
+      {['left', 'right'].map((side) => {
+        const isLeft = side === 'left';
+        return (
+          <div
+            key={side}
+            aria-hidden="true"
+            className={`absolute ${
+              isLocked || isUnlockedDashed ? 'inset-y-2' : 'inset-y-[6px]'
+            } ${
+              isLocked || isUnlockedDashed
+                ? isLeft
+                  ? 'left-1 rounded-l'
+                  : 'right-1 rounded-r'
+                : isLeft
+                ? 'left-[1.5px] rounded-sm'
+                : 'right-[1.5px] rounded-sm'
+            } ${railWidth} pointer-events-none ${
+              isLocked || isUnlockedDashed ? 'z-[4]' : 'z-[8]'
+            } overflow-hidden flex flex-col justify-between py-1 px-[1px] items-center`}
+            style={{
+              backgroundColor: trackBg,
+              boxShadow: isLocked ? undefined : 'inset 0 0 4px rgba(0,0,0,0.85)',
+            }}
+          >
+            <span
+              className="text-[7px] leading-none font-black select-none shrink-0"
+              style={{
+                color: isLocked ? 'rgba(161, 161, 170, 0.45)' : accentHex,
+              }}
+            >
+              {isLeft ? '♪' : '♫'}
+            </span>
+            <div
+              className={`w-full flex-1 flex flex-col justify-between py-1 ${
+                isLeft ? 'items-start' : 'items-end'
+              }`}
+            >
+              {SOUNDWAVE_BAR_WIDTHS.map((w, idx) => {
+                const mirroredW = isLeft
+                  ? w
+                  : SOUNDWAVE_BAR_WIDTHS[SOUNDWAVE_BAR_WIDTHS.length - 1 - idx];
+                const isPeak = idx === 3 || idx === 6;
+                return (
+                  <span
+                    key={idx}
+                    className="h-[3px] rounded-full transition-all"
+                    style={{
+                      width: `${mirroredW}%`,
+                      backgroundColor: isLocked
+                        ? 'rgba(161, 161, 170, 0.28)'
+                        : isUnlockedDashed
+                        ? isPeak
+                          ? 'rgba(251, 191, 36, 0.72)'
+                          : 'rgba(251, 191, 36, 0.36)'
+                        : isPeak
+                        ? '#fb7185'
+                        : accentHex,
+                      opacity: isLocked
+                        ? 0.5
+                        : isUnlockedDashed
+                        ? 0.75
+                        : idx % 2 === 0
+                        ? 0.92
+                        : 0.65,
+                      boxShadow:
+                        !isLocked && !isUnlockedDashed && isPeak
+                          ? '0 0 5px rgba(251, 113, 133, 0.7)'
+                          : undefined,
+                    }}
+                  />
+                );
+              })}
+            </div>
+            <span
+              className="text-[7px] leading-none font-black select-none shrink-0"
+              style={{
+                color: isLocked ? 'rgba(161, 161, 170, 0.45)' : '#fb7185',
+              }}
+            >
+              {isLeft ? '♫' : '♪'}
+            </span>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+/**
+ * Motivo visual de dublagem: notas musicais e arcos sonoros sutis sem encobrir o rosto.
+ */
+function DubladorMusicalNotesOverlay({ accentHex = '#fbbf24', subtle = false }) {
+  return (
+    <div
+      aria-hidden="true"
+      className={`pointer-events-none absolute inset-0 overflow-hidden z-[6] select-none ${
+        subtle ? 'opacity-45' : 'opacity-90'
+      }`}
+    >
+      {/* Linha ondulada sutil de estúdio no rodapé */}
+      <svg
+        viewBox="0 0 200 44"
+        preserveAspectRatio="none"
+        className="absolute bottom-14 left-0 right-0 w-full h-11 opacity-55"
+      >
+        <path
+          d="M0,28 Q25,10 50,24 T100,20 T150,26 T200,16"
+          fill="none"
+          stroke={accentHex}
+          strokeWidth="1.25"
+          strokeDasharray="3 3"
+        />
+        <path
+          d="M0,34 Q30,22 60,32 T120,28 T180,33 T200,26"
+          fill="none"
+          stroke="#fb7185"
+          strokeWidth="1"
+          strokeOpacity="0.7"
+        />
+      </svg>
+
+      {/* Notas musicais flutuantes nas margens inferiores e laterais */}
+      <span
+        className="absolute bottom-[74px] left-2.5 text-sm font-black -rotate-12"
+        style={{
+          color: accentHex,
+          textShadow: `0 0 10px ${accentHex}, 0 2px 6px rgba(0,0,0,0.95)`,
+        }}
+      >
+        ♪
+      </span>
+      <span
+        className="absolute bottom-[98px] left-4 text-[11px] font-black rotate-6 text-rose-300/90"
+        style={{
+          textShadow: '0 0 8px rgba(251,113,133,0.75), 0 2px 6px rgba(0,0,0,0.95)',
+        }}
+      >
+        ♫
+      </span>
+      <span
+        className="absolute bottom-[78px] right-2.5 text-base font-black rotate-12"
+        style={{
+          color: '#fde68a',
+          textShadow: `0 0 12px ${accentHex}, 0 2px 6px rgba(0,0,0,0.95)`,
+        }}
+      >
+        ♬
+      </span>
+      <span
+        className="absolute bottom-[106px] right-4 text-xs font-black -rotate-6"
+        style={{
+          color: accentHex,
+          textShadow: `0 0 10px ${accentHex}, 0 2px 6px rgba(0,0,0,0.95)`,
+        }}
+      >
+        ♪
+      </span>
+      <span
+        className="absolute top-11 right-2.5 text-[11px] font-black rotate-12 opacity-80"
+        style={{
+          color: '#fde68a',
+          textShadow: `0 0 8px ${accentHex}, 0 2px 6px rgba(0,0,0,0.95)`,
+        }}
+      >
+        ♫
+      </span>
+    </div>
+  );
+}
+
+const WalkOfFameStickerCard = React.memo(function WalkOfFameStickerCard({
   star,
   isStuck = false,
   justStuck = false,
@@ -339,26 +782,35 @@ export default function WalkOfFameStickerCard({
   onUnstick,
   onSelect,
   onOpenTimeline,
+  onOpenDirectorVerdict,
   onSelectProtagonist,
 }) {
   const [pointer, setPointer] = useState({ x: 50, y: 35, rx: 0, ry: 0, active: false });
   const [isFlipped, setIsFlipped] = useState(false);
 
+  const isDirectorCard = isDirectorStar(star);
+  const isDubladorCard = !isDirectorCard && isDubladorStar(star);
+  const hasSideRails = isDirectorCard || isDubladorCard;
+  const isNewEraVisionary = Boolean(star.isNewEraVisionary);
+  const unlockFloor = isDirectorCard ? (isNewEraVisionary ? 80 : 20) : 15;
   const effectivePct = overridePct !== null ? overridePct : Number(star.percentage || 0);
-  const unlocks = star.unlocks || {
-    quoteUnlocked: effectivePct >= 15,
-    curiosity1Unlocked: effectivePct >= 30,
-    skinsUnlocked: effectivePct >= 45,
-    curiosities23Unlocked: effectivePct >= 60,
-    timelineUnlocked: effectivePct >= 75,
-    immortalUnlocked: effectivePct >= 90,
-  };
+  const unlocks =
+    star.unlocks ||
+    resolveUnlocksForPct(effectivePct, isDirectorCard, isNewEraVisionary, isDubladorCard);
 
   const isUnlocked = Boolean(
-    star.isStickerUnlocked || effectivePct >= 15 || forceUnlocked || overrideTierKey
+    overrideTierKey ||
+      forceUnlocked ||
+      (overridePct !== null
+        ? effectivePct >= unlockFloor
+        : star.isStickerUnlocked || effectivePct >= unlockFloor)
   );
   const hasPendingOverlayUpgrade = Boolean(
-    !overrideTierKey && isStuck && star.hasRarityUpgradeToStick && star.stuckTier
+    !overrideTierKey &&
+      !(isDirectorCard && isNewEraVisionary) &&
+      isStuck &&
+      star.hasRarityUpgradeToStick &&
+      star.stuckTier
   );
   const displayedTierKey = overrideTierKey
     ? overrideTierKey
@@ -367,13 +819,18 @@ export default function WalkOfFameStickerCard({
     : (isStuck && star.stuckTier) || star.statusTierKey || 'bronze';
 
   const upgradeTargetTheme = hasPendingOverlayUpgrade
-    ? getThemeForTier(star.statusTierKey)
+    ? getThemeForTier(star.statusTierKey, isDirectorCard)
     : null;
   const underlayTierKey =
-    overrideUnderlayTierKey || (!hasPendingOverlayUpgrade ? star.previousStuckTier : null);
-  const underlayTheme = underlayTierKey ? getThemeForTier(underlayTierKey) : null;
+    isDirectorCard && isNewEraVisionary
+      ? null
+      : overrideUnderlayTierKey || (!hasPendingOverlayUpgrade ? star.previousStuckTier : null);
+  const underlayTheme = underlayTierKey ? getThemeForTier(underlayTierKey, isDirectorCard) : null;
 
-  const visualTheme = getThemeForTier(displayedTierKey);
+  const visualTheme =
+    isDirectorCard && isNewEraVisionary
+      ? RISING_STAR_THEME
+      : getThemeForTier(displayedTierKey, isDirectorCard);
   const extraStars = overrideExtraStars !== null ? overrideExtraStars : Number(star.extraStars || 0);
   const numLabel = `#${String(star.albumNumber).padStart(3, '0')}`;
   const subtleTilt = demoBadge || justStuck ? 0 : star.albumNumber % 2 === 0 ? 0.7 : -0.7;
@@ -381,24 +838,103 @@ export default function WalkOfFameStickerCard({
   const auraPreset = unlocks.immortalUnlocked
     ? resolveEffectiveImmortalAura(star.immortalAura || 'prism', extraStars)
     : IMMORTAL_AURA_PRESETS.prism;
-  const activeFrameBackground = unlocks.immortalUnlocked
+  const useCustomShowcaseFrame = isDirectorCard && isNewEraVisionary;
+  const activeFrameBackground = useCustomShowcaseFrame
+    ? visualTheme.frameBackground
+    : unlocks.immortalUnlocked
     ? auraPreset.frameBg
     : visualTheme.frameBackground;
-  const activeBoxShadow = unlocks.immortalUnlocked ? auraPreset.shadow : visualTheme.boxShadow;
-  const signatureFilm = unlocks.immortalUnlocked ? star.signatureFilm : null;
+  const activeBoxShadow = useCustomShowcaseFrame
+    ? visualTheme.boxShadow
+    : unlocks.immortalUnlocked
+    ? auraPreset.shadow
+    : visualTheme.boxShadow;
+  const signatureFilm =
+    unlocks.galaUnlocked || unlocks.immortalUnlocked ? star.signatureFilm : null;
 
   const displayPhotoUrl = resolveWalkMediaUrl(
     unlocks.skinsUnlocked && star.activePhotoUrl ? star.activePhotoUrl : star.photoUrl
   );
-  const rpgRank = star.rpgRank || resolveWalkRpgRank(effectivePct, extraStars);
+  const rpgRank =
+    star.rpgRank ||
+    resolveWalkRpgRank(effectivePct, extraStars, isDirectorCard, isNewEraVisionary);
   const rpgClassLabel = star.rpgClassLabel || star.rpgTitle || star.tagline;
   const groupMembers = Array.isArray(star.groupMembers) ? star.groupMembers : [];
   const isGroupSelectable = Boolean(
-    star.kind === 'group' && isUnlocked && groupMembers.length > 1 && onSelectProtagonist && !demoBadge
+    isUnlocked && groupMembers.length > 1 && onSelectProtagonist && !demoBadge
   );
   const hasAvgRating = typeof star.avgUserRating === 'number';
   const filmCountLabel = `${star.watchedCount} ${star.watchedCount === 1 ? 'filme' : 'filmes'}`;
   const isLongName = String(star.name || '').length > 22;
+  const rawNatCodes =
+    Array.isArray(star.nationalityCodes) && star.nationalityCodes.length > 0
+      ? star.nationalityCodes
+      : star.nationalityCode
+      ? [star.nationalityCode]
+      : [];
+  const natCodes = rawNatCodes.filter(Boolean).slice(0, 3);
+  const natLabel = star.nationalityLabel || '';
+  const flagBadge =
+    natCodes.length > 0 ? (
+      <span
+        className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-zinc-950/90 border border-white/20 shadow-sm shrink-0"
+        title={natLabel ? `Nacionalidade: ${natLabel}` : 'Nacionalidade'}
+      >
+        {natCodes.map((code) => (
+          <img
+            key={code}
+            src={`https://flagcdn.com/w40/${String(code).toLowerCase()}.png`}
+            alt={code}
+            className="w-3.5 h-2.5 object-cover rounded-[2px]"
+          />
+        ))}
+      </span>
+    ) : null;
+  const isCoupleCard = star.alameda === 'casais';
+  const kindBadgeConfig =
+    isDirectorCard && isNewEraVisionary
+      ? {
+          icon: '🌟',
+          title: 'Visionário da Nova Era (Diretor & Roteirista • Até 7 filmes)',
+          className: 'bg-cyan-950/90 border-amber-300/80 text-amber-100',
+        }
+      : isDirectorCard
+      ? {
+          icon: '🎬✍️',
+          title: 'Diretor & Roteirista',
+          className: 'bg-indigo-950/90 border-indigo-400/70 text-indigo-100',
+        }
+      : star.kind === 'dublador'
+      ? {
+          icon: '🎙️',
+          title: 'Dublador(a) — Estúdio de Voz & Dublagem',
+          className: 'bg-cyan-950/90 border-cyan-400/55',
+        }
+      : isCoupleCard
+      ? {
+          icon: '💑',
+          title: 'Casal Icônico',
+          className: 'bg-rose-950/90 border-rose-400/55',
+        }
+      : star.kind === 'group'
+      ? {
+          icon: '👥',
+          title: 'Elenco & Dupla',
+          className: 'bg-purple-950/90 border-purple-400/55',
+        }
+      : {
+          icon: '🎭',
+          title: 'Ator / Atriz',
+          className: 'bg-amber-950/85 border-amber-400/45',
+        };
+  const kindBadge = isDirectorCard ? null : (
+    <span
+      className={`inline-flex items-center justify-center px-1 py-0.5 rounded border text-[9px] leading-none shadow-sm shrink-0 ${kindBadgeConfig.className}`}
+      title={kindBadgeConfig.title}
+    >
+      {kindBadgeConfig.icon}
+    </span>
+  );
   const oscarWins = Number(star.oscarWins || 0);
   const oscarNominations = Number(star.oscarNominations || 0);
   const isOscarWinner = oscarWins > 0;
@@ -423,6 +959,8 @@ export default function WalkOfFameStickerCard({
       </span>
     ) : null;
 
+  const directorRoleBadge = null;
+
   const handleMouseMove = useCallback(
     (e) => {
       const rect = e.currentTarget.getBoundingClientRect();
@@ -445,23 +983,34 @@ export default function WalkOfFameStickerCard({
   // ESTADO 1 (0% e 1%–14%): BLOQUEADA IGUAL ÁLBUM
   // =========================================================================
   if (!isUnlocked) {
-    const missingTo15 = star.nextMilestone?.remainingFilms || 3;
+    const missingTo15 =
+      star.nextMilestone?.remainingFilms ||
+      Math.max(1, Math.round(((unlockFloor - effectivePct) / 100) * (star.ceiling || 6)));
     return (
       <button
         type="button"
         onClick={() => onSelect?.(star)}
-        className="group relative aspect-[3/4] rounded-2xl border-2 border-dashed border-zinc-700/80 bg-zinc-900/55 hover:bg-zinc-900/85 hover:border-zinc-500 p-3 flex flex-col justify-between text-center transition-all cursor-pointer"
+        className={`group relative aspect-[3/4] rounded-2xl border-2 border-dashed border-zinc-700/80 bg-zinc-900/55 hover:bg-zinc-900/85 hover:border-zinc-500 ${
+          hasSideRails ? 'px-4 py-3' : 'p-3'
+        } flex flex-col justify-between text-center transition-all cursor-pointer`}
       >
-        <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400">
-          <div className="flex items-center gap-1">
+        {isDirectorCard && <Director35mmRails variant="locked" compact />}
+        {isDubladorCard && <DubladorSoundwaveRails variant="locked" compact />}
+        <div className="flex flex-wrap items-center justify-between gap-1 text-[10px] font-mono text-zinc-400">
+          <div className="flex items-center gap-1 shrink-0">
             <span className="px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 font-black">
               {numLabel}
             </span>
-            <span className={`px-1.5 py-0.5 rounded border text-[9px] font-black ${getRankBadgeClass(rpgRank)}`}>
-              {rpgRank}
-            </span>
+            {flagBadge}
+            {kindBadge}
+            <RankBadge
+              rank={rpgRank}
+              isRisingStar={isDirectorCard && isNewEraVisionary}
+              prefixRankWord={isDirectorCard && isNewEraVisionary}
+              tooltipPlacement="down"
+            />
           </div>
-          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-950/90 border border-zinc-800 text-zinc-400 font-bold">
+          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-950/90 border border-zinc-800 text-zinc-400 font-bold ml-auto">
             <Lock className="w-2.5 h-2.5" /> {effectivePct}%
           </span>
         </div>
@@ -480,15 +1029,20 @@ export default function WalkOfFameStickerCard({
               {star.name}
             </p>
             {rpgClassLabel && (
-              <p className="text-[9px] text-amber-300/75 font-semibold truncate mt-0.5">
+              <p className="text-[9.5px] text-amber-300/80 font-semibold leading-tight break-words mt-0.5">
                 {rpgClassLabel}
               </p>
             )}
-            {oscarBadge && <div className="mt-1 flex justify-center">{oscarBadge}</div>}
+            {(oscarBadge || directorRoleBadge) && (
+              <div className="mt-1 flex flex-col items-center gap-1">
+                {oscarBadge}
+                {directorRoleBadge}
+              </div>
+            )}
             <div className="w-full h-1.5 rounded-full bg-zinc-800 mt-2 overflow-hidden">
               <div
                 className="h-full rounded-full bg-amber-500/70 transition-all"
-                style={{ width: `${Math.min(100, Math.round((effectivePct / 15) * 100))}%` }}
+                style={{ width: `${Math.min(100, Math.round((effectivePct / unlockFloor) * 100))}%` }}
               />
             </div>
             <p className="text-[10px] text-zinc-400 font-mono mt-1 flex items-center justify-center gap-1.5">
@@ -497,7 +1051,12 @@ export default function WalkOfFameStickerCard({
             </p>
             <p className="text-[10px] text-zinc-500 mt-0.5 leading-snug">
               Falta{missingTo15 === 1 ? '' : 'm'}{' '}
-              <strong className="text-amber-400">{missingTo15}</strong> p/ 15% + Frase
+              <strong className="text-amber-400">{missingTo15}</strong> p/ {unlockFloor}% +{' '}
+              {isDirectorCard
+                ? isNewEraVisionary
+                  ? 'Liberar Figurinha'
+                  : 'Take 1'
+                : 'Frase'}
             </p>
           </div>
         </div>
@@ -521,18 +1080,32 @@ export default function WalkOfFameStickerCard({
             role="button"
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && onSelect?.(star)}
-            className="sticker-card-face sticker-card-face-front group rounded-2xl border-2 border-dashed border-amber-400/75 bg-gradient-to-b from-amber-500/10 via-zinc-900/90 to-zinc-950 p-3 flex flex-col justify-between text-center cursor-pointer shadow-[0_0_24px_rgba(245,158,11,0.16)] hover:border-amber-300 transition-all"
+            className={`sticker-card-face sticker-card-face-front group rounded-2xl border-2 border-dashed border-amber-400/75 bg-gradient-to-b from-amber-500/10 via-zinc-900/90 to-zinc-950 ${
+              hasSideRails ? 'px-4 py-3' : 'p-3'
+            } flex flex-col justify-between text-center cursor-pointer shadow-[0_0_24px_rgba(245,158,11,0.16)] hover:border-amber-300 transition-all`}
           >
-            <div className="flex items-center justify-between gap-1 text-[10px] font-mono">
-              <div className="flex items-center gap-1">
+            {isDirectorCard && <Director35mmRails variant="unlocked_dashed" compact />}
+            {isDubladorCard && (
+              <>
+                <DubladorSoundwaveRails variant="unlocked_dashed" compact />
+                <DubladorMusicalNotesOverlay accentHex="#fbbf24" subtle />
+              </>
+            )}
+            <div className="flex flex-wrap items-start justify-between gap-1 text-[10px] font-mono">
+              <div className="flex items-center gap-1 shrink-0">
                 <span className="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-400/40 text-amber-300 font-black">
                   {numLabel}
                 </span>
-                <span className={`px-1.5 py-0.5 rounded border text-[9px] font-black ${getRankBadgeClass(rpgRank)}`}>
-                  {rpgRank}
-                </span>
+                {flagBadge}
+                {kindBadge}
+                <RankBadge
+                  rank={rpgRank}
+                  isRisingStar={isDirectorCard && isNewEraVisionary}
+                  prefixRankWord={isDirectorCard && isNewEraVisionary}
+                  tooltipPlacement="down"
+                />
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center justify-end gap-1 ml-auto shrink-0">
                 {isGroupSelectable && (
                   <button
                     type="button"
@@ -575,10 +1148,15 @@ export default function WalkOfFameStickerCard({
                 >
                   {star.name}
                 </p>
-                <p className="text-[10px] text-amber-300/90 font-semibold truncate mt-0.5">
+                <p className="text-[9.5px] text-amber-300/95 font-semibold leading-tight break-words mt-0.5">
                   {rpgClassLabel}
                 </p>
-                {oscarBadge && <div className="mt-1 flex justify-center">{oscarBadge}</div>}
+                {(oscarBadge || directorRoleBadge) && (
+                  <div className="mt-1 flex flex-col items-center gap-1">
+                    {oscarBadge}
+                    {directorRoleBadge}
+                  </div>
+                )}
                 <p className="text-[10px] font-mono font-bold mt-0.5 flex items-center justify-center gap-1.5" style={{ color: visualTheme.accentHex }}>
                   <span>{filmCountLabel} • {effectivePct}%</span>
                   {hasAvgRating && <span className="text-amber-300">★{star.avgUserRating.toFixed(1)}</span>}
@@ -634,7 +1212,9 @@ export default function WalkOfFameStickerCard({
       {underlayTheme && (
         <div
           aria-hidden="true"
-          className="absolute inset-0 rounded-2xl p-[5px] pointer-events-none transition-all duration-500"
+          className={`absolute inset-0 rounded-2xl pointer-events-none transition-all duration-500 ${
+            hasSideRails ? 'px-[11px] py-[5px]' : 'p-[5px]'
+          }`}
           style={{
             background: underlayTheme.frameBackground,
             transform: 'translate(-4px, 4px) rotate(-3deg) scale(0.985)',
@@ -675,20 +1255,34 @@ export default function WalkOfFameStickerCard({
               role="button"
               tabIndex={0}
               onKeyDown={(e) => e.key === 'Enter' && onSelect?.(star)}
-              className={`sticker-card-face sticker-card-face-front group w-full h-full rounded-2xl cursor-pointer sticker-holo-border p-[6px] ${
-                justStuck ? 'ring-4 ring-amber-300/80' : ''
-              }`}
+              className={`sticker-card-face sticker-card-face-front group relative w-full h-full rounded-2xl cursor-pointer sticker-holo-border ${
+                hasSideRails ? 'px-[12px] py-[6px]' : 'p-[6px]'
+              } ${justStuck ? 'ring-4 ring-amber-300/80' : ''}`}
               style={{
                 background: activeFrameBackground,
                 boxShadow: activeBoxShadow,
               }}
             >
+            {isDirectorCard && (
+              <Director35mmRails
+                variant={visualTheme.film35mmStyle || 'classic'}
+                trackBg={visualTheme.filmTrackBg || 'rgba(9, 9, 11, 0.78)'}
+                holeColor={visualTheme.filmHoleColor || 'rgba(255, 255, 255, 0.42)'}
+              />
+            )}
+            {isDubladorCard && (
+              <DubladorSoundwaveRails
+                variant="studio"
+                accentHex={visualTheme.accentHex || '#f59e0b'}
+              />
+            )}
             <div
-              className="relative w-full h-full rounded-[11px] overflow-hidden bg-zinc-950 flex flex-col border"
+              className="relative w-full h-full rounded-[10px] overflow-hidden bg-zinc-950 flex flex-col border"
               style={{
-                borderColor: unlocks.immortalUnlocked
-                  ? `${auraPreset.accent}aa`
-                  : visualTheme.innerTrimColor,
+                borderColor:
+                  unlocks.immortalUnlocked && !useCustomShowcaseFrame
+                    ? `${auraPreset.accent}aa`
+                    : visualTheme.innerTrimColor,
               }}
             >
               {displayPhotoUrl ? (
@@ -705,6 +1299,28 @@ export default function WalkOfFameStickerCard({
 
               <FoilEffectOverlays effectId={visualTheme.metallicType} pointer={pointer} />
 
+              {isDubladorCard && (
+                <>
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-x-0 bottom-0 h-28 pointer-events-none opacity-35"
+                    style={{
+                      backgroundImage:
+                        'repeating-linear-gradient(90deg, rgba(251,191,36,0.22) 0px, rgba(251,191,36,0.22) 2px, transparent 2px, transparent 7px)',
+                      maskImage: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)',
+                      WebkitMaskImage: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)',
+                    }}
+                  />
+                  <DubladorMusicalNotesOverlay
+                    accentHex={
+                      unlocks.immortalUnlocked && !useCustomShowcaseFrame
+                        ? auraPreset.accent
+                        : visualTheme.accentHex || '#fbbf24'
+                    }
+                  />
+                </>
+              )}
+
               {/* Barra de alisamento do Rolo Adesivo */}
               {justStuck && (
                 <div
@@ -718,24 +1334,26 @@ export default function WalkOfFameStickerCard({
 
               <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/95 via-black/25 to-black/35" />
 
-              {/* Topo: Número + Homenagem + Bônus ★ + Linha do Tempo (75%+) */}
-              <div className="absolute top-2 left-2 right-2 flex items-center justify-between gap-1 z-10">
-                <div className="flex items-center gap-1 min-w-0">
+              {/* Topo: Número + Homenagem + Bônus ★ + Linha do Tempo / Ações */}
+              <div className="absolute top-2 left-2 right-2 flex flex-wrap items-start justify-between gap-1 z-10">
+                <div className="flex items-center gap-1 shrink-0">
                   {demoBadge ? (
                     <span
-                      className="px-2 py-0.5 rounded font-mono text-[9px] font-black uppercase tracking-wider border shadow truncate max-w-[105px]"
+                      className="px-1.5 py-0.5 rounded font-mono text-[8.5px] leading-none font-black uppercase tracking-wider border shadow truncate max-w-[100px]"
                       style={visualTheme.badgeStyle}
                     >
                       {demoBadge}
                     </span>
                   ) : (
-                    <span className="px-1.5 py-0.5 rounded bg-black/80 border border-white/25 font-mono text-[10px] font-black text-amber-300">
+                    <span className="px-1.5 py-0.5 rounded bg-black/80 border border-white/25 font-mono text-[9.5px] leading-none font-black text-amber-300">
                       {numLabel}
                     </span>
                   )}
+                  {flagBadge}
+                  {kindBadge}
                   {star.isDeceased && (
                     <span
-                      className="px-1 py-0.5 rounded bg-zinc-950/85 border border-amber-400/40 text-[9px]"
+                      className="px-1 py-0.5 rounded bg-zinc-950/85 border border-amber-400/40 text-[9px] leading-none shrink-0"
                       title="Em Memória"
                     >
                       🕊️
@@ -743,10 +1361,10 @@ export default function WalkOfFameStickerCard({
                   )}
                 </div>
 
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex-1 min-w-[80px] flex flex-wrap items-center justify-end gap-1 ml-auto">
                   {underlayTheme && (
                     <span
-                      className="px-1 py-0.5 rounded bg-zinc-950/90 border border-white/25 text-zinc-200 font-bold text-[9px] flex items-center gap-0.5 shadow"
+                      className="px-1 py-0.5 rounded bg-zinc-950/90 border border-white/25 text-zinc-200 font-bold text-[8.5px] leading-none flex items-center gap-0.5 shadow"
                       title="Figurinha atualizada por cima"
                     >
                       <Layers className="w-2.5 h-2.5 text-amber-300" />
@@ -754,7 +1372,7 @@ export default function WalkOfFameStickerCard({
                   )}
                   {extraStars > 0 && (
                     <span
-                      className={`px-1.5 py-0.5 rounded font-black text-[9px] flex items-center gap-0.5 shadow ${
+                      className={`px-1 py-0.5 rounded font-black text-[8.5px] leading-none flex items-center gap-0.5 shadow ${
                         unlocks.immortalUnlocked
                           ? 'bg-gradient-to-r from-yellow-300 via-amber-300 to-sky-300 text-zinc-950 ring-1 ring-white/70'
                           : 'bg-yellow-400/95 text-zinc-950'
@@ -774,12 +1392,46 @@ export default function WalkOfFameStickerCard({
                         setIsFlipped(true);
                       }}
                       title="Virar carta para escolher o protagonista"
-                      className="px-1.5 py-0.5 rounded bg-zinc-900/90 hover:bg-amber-400 text-amber-300 hover:text-zinc-950 border border-amber-400/45 font-black text-[9px] flex items-center gap-0.5 shadow cursor-pointer transition-colors"
+                      className="px-1 py-0.5 rounded bg-zinc-900/90 hover:bg-amber-400 text-amber-300 hover:text-zinc-950 border border-amber-400/45 font-black text-[8.5px] leading-none flex items-center gap-0.5 shadow cursor-pointer transition-colors"
                     >
                       <RefreshCw className="w-2.5 h-2.5" />
                     </button>
                   )}
-                  {unlocks.timelineUnlocked && onOpenTimeline && (
+                  {isDirectorCard && unlocks.timelineUnlocked && onSelect && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelect(star);
+                      }}
+                      title="Ver Manias & DNA Autoral de Set (Take 3 • 60%+)"
+                      className="px-1 py-0.5 rounded bg-cyan-400/95 hover:bg-cyan-300 text-zinc-950 font-black text-[8.5px] leading-none flex items-center gap-0.5 shadow cursor-pointer transition-transform active:scale-95"
+                    >
+                      <span>🎯</span>
+                      <span>Marca</span>
+                    </button>
+                  )}
+                  {isDirectorCard &&
+                    (unlocks.verdictUnlocked ?? (!isNewEraVisionary && unlocks.immortalUnlocked)) &&
+                    onOpenDirectorVerdict && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenDirectorVerdict(star);
+                      }}
+                      title={
+                        isNewEraVisionary
+                          ? 'Abrir Show de Cartazes: Cartas Viradas, Oscar & Framboesa de Ouro (80%+)'
+                          : 'Abrir Show de Cartazes: Cartas Viradas, Oscar & Framboesa de Ouro (Take 5 • 90%+)'
+                      }
+                      className="px-1 py-0.5 rounded bg-gradient-to-r from-amber-400 to-rose-400 hover:brightness-110 text-zinc-950 font-black text-[8.5px] leading-none flex items-center gap-0.5 shadow cursor-pointer transition-transform active:scale-95"
+                    >
+                      <span>🃏</span>
+                      <span>Júri</span>
+                    </button>
+                  )}
+                  {!isDirectorCard && unlocks.timelineUnlocked && onOpenTimeline && (
                     <button
                       type="button"
                       onClick={(e) => {
@@ -787,10 +1439,24 @@ export default function WalkOfFameStickerCard({
                         onOpenTimeline(star);
                       }}
                       title="Abrir Linha do Tempo Cinemática (75%+)"
-                      className="px-1.5 py-0.5 rounded bg-sky-400/95 hover:bg-sky-300 text-zinc-950 font-black text-[9px] flex items-center gap-0.5 shadow cursor-pointer transition-transform active:scale-95"
+                      className="px-1 py-0.5 rounded bg-sky-400/95 hover:bg-sky-300 text-zinc-950 font-black text-[8.5px] leading-none flex items-center gap-0.5 shadow cursor-pointer transition-transform active:scale-95"
                     >
                       <Clock className="w-2.5 h-2.5" />
                       <span>Linha</span>
+                    </button>
+                  )}
+                  {isDubladorCard && unlocks.voiceClipsUnlocked && onSelect && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelect(star);
+                      }}
+                      title="Vozes Marcantes liberadas (60%+) — Abrir Mesa de Som"
+                      className="px-1 py-0.5 rounded bg-amber-400/95 hover:bg-amber-300 text-zinc-950 font-black text-[8.5px] leading-none flex items-center gap-0.5 shadow cursor-pointer transition-transform active:scale-95"
+                    >
+                      <span>🎙️</span>
+                      <span>Voz</span>
                     </button>
                   )}
                   {onUnstick && !hasPendingOverlayUpgrade && (
@@ -801,7 +1467,7 @@ export default function WalkOfFameStickerCard({
                         onUnstick(star.id);
                       }}
                       title="Descolar figurinha"
-                      className="px-1.5 py-0.5 rounded bg-emerald-500/90 hover:bg-zinc-900/90 text-zinc-950 hover:text-zinc-200 font-black text-[9px] uppercase flex items-center gap-0.5 shadow cursor-pointer transition-colors"
+                      className="px-1 py-0.5 rounded bg-emerald-500/90 hover:bg-zinc-900/90 text-zinc-950 hover:text-zinc-200 font-black text-[8.5px] leading-none uppercase flex items-center gap-0.5 shadow cursor-pointer transition-colors"
                     >
                       <CheckCircle2 className="w-2.5 h-2.5" />
                     </button>
@@ -809,9 +1475,9 @@ export default function WalkOfFameStickerCard({
                 </div>
               </div>
 
-              {/* Placa Inferior: Autógrafo (SEMPRE acima do Selo de Obra-Prima!) + Nome + Marco */}
+              {/* Placa Inferior: Autógrafo (somente Atores/Vozes/Casais) OU Selo Corte Final (Diretores) */}
               <div className="absolute bottom-0 left-0 right-0 p-2.5 z-10 flex flex-col gap-1">
-                {unlocks.immortalUnlocked && signatureMode !== 'hidden' && (
+                {!isDirectorCard && unlocks.immortalUnlocked && signatureMode !== 'hidden' && (
                   <div
                     key={signatureMode === 'writing' ? 'sig-writing' : 'sig-normal'}
                     className="pointer-events-none flex justify-end mb-0.5"
@@ -876,7 +1542,13 @@ export default function WalkOfFameStickerCard({
                 {signatureFilm && (
                   <div
                     className="px-2 py-0.5 rounded-md bg-black/85 border text-[9px] font-bold text-amber-200 flex items-center justify-between gap-1 truncate shadow"
-                    style={{ borderColor: `${auraPreset.accent}88` }}
+                    style={{
+                      borderColor: `${
+                        unlocks.immortalUnlocked && !useCustomShowcaseFrame
+                          ? auraPreset.accent
+                          : visualTheme.accentHex
+                      }88`,
+                    }}
                     title={`Obra-Prima Favorita: ${signatureFilm.title}`}
                   >
                     <span className="truncate">🏆 {signatureFilm.title}</span>
@@ -889,9 +1561,14 @@ export default function WalkOfFameStickerCard({
                 )}
 
                 <div className="flex items-center justify-between gap-1">
-                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider border ${getRankBadgeClass(rpgRank)}`}>
-                    RANK {rpgRank}
-                  </span>
+                  <div className="flex items-center gap-1 min-w-0">
+                    <RankBadge
+                      rank={rpgRank}
+                      isRisingStar={isDirectorCard && isNewEraVisionary}
+                      prefixRankWord
+                      tooltipPlacement="up"
+                    />
+                  </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     {hasAvgRating && (
                       <span
@@ -903,7 +1580,12 @@ export default function WalkOfFameStickerCard({
                     )}
                     <span
                       className="font-mono text-xs font-black shrink-0 drop-shadow"
-                      style={{ color: unlocks.immortalUnlocked ? auraPreset.accent : visualTheme.accentHex }}
+                      style={{
+                        color:
+                          unlocks.immortalUnlocked && !useCustomShowcaseFrame
+                            ? auraPreset.accent
+                            : visualTheme.accentHex,
+                      }}
                     >
                       {effectivePct}%
                     </span>
@@ -919,12 +1601,19 @@ export default function WalkOfFameStickerCard({
                   {star.name}
                 </h3>
 
-                {oscarBadge && <div className="flex items-center">{oscarBadge}</div>}
+                {(oscarBadge || directorRoleBadge) && (
+                  <div className="flex flex-col items-start gap-1">
+                    {oscarBadge}
+                    {directorRoleBadge}
+                  </div>
+                )}
 
-                <div className="flex items-center justify-between text-[10px] font-mono text-zinc-300/90">
-                  <span className="truncate text-amber-200/90">{rpgClassLabel}</span>
+                <div className="flex items-end justify-between gap-1.5 text-[9.5px] leading-[1.15] text-zinc-300/90">
+                  <span className="font-sans font-semibold text-amber-200/95 break-words min-w-0">
+                    {rpgClassLabel}
+                  </span>
                   {!demoBadge && (
-                    <span className="shrink-0 ml-1">
+                    <span className="font-mono font-semibold shrink-0 whitespace-nowrap">
                       {filmCountLabel}
                     </span>
                   )}
@@ -952,4 +1641,6 @@ export default function WalkOfFameStickerCard({
       </div>
     </div>
   );
-}
+});
+
+export default WalkOfFameStickerCard;

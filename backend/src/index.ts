@@ -52,14 +52,17 @@ import {
   getWalkOfFamePendingPacksSummary,
   checkWalkOfFameMovieTrigger,
   stickWalkOfFameStar,
+  stickWalkOfFameStarsBatch,
   unstickWalkOfFameStar,
   openWalkOfFamePack,
   updateWalkOfFamePreferences,
   saveWalkOfFameCustomSkin,
+  invalidateWalkOfFameCache,
 } from './services/walkOfFameService';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import zlib from 'node:zlib';
 
 dotenv.config();
 
@@ -68,6 +71,36 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+
+// Compressão Gzip nativa para respostas JSON acima de 1 KB
+app.use((req: Request, res: Response, next) => {
+  const acceptEncoding = String(req.headers['accept-encoding'] || '');
+  if (req.method === 'HEAD' || !/\bgzip\b/i.test(acceptEncoding)) {
+    return next();
+  }
+  const originalJson = res.json.bind(res);
+  res.json = ((body: any) => {
+    if (res.headersSent) return res;
+    const rawBuf = Buffer.from(JSON.stringify(body), 'utf8');
+    if (rawBuf.length < 1024) {
+      return originalJson(body);
+    }
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Encoding', 'gzip');
+    res.setHeader('Vary', 'Accept-Encoding');
+    zlib.gzip(rawBuf, (err, gzBuf) => {
+      if (res.writableEnded || res.destroyed) return;
+      if (err) {
+        res.removeHeader('Content-Encoding');
+        return originalJson(body);
+      }
+      res.setHeader('Content-Length', String(gzBuf.length));
+      return res.end(gzBuf);
+    });
+    return res;
+  }) as any;
+  return next();
+});
 
 // Configura pasta de uploads estática
 const uploadsDir = path.join(__dirname, '../uploads');
@@ -316,7 +349,31 @@ app.get('/api/movies/horror-suspense', async (req: Request, res: Response) => {
 app.get('/api/movies/all', async (req: Request, res: Response) => {
   try {
     const sql = `
-      SELECT mv.id, m.id as movie_id, m.imdb_id, m.tmdb_id, m.title, m.original_title, m.release_year, m.runtime, m.synopsis, m.poster_url, m.imdb_rating, m.metacritic_score, m.rotten_tomatoes_score, m.is_custom, m.oscar_wins, m.oscar_nominations, m.vote_count, m.distributor, m.raw_api_data,
+      SELECT mv.id, m.id as movie_id, m.imdb_id, m.tmdb_id, m.title, m.original_title, m.release_year, m.runtime, m.synopsis, m.poster_url, m.imdb_rating, m.metacritic_score, m.rotten_tomatoes_score, m.is_custom, m.oscar_wins, m.oscar_nominations, m.vote_count, m.distributor,
+             CASE
+               WHEN m.raw_api_data IS NULL THEN NULL
+               ELSE jsonb_strip_nulls(jsonb_build_object(
+                 'omdb', m.raw_api_data->'omdb',
+                 'tmdb', jsonb_strip_nulls(jsonb_build_object(
+                   'release_date', m.raw_api_data->'tmdb'->'release_date',
+                   'vote_count', m.raw_api_data->'tmdb'->'vote_count',
+                   'production_companies', m.raw_api_data->'tmdb'->'production_companies',
+                   'images', m.raw_api_data->'tmdb'->'images',
+                   'credits', CASE
+                     WHEN jsonb_typeof(m.raw_api_data->'tmdb'->'credits'->'crew') = 'array' THEN
+                       jsonb_build_object(
+                         'crew',
+                         COALESCE((
+                           SELECT jsonb_agg(jsonb_build_object('name', elem->'name', 'job', elem->'job'))
+                           FROM jsonb_array_elements(m.raw_api_data->'tmdb'->'credits'->'crew') elem
+                           WHERE elem->>'job' IN ('Director', 'Writer', 'Screenplay', 'Story', 'Characters', 'Producer', 'Executive Producer')
+                         ), '[]'::jsonb)
+                       )
+                     ELSE NULL
+                   END
+                 ))
+               ))
+             END AS raw_api_data,
              mv.user_rating, mv.month_seen, mv.year_seen, mv.audio_type, mv.platform, mv.review_notes, mv.watched_at,
              COALESCE(array_agg(DISTINCT ut.name) FILTER (WHERE ut.name IS NOT NULL), '{}') as tags,
              COALESCE(array_agg(DISTINCT ag.name) FILTER (WHERE ag.name IS NOT NULL), '{}') as genres,
@@ -417,6 +474,126 @@ app.get('/api/movies/posters-api', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * Persiste/atualiza relações N:N de um filme (países, gêneros, diretores, roteiristas, estúdios, tags)
+ * em lote via UNNEST, evitando dezenas de round-trips sequenciais por salvamento.
+ */
+async function syncMovieRelations(params: {
+  dbClient: any;
+  movieId: number;
+  countries: string[];
+  genres: string[];
+  directors: string[];
+  writers: string[];
+  studios: string[];
+  tags: string[];
+  replaceExisting: boolean;
+}) {
+  const {
+    dbClient,
+    movieId,
+    countries,
+    genres,
+    directors,
+    writers,
+    studios,
+    tags,
+    replaceExisting,
+  } = params;
+
+  const upsertAndLinkNames = async (
+    table: string,
+    joinTable: string,
+    fkCol: string,
+    names: string[]
+  ) => {
+    if (replaceExisting) {
+      await dbClient.query(`DELETE FROM ${joinTable} WHERE movie_id = $1`, [movieId]);
+    }
+    const clean = Array.from(new Set(names.map((n) => String(n || '').trim()).filter(Boolean)));
+    if (clean.length === 0) return;
+
+    const entRes = await dbClient.query(
+      `INSERT INTO ${table} (name)
+       SELECT n FROM UNNEST($1::text[]) AS t(n)
+       ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+       RETURNING id`,
+      [clean]
+    );
+    const ids = entRes.rows.map((r: any) => Number(r.id)).filter(Boolean);
+    if (ids.length > 0) {
+      await dbClient.query(
+        `INSERT INTO ${joinTable} (movie_id, ${fkCol})
+         SELECT $1, eid FROM UNNEST($2::int[]) AS t(eid)
+         ON CONFLICT DO NOTHING`,
+        [movieId, ids]
+      );
+    }
+  };
+
+  await upsertAndLinkNames('countries', 'movie_countries', 'country_id', countries);
+
+  // Se o filme possuir apenas 1 país, registra imediatamente como origem cultural exclusiva no Desafio 195
+  if (countries.length === 1 && String(countries[0] || '').trim()) {
+    const territoryRef = resolveTerritoryDescriptor(String(countries[0]).trim());
+    if (territoryRef && territoryRef.code) {
+      await dbClient.query(
+        `INSERT INTO world_challenge_movie_origins (movie_id, primary_country_code, exclusive, updated_at)
+         VALUES ($1, $2, TRUE, CURRENT_TIMESTAMP)
+         ON CONFLICT (movie_id)
+         DO UPDATE SET
+           primary_country_code = EXCLUDED.primary_country_code,
+           exclusive = TRUE,
+           updated_at = CURRENT_TIMESTAMP`,
+        [movieId, territoryRef.code]
+      );
+    }
+  }
+
+  const normalizedGenres = genres.map((g) => normalizeGenre(String(g || ''))).filter(Boolean);
+  await upsertAndLinkNames('api_genres', 'movie_api_genres', 'genre_id', normalizedGenres);
+  await upsertAndLinkNames('directors', 'movie_directors', 'director_id', directors);
+  await upsertAndLinkNames('writers', 'movie_writers', 'writer_id', writers);
+  await upsertAndLinkNames('studios', 'movie_studios', 'studio_id', studios);
+
+  if (replaceExisting) {
+    await dbClient.query('DELETE FROM movie_tags WHERE movie_id = $1', [movieId]);
+  }
+  const tagBySlug = new Map<string, string>();
+  for (const rawName of tags) {
+    const cleanName = String(rawName || '').trim();
+    if (!cleanName) continue;
+    const slug = cleanName
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9 -]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+    if (slug && !tagBySlug.has(slug)) {
+      tagBySlug.set(slug, cleanName);
+    }
+  }
+  if (tagBySlug.size > 0) {
+    const tagRes = await dbClient.query(
+      `INSERT INTO user_tags (name, slug)
+       SELECT n, s FROM UNNEST($1::text[], $2::text[]) AS t(n, s)
+       ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name
+       RETURNING id`,
+      [Array.from(tagBySlug.values()), Array.from(tagBySlug.keys())]
+    );
+    const tagIds = tagRes.rows.map((r: any) => Number(r.id)).filter(Boolean);
+    if (tagIds.length > 0) {
+      await dbClient.query(
+        `INSERT INTO movie_tags (movie_id, tag_id)
+         SELECT $1, tid FROM UNNEST($2::int[]) AS t(tid)
+         ON CONFLICT DO NOTHING`,
+        [movieId, tagIds]
+      );
+    }
+  }
+}
+
 async function evaluatePostMovieSaveEvents(params: {
   prevXp: any;
   prevWorld: any;
@@ -457,6 +634,8 @@ async function evaluatePostMovieSaveEvents(params: {
     console.error(`[Universes] Erro na auto-avaliação (${sourceTrigger}):`, uErr.message);
   }
 
+  const nextWorld = await buildWorldChallengePayload().catch(() => null);
+
   let newlyUnlocked: any[] = [];
   let progressedTrophies: any[] = [];
   let xpStatus: any = null;
@@ -467,6 +646,7 @@ async function evaluatePostMovieSaveEvents(params: {
       skipUnlocked: sourceTrigger === 'movie_add',
       recordLastMovie:
         isGhost || sourceTrigger !== 'movie_add' ? undefined : { movieId, title: movieTitle },
+      existingWorldData: nextWorld || undefined,
     });
     newlyUnlocked = trophyResult.newlyUnlocked || [];
     progressedTrophies = trophyResult.progressedTrophies || [];
@@ -475,11 +655,13 @@ async function evaluatePostMovieSaveEvents(params: {
     console.error(`[Trophies] Erro na auto-avaliação (${sourceTrigger}):`, e.message);
   }
 
-  const nextWorld = await buildWorldChallengePayload().catch(() => null);
-  const nextTm = nextWorld ? await buildTimeMachinePayload(nextWorld).catch(() => null) : null;
-  if (!xpStatus) {
-    xpStatus = await getQuickXpSnapshot().catch(() => null);
-  }
+  const [nextTm, resolvedXpStatus] = await Promise.all([
+    nextWorld ? buildTimeMachinePayload(nextWorld).catch(() => null) : Promise.resolve(null),
+    xpStatus
+      ? Promise.resolve(xpStatus)
+      : getQuickXpSnapshot(nextWorld ? { worldData: nextWorld } : {}).catch(() => null),
+  ]);
+  xpStatus = resolvedXpStatus;
   const xpGain = computeXpGainEvent(prevXp, xpStatus);
   const timeMachineUnlocks = computeTimeMachineEvents(prevTm, nextTm, prevXp, xpStatus, {
     movieId,
@@ -505,11 +687,11 @@ async function evaluatePostMovieSaveEvents(params: {
 // Rota: Adicionar Filme (Multipart com Multer — suporta is_ghost para simulação via ROLLBACK)
 app.post('/api/movies/add', upload.single('poster_file'), async (req: Request, res: Response) => {
   const isGhost = req.body.is_ghost === 'true' || req.body.is_ghost === true;
-  const [prevXp, prevWorld] = await Promise.all([
-    getQuickXpSnapshot().catch(() => null),
-    buildWorldChallengePayload().catch(() => null),
+  const prevWorld = await buildWorldChallengePayload().catch(() => null);
+  const [prevXp, prevTm] = await Promise.all([
+    getQuickXpSnapshot(prevWorld ? { worldData: prevWorld } : {}).catch(() => null),
+    prevWorld ? buildTimeMachinePayload(prevWorld).catch(() => null) : Promise.resolve(null),
   ]);
-  const prevTm = prevWorld ? await buildTimeMachinePayload(prevWorld).catch(() => null) : null;
 
   const cleanupGhostUpload = () => {
     if (isGhost && req.file?.path && fs.existsSync(req.file.path)) {
@@ -647,102 +829,17 @@ app.post('/api/movies/add', upload.single('poster_file'), async (req: Request, r
     );
     const movieId = insertMovieRes.rows[0].id;
 
-    // 2. Vincular países
-    for (const name of parsedCountries) {
-      if (!name.trim()) continue;
-      const countryRes = await dbClient.query(
-        `INSERT INTO countries (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
-        [name.trim()]
-      );
-      await dbClient.query(
-        `INSERT INTO movie_countries (movie_id, country_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [movieId, countryRes.rows[0].id]
-      );
-    }
-
-    // Se o filme possuir apenas 1 país, registra imediatamente como origem cultural exclusiva no Desafio 195
-    if (parsedCountries.length === 1 && parsedCountries[0].trim()) {
-      const territoryRef = resolveTerritoryDescriptor(parsedCountries[0].trim());
-      if (territoryRef && territoryRef.code) {
-        await dbClient.query(
-          `INSERT INTO world_challenge_movie_origins (movie_id, primary_country_code, exclusive, updated_at)
-           VALUES ($1, $2, TRUE, CURRENT_TIMESTAMP)
-           ON CONFLICT (movie_id)
-           DO UPDATE SET
-             primary_country_code = EXCLUDED.primary_country_code,
-             exclusive = TRUE,
-             updated_at = CURRENT_TIMESTAMP`,
-          [movieId, territoryRef.code]
-        );
-      }
-    }
-
-    // 3. Vincular gêneros
-    for (const name of parsedGenres) {
-      const normalized = normalizeGenre(name);
-      if (!normalized) continue;
-      const genreRes = await dbClient.query(
-        `INSERT INTO api_genres (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
-        [normalized]
-      );
-      await dbClient.query(
-        `INSERT INTO movie_api_genres (movie_id, genre_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [movieId, genreRes.rows[0].id]
-      );
-    }
-
-    // 4. Vincular diretores
-    for (const name of parsedDirectors) {
-      if (!name.trim()) continue;
-      const dirRes = await dbClient.query(
-        `INSERT INTO directors (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
-        [name.trim()]
-      );
-      await dbClient.query(
-        `INSERT INTO movie_directors (movie_id, director_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [movieId, dirRes.rows[0].id]
-      );
-    }
-
-    // Vincular roteiristas
-    for (const name of parsedWriters) {
-      if (!name.trim()) continue;
-      const writRes = await dbClient.query(
-        `INSERT INTO writers (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
-        [name.trim()]
-      );
-      await dbClient.query(
-        `INSERT INTO movie_writers (movie_id, writer_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [movieId, writRes.rows[0].id]
-      );
-    }
-
-    // 5. Vincular estúdios
-    for (const name of parsedStudios) {
-      if (!name.trim()) continue;
-      const studioRes = await dbClient.query(
-        `INSERT INTO studios (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
-        [name.trim()]
-      );
-      await dbClient.query(
-        `INSERT INTO movie_studios (movie_id, studio_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [movieId, studioRes.rows[0].id]
-      );
-    }
-
-    // 6. Vincular tags
-    for (const name of parsedTags) {
-      if (!name.trim()) continue;
-      const slug = name.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 -]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
-      const tagRes = await dbClient.query(
-        `INSERT INTO user_tags (name, slug) VALUES ($1, $2) ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
-        [name.trim(), slug]
-      );
-      await dbClient.query(
-        `INSERT INTO movie_tags (movie_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [movieId, tagRes.rows[0].id]
-      );
-    }
+    await syncMovieRelations({
+      dbClient,
+      movieId,
+      countries: parsedCountries,
+      genres: parsedGenres,
+      directors: parsedDirectors,
+      writers: parsedWriters,
+      studios: parsedStudios,
+      tags: parsedTags,
+      replaceExisting: false,
+    });
 
     // 7. Inserir visualização (movie_views)
     await dbClient.query(
@@ -783,6 +880,7 @@ app.post('/api/movies/add', upload.single('poster_file'), async (req: Request, r
     }
 
     await dbClient.query('COMMIT');
+    invalidateWalkOfFameCache();
     const savedEvents = await evaluatePostMovieSaveEvents({
       prevXp,
       prevWorld,
@@ -806,11 +904,11 @@ app.post('/api/movies/add', upload.single('poster_file'), async (req: Request, r
 // Rota: Editar Filme (Multipart com Multer)
 app.put('/api/movies/edit/:id', upload.single('poster_file'), async (req: Request, res: Response) => {
   const movieId = Number(req.params.id);
-  const [prevXp, prevWorld] = await Promise.all([
-    getQuickXpSnapshot().catch(() => null),
-    buildWorldChallengePayload().catch(() => null),
+  const prevWorld = await buildWorldChallengePayload().catch(() => null);
+  const [prevXp, prevTm] = await Promise.all([
+    getQuickXpSnapshot(prevWorld ? { worldData: prevWorld } : {}).catch(() => null),
+    prevWorld ? buildTimeMachinePayload(prevWorld).catch(() => null) : Promise.resolve(null),
   ]);
-  const prevTm = prevWorld ? await buildTimeMachinePayload(prevWorld).catch(() => null) : null;
   const dbClient = await pool.connect();
   try {
     await dbClient.query('BEGIN');
@@ -937,108 +1035,17 @@ app.put('/api/movies/edit/:id', upload.single('poster_file'), async (req: Reques
       ]
     );
 
-    // 2. Atualizar países
-    await dbClient.query('DELETE FROM movie_countries WHERE movie_id = $1', [activeMovieId]);
-    for (const name of parsedCountries) {
-      if (!name.trim()) continue;
-      const countryRes = await dbClient.query(
-        `INSERT INTO countries (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
-        [name.trim()]
-      );
-      await dbClient.query(
-        `INSERT INTO movie_countries (movie_id, country_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [activeMovieId, countryRes.rows[0].id]
-      );
-    }
-
-    // Se o filme possuir apenas 1 país, registra imediatamente como origem cultural exclusiva no Desafio 195
-    if (parsedCountries.length === 1 && parsedCountries[0].trim()) {
-      const territoryRef = resolveTerritoryDescriptor(parsedCountries[0].trim());
-      if (territoryRef && territoryRef.code) {
-        await dbClient.query(
-          `INSERT INTO world_challenge_movie_origins (movie_id, primary_country_code, exclusive, updated_at)
-           VALUES ($1, $2, TRUE, CURRENT_TIMESTAMP)
-           ON CONFLICT (movie_id)
-           DO UPDATE SET
-             primary_country_code = EXCLUDED.primary_country_code,
-             exclusive = TRUE,
-             updated_at = CURRENT_TIMESTAMP`,
-          [activeMovieId, territoryRef.code]
-        );
-      }
-    }
-
-    // 3. Atualizar gêneros
-    await dbClient.query('DELETE FROM movie_api_genres WHERE movie_id = $1', [activeMovieId]);
-    for (const name of parsedGenres) {
-      const normalized = normalizeGenre(name);
-      if (!normalized) continue;
-      const genreRes = await dbClient.query(
-        `INSERT INTO api_genres (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
-        [normalized]
-      );
-      await dbClient.query(
-        `INSERT INTO movie_api_genres (movie_id, genre_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [activeMovieId, genreRes.rows[0].id]
-      );
-    }
-
-    // 4. Atualizar diretores
-    await dbClient.query('DELETE FROM movie_directors WHERE movie_id = $1', [activeMovieId]);
-    for (const name of parsedDirectors) {
-      if (!name.trim()) continue;
-      const dirRes = await dbClient.query(
-        `INSERT INTO directors (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
-        [name.trim()]
-      );
-      await dbClient.query(
-        `INSERT INTO movie_directors (movie_id, director_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [activeMovieId, dirRes.rows[0].id]
-      );
-    }
-
-    // Atualizar roteiristas
-    await dbClient.query('DELETE FROM movie_writers WHERE movie_id = $1', [activeMovieId]);
-    for (const name of parsedWriters) {
-      if (!name.trim()) continue;
-      const writRes = await dbClient.query(
-        `INSERT INTO writers (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
-        [name.trim()]
-      );
-      await dbClient.query(
-        `INSERT INTO movie_writers (movie_id, writer_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [activeMovieId, writRes.rows[0].id]
-      );
-    }
-
-    // 5. Atualizar estúdios
-    await dbClient.query('DELETE FROM movie_studios WHERE movie_id = $1', [activeMovieId]);
-    for (const name of parsedStudios) {
-      if (!name.trim()) continue;
-      const studioRes = await dbClient.query(
-        `INSERT INTO studios (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
-        [name.trim()]
-      );
-      await dbClient.query(
-        `INSERT INTO movie_studios (movie_id, studio_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [activeMovieId, studioRes.rows[0].id]
-      );
-    }
-
-    // 6. Atualizar tags
-    await dbClient.query('DELETE FROM movie_tags WHERE movie_id = $1', [activeMovieId]);
-    for (const name of parsedTags) {
-      if (!name.trim()) continue;
-      const slug = name.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 -]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
-      const tagRes = await dbClient.query(
-        `INSERT INTO user_tags (name, slug) VALUES ($1, $2) ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
-        [name.trim(), slug]
-      );
-      await dbClient.query(
-        `INSERT INTO movie_tags (movie_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [activeMovieId, tagRes.rows[0].id]
-      );
-    }
+    await syncMovieRelations({
+      dbClient,
+      movieId: activeMovieId,
+      countries: parsedCountries,
+      genres: parsedGenres,
+      directors: parsedDirectors,
+      writers: parsedWriters,
+      studios: parsedStudios,
+      tags: parsedTags,
+      replaceExisting: true,
+    });
 
     // 7. Atualizar visualização (movie_views)
     const numericRating = parseNumeric(user_rating, 0);
@@ -1097,6 +1104,7 @@ app.put('/api/movies/edit/:id', upload.single('poster_file'), async (req: Reques
     }
 
     await dbClient.query('COMMIT');
+    invalidateWalkOfFameCache();
     const savedEvents = await evaluatePostMovieSaveEvents({
       prevXp,
       prevWorld,
@@ -1132,6 +1140,7 @@ app.delete('/api/movies/:id', async (req: Request, res: Response) => {
     }
     
     await dbClient.query('COMMIT');
+    invalidateWalkOfFameCache();
     console.log(`[Express] Filme com ID ${movieId} foi deletado permanentemente.`);
     // Reavalia Códice dos Universos e troféus após deletar filme
     evaluateAndBuildUniverseCodex({ persist: true })
@@ -1691,7 +1700,7 @@ app.get('/api/universes', async (req: Request, res: Response) => {
 
 app.post('/api/universes/sync', async (req: Request, res: Response) => {
   try {
-    const data = await evaluateAndBuildUniverseCodex({ persist: true });
+    const data = await evaluateAndBuildUniverseCodex({ persist: true, forceSeed: true });
     const xpStatus = await getQuickXpSnapshot();
     return res.json({ success: true, data, xpStatus });
   } catch (err: any) {
@@ -1750,9 +1759,11 @@ app.post('/api/walk-of-fame/packs/:packId/open', async (req: Request, res: Respo
   try {
     const packId = Number(req.params.packId);
     const stickImmediately = req.body?.stickImmediately !== false;
-    const prevXp = await getQuickXpSnapshot();
-    const data = await openWalkOfFamePack(packId, stickImmediately);
-    const xpStatus = await getQuickXpSnapshot();
+    const compact = req.body?.compact === true || req.query.compact === 'true';
+    const worldData = await buildWorldChallengePayload().catch(() => undefined);
+    const prevXp = await getQuickXpSnapshot({ worldData });
+    const data = await openWalkOfFamePack(packId, stickImmediately, { compact });
+    const xpStatus = await getQuickXpSnapshot({ worldData });
     const xpGain = computeXpGainEvent(prevXp, xpStatus);
     return res.json({ success: true, data: { ...data, xpStatus, xpGain } });
   } catch (err: any) {
@@ -1761,12 +1772,38 @@ app.post('/api/walk-of-fame/packs/:packId/open', async (req: Request, res: Respo
   }
 });
 
+app.post('/api/walk-of-fame/stickers/stick-batch', async (req: Request, res: Response) => {
+  try {
+    const starIds = Array.isArray(req.body?.starIds) ? req.body.starIds.map(String) : [];
+    const compact = req.body?.compact === true || req.query.compact === 'true';
+    const worldData = await buildWorldChallengePayload().catch(() => undefined);
+    const prevXp = await getQuickXpSnapshot({ worldData });
+    const data = await stickWalkOfFameStarsBatch(starIds, { compact });
+    const xpStatus = await getQuickXpSnapshot({ worldData });
+    const rawGain = computeXpGainEvent(prevXp, xpStatus);
+    const xpGain =
+      rawGain && (rawGain.gainedXp > 0 || (rawGain.statGains && rawGain.statGains.length > 0))
+        ? rawGain
+        : null;
+    return res.json({ success: true, data: { ...data, xpStatus, xpGain } });
+  } catch (err: any) {
+    console.error('[WalkOfFame] Erro ao colar figurinhas em lote:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.post('/api/walk-of-fame/stickers/:starId/stick', async (req: Request, res: Response) => {
   try {
-    const prevXp = await getQuickXpSnapshot();
-    const data = await stickWalkOfFameStar(String(req.params.starId));
-    const xpStatus = await getQuickXpSnapshot();
-    const xpGain = computeXpGainEvent(prevXp, xpStatus);
+    const compact = req.body?.compact === true || req.query.compact === 'true';
+    const worldData = await buildWorldChallengePayload().catch(() => undefined);
+    const prevXp = await getQuickXpSnapshot({ worldData });
+    const data = await stickWalkOfFameStar(String(req.params.starId), { compact });
+    const xpStatus = await getQuickXpSnapshot({ worldData });
+    const rawGain = computeXpGainEvent(prevXp, xpStatus);
+    const xpGain =
+      rawGain && (rawGain.gainedXp > 0 || (rawGain.statGains && rawGain.statGains.length > 0))
+        ? rawGain
+        : null;
     return res.json({ success: true, data: { ...data, xpStatus, xpGain } });
   } catch (err: any) {
     console.error('[WalkOfFame] Erro ao colar figurinha:', err.message);
@@ -1776,8 +1813,10 @@ app.post('/api/walk-of-fame/stickers/:starId/stick', async (req: Request, res: R
 
 app.post('/api/walk-of-fame/stickers/:starId/unstick', async (req: Request, res: Response) => {
   try {
-    const data = await unstickWalkOfFameStar(String(req.params.starId));
-    return res.json({ success: true, data });
+    const compact = req.body?.compact === true || req.query.compact === 'true';
+    const data = await unstickWalkOfFameStar(String(req.params.starId), { compact });
+    const xpStatus = await getQuickXpSnapshot().catch(() => null);
+    return res.json({ success: true, data: { ...data, xpStatus } });
   } catch (err: any) {
     console.error('[WalkOfFame] Erro ao descolar figurinha:', err.message);
     return res.status(500).json({ success: false, error: err.message });
@@ -1786,7 +1825,8 @@ app.post('/api/walk-of-fame/stickers/:starId/unstick', async (req: Request, res:
 
 app.post('/api/walk-of-fame/stickers/:starId/preferences', async (req: Request, res: Response) => {
   try {
-    const data = await updateWalkOfFamePreferences(String(req.params.starId), req.body || {});
+    const compact = req.body?.compact === true || req.query.compact === 'true';
+    const data = await updateWalkOfFamePreferences(String(req.params.starId), req.body || {}, { compact });
     return res.json({ success: true, data });
   } catch (err: any) {
     console.error('[WalkOfFame] Erro ao salvar preferências da figurinha:', err.message);
@@ -1800,11 +1840,17 @@ app.post('/api/walk-of-fame/stickers/:starId/custom-skin', (req: Request, res: R
       return res.status(400).json({ success: false, error: uploadErr.message || 'Erro no upload da imagem.' });
     }
     try {
+      const compact =
+        req.body?.compact === true ||
+        req.body?.compact === 'true' ||
+        req.query.compact === 'true';
       const skinUrl = req.file
         ? `/uploads/${req.file.filename}`
         : String(req.body?.skin_url || req.body?.skinUrl || '').trim();
       const skinLabel = String(req.body?.skin_label || req.body?.skinLabel || 'Foto Personalizada').trim();
-      const data = await saveWalkOfFameCustomSkin(String(req.params.starId), skinUrl, skinLabel);
+      const data = await saveWalkOfFameCustomSkin(String(req.params.starId), skinUrl, skinLabel, {
+        compact,
+      });
       return res.json({ success: true, data });
     } catch (err: any) {
       if (req.file && req.file.path && fs.existsSync(req.file.path)) {

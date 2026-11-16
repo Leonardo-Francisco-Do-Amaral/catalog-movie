@@ -7,6 +7,11 @@ import {
 } from './xpSystem';
 import { CATEGORY_BADGE_CONFIG, getCleanTrophyTitle } from '../components/TrophyBadges';
 import { UN_COUNTRIES_195, getCountryRarityTier } from '../data/unCountries195';
+import {
+  getWalkCarPointsForRank,
+  isDirectorStar,
+  resolveWalkRpgRankFromTier,
+} from './walkOfFameStickers';
 
 const UN_COUNTRY_BY_CODE = new Map();
 const UN_COUNTRY_BY_NAME = new Map();
@@ -1216,7 +1221,7 @@ export const CHARACTER_TIERS = [
   { grade: 4, min: 350, max: 429, label: '👑 Grau 4 • Transclasse Cinéfila (Lord das Telas)', nextLabel: '⚡ Grau 5 • 3ª Evolução (Arcebispo da Sétima Arte)', nextMin: 430 },
   { grade: 5, min: 430, max: 499, label: '⚡ Grau 5 • 3ª Evolução (Arcebispo da Sétima Arte)', nextLabel: '🌌 Grau 6 • 4ª Evolução (Hiperclasse Mítica)', nextMin: 500 },
   { grade: 6, min: 500, max: 559, label: '🌌 Grau 6 • 4ª Evolução (Hiperclasse Mítica)', nextLabel: '🌟 Grau 7 • Entidade Cósmica Suprema (Semideus do 4K)', nextMin: 560 },
-  { grade: 7, min: 560, max: 594, label: '🌟 Grau 7 • Entidade Cósmica Suprema (Semideus do 4K)', nextLabel: 'Limite Supremo Conquistado!', nextMin: null },
+  { grade: 7, min: 560, max: 693, label: '🌟 Grau 7 • Entidade Cósmica Suprema (Semideus do 4K)', nextLabel: 'Limite Supremo Conquistado!', nextMin: null },
 ];
 
 export const ALL_CINEMA_CLASSES = [
@@ -1417,15 +1422,21 @@ export function determineCharacterClass(attributes = [], totalStats = 0, _movies
     totalClassesCount: evaluatedClasses.length,
     nextClassToUnlock,
     totalStats,
-    maxPossibleStats: 594, // 6 atributos x 99
-    statsProgressPct: Math.min(100, Math.round((totalStats / 594) * 100)),
+    maxPossibleStats: 693, // 7 atributos x 99
+    statsProgressPct: Math.min(100, Math.round((totalStats / 693) * 100)),
   };
 }
 
 /**
- * 5. Ficha RPG de 6 Atributos, Facções de Áudio, Maestria de Troféus e Guildas com Nota Média
+ * 5. Ficha RPG de 7 Atributos, Facções de Áudio, Maestria de Troféus e Guildas com Nota Média
  */
-export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatusProp = null, trophiesList = []) {
+export function computeRpgAndGuilds(
+  filteredMovies = [],
+  allMovies = [],
+  xpStatusProp = null,
+  trophiesList = [],
+  walkOfFameData = null
+) {
   const activeXp = xpStatusProp || calculateClientXpStatus(allMovies, trophiesList.length > 0 ? trophiesList : null);
 
   const uniqueAll = deduplicateMovies(allMovies);
@@ -1582,7 +1593,33 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
   // 6. Prestígio Áureo (FOR): 0.4 por Oscar vencido + 0.2 por indicação (sem critério de nota)
   const prestigeScore = Math.min(99, Math.round(oscarWinsTotalAll * 0.4 + oscarNomsTotalAll * 0.2));
 
-  // 6 Atributos na ordem solicitada inspirada em RPG clássico (AGI, INT, DES, SOR, VIT, FOR)
+  // 7. Aura de Estrela (CAR): figurinhas coladas no Álbum da Fama por Rank
+  let carSum = 0;
+  let carStuckCount = 0;
+  if (Array.isArray(walkOfFameData?.stars) && walkOfFameData.stars.length > 0) {
+    walkOfFameData.stars.forEach((star) => {
+      if (!star?.isStuck || !star?.isStickerUnlocked) return;
+      const isDir = isDirectorStar(star);
+      const stuckRank = resolveWalkRpgRankFromTier(
+        star.stuckTier || star.statusTierKey,
+        Number(star.stuckExtraStars ?? star.extraStars ?? 0),
+        isDir,
+        Boolean(star.isNewEraVisionary)
+      );
+      const pts = getWalkCarPointsForRank(stuckRank);
+      if (pts > 0) {
+        carSum += pts;
+        carStuckCount += 1;
+      }
+    });
+  } else {
+    carSum = Number(activeXp?.sources?.walkOfFame?.carPoints || 0);
+    carStuckCount = Number(activeXp?.sources?.walkOfFame?.stuckCount || 0);
+  }
+  carSum = Math.round(carSum * 10) / 10;
+  const charismaScore = Math.min(99, Math.round(carSum));
+
+  // 7 Atributos na ordem solicitada inspirada em RPG clássico (AGI, INT, DES, SOR, VIT, FOR, CAR)
   const rpgAttributes = [
     {
       key: 'AGI',
@@ -1656,9 +1693,28 @@ export function computeRpgAndGuilds(filteredMovies = [], allMovies = [], xpStatu
       desc: `${oscarWinsTotalAll} Oscars ganhos • ${oscarNomsTotalAll} indicações`,
       formulaSummary: 'Indicação ao Oscar: +0.2 | Vitória no Oscar: +0.4 (Sem critério de nota)',
     },
+    {
+      key: 'CAR',
+      subject: 'Carisma (CAR)',
+      label: 'Aura de Estrela (Carisma)',
+      shortName: 'Carisma',
+      icon: '🌟',
+      score: charismaScore,
+      barColor: 'from-pink-400 via-rose-400 to-amber-300',
+      ...getRankGrade(charismaScore),
+      desc: `${carStuckCount} figurinhas coladas (${carSum.toFixed(1)} pts)`,
+      formulaSummary: 'Coladas — D: +0.1 | C: +0.2 | B: +0.3 | A: +0.4 | A+/X: +0.5 | S: +0.6 | SS: +0.7',
+    },
   ];
 
-  const totalStatPoints = vigorScore + wisdomScore + exploreScore + precisionScore + trophyScore + prestigeScore;
+  const totalStatPoints =
+    vigorScore +
+    wisdomScore +
+    exploreScore +
+    precisionScore +
+    trophyScore +
+    prestigeScore +
+    charismaScore;
   const characterClass = determineCharacterClass(rpgAttributes, totalStatPoints, uniqueAll);
 
   // Facções de Áudio (Dublado, Legendado, Legendado YouTube, Original & Outros)

@@ -509,24 +509,6 @@ html, body {
   }
 }
 
-@keyframes stickerLightningPulse {
-  0%, 70%, 100% {
-    opacity: 0.12;
-  }
-  74% {
-    opacity: 0.95;
-  }
-  78% {
-    opacity: 0.2;
-  }
-  82% {
-    opacity: 1;
-  }
-  88% {
-    opacity: 0.15;
-  }
-}
-
 .sticker-hue-cycle {
   animation: stickerHueCycle 6s linear infinite;
 }
@@ -549,10 +531,6 @@ html, body {
 
 .sticker-flash-burst {
   animation: stickerPaparazziFlash 4.8s ease-in-out infinite;
-}
-
-.sticker-lightning-pulse {
-  animation: stickerLightningPulse 3.6s ease-in-out infinite;
 }
 
 .sticker-pack-spin {
@@ -651,6 +629,19 @@ html, body {
 
 .sticker-paste-ring {
   animation: stickerPasteRing 2.4s ease-out forwards;
+}
+
+@keyframes film35ReelScroll {
+  from {
+    background-position-y: 0px;
+  }
+  to {
+    background-position-y: 16px;
+  }
+}
+
+.film35-reel-scroll {
+  animation: film35ReelScroll 1.05s linear infinite;
 }
 
 /* ============================================================================

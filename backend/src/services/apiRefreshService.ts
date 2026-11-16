@@ -2,6 +2,7 @@ import { query } from '../config/database';
 import { fetchExternalMetricsOnly } from './movieIntegration';
 import { evaluateTrophies } from './trophyService';
 import { getQuickXpSnapshot, computeXpGainEvent, computeTimeMachineUnlocks } from './xpService';
+import { invalidateWalkOfFameCache } from './walkOfFameService';
 
 export interface MetricDiffValue<T = number | null> {
   before: T;
@@ -166,6 +167,7 @@ export async function refreshSingleMovieExternalMetrics(movieRow: {
        WHERE id = $7`,
       [nextImdb, nextMc, nextRt, nextVotes, nextOscarWins, nextOscarNoms, movieId]
     );
+    invalidateWalkOfFameCache();
   }
 
   return {

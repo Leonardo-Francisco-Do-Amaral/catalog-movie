@@ -9,7 +9,6 @@ import WorldChallengePage from '../components/WorldChallengePage';
 import TimeMachinePage from '../components/TimeMachinePage';
 import TrophiesPage from './TrophiesPage';
 import UniverseCodexPage from './UniverseCodexPage';
-import AvatarLabPage from './AvatarLabPage';
 import WalkOfFamePage from './WalkOfFamePage';
 import WalkOfFamePackToast from '../components/WalkOfFamePackToast';
 import PS5TrophyToastContainer, { triggerPS5TrophyToast, triggerTrophyBatch } from '../components/PS5TrophyToastContainer';
@@ -25,6 +24,7 @@ import {
   computeXpGainEvent,
   triggerXPGainToast,
   triggerTimeMachineUnlock,
+  triggerWalkOfFamePackToast,
   dispatchXpStatusUpdate,
 } from '../utils/xpSystem';
 import { Film, RefreshCw, AlertTriangle } from 'lucide-react';
@@ -223,34 +223,128 @@ export default function Dashboard() {
   const [walkOfFamePacks, setWalkOfFamePacks] = useState([]);
   const [toastWalkOfFamePacks, setToastWalkOfFamePacks] = useState([]);
   const [walkOfFameRefreshKey, setWalkOfFameRefreshKey] = useState(0);
+  const activeTabRef = useRef(activeTab);
+  const checkMovieInFlightRef = useRef(0);
+  const knownWalkPackIdsRef = useRef(new Set());
+  const openedWalkPackIdsRef = useRef(new Set());
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  const handleDismissWalkPackToast = useCallback(() => {
+    setToastWalkOfFamePacks([]);
+  }, []);
 
   const fetchWalkOfFamePacks = useCallback(async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/walk-of-fame/packs`);
       if (res.data?.success && res.data?.data) {
-        setWalkOfFamePacks(res.data.data.pendingPacks || []);
+        const nextPending = res.data.data.pendingPacks || [];
+        const nextIds = new Set(nextPending.map((p) => p.packId).filter(Boolean));
+        knownWalkPackIdsRef.current = nextIds;
+        for (const id of nextIds) {
+          openedWalkPackIdsRef.current.delete(id);
+        }
+        setWalkOfFamePacks(nextPending);
       }
     } catch {
       // ignora erro se backend estiver offline
     }
   }, []);
 
+  const checkMovieWalkOfFamePacks = useCallback(
+    async (movieId, movieTitle) => {
+      if (!movieId && !movieTitle) return;
+      const knownBefore = new Set(knownWalkPackIdsRef.current);
+      checkMovieInFlightRef.current += 1;
+      try {
+        let res = null;
+        try {
+          res = await axios.post(`${API_BASE_URL}/walk-of-fame/check-movie`, {
+            movieId,
+            movieTitle,
+          });
+        } catch (firstErr) {
+          await new Promise((resolve) => setTimeout(resolve, 800));
+          res = await axios.post(`${API_BASE_URL}/walk-of-fame/check-movie`, {
+            movieId,
+            movieTitle,
+          });
+          void firstErr;
+        }
+
+        if (res?.data?.success && res?.data?.data) {
+          const { createdPacks = [], pendingPacks = [] } = res.data.data;
+          const nextIds = new Set(pendingPacks.map((p) => p.packId).filter(Boolean));
+          for (const id of nextIds) {
+            knownWalkPackIdsRef.current.add(id);
+            openedWalkPackIdsRef.current.delete(id);
+          }
+          setWalkOfFamePacks(pendingPacks);
+
+          const packsToToast =
+            createdPacks.length > 0
+              ? createdPacks
+              : pendingPacks.filter(
+                  (p) =>
+                    p.packId &&
+                    !knownBefore.has(p.packId) &&
+                    Number(p.triggerMovieId) === Number(movieId)
+                );
+
+          if (packsToToast.length > 0) {
+            triggerWalkOfFamePackToast(packsToToast);
+          }
+          if (activeTabRef.current === 'walk_of_fame') {
+            setWalkOfFameRefreshKey((k) => k + 1);
+          }
+        }
+      } catch (err) {
+        console.warn('[Dashboard] Falha ao checar pacotinho do Álbum da Fama:', err?.message || err);
+        fetchWalkOfFamePacks();
+      } finally {
+        checkMovieInFlightRef.current = Math.max(0, checkMovieInFlightRef.current - 1);
+      }
+    },
+    [fetchWalkOfFamePacks]
+  );
+
   const handleWalkOfFamePacksChanged = useCallback((packs) => {
     const safePacks = Array.isArray(packs) ? packs : [];
+    if (checkMovieInFlightRef.current > 0) {
+      return;
+    }
+    const pendingIdSet = new Set(safePacks.map((p) => p.packId).filter(Boolean));
+    for (const prevId of knownWalkPackIdsRef.current) {
+      if (!pendingIdSet.has(prevId)) {
+        openedWalkPackIdsRef.current.add(prevId);
+      }
+    }
+    knownWalkPackIdsRef.current = pendingIdSet;
+    for (const id of pendingIdSet) {
+      openedWalkPackIdsRef.current.delete(id);
+    }
     setWalkOfFamePacks(safePacks);
-    setToastWalkOfFamePacks((prev) => (prev.length > 0 ? safePacks : []));
+    setToastWalkOfFamePacks((prev) => {
+      if (prev.length === 0) return prev;
+      return prev.filter((p) => p.isDemo || !p.packId || pendingIdSet.has(p.packId));
+    });
   }, []);
 
   useEffect(() => {
     const onWalkPackToast = (e) => {
       const detail = e?.detail;
-      const incoming = Array.isArray(detail)
+      const rawIncoming = Array.isArray(detail)
         ? detail
         : Array.isArray(detail?.packs)
         ? detail.packs
         : detail
         ? [detail]
         : [];
+      const incoming = rawIncoming.filter(
+        (p) => p && (p.isDemo || !p.packId || !openedWalkPackIdsRef.current.has(p.packId))
+      );
       if (incoming.length === 0) return;
       setToastWalkOfFamePacks((prev) => {
         const existingIds = new Set(incoming.map((p) => p.packId).filter(Boolean));
@@ -399,6 +493,19 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [usingMock, setUsingMock] = useState(false);
   const [xpStatus, setXpStatus] = useState(null);
+  const [walkOfFameScope, setWalkOfFameScope] = useState('actors');
+
+  const handleNavigateTab = useCallback((nextTab, nextScope = null) => {
+    if (nextTab === 'directors_album') {
+      setWalkOfFameScope('directors');
+      setActiveTab('walk_of_fame');
+      return;
+    }
+    if (nextTab === 'walk_of_fame' && nextScope) {
+      setWalkOfFameScope(['directors', 'dubladores'].includes(nextScope) ? nextScope : 'actors');
+    }
+    setActiveTab(nextTab);
+  }, []);
 
   const unlockedTrophyIdsRef = useRef(new Set());
   const initialTrophyScanDoneRef = useRef(false);
@@ -425,8 +532,12 @@ export default function Dashboard() {
   useEffect(() => {
     const checkHashTab = () => {
       const h = window.location.hash.toLowerCase();
-      if (h === '#avatar' || h === '#avatar_lab') {
-        setActiveTab('avatar_lab');
+      if (h === '#diretores' || h === '#directors') {
+        setWalkOfFameScope('directors');
+        setActiveTab('walk_of_fame');
+      } else if (h === '#album' || h === '#walk_of_fame') {
+        setWalkOfFameScope('actors');
+        setActiveTab('walk_of_fame');
       }
     };
     checkHashTab();
@@ -500,8 +611,11 @@ export default function Dashboard() {
   }, [allMovies, applyXpStatus]);
 
   // Função para carregar todos os dados do banco
-  const fetchData = async (options = { runTrophyScan: true }) => {
-    setLoading(true);
+  const fetchData = async (options = { runTrophyScan: true, silent: false }) => {
+    const isSilent = Boolean(options?.silent);
+    if (!isSilent) {
+      setLoading(true);
+    }
     try {
       const [allRes, platformsRes, tagsRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/movies/all`),
@@ -529,7 +643,9 @@ export default function Dashboard() {
       }
       return MOCK_MOVIES;
     } finally {
-      setLoading(false);
+      if (!isSilent) {
+        setLoading(false);
+      }
     }
   };
 
@@ -1110,7 +1226,7 @@ export default function Dashboard() {
         }}
         onOpenImport={() => setIsImportOpen(true)}
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleNavigateTab}
         movies={allMovies}
         xpStatus={xpStatus}
         tagCounts={tagCounts}
@@ -1143,17 +1259,11 @@ export default function Dashboard() {
             <RefreshCw className="w-8 h-8 text-amber-500 animate-spin" />
             <span className="text-zinc-500 text-sm font-semibold tracking-wider uppercase">Carregando Catálogo...</span>
           </div>
-        ) : activeTab === 'avatar_lab' ? (
-          <AvatarLabPage
-            movies={allMovies}
-            xpStatus={xpStatus}
-            onBack={() => setActiveTab('catalog')}
-          />
         ) : activeTab === 'analytics' ? (
           <AnalyticsDashboard
             movies={allMovies}
             xpStatus={xpStatus}
-            onNavigateTab={setActiveTab}
+            onNavigateTab={handleNavigateTab}
           />
         ) : activeTab === 'challenge' ? (
           <WorldChallengePage
@@ -1168,11 +1278,13 @@ export default function Dashboard() {
         ) : activeTab === 'trophies' ? (
           <TrophiesPage
             movies={allMovies}
-            onOpenWalkOfFame={() => setActiveTab('walk_of_fame')}
+            onOpenWalkOfFame={() => handleNavigateTab('walk_of_fame', 'actors')}
           />
         ) : activeTab === 'walk_of_fame' ? (
           <WalkOfFamePage
             key={walkOfFameRefreshKey}
+            initialScope={walkOfFameScope}
+            onScopeChange={setWalkOfFameScope}
             onPacksChanged={handleWalkOfFamePacksChanged}
             onOpenAddMovieForStar={(title, year) => {
               setEditingMovie(null);
@@ -1422,31 +1534,12 @@ export default function Dashboard() {
           }
           // O MovieFormModal já disparou as notificações de troféus e XP diretamente.
           // Aqui apenas atualizamos a listagem de filmes sem re-disparar scans redundantes.
-          fetchData({ runTrophyScan: !updatedXpStatus });
+          fetchData({ runTrophyScan: !updatedXpStatus, silent: true });
 
           const savedMovieId = savedMovie?.movie_id || savedMovie?.id || null;
           const savedMovieTitle = savedMovie?.title || null;
           if (savedMovieId || savedMovieTitle) {
-            axios
-              .post(`${API_BASE_URL}/walk-of-fame/check-movie`, {
-                movieId: savedMovieId,
-                movieTitle: savedMovieTitle,
-              })
-              .then((res) => {
-                if (res.data?.success && res.data?.data) {
-                  const { createdPacks = [], pendingPacks = [] } = res.data.data;
-                  setWalkOfFamePacks(pendingPacks);
-                  if (createdPacks.length > 0) {
-                    setToastWalkOfFamePacks(createdPacks);
-                  }
-                  if (activeTab === 'walk_of_fame') {
-                    setWalkOfFameRefreshKey((k) => k + 1);
-                  }
-                }
-              })
-              .catch(() => {
-                // ignora se a checagem de pacotinho falhar em modo offline
-              });
+            checkMovieWalkOfFamePacks(savedMovieId, savedMovieTitle);
           }
         }}
       />
@@ -1454,7 +1547,7 @@ export default function Dashboard() {
       {/* Notificação discreta de Pacotinho de Figurinha do Álbum da Fama */}
       <WalkOfFamePackToast
         packs={toastWalkOfFamePacks}
-        onDismiss={() => setToastWalkOfFamePacks([])}
+        onDismiss={handleDismissWalkPackToast}
       />
 
       {/* Toast Comparativo de Atualização Seletiva de Métricas da API */}

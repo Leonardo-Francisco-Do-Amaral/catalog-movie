@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   X,
   Sparkles,
@@ -20,16 +20,22 @@ import {
   Eye,
   EyeOff,
   RefreshCw,
+  Mic,
+  Play,
+  Square,
+  Volume2,
 } from 'lucide-react';
 import {
-  WALK_UNLOCK_ROADMAP,
+  getUnlockRoadmapForStar,
+  isDirectorStar,
+  isDubladorStar,
   IMMORTAL_AURA_LIST,
   resolveEffectiveImmortalAura,
+  resolveUnlocksForPct,
   resolveWalkMediaUrl,
   resolveWalkRpgRank,
+  RISING_STAR_RANK_X_TOOLTIP,
 } from '../utils/walkOfFameStickers';
-
-const REWARD_HINT_BY_PCT = Object.fromEntries(WALK_UNLOCK_ROADMAP.map((r) => [r.pct, r.short]));
 
 function DossierLockBanner({ requiredPct, tierTitle, rewardLabel }) {
   return (
@@ -59,6 +65,7 @@ export default function WalkOfFameDossierModal({
   onUpdatePreferences,
   onUploadCustomSkin,
   onOpenTimeline,
+  onOpenDirectorVerdict,
 }) {
   const [filmTab, setFilmTab] = useState('watched');
   const [showCustomSkinBox, setShowCustomSkinBox] = useState(false);
@@ -67,6 +74,58 @@ export default function WalkOfFameDossierModal({
   const [uploadingSkin, setUploadingSkin] = useState(false);
   const [isBioOpen, setIsBioOpen] = useState(false);
   const [selectedMemberName, setSelectedMemberName] = useState(null);
+  const [playingClipId, setPlayingClipId] = useState(null);
+  const [audioError, setAudioError] = useState(null);
+  const audioRef = useRef(null);
+
+  const stopVoiceClip = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    }
+    setPlayingClipId(null);
+  }, []);
+
+  const isVoicePanelUnlocked = Boolean(
+    star?.unlocks?.voiceClipsUnlocked ?? Number(star?.percentage || 0) >= 60
+  );
+
+  const handleToggleVoiceClip = useCallback(
+    (clip) => {
+      if (!clip?.audioUrl || !isVoicePanelUnlocked) return;
+      if (playingClipId === clip.id) {
+        stopVoiceClip();
+        return;
+      }
+      stopVoiceClip();
+      setAudioError(null);
+      const audio = new Audio(clip.audioUrl);
+      audioRef.current = audio;
+      setPlayingClipId(clip.id);
+      audio.onended = () => {
+        if (audioRef.current === audio) {
+          audioRef.current = null;
+          setPlayingClipId(null);
+        }
+      };
+      audio.onerror = () => {
+        if (audioRef.current === audio) {
+          audioRef.current = null;
+          setPlayingClipId(null);
+          setAudioError('Não foi possível reproduzir este arquivo de áudio.');
+        }
+      };
+      audio.play().catch(() => {
+        if (audioRef.current === audio) {
+          audioRef.current = null;
+          setPlayingClipId(null);
+          setAudioError('Falha ao iniciar a reprodução do áudio no navegador.');
+        }
+      });
+    },
+    [isVoicePanelUnlocked, playingClipId, stopVoiceClip]
+  );
 
   const watchedCount = star?.watchedFilms?.length || 0;
   useEffect(() => {
@@ -79,7 +138,12 @@ export default function WalkOfFameDossierModal({
   useEffect(() => {
     setSelectedMemberName(null);
     setIsBioOpen(false);
-  }, [star?.id]);
+    setAudioError(null);
+    stopVoiceClip();
+    return () => {
+      stopVoiceClip();
+    };
+  }, [star?.id, stopVoiceClip]);
 
   useEffect(() => {
     if (!star) return;
@@ -92,24 +156,27 @@ export default function WalkOfFameDossierModal({
 
   if (!star) return null;
 
+  const isDirector = isDirectorStar(star);
+  const isDublador = !isDirector && isDubladorStar(star);
+  const isRisingStar = isDirector && Boolean(star.isNewEraVisionary);
+  const unlockFloor = isDirector ? (isRisingStar ? 80 : 20) : 15;
+  const roadmapForStar = getUnlockRoadmapForStar(star);
+  const rewardHintByPct = Object.fromEntries(roadmapForStar.map((r) => [r.pct, r.short]));
+  const roadmapByPct = Object.fromEntries(roadmapForStar.map((r) => [r.pct, r]));
   const isDiamond = star.isDiamond;
   const accentHex = star.accentHex || '#f59e0b';
   const pct = Number(star.percentage || 0);
-  const unlocks = star.unlocks || {
-    quoteUnlocked: pct >= 15,
-    curiosity1Unlocked: pct >= 30,
-    skinsUnlocked: pct >= 45,
-    curiosities23Unlocked: pct >= 60,
-    timelineUnlocked: pct >= 75,
-    immortalUnlocked: pct >= 90,
-  };
-  const skinOptions = Array.isArray(star.skinOptions) ? star.skinOptions : [];
+  const unlocks = star.unlocks || resolveUnlocksForPct(pct, isDirector, isRisingStar, isDublador);
+  const rawSkinOptions = Array.isArray(star.skinOptions) ? star.skinOptions : [];
+  const skinOptions = isDirector
+    ? rawSkinOptions.filter((sk) => sk.id === 'default_portrait' || sk.kind === 'custom')
+    : rawSkinOptions;
   const activePortrait = resolveWalkMediaUrl(
     unlocks.skinsUnlocked && star.activePhotoUrl ? star.activePhotoUrl : star.photoUrl
   );
   const extraStars = Number(star.extraStars || 0);
   const currentAura = resolveEffectiveImmortalAura(star.immortalAura || 'prism', extraStars).id;
-  const rpgRank = star.rpgRank || resolveWalkRpgRank(pct, extraStars);
+  const rpgRank = star.rpgRank || resolveWalkRpgRank(pct, extraStars, isDirector, isRisingStar);
 
   const groupMembers = Array.isArray(star.groupMembers) ? star.groupMembers : [];
   const activeMember =
@@ -144,6 +211,21 @@ export default function WalkOfFameDossierModal({
   const displayOscarNominations = activeMember
     ? Number(activeMember.oscarNominations || 0)
     : Number(star.oscarNominations || 0);
+  const displayNatCodes = (
+    activeMember && Array.isArray(activeMember.nationalityCodes) && activeMember.nationalityCodes.length > 0
+      ? activeMember.nationalityCodes
+      : activeMember?.nationalityCode
+      ? [activeMember.nationalityCode]
+      : Array.isArray(star.nationalityCodes) && star.nationalityCodes.length > 0
+      ? star.nationalityCodes
+      : star.nationalityCode
+      ? [star.nationalityCode]
+      : []
+  )
+    .filter(Boolean)
+    .slice(0, 3);
+  const displayNatLabel =
+    (activeMember && activeMember.nationalityLabel) || star.nationalityLabel || '';
 
   const handleSaveUrlSkin = async (e) => {
     e.preventDefault();
@@ -238,7 +320,7 @@ export default function WalkOfFameDossierModal({
                   src={displayPortrait}
                   alt={displayName}
                   className={`w-full h-full object-cover object-top transition-all duration-500 ${
-                    pct < 15 ? 'grayscale contrast-110 brightness-60' : ''
+                    !isRisingStar && pct < unlockFloor ? 'grayscale contrast-110 brightness-60' : ''
                   }`}
                 />
               ) : (
@@ -255,9 +337,28 @@ export default function WalkOfFameDossierModal({
                   <span className="px-2.5 py-1 rounded-lg bg-black/75 border border-white/15 font-mono text-xs font-black text-amber-300">
                     #{String(star.albumNumber).padStart(3, '0')}
                   </span>
-                  <span className="px-2 py-1 rounded-lg bg-black/80 border border-amber-400/50 font-mono text-[11px] font-black text-amber-200">
-                    RANK {rpgRank}
-                  </span>
+                  {isRisingStar ? (
+                    <span
+                      tabIndex={0}
+                      className="group/portraitRank relative inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-black/85 border border-cyan-300/60 font-mono text-[11px] font-black text-cyan-100 cursor-help focus:outline-none"
+                    >
+                      <span>RANK {rpgRank}</span>
+                      <span className="text-[9px] text-cyan-300">ⓘ</span>
+                      <span
+                        role="tooltip"
+                        className="pointer-events-none opacity-0 translate-y-1 group-hover/portraitRank:opacity-100 group-hover/portraitRank:translate-y-0 group-focus-within/portraitRank:opacity-100 group-focus-within/portraitRank:translate-y-0 transition-all duration-150 absolute left-0 top-full mt-1.5 w-60 z-40 rounded-xl bg-zinc-950/95 border border-cyan-400/55 px-2.5 py-2 text-left font-sans text-[11px] font-medium leading-relaxed text-zinc-100 shadow-2xl whitespace-normal"
+                      >
+                        <span className="block text-[10px] font-mono font-black uppercase tracking-wider text-cyan-300 mb-0.5">
+                          🌟 Estrela em Ascensão (Rank X)
+                        </span>
+                        {RISING_STAR_RANK_X_TOOLTIP}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="px-2 py-1 rounded-lg bg-black/80 border border-amber-400/50 font-mono text-[11px] font-black text-amber-200">
+                      RANK {rpgRank}
+                    </span>
+                  )}
                   {star.isSimulated && (
                     <span className="px-2 py-1 rounded-lg bg-purple-500/85 border border-purple-300/60 text-[10px] font-black text-white">
                       🧪 PRÉVIA
@@ -309,66 +410,79 @@ export default function WalkOfFameDossierModal({
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-black uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
                   <Palette className="w-4 h-4 text-purple-400" />
-                  <span>Skins da Figurinha</span>
+                  <span>{isDirector ? 'Foto da Figurinha' : 'Skins da Figurinha'}</span>
                 </span>
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-zinc-950 border border-zinc-700 text-zinc-300">
-                  {unlocks.skinsUnlocked ? '✓ Liberado (45%+)' : '🔒 45%'}
+                  {unlocks.skinsUnlocked
+                    ? isRisingStar
+                      ? '✓ Liberado (Estrela em Ascensão)'
+                      : `✓ Liberado (${isDirector ? '40' : '45'}%+)`
+                    : `🔒 ${isDirector ? '40' : '45'}%`}
                 </span>
               </div>
 
-              {skinOptions.length > 0 ? (
-                <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
-                  {skinOptions.map((sk) => {
-                    const isSelected =
-                      (star.selectedSkinUrl && star.selectedSkinUrl === sk.imageUrl) ||
-                      (!star.selectedSkinUrl && sk.id === 'default_portrait');
-                    const imgSrc = resolveWalkMediaUrl(sk.imageUrl);
-                    return (
-                      <button
-                        key={sk.id}
-                        type="button"
-                        disabled={!unlocks.skinsUnlocked}
-                        onClick={() =>
-                          onUpdatePreferences?.(
-                            star.id,
-                            {
-                              selectedSkinUrl: sk.id === 'default_portrait' ? null : sk.imageUrl,
-                              selectedSkinLabel: sk.id === 'default_portrait' ? null : sk.label,
-                            },
-                            Boolean(star.isSimulated)
-                          )
-                        }
-                        title={`${sk.label} — ${sk.sublabel}`}
-                        className={`group relative aspect-[3/4] rounded-lg overflow-hidden border-2 transition-all ${
-                          !unlocks.skinsUnlocked
-                            ? 'border-zinc-800 opacity-45 grayscale cursor-not-allowed'
-                            : isSelected
-                            ? 'border-purple-400 ring-2 ring-purple-400/50 scale-[1.04] cursor-pointer'
-                            : 'border-zinc-700 hover:border-purple-300/70 cursor-pointer'
-                        }`}
-                      >
-                        <img src={imgSrc} alt={sk.label} className="w-full h-full object-cover object-top" />
-                        {sk.kind === 'custom' && (
-                          <span className="absolute top-0.5 left-0.5 px-1 rounded bg-purple-600/90 text-[8px] font-black text-white">
-                            SUA
-                          </span>
-                        )}
-                        {isSelected && unlocks.skinsUnlocked && (
-                          <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-purple-400 text-zinc-950 text-[9px] font-black flex items-center justify-center">
-                            ✓
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-[11px] text-zinc-500">Carregando visuais dos filmes...</p>
-              )}
+              {!isDirector &&
+                (skinOptions.length > 0 ? (
+                  <div className="grid gap-1.5 grid-cols-3 sm:grid-cols-5">
+                    {skinOptions.map((sk) => {
+                      const isSelected =
+                        (star.selectedSkinUrl && star.selectedSkinUrl === sk.imageUrl) ||
+                        (!star.selectedSkinUrl && sk.id === 'default_portrait');
+                      const imgSrc = resolveWalkMediaUrl(sk.imageUrl);
+                      return (
+                        <button
+                          key={sk.id}
+                          type="button"
+                          disabled={!unlocks.skinsUnlocked}
+                          onClick={() =>
+                            onUpdatePreferences?.(
+                              star.id,
+                              {
+                                selectedSkinUrl: sk.id === 'default_portrait' ? null : sk.imageUrl,
+                                selectedSkinLabel: sk.id === 'default_portrait' ? null : sk.label,
+                              },
+                              Boolean(star.isSimulated)
+                            )
+                          }
+                          title={`${sk.label} — ${sk.sublabel}`}
+                          className={`group relative aspect-[3/4] rounded-lg overflow-hidden border-2 transition-all ${
+                            !unlocks.skinsUnlocked
+                              ? 'border-zinc-800 opacity-45 grayscale cursor-not-allowed'
+                              : isSelected
+                              ? 'border-purple-400 ring-2 ring-purple-400/50 scale-[1.04] cursor-pointer'
+                              : 'border-zinc-700 hover:border-purple-300/70 cursor-pointer'
+                          }`}
+                        >
+                          <img src={imgSrc} alt={sk.label} className="w-full h-full object-cover object-top" />
+                          {sk.kind === 'custom' && (
+                            <span className="absolute top-0.5 left-0.5 px-1 rounded bg-purple-600/90 text-[8px] font-black text-white">
+                              SUA
+                            </span>
+                          )}
+                          {isSelected && unlocks.skinsUnlocked && (
+                            <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-purple-400 text-zinc-950 text-[9px] font-black flex items-center justify-center">
+                              ✓
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-zinc-500">Carregando visuais dos filmes...</p>
+                ))}
 
               {!unlocks.skinsUnlocked ? (
                 <p className="text-[11px] text-zinc-400">
-                  Alcance <strong className="text-purple-300">45%</strong> (Queridinho dos Holofotes) para escolher visuais ou subir foto do seu computador!
+                  {isDirector ? (
+                    <>
+                      Alcance <strong className="text-purple-300">40%</strong> (Take 2: Corte do Diretor) para enviar uma foto do seu computador ou link!
+                    </>
+                  ) : (
+                    <>
+                      Alcance <strong className="text-purple-300">45%</strong> (Queridinho dos Holofotes) para escolher visuais ou subir foto do seu computador!
+                    </>
+                  )}
                 </p>
               ) : (
                 <div className="flex flex-col gap-2">
@@ -381,16 +495,34 @@ export default function WalkOfFameDossierModal({
                           'Retrato Oficial'}
                       </strong>
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => setShowCustomSkinBox((v) => !v)}
-                      className="px-2 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/45 text-[10px] font-black text-purple-200 cursor-pointer shrink-0"
-                    >
-                      {showCustomSkinBox ? 'Fechar' : '+ Foto PC / Link'}
-                    </button>
+                    {isDirector ? (
+                      star.selectedSkinUrl ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onUpdatePreferences?.(
+                              star.id,
+                              { selectedSkinUrl: null, selectedSkinLabel: null },
+                              Boolean(star.isSimulated)
+                            )
+                          }
+                          className="px-2 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-[10px] font-bold text-zinc-200 cursor-pointer shrink-0"
+                        >
+                          ↺ Retrato Oficial
+                        </button>
+                      ) : null
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowCustomSkinBox((v) => !v)}
+                        className="px-2 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/45 text-[10px] font-black text-purple-200 cursor-pointer shrink-0"
+                      >
+                        {showCustomSkinBox ? 'Fechar' : '+ Foto PC / Link'}
+                      </button>
+                    )}
                   </div>
 
-                  {showCustomSkinBox && (
+                  {(isDirector || showCustomSkinBox) && (
                     <form
                       onSubmit={handleSaveUrlSkin}
                       className="rounded-xl bg-zinc-950/90 border border-purple-500/35 p-2.5 flex flex-col gap-2"
@@ -440,15 +572,25 @@ export default function WalkOfFameDossierModal({
             </div>
 
             {/* ===============================================================
-                90%+ : MÉTODO 1 — EDIÇÃO ASSINADA (AURA + OBRA-PRIMA FAVORITA)
+                90%+ : PERSONALIZAÇÃO DA CARTA (AURA + OBRA-PRIMA FAVORITA)
                =============================================================== */}
             <div className="rounded-2xl bg-gradient-to-br from-sky-500/10 via-zinc-900/85 to-zinc-950 border border-sky-500/30 p-4 flex flex-col gap-3">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-black uppercase tracking-wider text-sky-300">
-                  💎 Edição Assinada da Carta
+                  {isRisingStar
+                    ? '🌟 Estrela em Ascensão — Gala & Cânone'
+                    : isDirector
+                    ? '🌟 Take 4 & Take 5 — Gala & Cânone'
+                    : '💎 Edição Assinada da Carta'}
                 </span>
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-zinc-950 border border-sky-500/35 text-sky-200">
-                  {unlocks.immortalUnlocked ? '✓ Ativa' : '🔒 90%'}
+                  {unlocks.immortalUnlocked
+                    ? isRisingStar
+                      ? '✓ Liberado (Rank X)'
+                      : '✓ Ativa'
+                    : isDirector && unlocks.galaUnlocked
+                    ? '🎞️ Gala 80% Ativa (Auras 90%)'
+                    : '🔒 90%'}
                 </span>
               </div>
 
@@ -510,10 +652,15 @@ export default function WalkOfFameDossierModal({
               {/* Selo Obra-Prima Favorita na Carta */}
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-1">
-                  🏆 Obra-Prima Fixada na Figurinha
+                  🏆 Obra-Prima Fixada na Figurinha{' '}
+                  {isRisingStar ? '(Estrela em Ascensão • Rank X)' : isDirector ? '(Take 4 • 80%+)' : ''}
                 </span>
                 <select
-                  disabled={!unlocks.immortalUnlocked || star.watchedFilms.length === 0}
+                  disabled={
+                    !(isDirector
+                      ? unlocks.galaUnlocked || unlocks.immortalUnlocked
+                      : unlocks.immortalUnlocked) || star.watchedFilms.length === 0
+                  }
                   value={star.signatureMovieId || ''}
                   onChange={(e) =>
                     onUpdatePreferences?.(
@@ -553,14 +700,30 @@ export default function WalkOfFameDossierModal({
                 </div>
               </div>
 
-              {displayPlaceOfBirth && (
+              {(displayPlaceOfBirth || displayNatCodes.length > 0) && (
                 <div className="flex items-center gap-2 text-zinc-300">
                   <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
                   <div>
                     <span className="text-zinc-500 block text-[10px] uppercase font-bold tracking-wider">
-                      Origem
+                      Origem & Nacionalidade
                     </span>
-                    <span className="font-semibold text-zinc-100">{displayPlaceOfBirth}</span>
+                    <span className="font-semibold text-zinc-100 inline-flex items-center gap-1.5 flex-wrap">
+                      {displayNatCodes.length > 0 && (
+                        <span className="inline-flex items-center gap-1">
+                          {displayNatCodes.map((code) => (
+                            <img
+                              key={code}
+                              src={`https://flagcdn.com/w40/${String(code).toLowerCase()}.png`}
+                              alt={code}
+                              className="w-4 h-3 object-cover rounded-[2px] border border-white/20"
+                            />
+                          ))}
+                        </span>
+                      )}
+                      <span>
+                        {displayPlaceOfBirth || displayNatLabel || 'Internacional'}
+                      </span>
+                    </span>
                   </div>
                 </div>
               )}
@@ -585,7 +748,8 @@ export default function WalkOfFameDossierModal({
                     )}
                     {!star.isStickerUnlocked && (
                       <span className="text-zinc-400 font-normal block text-[11px]">
-                        Slot bloqueado (0%–14%): atinja 15% para liberar a figurinha
+                        Slot bloqueado (0%–{isRisingStar ? '79' : isDirector ? '19' : '14'}%): atinja{' '}
+                        {unlockFloor}% para liberar a figurinha
                       </span>
                     )}
                   </span>
@@ -622,8 +786,12 @@ export default function WalkOfFameDossierModal({
               <div className="rounded-2xl bg-zinc-900/75 border border-zinc-800 p-4">
                 <div className="flex items-center justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2 text-xs font-bold text-zinc-300 uppercase tracking-wider">
-                    <Users className="w-4 h-4 text-purple-400" />
-                    <span>Integrantes desta Estrela</span>
+                    {star.alameda === 'casais' ? (
+                      <HeartHandshake className="w-4 h-4 text-rose-400" />
+                    ) : (
+                      <Users className="w-4 h-4 text-purple-400" />
+                    )}
+                    <span>{star.alameda === 'casais' ? 'Integrantes do Casal' : 'Integrantes desta Estrela'}</span>
                   </div>
                   {activeMember && (
                     <button
@@ -669,6 +837,14 @@ export default function WalkOfFameDossierModal({
                           )}
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5">
+                              {gm.nationalityCode && (
+                                <img
+                                  src={`https://flagcdn.com/w40/${String(gm.nationalityCode).toLowerCase()}.png`}
+                                  alt={gm.nationalityLabel || gm.nationalityCode}
+                                  title={gm.nationalityLabel || ''}
+                                  className="w-3.5 h-2.5 object-cover rounded-[2px] border border-white/20 shrink-0"
+                                />
+                              )}
                               <p className="text-xs font-bold text-zinc-100 truncate">{gm.name}</p>
                               {isCardProtagonist && (
                                 <span className="px-1.5 py-0.2 rounded bg-amber-500/20 border border-amber-400/45 text-[9px] font-black text-amber-200 shrink-0">
@@ -726,15 +902,60 @@ export default function WalkOfFameDossierModal({
             <div>
               <div className="flex items-center gap-2 flex-wrap mb-1.5">
                 <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 text-amber-400">
-                  {star.kind === 'dublador'
+                  {star.kind === 'director' && star.isNewEraVisionary
+                    ? '🌟 Visionário da Nova Era (Diretor & Roteirista)'
+                    : star.kind === 'director'
+                    ? '🎬✍️ Diretor & Roteirista'
+                    : star.kind === 'dublador'
                     ? '🎙️ Lenda da Dublagem'
+                    : star.alameda === 'casais'
+                    ? '💑 Casal Icônico'
                     : star.kind === 'group'
                     ? '👥 Estrela Coletiva'
                     : '⭐ Estrela Individual'}
                 </span>
-                <span className="text-[11px] font-mono font-black px-2.5 py-0.5 rounded-md bg-amber-500/15 border border-amber-400/45 text-amber-200">
-                  RANK {rpgRank}
-                </span>
+                {star.kind === 'director' && star.directorStats?.ceilingTierLabel && (
+                  <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-md bg-cyan-950/60 border border-cyan-400/50 text-cyan-200">
+                    🎯 {star.directorStats.ceilingTierLabel}
+                  </span>
+                )}
+                {isRisingStar ? (
+                  <span
+                    tabIndex={0}
+                    className="group/headerRank relative inline-flex items-center gap-1 text-[11px] font-mono font-black px-2.5 py-0.5 rounded-md bg-gradient-to-r from-cyan-500/20 via-amber-500/20 to-rose-500/20 border border-cyan-300/60 text-cyan-100 cursor-help shadow-[0_0_12px_rgba(34,211,238,0.22)] focus:outline-none"
+                  >
+                    <span>RANK {rpgRank}</span>
+                    <span className="text-[9px] text-cyan-200/90">ⓘ</span>
+                    <span
+                      role="tooltip"
+                      className="pointer-events-none opacity-0 translate-y-1 group-hover/headerRank:opacity-100 group-hover/headerRank:translate-y-0 group-focus-within/headerRank:opacity-100 group-focus-within/headerRank:translate-y-0 transition-all duration-150 absolute left-0 top-full mt-2 w-72 z-50 rounded-xl bg-zinc-950/95 border border-cyan-400/55 px-3 py-2.5 text-left font-sans text-[11px] font-medium leading-relaxed text-zinc-100 shadow-2xl whitespace-normal"
+                    >
+                      <span className="block text-[10px] font-mono font-black uppercase tracking-wider text-cyan-300 mb-1">
+                        🌟 Rank X — Estrela em Ascensão
+                      </span>
+                      {RISING_STAR_RANK_X_TOOLTIP}
+                    </span>
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-mono font-black px-2.5 py-0.5 rounded-md bg-amber-500/15 border border-amber-400/45 text-amber-200">
+                    RANK {rpgRank}
+                  </span>
+                )}
+                {displayNatCodes.length > 0 && (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-zinc-900 border border-zinc-700/80 text-zinc-200">
+                    <span className="inline-flex items-center gap-1">
+                      {displayNatCodes.map((code) => (
+                        <img
+                          key={code}
+                          src={`https://flagcdn.com/w40/${String(code).toLowerCase()}.png`}
+                          alt={code}
+                          className="w-4 h-3 object-cover rounded-[2px]"
+                        />
+                      ))}
+                    </span>
+                    {displayNatLabel && <span>{displayNatLabel}</span>}
+                  </span>
+                )}
                 {displayClassLabel && (
                   <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-purple-500/15 border border-purple-400/40 text-purple-200">
                     🎭 {displayClassLabel}
@@ -774,15 +995,41 @@ export default function WalkOfFameDossierModal({
               <p className="text-sm text-amber-300/90 font-semibold mt-0.5">
                 {activeMember ? activeMember.roleLabel : star.tagline}
               </p>
-              <p className="text-xs text-zinc-400 mt-1">{star.knownFor}</p>
+              {!isDirector && star.knownFor && (
+                <p className="text-xs text-zinc-400 mt-1">{star.knownFor}</p>
+              )}
             </div>
 
-            {/* Escada de Progressão 15% → 90% */}
+            {/* Escada de Progressão */}
+            {isRisingStar ? (
+              <div className="rounded-2xl bg-gradient-to-br from-cyan-500/10 via-zinc-900/80 to-indigo-500/10 border border-cyan-400/35 px-4 py-3 flex items-center justify-between gap-2 flex-wrap">
+                <span className="text-xs font-black uppercase tracking-wider text-cyan-200 flex items-center gap-1.5">
+                  <Award className="w-4 h-4 text-cyan-300" />
+                  <span>Estrela em Ascensão</span>
+                </span>
+                {star.nextMilestone ? (
+                  <span className="text-xs font-semibold text-cyan-200 bg-cyan-500/15 border border-cyan-400/40 px-2.5 py-1 rounded-lg">
+                    Falta{star.nextMilestone.remainingFilms === 1 ? '' : 'm'}{' '}
+                    <strong>{star.nextMilestone.remainingFilms}</strong> filme
+                    {star.nextMilestone.remainingFilms === 1 ? '' : 's'} para 🌟 Figurinha &amp; 🃏 Show de Cartazes (
+                    {star.nextMilestone.thresholdPct}%)
+                  </span>
+                ) : (
+                  <span className="text-xs font-bold text-cyan-200 bg-cyan-500/15 border border-cyan-400/45 px-2.5 py-1 rounded-lg">
+                    🌟 Rank X: Figurinha &amp; Show de Cartazes Conquistados!
+                  </span>
+                )}
+              </div>
+            ) : (
             <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800 p-4">
               <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
                 <span className="text-xs font-black uppercase tracking-wider text-zinc-200 flex items-center gap-1.5">
                   <Award className="w-4 h-4 text-amber-400" />
-                  <span>Jornada na Calçada da Fama (15% → 90%)</span>
+                  <span>
+                    {isDirector
+                      ? 'As 5 Tomadas do Diretor (Take 1: 20% → Take 5: 90%/100%)'
+                      : 'Jornada na Calçada da Fama (15% → 90%)'}
+                  </span>
                 </span>
                 {star.nextMilestone ? (
                   <span className="text-xs font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-lg">
@@ -793,42 +1040,52 @@ export default function WalkOfFameDossierModal({
                   </span>
                 ) : (
                   <span className="text-xs font-bold text-sky-300 bg-sky-500/15 border border-sky-400/40 px-2.5 py-1 rounded-lg">
-                    💎 Nível Máximo Imortal Conquistado!
+                    💎 {isDirector ? 'Take 5: Cânone Absoluto Conquistado!' : 'Nível Máximo Imortal Conquistado!'}
                   </span>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
-                {(star.milestones || []).map((m) => (
-                  <div
-                    key={m.id}
-                    className={`rounded-xl p-2.5 border text-center transition-all ${
-                      m.unlocked
-                        ? 'bg-zinc-950/90 shadow-md'
-                        : 'bg-zinc-950/40 border-zinc-800/70 opacity-60'
-                    }`}
-                    style={{
-                      borderColor: m.unlocked ? `${m.accentHex}88` : undefined,
-                      boxShadow: m.unlocked ? `0 0 18px ${m.accentHex}22` : undefined,
-                    }}
-                  >
-                    <div className="text-lg">{m.icon}</div>
-                    <div className="font-mono text-xs font-black text-white mt-0.5">
-                      {m.thresholdPct}%
+              <div
+                className={`grid grid-cols-2 sm:grid-cols-3 ${
+                  isDirector ? 'md:grid-cols-5' : 'md:grid-cols-6'
+                } gap-2`}
+              >
+                {(star.milestones || []).map((m) => {
+                  const customStep = roadmapByPct[m.thresholdPct];
+                  return (
+                    <div
+                      key={m.id}
+                      className={`rounded-xl p-2.5 border text-center transition-all ${
+                        m.unlocked
+                          ? 'bg-zinc-950/90 shadow-md'
+                          : 'bg-zinc-950/40 border-zinc-800/70 opacity-60'
+                      }`}
+                      style={{
+                        borderColor: m.unlocked ? `${m.accentHex}88` : undefined,
+                        boxShadow: m.unlocked ? `0 0 18px ${m.accentHex}22` : undefined,
+                      }}
+                    >
+                      <div className="text-lg">
+                        {(isDirector || isDublador) && customStep?.icon ? customStep.icon : m.icon}
+                      </div>
+                      <div className="font-mono text-xs font-black text-white mt-0.5">
+                        {m.thresholdPct}%
+                      </div>
+                      <div className="text-[10px] font-bold text-zinc-200 leading-tight mt-0.5">
+                        {m.label}
+                      </div>
+                      <div className="text-[9px] text-amber-300/90 font-semibold leading-tight mt-1">
+                        {rewardHintByPct[m.thresholdPct] || ''}
+                      </div>
+                      <div className="text-[10px] font-mono text-zinc-500 mt-1">
+                        {m.unlocked ? '✓ Liberado' : `${m.targetCount} filmes`}
+                      </div>
                     </div>
-                    <div className="text-[10px] font-bold text-zinc-200 leading-tight mt-0.5">
-                      {m.label}
-                    </div>
-                    <div className="text-[9px] text-amber-300/90 font-semibold leading-tight mt-1">
-                      {REWARD_HINT_BY_PCT[m.thresholdPct] || ''}
-                    </div>
-                    <div className="text-[10px] font-mono text-zinc-500 mt-1">
-                      {m.unlocked ? '✓ Liberado' : `${m.targetCount} filmes`}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
+            )}
 
             {/* ===============================================================
                 BIOGRAFIA + MELHOR FILME / PIOR FILME / MÉDIA (COLAPSÁVEL)
@@ -921,16 +1178,24 @@ export default function WalkOfFameDossierModal({
             )}
 
             {/* ===============================================================
-                15%+ FRASE MARCANTE
+                15%/20%+ FRASE MARCANTE
                =============================================================== */}
             <div className="rounded-2xl bg-zinc-900/55 border border-zinc-800/90 p-4 sm:p-5 flex flex-col gap-3">
               <div className="flex items-center justify-between gap-2">
                 <h3 className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
                   <Quote className="w-4 h-4 text-amber-400" />
-                  <span>Frase Marcante</span>
+                  <span>{isDirector ? 'Frase de Set' : 'Frase Marcante'}</span>
                 </h3>
                 <span className="text-[10px] font-mono font-bold text-zinc-400">
-                  {unlocks.quoteUnlocked ? '🎟️ Desbloqueada (15%+)' : '🔒 15%'}
+                  {unlocks.quoteUnlocked
+                    ? isRisingStar
+                      ? '🌟 Liberada (Estrela em Ascensão)'
+                      : isDirector
+                      ? '🎬 Desbloqueada (20%+)'
+                      : '🎟️ Desbloqueada (15%+)'
+                    : isDirector
+                    ? '🔒 20%'
+                    : '🔒 15%'}
                 </span>
               </div>
 
@@ -941,25 +1206,36 @@ export default function WalkOfFameDossierModal({
                 </div>
               ) : (
                 <DossierLockBanner
-                  requiredPct={15}
-                  tierTitle="Teste de Elenco"
-                  rewardLabel="Frase Marcante"
+                  requiredPct={isDirector ? 20 : 15}
+                  tierTitle={isDirector ? 'Take 1: Claquete Inicial' : 'Teste de Elenco'}
+                  rewardLabel={isDirector ? 'Frase de Set' : 'Frase Marcante'}
                 />
               )}
             </div>
 
             {/* ===============================================================
-                30%+ (1ª) & 60%+ (2ª e 3ª) CURIOSIDADES
+                CURIOSIDADES: DUBLADORES (30% TODAS) / ATORES (30% & 60%) / DIRETORES (40% & 80%)
                =============================================================== */}
             {Array.isArray(star.curiosities) && star.curiosities.length > 0 && (
               <div className="rounded-2xl bg-zinc-900/55 border border-zinc-800/90 p-4 flex flex-col gap-3">
-                <h3 className="text-xs font-black uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-purple-400" />
-                  <span>Curiosidades de Bastidores</span>
-                </h3>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-purple-400" />
+                    <span>Curiosidades de Bastidores</span>
+                  </h3>
+                  <span className="text-[10px] font-mono font-bold text-zinc-400">
+                    {isDublador
+                      ? pct >= 30
+                        ? '🔍 Todas as 3 liberadas (30%+)'
+                        : '🔒 Libera todas as 3 aos 30%'
+                      : isDirector
+                      ? '🎬 40% (#1) • 80% (#2–#3)'
+                      : '🎭 30% (#1) • 60% (#2–#3)'}
+                  </span>
+                </div>
 
                 <ul className="space-y-2">
-                  {/* Curiosidade #1 (30%+) */}
+                  {/* Curiosidade #1 (Dubladores 30%+ / Atores 30%+ / Diretores 40%+) */}
                   {star.curiosities[0] && (
                     unlocks.curiosity1Unlocked ? (
                       <li className="flex items-start gap-2.5 text-xs sm:text-sm text-zinc-200 bg-zinc-950/60 border border-zinc-800 rounded-xl p-3">
@@ -969,15 +1245,15 @@ export default function WalkOfFameDossierModal({
                     ) : (
                       <li>
                         <DossierLockBanner
-                          requiredPct={30}
-                          tierTitle="Rouba-Cena"
-                          rewardLabel="Curiosidade #1"
+                          requiredPct={isDirector ? 40 : 30}
+                          tierTitle={isDirector ? 'Take 2: Corte do Diretor' : 'Rouba-Cena'}
+                          rewardLabel={isDublador ? 'Todas as 3 Curiosidades' : 'Curiosidade #1'}
                         />
                       </li>
                     )
                   )}
 
-                  {/* Curiosidades #2 e #3 (60%+) */}
+                  {/* Curiosidades #2 e #3 (Dubladores 30%+ / Atores 60%+ / Diretores 80%+) */}
                   {star.curiosities.length > 1 && (
                     unlocks.curiosities23Unlocked ? (
                       star.curiosities.slice(1).map((fact, idx) => (
@@ -994,8 +1270,14 @@ export default function WalkOfFameDossierModal({
                     ) : (
                       <li>
                         <DossierLockBanner
-                          requiredPct={60}
-                          tierTitle="Estrela na Calçada"
+                          requiredPct={isDublador ? 30 : isDirector ? 80 : 60}
+                          tierTitle={
+                            isDublador
+                              ? 'Rouba-Cena'
+                              : isDirector
+                              ? 'Take 4: Sessão de Gala 70mm'
+                              : 'Estrela na Calçada'
+                          }
                           rewardLabel="Curiosidades #2 e #3"
                         />
                       </li>
@@ -1006,87 +1288,314 @@ export default function WalkOfFameDossierModal({
             )}
 
             {/* ===============================================================
-                75%+ : LINHA DO TEMPO CINEMÁTICA & RAIO-X DAS DÉCADAS
+                DUBLADORES (60%+): VOZES MARCANTES — MESA DE SOM & BORDÕES
                =============================================================== */}
-            <div className="rounded-2xl bg-gradient-to-br from-sky-500/10 via-zinc-900/80 to-purple-500/10 border border-sky-400/35 p-4 sm:p-5 flex flex-col gap-4">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <h3 className="text-xs font-black uppercase tracking-wider text-sky-300 flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-sky-400" />
-                  <span>Linha do Tempo Cinemática &amp; Raio-X das Décadas</span>
-                </h3>
-                <span className="text-[10px] font-mono font-bold text-zinc-400">
-                  {unlocks.timelineUnlocked ? '🎞️ Liberado (75%+)' : '🔒 75%'}
-                </span>
-              </div>
+            {isDublador && (() => {
+              const voiceClips = Array.isArray(star.voiceClips) ? star.voiceClips : [];
+              const voiceUnlocked = isVoicePanelUnlocked;
+              const meta60Target = Math.max(1, Math.round(0.6 * Number(star.ceiling || 25)));
 
-              {unlocks.timelineUnlocked ? (
-                <div className="flex flex-col gap-4">
-                  {/* Botão Tela Escura Linha do Tempo Cinemática */}
-                  <button
-                    type="button"
-                    onClick={() => onOpenTimeline?.(star)}
-                    className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-sky-500 via-cyan-400 to-amber-400 hover:brightness-110 text-zinc-950 font-black text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 transition-transform active:scale-[0.99] cursor-pointer"
-                  >
-                    <Clock className="w-4 h-4" />
-                    <span>⏳ Ver Linha do Tempo Cinemática (Eixo Reto + Variação de Notas)</span>
-                  </button>
-
-                  {/* Raio-X das Décadas */}
-                  <div className="rounded-xl bg-zinc-950/85 border border-zinc-800 p-3.5 flex flex-col gap-2">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-[11px] font-black uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
-                        <BarChart3 className="w-3.5 h-3.5 text-purple-400" />
-                        <span>Raio-X das Décadas</span>
+              return (
+                <div className="rounded-2xl bg-gradient-to-br from-amber-500/12 via-zinc-900/90 to-rose-500/8 border border-amber-400/35 p-4 sm:p-5 flex flex-col gap-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                      <Mic className="w-4 h-4 text-amber-400" />
+                      <span>🎙️ Vozes Marcantes — Mesa de Som &amp; Bordões</span>
+                    </h3>
+                    {voiceUnlocked ? (
+                      <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-lg bg-emerald-500/20 border border-emerald-400/45 text-emerald-300">
+                        ✓ 60% LIBERADO
                       </span>
-                      {star.decadeBreakdown?.favoriteDecade && (
-                        <span className="px-2 py-0.5 rounded bg-purple-500/20 border border-purple-400/40 font-mono text-[9px] font-black text-purple-200">
-                          Era: {star.decadeBreakdown.favoriteDecade.label}
-                        </span>
-                      )}
-                    </div>
-
-                    {star.decadeBreakdown?.decades?.length > 0 ? (
-                      <div className="flex flex-col gap-1.5">
-                        {star.decadeBreakdown.decades.map((dec) => {
-                          const maxDecCount = Math.max(
-                            1,
-                            ...star.decadeBreakdown.decades.map((d) => d.count)
-                          );
-                          const widthPct = Math.round((dec.count / maxDecCount) * 100);
-                          return (
-                            <div key={dec.decade} className="flex items-center gap-2 text-[11px] font-mono">
-                              <span className="w-16 text-zinc-300 font-bold shrink-0">{dec.label}</span>
-                              <div className="flex-1 h-2 rounded-full bg-zinc-800 overflow-hidden">
-                                <div
-                                  className="h-full rounded-full bg-gradient-to-r from-purple-400 to-sky-400"
-                                  style={{ width: `${Math.max(10, widthPct)}%` }}
-                                />
-                              </div>
-                              <span className="w-20 text-right text-zinc-200 shrink-0">
-                                {dec.count}x{' '}
-                                <span className="text-amber-300">
-                                  {dec.avgRating !== null ? `★${dec.avgRating.toFixed(1)}` : ''}
-                                </span>
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
                     ) : (
-                      <p className="text-[11px] text-zinc-500">
-                        Assista e avalie filmes dessa estrela para gerar o gráfico das décadas!
-                      </p>
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg bg-zinc-950/85 border border-amber-500/35 text-amber-200/90">
+                        🔒 Meta oficial: 60% ({meta60Target} filmes)
+                      </span>
                     )}
                   </div>
+
+                  {!voiceUnlocked ? (
+                    <DossierLockBanner
+                      requiredPct={60}
+                      tierTitle={`Estrela na Calçada • ${meta60Target} filmes`}
+                      rewardLabel={
+                        voiceClips.length > 0
+                          ? `Mesa de Som (${voiceClips.length} ${voiceClips.length === 1 ? 'áudio' : 'áudios'})`
+                          : 'Mesa de Som & Bordões'
+                      }
+                    />
+                  ) : (
+                    <>
+                      {audioError && (
+                        <div className="rounded-xl bg-rose-500/15 border border-rose-400/40 px-3 py-2 text-xs text-rose-200 font-semibold">
+                          {audioError}
+                        </div>
+                      )}
+
+                      {voiceClips.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {voiceClips.map((clip) => {
+                            const isPlaying = playingClipId === clip.id;
+                            return (
+                              <button
+                                key={clip.id}
+                                type="button"
+                                onClick={() => handleToggleVoiceClip(clip)}
+                                className={`text-left rounded-xl p-3 border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                                  isPlaying
+                                    ? 'bg-amber-500/20 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.28)]'
+                                    : 'bg-zinc-950/80 border-zinc-800 hover:border-amber-400/55 hover:bg-zinc-900/90'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <span
+                                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
+                                      isPlaying
+                                        ? 'bg-amber-400 text-zinc-950 border-amber-200'
+                                        : 'bg-amber-500/15 text-amber-300 border-amber-400/40'
+                                    }`}
+                                  >
+                                    {isPlaying ? (
+                                      <Square className="w-3.5 h-3.5 fill-current" />
+                                    ) : (
+                                      <Play className="w-4 h-4 fill-current ml-0.5" />
+                                    )}
+                                  </span>
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-black text-white truncate">
+                                      {clip.character ? `“${clip.title}”` : clip.title}
+                                    </p>
+                                    {(clip.character || clip.workTitle) && (
+                                      <p className="text-[10px] font-mono text-zinc-400 truncate mt-0.5">
+                                        {[clip.character, clip.workTitle].filter(Boolean).join(' • ')}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {isPlaying ? (
+                                  <div className="flex items-end gap-0.5 h-5 shrink-0 pr-1" aria-hidden="true">
+                                    <span className="w-1 bg-amber-300 rounded-full animate-pulse h-2.5" />
+                                    <span className="w-1 bg-amber-400 rounded-full animate-bounce h-5" />
+                                    <span className="w-1 bg-amber-300 rounded-full animate-pulse h-3.5" />
+                                    <span className="w-1 bg-amber-400 rounded-full animate-bounce h-4" />
+                                  </div>
+                                ) : (
+                                  <Volume2 className="w-4 h-4 text-zinc-500 shrink-0" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="rounded-xl bg-zinc-950/60 border border-zinc-800/80 px-3.5 py-3 text-xs text-zinc-400 flex items-center gap-2">
+                          <Volume2 className="w-4 h-4 text-zinc-500 shrink-0" />
+                          <span>Nenhum áudio cadastrado no banco de vozes ainda para este dublador.</span>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
-              ) : (
-                <DossierLockBanner
-                  requiredPct={75}
-                  tierTitle="Lenda Viva do Set"
-                  rewardLabel="Linha do Tempo Cinemática & Raio-X das Décadas"
-                />
-              )}
-            </div>
+              );
+            })()}
+
+            {/* ===============================================================
+                DIRETORES (TAKE 3 • 60%): MANIAS & MARCA REGISTRADA DE SET
+               =============================================================== */}
+            {isDirector && (
+              <div className="rounded-2xl bg-gradient-to-br from-cyan-500/10 via-zinc-900/85 to-indigo-500/10 border border-cyan-400/35 p-4 sm:p-5 flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
+                    <span>🎯 Manias &amp; Marca Registrada de Set</span>
+                  </h3>
+                  <span className="text-[10px] font-mono font-bold text-zinc-400">
+                    {unlocks.timelineUnlocked
+                      ? isRisingStar
+                        ? '🌟 Liberado (Estrela em Ascensão)'
+                        : '🎯 Liberado (Take 3 • 60%+)'
+                      : '🔒 60%'}
+                  </span>
+                </div>
+
+                {unlocks.timelineUnlocked ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {(Array.isArray(star.directorObsessions) && star.directorObsessions.length > 0
+                      ? star.directorObsessions
+                      : [
+                          {
+                            icon: '🎬',
+                            title: 'Assinatura de Direção',
+                            description: 'Estilo visual marcante e ritmo próprio atrás das câmeras.',
+                          },
+                          {
+                            icon: '✍️',
+                            title: 'Marcas no Roteiro',
+                            description: 'Temas recorrentes e diálogos carregados de tensão.',
+                          },
+                          {
+                            icon: '🔊',
+                            title: 'Clima de Set',
+                            description: 'Construção atmosférica singular em cada obra.',
+                          },
+                        ]
+                    ).map((obs, idx) => (
+                      <div
+                        key={idx}
+                        className="rounded-xl bg-zinc-950/85 border border-cyan-500/25 p-3 flex flex-col gap-1.5"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-base">{obs.icon || '🎯'}</span>
+                          <span className="text-xs font-black text-cyan-200 leading-tight">
+                            {obs.title}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-300 leading-relaxed">
+                          {obs.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <DossierLockBanner
+                    requiredPct={60}
+                    tierTitle="Take 3: DNA Autoral & Manias"
+                    rewardLabel="Manias & Marca Registrada de Set (Bingo Autoral)"
+                  />
+                )}
+              </div>
+            )}
+
+            {/* ===============================================================
+                DIRETORES (TAKE 5 • 90%+ | ESTRELA EM ASCENSÃO • 80%+): SHOW DE CARTAZES
+               =============================================================== */}
+            {isDirector && (() => {
+              const verdictOpen = Boolean(unlocks.verdictUnlocked ?? (!isRisingStar && unlocks.immortalUnlocked));
+              return (
+              <div className="rounded-2xl bg-gradient-to-br from-amber-500/10 via-zinc-900/85 to-rose-500/10 border border-amber-400/45 p-4 sm:p-5 flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                    <span>
+                      {isRisingStar
+                        ? '🃏 Show de Cartazes & Veredito (Estrela em Ascensão)'
+                        : '🃏 Show de Cartazes & Veredito (Take 5 • 90% / 100%)'}
+                    </span>
+                  </h3>
+                  <span className="text-[10px] font-mono font-bold text-zinc-400">
+                    {verdictOpen
+                      ? isRisingStar
+                        ? '🌟 Liberado (80%+)'
+                        : '🌟 Liberada (90%+)'
+                      : isRisingStar
+                      ? '🔒 80%'
+                      : '🔒 90%'}
+                  </span>
+                </div>
+                {verdictOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => onOpenDirectorVerdict?.(star)}
+                    className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-rose-400 hover:brightness-110 text-zinc-950 font-black text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 transition-transform active:scale-[0.99] cursor-pointer"
+                  >
+                    <span>🃏 Abrir Show de Cartazes: Virar Cartas Misteriosas + Oscar &amp; Framboesa de Ouro!</span>
+                  </button>
+                ) : (
+                  <DossierLockBanner
+                    requiredPct={isRisingStar ? 80 : 90}
+                    tierTitle={isRisingStar ? 'Estrela em Ascensão (80%)' : 'Take 5: Cânone Absoluto'}
+                    rewardLabel={
+                      isRisingStar
+                        ? 'Show de Cartazes Espalhados & Veredito (libera junto com a figurinha aos 80%)'
+                        : 'Show de Cartazes Espalhados & Premiação Oscar / Framboesa'
+                    }
+                  />
+                )}
+              </div>
+              );
+            })()}
+
+            {/* ===============================================================
+                ATORES/VOZES/CASAIS (75%+): LINHA DO TEMPO CINEMÁTICA & RAIO-X DAS DÉCADAS
+               =============================================================== */}
+            {!isDirector && (
+              <div className="rounded-2xl bg-gradient-to-br from-sky-500/10 via-zinc-900/80 to-purple-500/10 border border-sky-400/35 p-4 sm:p-5 flex flex-col gap-4">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-sky-300 flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-sky-400" />
+                    <span>Linha do Tempo Cinemática &amp; Raio-X das Décadas</span>
+                  </h3>
+                  <span className="text-[10px] font-mono font-bold text-zinc-400">
+                    {unlocks.timelineUnlocked ? '🎞️ Liberado (75%+)' : '🔒 75%'}
+                  </span>
+                </div>
+
+                {unlocks.timelineUnlocked ? (
+                  <div className="flex flex-col gap-4">
+                    {/* Botão Tela Escura Linha do Tempo Cinemática */}
+                    <button
+                      type="button"
+                      onClick={() => onOpenTimeline?.(star)}
+                      className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-sky-500 via-cyan-400 to-amber-400 hover:brightness-110 text-zinc-950 font-black text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 transition-transform active:scale-[0.99] cursor-pointer"
+                    >
+                      <Clock className="w-4 h-4" />
+                      <span>⏳ Ver Linha do Tempo Cinemática (Eixo Reto + Variação de Notas)</span>
+                    </button>
+
+                    {/* Raio-X das Décadas */}
+                    <div className="rounded-xl bg-zinc-950/85 border border-zinc-800 p-3.5 flex flex-col gap-2">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
+                          <BarChart3 className="w-3.5 h-3.5 text-purple-400" />
+                          <span>Raio-X das Décadas</span>
+                        </span>
+                        {star.decadeBreakdown?.favoriteDecade && (
+                          <span className="px-2 py-0.5 rounded bg-purple-500/20 border border-purple-400/40 font-mono text-[9px] font-black text-purple-200">
+                            Era: {star.decadeBreakdown.favoriteDecade.label}
+                          </span>
+                        )}
+                      </div>
+
+                      {star.decadeBreakdown?.decades?.length > 0 ? (
+                        <div className="flex flex-col gap-1.5">
+                          {star.decadeBreakdown.decades.map((dec) => {
+                            const maxDecCount = Math.max(
+                              1,
+                              ...star.decadeBreakdown.decades.map((d) => d.count)
+                            );
+                            const widthPct = Math.round((dec.count / maxDecCount) * 100);
+                            return (
+                              <div key={dec.decade} className="flex items-center gap-2 text-[11px] font-mono">
+                                <span className="w-16 text-zinc-300 font-bold shrink-0">{dec.label}</span>
+                                <div className="flex-1 h-2 rounded-full bg-zinc-800 overflow-hidden">
+                                  <div
+                                    className="h-full rounded-full bg-gradient-to-r from-purple-400 to-sky-400"
+                                    style={{ width: `${Math.max(10, widthPct)}%` }}
+                                  />
+                                </div>
+                                <span className="w-20 text-right text-zinc-200 shrink-0">
+                                  {dec.count}x{' '}
+                                  <span className="text-amber-300">
+                                    {dec.avgRating !== null ? `★${dec.avgRating.toFixed(1)}` : ''}
+                                  </span>
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-zinc-500">
+                          Assista e avalie filmes dessa estrela para gerar o gráfico das décadas!
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <DossierLockBanner
+                    requiredPct={75}
+                    tierTitle="Lenda Viva do Set"
+                    rewardLabel="Linha do Tempo Cinemática & Raio-X das Décadas"
+                  />
+                )}
+              </div>
+            )}
 
             {/* Filmografia no Catálogo + Sugestões */}
             <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800 p-4">
@@ -1167,7 +1676,15 @@ export default function WalkOfFameDossierModal({
                             </span>
                             {film.character && (
                               <span
-                                className="text-[11px] font-medium text-amber-300/85 leading-snug line-clamp-2"
+                                className={`text-[11px] font-medium leading-snug line-clamp-2 ${
+                                  film.roleType === 'both'
+                                    ? 'text-amber-300 font-bold'
+                                    : film.roleType === 'writer'
+                                    ? 'text-purple-300 font-bold'
+                                    : film.roleType === 'director'
+                                    ? 'text-sky-300 font-bold'
+                                    : 'text-amber-300/85'
+                                }`}
                                 title={film.character}
                               >
                                 {film.character}
@@ -1222,7 +1739,15 @@ export default function WalkOfFameDossierModal({
                           </span>
                           {film.character && (
                             <span
-                              className="text-[11px] font-medium text-zinc-300/85 leading-snug line-clamp-2"
+                              className={`text-[11px] font-medium leading-snug line-clamp-2 ${
+                                film.roleType === 'both'
+                                  ? 'text-amber-300 font-bold'
+                                  : film.roleType === 'writer'
+                                  ? 'text-purple-300 font-bold'
+                                  : film.roleType === 'director'
+                                  ? 'text-sky-300 font-bold'
+                                  : 'text-zinc-300/85'
+                              }`}
                               title={film.character}
                             >
                               {film.character}
