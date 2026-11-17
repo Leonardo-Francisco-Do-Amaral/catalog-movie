@@ -8285,6 +8285,27 @@ export const WALK_OF_FAME_CURATED_MOVIES: Record<string, WalkCuratedMovieReq[]> 
     { "name": "Coringa: Delírio a Dois (2024)", "patterns": ["delirio a dois", "delírio a dois", "folie a deux", "folie à deux"], "year": 2024, "character": "Arthur Fleck / Coringa", "memberNames": ["Joaquin Phoenix"] }
   ],
 
+  "cf_robert_pattinson": [
+    { "name": "The Batman (2022)", "patterns": ["the batman", "batman"], "year": 2022, "exclude": ["batman vs superman", "arkham", "batalha dos super filhos", "1989", "o retorno", "robin", "begins", "cavaleiro das trevas", "dark knight"], "character": "Bruce Wayne / Batman" },
+    { "name": "Crepúsculo (2008)", "patterns": ["crepusculo", "crepúsculo", "twilight"], "year": 2008, "exclude": ["lua nova", "eclipse", "amanhecer"], "character": "Edward Cullen" },
+    { "name": "A Saga Crepúsculo: Lua Nova (2009)", "patterns": ["lua nova", "new moon"], "year": 2009, "character": "Edward Cullen" },
+    { "name": "A Saga Crepúsculo: Eclipse (2010)", "patterns": ["eclipse"], "year": 2010, "character": "Edward Cullen" },
+    { "name": "A Saga Crepúsculo: Amanhecer - Parte 1 (2011)", "patterns": ["amanhecer - parte 1", "amanhecer parte 1", "breaking dawn - part 1"], "year": 2011, "character": "Edward Cullen" },
+    { "name": "A Saga Crepúsculo: Amanhecer - Parte 2 (2012)", "patterns": ["amanhecer - parte 2", "amanhecer parte 2", "breaking dawn - part 2"], "year": 2012, "character": "Edward Cullen" },
+    { "name": "Tenet (2020)", "patterns": ["tenet"], "year": 2020, "character": "Neil" },
+    { "name": "O Farol (2019)", "patterns": ["o farol", "the lighthouse"], "year": 2019, "character": "Ephraim Winslow / Thomas Howard" },
+    { "name": "Bom Comportamento (2017)", "patterns": ["bom comportamento", "good time"], "year": 2017, "character": "Connie Nikas" },
+    { "name": "Harry Potter e o Cálice de Fogo (2005)", "patterns": ["calice de fogo", "cálice de fogo", "goblet of fire"], "year": 2005, "character": "Cedric Diggory" },
+    { "name": "O Diabo de Cada Dia (2020)", "patterns": ["o diabo de cada dia", "the devil all the time"], "year": 2020, "character": "Reverendo Preston Teagardin" },
+    { "name": "Lembranças (2010)", "patterns": ["lembrancas", "lembranças", "remember me"], "year": 2010, "character": "Tyler Hawkins" },
+    { "name": "Água para Elefantes (2011)", "patterns": ["agua para elefantes", "água para elefantes", "water for elephants"], "year": 2011, "character": "Jacob Jankowski" },
+    { "name": "High Life (2018)", "patterns": ["high life"], "year": 2018, "character": "Monte" },
+    { "name": "Cosmópolis (2012)", "patterns": ["cosmopolis", "cosmópolis"], "year": 2012, "character": "Eric Packer" },
+    { "name": "Z: A Cidade Perdida (2016)", "patterns": ["z: a cidade perdida", "z a cidade perdida", "the lost city of z"], "year": 2016, "character": "Cabo Henry Costin" },
+    { "name": "O Menino e a Garça (2023)", "patterns": ["o menino e a garca", "o menino e a garça", "the boy and the heron"], "year": 2023, "character": "The Gray Heron (Voz)" },
+    { "name": "Mickey 17 (2025)", "patterns": ["mickey 17"], "year": 2025, "character": "Mickey Barnes" }
+  ],
+
   "cf_zendaya_holland": [
     { "name": "Homem-Aranha: De Volta ao Lar (2017)", "patterns": ["homem-aranha: de volta ao lar", "homem aranha de volta ao lar", "de volta ao lar", "spider-man: homecoming", "homecoming"], "year": 2017, "character": "Michelle 'MJ' Jones & Peter Parker", "memberNames": ["Zendaya", "Tom Holland"] },
     { "name": "Homem-Aranha: Longe de Casa (2019)", "patterns": ["homem-aranha: longe de casa", "homem aranha longe de casa", "longe de casa", "spider-man: far from home", "far from home"], "year": 2019, "character": "MJ & Peter Parker / Homem-Aranha", "memberNames": ["Zendaya", "Tom Holland"] },
