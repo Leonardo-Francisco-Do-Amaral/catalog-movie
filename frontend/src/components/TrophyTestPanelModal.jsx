@@ -19,8 +19,7 @@ import {
 } from '../utils/xpSystem';
 import { applySimulatedMilestoneToStar } from '../utils/walkOfFameStickers';
 import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:5000/api';
+import { API_BASE_URL } from '../utils/apiConfig';
 
 const MOCK_TROPHIES_FOR_SIMULATION = [
   {

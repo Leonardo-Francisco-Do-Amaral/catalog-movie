@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { resolveBackendAssetUrl } from '../utils/apiConfig';
 import {
   Plus,
   Minus,
@@ -66,11 +67,7 @@ const removeAccents = (str) =>
         .trim()
     : '';
 
-const resolvePosterUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith('/uploads')) return `http://localhost:5000${url}`;
-  return url;
-};
+const resolvePosterUrl = resolveBackendAssetUrl;
 
 // Presets de câmera tática por continente (calibrados para altura 640)
 const CONTINENT_CAMERAS = {

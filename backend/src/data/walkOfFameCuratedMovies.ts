@@ -8259,6 +8259,32 @@ export const WALK_OF_FAME_CURATED_MOVIES: Record<string, WalkCuratedMovieReq[]> 
     { "name": "Versos de um Crime (2013)", "patterns": ["versos de um crime", "kill your darlings"], "year": 2013, "character": "Edie Parker" }
   ],
 
+  "cf_irmaos_phoenix": [
+    { "name": "Conta Comigo (1986)", "patterns": ["conta comigo", "stand by me"], "year": 1986, "character": "Chris Chambers", "memberNames": ["River Phoenix"] },
+    { "name": "Garotos de Programa (1991)", "patterns": ["garotos de programa", "my own private idaho"], "year": 1991, "character": "Mike Waters", "memberNames": ["River Phoenix"] },
+    { "name": "O Peso de um Passado (1988)", "patterns": ["o peso de um passado", "running on empty"], "year": 1988, "character": "Danny Pope", "memberNames": ["River Phoenix"] },
+    { "name": "Indiana Jones e a Última Cruzada (1989)", "patterns": ["ultima cruzada", "última cruzada", "the last crusade"], "year": 1989, "character": "Jovem Indiana Jones", "memberNames": ["River Phoenix"] },
+    { "name": "Viagem ao Mundo dos Sonhos (1985)", "patterns": ["viagem ao mundo dos sonhos", "explorers"], "year": 1985, "character": "Wolfgang Müller", "memberNames": ["River Phoenix"] },
+    { "name": "A Costa do Mosquito (1986)", "patterns": ["a costa do mosquito", "the mosquito coast"], "year": 1986, "character": "Charlie Fox", "memberNames": ["River Phoenix"] },
+    { "name": "Quebra de Sigilo (1992)", "patterns": ["quebra de sigilo", "sneakers"], "year": 1992, "character": "Carl Arbogast", "memberNames": ["River Phoenix"] },
+    { "name": "Te Amarei Até te Matar (1990)", "patterns": ["te amarei ate te matar", "te amarei até te matar", "i love you to death"], "year": 1990, "character": "Devo Nod", "memberNames": ["River Phoenix"] },
+    { "name": "Apostando no Amor (1991)", "patterns": ["apostando no amor", "dogfight"], "year": 1991, "character": "Eddie Birdlace", "memberNames": ["River Phoenix"] },
+    { "name": "Um Sonho, Dois Amores (1993)", "patterns": ["um sonho, dois amores", "the thing called love"], "year": 1993, "character": "James Wright", "memberNames": ["River Phoenix"] },
+    { "name": "Uma Noite na Vida de Jimmy Reardon (1988)", "patterns": ["jimmy reardon", "uma noite na vida de jimmy reardon"], "year": 1988, "character": "Jimmy Reardon", "memberNames": ["River Phoenix"] },
+    { "name": "Rio Sagrado (1993)", "patterns": ["rio sagrado", "silent tongue"], "year": 1993, "character": "Talbot Roe", "memberNames": ["River Phoenix"] },
+    { "name": "Coringa (2019)", "patterns": ["coringa", "joker"], "year": 2019, "exclude": ["delirio", "delírio", "folie", "2"], "character": "Arthur Fleck / Coringa", "memberNames": ["Joaquin Phoenix"] },
+    { "name": "Gladiador (2000)", "patterns": ["gladiador", "gladiator"], "year": 2000, "exclude": ["gladiador 2", "gladiador ii", "gladiator ii"], "character": "Cómodo", "memberNames": ["Joaquin Phoenix"] },
+    { "name": "Ela (2013)", "patterns": ["ela", "her"], "year": 2013, "exclude": ["danca", "dança", "step up", "she", "mysterious"], "character": "Theodore Twombly", "memberNames": ["Joaquin Phoenix"] },
+    { "name": "Johnny & June (2005)", "patterns": ["johnny & june", "johnny e june", "walk the line"], "year": 2005, "character": "Johnny Cash", "memberNames": ["Joaquin Phoenix"] },
+    { "name": "O Mestre (2012)", "patterns": ["o mestre", "the master"], "year": 2012, "character": "Freddie Quell", "memberNames": ["Joaquin Phoenix"] },
+    { "name": "Sinais (2002)", "patterns": ["sinais", "signs"], "year": 2002, "character": "Merrill Hess", "memberNames": ["Joaquin Phoenix"] },
+    { "name": "A Vila (2004)", "patterns": ["a vila", "the village"], "year": 2004, "character": "Lucius Hunt", "memberNames": ["Joaquin Phoenix"] },
+    { "name": "Você Nunca Esteve Realmente Aqui (2017)", "patterns": ["voce nunca esteve realmente aqui", "você nunca esteve realmente aqui", "you were never really here"], "year": 2017, "character": "Joe", "memberNames": ["Joaquin Phoenix"] },
+    { "name": "Beau Tem Medo (2023)", "patterns": ["beau tem medo", "beau is afraid"], "year": 2023, "character": "Beau Wassermann", "memberNames": ["Joaquin Phoenix"] },
+    { "name": "Napoleão (2023)", "patterns": ["napoleao", "napoleão", "napoleon"], "year": 2023, "character": "Napoleão Bonaparte", "memberNames": ["Joaquin Phoenix"] },
+    { "name": "Coringa: Delírio a Dois (2024)", "patterns": ["delirio a dois", "delírio a dois", "folie a deux", "folie à deux"], "year": 2024, "character": "Arthur Fleck / Coringa", "memberNames": ["Joaquin Phoenix"] }
+  ],
+
   "cf_zendaya_holland": [
     { "name": "Homem-Aranha: De Volta ao Lar (2017)", "patterns": ["homem-aranha: de volta ao lar", "homem aranha de volta ao lar", "de volta ao lar", "spider-man: homecoming", "homecoming"], "year": 2017, "character": "Michelle 'MJ' Jones & Peter Parker", "memberNames": ["Zendaya", "Tom Holland"] },
     { "name": "Homem-Aranha: Longe de Casa (2019)", "patterns": ["homem-aranha: longe de casa", "homem aranha longe de casa", "longe de casa", "spider-man: far from home", "far from home"], "year": 2019, "character": "MJ & Peter Parker / Homem-Aranha", "memberNames": ["Zendaya", "Tom Holland"] },

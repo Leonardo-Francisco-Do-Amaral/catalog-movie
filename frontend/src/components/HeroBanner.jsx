@@ -1,5 +1,6 @@
 import React from 'react';
 import { Star, Play, Info, Calendar } from 'lucide-react';
+import { resolveBackendAssetUrl } from '../utils/apiConfig';
 
 export default function HeroBanner({ movie }) {
   if (!movie) {
@@ -26,7 +27,7 @@ export default function HeroBanner({ movie }) {
 
   // Obter imagem de background (fallback se não houver poster)
   const bannerImage = poster_url
-    ? (poster_url.startsWith('/') ? `http://localhost:5000${poster_url}` : poster_url)
+    ? resolveBackendAssetUrl(poster_url)
     : 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1200&auto=format&fit=crop&q=80';
 
   // Helper para renderizar a bandeira de forma limpa a partir do nome em português
@@ -93,7 +94,7 @@ export default function HeroBanner({ movie }) {
   };
 
   return (
-    <div className="relative h-[500px] w-full bg-zinc-950 rounded-2xl overflow-hidden border border-zinc-800/80 shadow-[0_4px_30px_rgba(0,0,0,0.8)]">
+    <div className="relative min-h-[380px] sm:min-h-[450px] md:h-[500px] w-full bg-zinc-950 rounded-2xl overflow-hidden border border-zinc-800/80 shadow-[0_4px_30px_rgba(0,0,0,0.8)] flex items-end">
       
       {/* Imagem de Fundo Estilizada (Capa Expandida) */}
       <div 
@@ -106,10 +107,10 @@ export default function HeroBanner({ movie }) {
       <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/70 to-transparent" />
 
       {/* Conteúdo Principal do Banner */}
-      <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12 flex flex-col md:flex-row gap-8 items-end justify-between z-10">
+      <div className="relative w-full p-5 sm:p-8 md:p-12 flex flex-col md:flex-row gap-5 md:gap-8 items-start md:items-end justify-between z-10">
         
         {/* Lado Esquerdo - Detalhes do Filme */}
-        <div className="flex-1 flex flex-col gap-4 text-left max-w-2xl">
+        <div className="flex-1 flex flex-col gap-3 sm:gap-4 text-left max-w-2xl min-w-0">
           {/* Tag de Destaque */}
           <div className="inline-flex self-start bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest">
             Último Filme Assistido
@@ -117,7 +118,7 @@ export default function HeroBanner({ movie }) {
 
           {/* Título Principal */}
           <div className="flex flex-col gap-1.5">
-            <h2 className="text-4xl md:text-5xl font-black text-zinc-100 tracking-tight leading-none drop-shadow-md">
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black text-zinc-100 tracking-tight leading-tight md:leading-none drop-shadow-md">
               {title}
             </h2>
             {original_title && original_title !== title && (

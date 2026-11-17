@@ -1,3 +1,4 @@
+import { resolveBackendAssetUrl } from './apiConfig';
 import {
   LEVEL_TITLE_RANGES,
   TROPHY_TIER_META,
@@ -45,11 +46,7 @@ export const FULL_MONTH_NAMES = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ];
 
-export const resolvePosterUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith('/uploads')) return `http://localhost:5000${url}`;
-  return url;
-};
+export const resolvePosterUrl = resolveBackendAssetUrl;
 
 export const formatRuntime = (mins) => {
   const m = Math.max(0, Math.round(Number(mins) || 0));

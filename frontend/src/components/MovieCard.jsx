@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Edit3, Trash2 } from 'lucide-react';
+import { resolveBackendAssetUrl } from '../utils/apiConfig';
 
 const COUNTRY_TO_ISO = {
   'estados unidos': 'us',
@@ -74,6 +75,7 @@ const formatVotes = (num) => {
 export default function MovieCard({ movie, onEdit, onDelete, gridCols = 5 }) {
   const isCompact7 = gridCols === 7;
   const isCompact10 = gridCols === 10;
+  const cardRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
   const [mouseHearts, setMouseHearts] = useState([]);
   const [clickHearts, setClickHearts] = useState([]);
@@ -665,9 +667,30 @@ export default function MovieCard({ movie, onEdit, onDelete, gridCols = 5 }) {
     setMouseHearts((prev) => [...prev.slice(-29), newParticle]);
   };
 
+  useEffect(() => {
+    if (!isHovered) return;
+    if (typeof window === 'undefined' || !window.matchMedia?.('(hover: none)')?.matches) return;
+    const handleOutsideTouch = (ev) => {
+      if (cardRef.current && !cardRef.current.contains(ev.target)) {
+        setIsHovered(false);
+        setIsScareActive(false);
+        setMouseHearts([]);
+        setIsGameActive(false);
+        setGameState('idle');
+      }
+    };
+    document.addEventListener('touchstart', handleOutsideTouch, { passive: true });
+    return () => document.removeEventListener('touchstart', handleOutsideTouch);
+  }, [isHovered]);
+
   // Clique interativo no card
   const handleCardClick = (e) => {
     if (e.target.closest('button')) return;
+
+    if (typeof window !== 'undefined' && window.matchMedia?.('(hover: none)')?.matches && !isHovered) {
+      handleMouseEnter();
+      return;
+    }
 
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -1253,6 +1276,7 @@ export default function MovieCard({ movie, onEdit, onDelete, gridCols = 5 }) {
 
   return (
     <div 
+      ref={cardRef}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onMouseMove={handleMouseMove}
@@ -1803,7 +1827,7 @@ export default function MovieCard({ movie, onEdit, onDelete, gridCols = 5 }) {
 
       {/* Imagem do Poster */}
       <img
-        src={poster_url ? (poster_url.startsWith('/') ? `http://localhost:5000${poster_url}` : poster_url) : defaultPoster}
+        src={poster_url ? resolveBackendAssetUrl(poster_url) : defaultPoster}
         alt={title}
         className={`${getPosterClass()} ${isEmotionalShatterActive ? 'opacity-0' : ''}`}
         loading="lazy"
@@ -1814,7 +1838,7 @@ export default function MovieCard({ movie, onEdit, onDelete, gridCols = 5 }) {
         <div className="absolute inset-0 z-30 pointer-events-none overflow-hidden rounded-xl">
           {/* Metade Esquerda/Superior */}
           <img
-            src={poster_url ? (poster_url.startsWith('/') ? `http://localhost:5000${poster_url}` : poster_url) : defaultPoster}
+            src={poster_url ? resolveBackendAssetUrl(poster_url) : defaultPoster}
             alt="shatter left"
             className="absolute inset-0 w-full h-full object-cover grayscale contrast-[1.35] brightness-[1.6] animate-long-shatter-left"
             style={{
@@ -1823,7 +1847,7 @@ export default function MovieCard({ movie, onEdit, onDelete, gridCols = 5 }) {
           />
           {/* Metade Direita/Inferior */}
           <img
-            src={poster_url ? (poster_url.startsWith('/') ? `http://localhost:5000${poster_url}` : poster_url) : defaultPoster}
+            src={poster_url ? resolveBackendAssetUrl(poster_url) : defaultPoster}
             alt="shatter right"
             className="absolute inset-0 w-full h-full object-cover grayscale contrast-[1.35] brightness-[1.6] animate-long-shatter-right"
             style={{
@@ -1833,9 +1857,13 @@ export default function MovieCard({ movie, onEdit, onDelete, gridCols = 5 }) {
         </div>
       )}
 
-      {/* Camada Escura Translúcida no Hover */}
+      {/* Camada Escura Translúcida no Hover / Toque no celular */}
       <div className={`absolute inset-0 transition-all duration-300 z-10 overflow-hidden rounded-xl ${
-        isBandWMode || isGameActive ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover:opacity-100'
+        isBandWMode || isGameActive
+          ? 'opacity-0 pointer-events-none'
+          : isHovered
+            ? 'opacity-100 pointer-events-auto'
+            : 'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto'
       }`}>
         
         {/* Fundo Temático (z-0) */}

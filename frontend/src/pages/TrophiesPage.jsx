@@ -24,8 +24,7 @@ import TrophyTestPanelModal from '../components/TrophyTestPanelModal';
 import { TrophyCardBadges, CATEGORY_BADGE_CONFIG, getCleanTrophyTitle } from '../components/TrophyBadges';
 import { evaluateTrophiesClientSide } from '../utils/trophyEngineClient';
 import { dispatchXpStatusUpdate, TROPHY_XP_BY_TIER } from '../utils/xpSystem';
-
-const API_BASE_URL = 'http://localhost:5000/api';
+import { API_BASE_URL } from '../utils/apiConfig';
 const STORAGE_KEY_DISPLAY_COUNT = 'cinecatalog_trophies_per_row';
 const STORAGE_KEY_SORT_BY = 'cinecatalog_trophies_sort_by';
 const VALID_DISPLAY_COUNTS = [3, 5, 7, 10];

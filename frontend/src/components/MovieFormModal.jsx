@@ -28,6 +28,7 @@ import { computeMovieStatGains } from '../utils/analyticsEngine';
 import { UN_COUNTRIES_195, HISTORICAL_TERRITORIES } from '../data/unCountries195';
 import { triggerApiRefreshToast } from './ApiRefreshToastContainer';
 import { stopUniverseMusicPlayer } from '../utils/universeAudio';
+import { API_BASE_URL, resolveBackendAssetUrl } from '../utils/apiConfig';
 
 const DEFAULT_PLATFORMS = [
   'Cinema',
@@ -153,7 +154,7 @@ export default function MovieFormModal({
   // Carrega países ativos ao abrir
   const loadActiveCountries = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/countries/active');
+      const res = await axios.get(`${API_BASE_URL}/countries/active`);
       if (res.data.success) {
         setActiveCountries(res.data.data);
       }
@@ -263,7 +264,7 @@ export default function MovieFormModal({
           setAvailablePosters([]);
           if (movie.tmdb_id || movie.imdb_id) {
             axios
-              .get('http://localhost:5000/api/movies/posters-api', {
+              .get(`${API_BASE_URL}/movies/posters-api`, {
                 params: {
                   tmdb_id: movie.tmdb_id || undefined,
                   imdb_id: movie.imdb_id || undefined,
@@ -333,7 +334,7 @@ export default function MovieFormModal({
     const delayDebounce = setTimeout(async () => {
       setSearching(true);
       try {
-        const res = await axios.get(`http://localhost:5000/api/movies/search-api?query=${encodeURIComponent(searchQuery)}`);
+        const res = await axios.get(`${API_BASE_URL}/movies/search-api?query=${encodeURIComponent(searchQuery)}`);
         if (res.data.success) {
           setSearchResults(res.data.results);
         }
@@ -353,7 +354,7 @@ export default function MovieFormModal({
     setSearchResults([]);
     setSearchQuery('');
     try {
-      const res = await axios.get(`http://localhost:5000/api/movies/details-api?id=${tmdbId}`);
+      const res = await axios.get(`${API_BASE_URL}/movies/details-api?id=${tmdbId}`);
       if (res.data.success) {
         const d = res.data.data;
         const apiPosters = d.images?.posters || d.available_posters || [];
@@ -456,7 +457,7 @@ export default function MovieFormModal({
       : window.prompt('Digite o nome do novo país (ex: Japão):');
     if (rawName && rawName.trim()) {
       try {
-        const res = await axios.post('http://localhost:5000/api/countries/add', { name: rawName.trim() });
+        const res = await axios.post(`${API_BASE_URL}/countries/add`, { name: rawName.trim() });
         if (res.data.success) {
           const newCountry = res.data.data;
           setActiveCountries(prev => {
@@ -480,7 +481,7 @@ export default function MovieFormModal({
     if (isEditMode && movie?.movie_id) {
       setRefreshingSafeApi(true);
       try {
-        const res = await axios.post(`http://localhost:5000/api/movies/${movie.movie_id}/refresh-api-metrics`);
+        const res = await axios.post(`${API_BASE_URL}/movies/${movie.movie_id}/refresh-api-metrics`);
         if (res.data?.success) {
           const m = res.data.metrics;
           setFormData(prev => ({
@@ -520,7 +521,7 @@ export default function MovieFormModal({
       if (imdb_id) params.imdb_id = imdb_id;
       else if (title) params.title = title;
 
-      const res = await axios.get('http://localhost:5000/api/movies/fetch-external-ratings', { params });
+      const res = await axios.get(`${API_BASE_URL}/movies/fetch-external-ratings`, { params });
       if (res.data.success) {
         const ratings = res.data.data;
         const prevImdb = formData.imdb_rating ? Number(formData.imdb_rating) : null;
@@ -657,7 +658,7 @@ export default function MovieFormModal({
       }
 
       if (!ghostRun && Array.isArray(newlyUnlocked) && newlyUnlocked.length > 0) {
-        axios.post('http://localhost:5000/api/trophies/ack-new', {
+        axios.post(`${API_BASE_URL}/trophies/ack-new`, {
           trophyIds: newlyUnlocked.map((x) => x.id),
         }).catch(() => {});
       }
@@ -744,12 +745,12 @@ export default function MovieFormModal({
     try {
       const headers = { 'Content-Type': 'multipart/form-data' };
       if (isEditMode) {
-        const res = await axios.put(`http://localhost:5000/api/movies/edit/${movie.movie_id}`, data, { headers });
+        const res = await axios.put(`${API_BASE_URL}/movies/edit/${movie.movie_id}`, data, { headers });
         if (res.data.success) {
           handleSaveSuccess(res.data, { ...movie, ...formData }, true, false);
         }
       } else {
-        const res = await axios.post('http://localhost:5000/api/movies/add', data, { headers });
+        const res = await axios.post(`${API_BASE_URL}/movies/add`, data, { headers });
         if (res.data.success) {
           const effectiveMovieId = isGhostRun ? -Date.now() : res.data.movieId;
           handleSaveSuccess(
@@ -775,13 +776,13 @@ export default function MovieFormModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[60] p-4 transition-all duration-300">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[60] p-2 sm:p-4 transition-all duration-300">
       
       {/* Container Principal do Modal */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl relative">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col shadow-2xl relative">
         
         {/* Cabeçalho */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/80 bg-zinc-950/40">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-800/80 bg-zinc-950/40 gap-2">
           <div className="flex items-center gap-2.5">
             <div className="bg-amber-500/10 border border-amber-500/20 p-2 rounded-xl">
               <Film className="w-5 h-5 text-amber-500" />
@@ -973,9 +974,7 @@ export default function MovieFormModal({
                         src={
                           posterFile
                             ? URL.createObjectURL(posterFile)
-                            : formData.poster_url.startsWith('/')
-                              ? `http://localhost:5000${formData.poster_url}`
-                              : formData.poster_url
+                            : resolveBackendAssetUrl(formData.poster_url)
                         }
                         alt="Prévia da Capa"
                         className="w-full h-full object-cover"
@@ -1727,13 +1726,13 @@ export default function MovieFormModal({
             <button
               type="button"
               onClick={onClose}
-              className="bg-zinc-950 hover:bg-zinc-900 text-zinc-400 border border-zinc-800 font-bold px-6 py-2.5 rounded-xl transition-all duration-300 text-xs"
+              className="w-full sm:w-auto bg-zinc-950 hover:bg-zinc-900 text-zinc-400 border border-zinc-800 font-bold px-6 py-2.5 rounded-xl transition-all duration-300 text-xs"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className={`font-black px-8 py-2.5 rounded-xl transition-all duration-300 text-xs shadow-lg ${
+              className={`w-full sm:w-auto font-black px-8 py-2.5 rounded-xl transition-all duration-300 text-xs shadow-lg ${
                 !isEditMode && isGhostMode
                   ? 'bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500 hover:brightness-110 text-white shadow-violet-500/25'
                   : 'bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-amber-500/10'

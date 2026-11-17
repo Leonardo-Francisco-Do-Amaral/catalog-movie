@@ -1,3 +1,5 @@
+import { resolveBackendAssetUrl } from './apiConfig';
+
 // Acabamentos oficiais aprovados para Bronze (15% = Opção 2) e Prata (30% = Opção 2)
 export const OFFICIAL_BRONZE_ID = 'bronze_forjado';
 export const OFFICIAL_SILVER_ID = 'prata_platina';
@@ -274,12 +276,7 @@ export const STICKER_TIER_THEMES = {
   diamond: FIXED_TIER_THEMES.diamond,
 };
 
-export function resolveWalkMediaUrl(url) {
-  if (!url) return null;
-  const s = String(url);
-  if (s.startsWith('/uploads')) return `http://localhost:5000${s}`;
-  return s;
-}
+export const resolveWalkMediaUrl = resolveBackendAssetUrl;
 
 export const IMMORTAL_AURA_LIST = [
   {

@@ -43,8 +43,7 @@ import {
 import TacticalWorldMap from './TacticalWorldMap';
 import CountryInspectionDrawer from './CountryInspectionDrawer';
 import HistoricalTerritoriesDrawer from './HistoricalTerritoriesDrawer';
-
-const API_BASE_URL = 'http://localhost:5000/api';
+import { API_BASE_URL, resolveBackendAssetUrl } from '../utils/apiConfig';
 
 const CONTINENTS = ['Todos', 'Américas', 'Europa', 'Ásia', 'África', 'Oceania'];
 
@@ -57,11 +56,7 @@ const cleanStr = (str) =>
         .trim()
     : '';
 
-const resolvePosterUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith('/uploads')) return `http://localhost:5000${url}`;
-  return url;
-};
+const resolvePosterUrl = resolveBackendAssetUrl;
 
 // Patentes / Ranks de Explorador Cinematográfico (Estilo RPG / War Room)
 function getExplorerRank(conqueredCount) {

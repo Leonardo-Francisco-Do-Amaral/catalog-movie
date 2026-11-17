@@ -8,12 +8,9 @@ import {
   notifyTimeMachineStarted,
   notifyTimeMachineCleared,
 } from '../utils/xpSystem';
+import { resolveBackendAssetUrl } from '../utils/apiConfig';
 
-const resolvePosterUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith('/uploads')) return `http://localhost:5000${url}`;
-  return url;
-};
+const resolvePosterUrl = resolveBackendAssetUrl;
 
 const RARITY_PORTAL_THEMES = {
   common: {

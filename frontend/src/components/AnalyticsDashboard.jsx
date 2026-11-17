@@ -60,8 +60,7 @@ import {
   resolveWalkRpgRank,
   resolveWalkRpgRankFromTier,
 } from '../utils/walkOfFameStickers';
-
-const API_BASE_URL = 'http://localhost:5000/api';
+import { API_BASE_URL } from '../utils/apiConfig';
 
 const CanisterBar = (props) => {
   const { fill, x, y, width, height } = props;

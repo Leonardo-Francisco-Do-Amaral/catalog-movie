@@ -63,13 +63,26 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import zlib from 'node:zlib';
+import {
+  derivePinSessionToken,
+  getConfiguredAppPassword,
+  isRequestAuthenticated,
+  requireWriteAuth,
+  verifyAppPassword,
+} from './middleware/appAuth';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT) || 3000;
 
-app.use(cors());
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-app-token', 'x-app-password'],
+  })
+);
 app.use(express.json());
 
 // Compressão Gzip nativa para respostas JSON acima de 1 KB
@@ -203,6 +216,34 @@ function parseGlobalReviewsNullable(val: any): number | null {
   const parsed = parseInt(digitsOnly, 10);
   return Number.isNaN(parsed) ? null : parsed;
 }
+
+// Proteção global de escrita na API por PIN (POST/PUT/PATCH/DELETE sob /api, exceto /api/auth/verify)
+app.use('/api', requireWriteAuth);
+
+// Rotas de autenticação por PIN (tela de bloqueio do app)
+app.get('/api/auth/status', (req: Request, res: Response) => {
+  return res.json({
+    success: true,
+    lockEnabled: true,
+    authenticated: isRequestAuthenticated(req),
+  });
+});
+
+app.post('/api/auth/verify', (req: Request, res: Response) => {
+  const password = String(req.body?.password ?? '');
+  if (!verifyAppPassword(password)) {
+    return res.status(401).json({
+      success: false,
+      code: 'INVALID_PIN',
+      error: 'PIN incorreto. Tente novamente.',
+    });
+  }
+  const token = derivePinSessionToken(getConfiguredAppPassword());
+  return res.json({
+    success: true,
+    token,
+  });
+});
 
 // Rota de Health Check / Status
 app.get('/api/health', async (req: Request, res: Response) => {
@@ -1879,8 +1920,64 @@ app.get('/api/xp', async (req: Request, res: Response) => {
   }
 });
 
-app.listen(PORT, async () => {
-  console.log(`[Server] Servidor backend rodando em http://localhost:${PORT}`);
+// Ponto único de entrada do módulo isolado de Animes, Séries & Doramas
+const tvMountRouter = express.Router();
+if (process.env.ENABLE_ANIME_MODULE === 'true') {
+  const tvModuleReady = import('./modules/tv')
+    .then(({ registerTvModule }) =>
+      registerTvModule(
+        {
+          use: (_prefix: string, r: express.RequestHandler) => {
+            tvMountRouter.use(r);
+          },
+        } as any,
+        upload
+      )
+    )
+    .catch((err) => {
+      console.error('[TV Module] Erro ao inicializar módulo de Animes & Séries:', err.message);
+    });
+
+  app.use('/api/tv', async (req, res, next) => {
+    await tvModuleReady;
+    return tvMountRouter(req, res, next);
+  });
+}
+
+// Servir o build estático do front-end em produção (Render / Web Service único)
+const frontendDistCandidates = [
+  path.resolve(__dirname, '../../frontend/dist'),
+  path.resolve(process.cwd(), '../frontend/dist'),
+  path.resolve(process.cwd(), 'frontend/dist'),
+];
+const frontendDistDir = frontendDistCandidates.find((dir) =>
+  fs.existsSync(path.join(dir, 'index.html'))
+);
+
+if (frontendDistDir) {
+  console.log(`[Server] Servindo frontend estático em produção de: ${frontendDistDir}`);
+  app.use(
+    express.static(frontendDistDir, {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith(`${path.sep}index.html`) || filePath.endsWith(`${path.sep}sw.js`)) {
+          res.setHeader('Cache-Control', 'no-cache');
+        }
+      },
+    })
+  );
+  app.use('/api', (_req: Request, res: Response) => {
+    return res.status(404).json({ success: false, error: 'Endpoint da API não encontrado.' });
+  });
+  app.get('*', (req: Request, res: Response, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+      return next();
+    }
+    return res.sendFile(path.join(frontendDistDir, 'index.html'));
+  });
+}
+
+app.listen(PORT, '0.0.0.0', async () => {
+  console.log(`[Server] Servidor backend rodando em http://0.0.0.0:${PORT}`);
   await testConnection();
   try {
     await ensureTimeMachineTables();

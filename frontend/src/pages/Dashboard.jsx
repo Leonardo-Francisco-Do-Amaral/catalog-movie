@@ -28,8 +28,7 @@ import {
   dispatchXpStatusUpdate,
 } from '../utils/xpSystem';
 import { Film, RefreshCw, AlertTriangle } from 'lucide-react';
-
-const API_BASE_URL = 'http://localhost:5000/api';
+import { API_BASE_URL } from '../utils/apiConfig';
 
 // Remove acentos para busca textual inteligente em Português
 const stripAccents = (str) =>
@@ -198,7 +197,7 @@ const MOCK_MOVIES = [
   }
 ];
 
-export default function Dashboard() {
+export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
   const [allMovies, setAllMovies] = useState([]);
   const [filteredMovies, setFilteredMovies] = useState([]);
   const [activeTab, setActiveTab] = useState('catalog');
@@ -1239,17 +1238,19 @@ export default function Dashboard() {
         platformCounts={platformCounts}
         audioCounts={audioCounts}
         walkOfFamePackCount={walkOfFamePacks.length}
+        modeSwitcher={modeSwitcher}
+        onLockApp={onLockApp}
       />
 
       {/* Painel Central e Conteúdo da Grelha em Largura Total */}
-      <main className="flex-1 w-full flex flex-col gap-8 px-4 sm:px-6 lg:px-10 py-6 lg:py-8">
+      <main className="flex-1 w-full flex flex-col gap-5 sm:gap-8 px-3 sm:px-6 lg:px-10 py-4 sm:py-6 lg:py-8">
         
         {/* Banner informativo de Mocks se o backend não estiver no ar */}
         {usingMock && (
           <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 px-4 py-3 rounded-xl text-amber-400 text-xs font-semibold">
             <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
             <span>
-              <strong>Modo de Demonstração Ativo:</strong> Conexão com o backend (`http://localhost:5000`) indisponível. Exibindo dados locais extraídos da sua planilha para demonstração visual das interações.
+              <strong>Modo de Demonstração Ativo:</strong> Conexão com o backend indisponível. Exibindo dados locais extraídos da sua planilha para demonstração visual das interações.
             </span>
           </div>
         )}
@@ -1455,8 +1456,8 @@ export default function Dashboard() {
                   gridCols === 10
                     ? 'grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-2.5 xl:gap-3'
                     : gridCols === 7
-                      ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3.5 xl:gap-4'
-                      : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 xl:gap-7'
+                      ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3 xl:gap-4'
+                      : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5 xl:gap-7'
                 }
               >
                 {filteredMovies.map((movie) => (

@@ -17,7 +17,8 @@ import {
   Sparkles,
   Check,
   SlidersHorizontal,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Lock
 } from 'lucide-react';
 import { calculateClientXpStatus } from '../utils/xpSystem';
 import LevelDetailsModal from './LevelDetailsModal';
@@ -149,7 +150,9 @@ export default function TopNavbar({
   distributorCounts = {},
   platformCounts = {},
   audioCounts = {},
-  walkOfFamePackCount = 0
+  walkOfFamePackCount = 0,
+  modeSwitcher = null,
+  onLockApp = null
 }) {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [dropdownSearch, setDropdownSearch] = useState('');
@@ -513,35 +516,37 @@ export default function TopNavbar({
       className="sticky top-0 z-40 w-full bg-zinc-950/88 backdrop-blur-xl border-b border-zinc-800/80 shadow-[0_8px_30px_rgba(0,0,0,0.6)]"
     >
       {/* LINHA 1: Logo + Abas + Busca + Ficha RPG + Adicionar Filme */}
-      <div className="px-4 sm:px-6 lg:px-10 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div className="px-3 sm:px-6 lg:px-10 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
         
         {/* Esquerda: Marca + Alternador de Abas */}
-        <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-2.5 sm:gap-4 flex-wrap max-w-full min-w-0">
           <button
             type="button"
             onClick={() => {
               setActiveTab('catalog');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className="flex items-center gap-2.5 cursor-pointer group"
+            className="flex items-center gap-2 sm:gap-2.5 cursor-pointer group shrink-0"
           >
             <div className="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-1 rounded tracking-widest uppercase shadow-md shadow-amber-500/10 group-hover:bg-amber-400 transition-colors">
               CRÍTICO
             </div>
-            <h1 className="text-base sm:text-lg font-black tracking-wide bg-gradient-to-r from-zinc-100 to-zinc-400 bg-clip-text text-transparent">
+            <h1 className="text-sm sm:text-lg font-black tracking-wide bg-gradient-to-r from-zinc-100 to-zinc-400 bg-clip-text text-transparent">
               CINE CATALOG
             </h1>
           </button>
 
-          {/* Alternador de Abas (HUD Gamer) */}
-          <div className="flex flex-wrap items-center gap-1 bg-zinc-900/70 p-1 rounded-xl border border-zinc-800/60">
+          {modeSwitcher}
+
+          {/* Alternador de Abas (HUD Gamer — deslize horizontal no celular) */}
+          <div className="w-full md:w-auto max-w-full overflow-x-auto scrollbar-hide flex items-center flex-nowrap md:flex-wrap gap-1 bg-zinc-900/70 p-1 rounded-xl border border-zinc-800/60">
             <button
               type="button"
               onClick={() => {
                 setActiveTab('catalog');
                 setOpenDropdown(null);
               }}
-              className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer ${
+              className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'catalog'
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
                   : 'text-zinc-400 hover:text-zinc-200'
@@ -555,7 +560,7 @@ export default function TopNavbar({
                 setActiveTab('analytics');
                 setOpenDropdown(null);
               }}
-              className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer ${
+              className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'analytics'
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
                   : 'text-zinc-400 hover:text-zinc-200'
@@ -569,7 +574,7 @@ export default function TopNavbar({
                 setActiveTab('challenge');
                 setOpenDropdown(null);
               }}
-              className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer ${
+              className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'challenge'
                   ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
                   : 'text-emerald-400/90 hover:text-emerald-300 hover:bg-emerald-500/10'
@@ -588,7 +593,7 @@ export default function TopNavbar({
                   ? `${walkOfFamePackCount} pacotinho(s) misterioso(s) aguardando abertura no Álbum da Fama`
                   : 'Álbum da Fama: Atores, Vozes, Casais & Diretores'
               }
-              className={`inline-flex items-center px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap ${
+              className={`inline-flex items-center px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'walk_of_fame'
                   ? 'bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 shadow-md shadow-amber-400/25'
                   : walkOfFamePackCount > 0
@@ -609,7 +614,7 @@ export default function TopNavbar({
                 setActiveTab('trophies');
                 setOpenDropdown(null);
               }}
-              className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer ${
+              className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'trophies'
                   ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/25'
                   : 'text-amber-400/90 hover:text-amber-300 hover:bg-amber-400/10'
@@ -623,7 +628,7 @@ export default function TopNavbar({
                 setActiveTab('time_machine');
                 setOpenDropdown(null);
               }}
-              className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer ${
+              className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'time_machine'
                   ? 'bg-cyan-400 text-slate-950 shadow-md shadow-cyan-400/25'
                   : 'text-cyan-300/90 hover:text-cyan-200 hover:bg-cyan-400/10'
@@ -637,7 +642,7 @@ export default function TopNavbar({
                 setActiveTab('universes');
                 setOpenDropdown(null);
               }}
-              className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer ${
+              className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'universes'
                   ? 'bg-indigo-400 text-slate-950 shadow-md shadow-indigo-400/25'
                   : 'text-indigo-300/90 hover:text-indigo-200 hover:bg-indigo-400/10'
@@ -649,7 +654,7 @@ export default function TopNavbar({
         </div>
 
         {/* Centro: Barra de Pesquisa Rápida */}
-        <div className="flex-1 min-w-[220px] max-w-md mx-auto lg:mx-4 order-3 md:order-2 w-full md:w-auto">
+        <div className="flex-1 min-w-0 md:min-w-[220px] max-w-md mx-auto lg:mx-4 order-3 md:order-2 w-full md:w-auto">
           <div className="relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500/80 pointer-events-none" />
             <input
@@ -764,6 +769,18 @@ export default function TopNavbar({
             <span className="hidden sm:inline">Adicionar Filme</span>
             <span className="sm:hidden">Novo</span>
           </button>
+
+          {onLockApp && (
+            <button
+              type="button"
+              onClick={onLockApp}
+              title="Bloquear acesso ao catálogo (PIN)"
+              aria-label="Bloquear acesso ao catálogo"
+              className="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 hover:border-amber-500/40 text-zinc-400 hover:text-amber-300 transition-colors cursor-pointer shrink-0"
+            >
+              <Lock className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -839,8 +856,8 @@ export default function TopNavbar({
                   {/* Menu Suspenso (Popover) */}
                   {isOpen && (
                     <div
-                      className={`absolute top-full mt-2 w-72 sm:w-80 bg-zinc-950/98 backdrop-blur-2xl border border-zinc-800 rounded-2xl p-3.5 shadow-[0_15px_50px_rgba(0,0,0,0.85)] z-50 flex flex-col gap-2.5 ${
-                        cat.align === 'right' ? 'right-0' : 'left-0'
+                      className={`max-sm:fixed max-sm:left-3 max-sm:right-3 max-sm:top-44 max-sm:w-auto sm:absolute sm:top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] bg-zinc-950/98 backdrop-blur-2xl border border-zinc-800 rounded-2xl p-3.5 shadow-[0_15px_50px_rgba(0,0,0,0.85)] z-50 flex flex-col gap-2.5 ${
+                        cat.align === 'right' ? 'sm:right-0' : 'sm:left-0'
                       }`}
                     >
                       {/* Cabeçalho do Dropdown */}

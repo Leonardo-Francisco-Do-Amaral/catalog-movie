@@ -17,8 +17,7 @@ import {
   Flag
 } from 'lucide-react';
 import { getRarityMeta } from '../data/countryRarityTiers';
-
-const API_BASE_URL = 'http://localhost:5000/api';
+import { API_BASE_URL, resolveBackendAssetUrl } from '../utils/apiConfig';
 
 const removeAccents = (str) =>
   str
@@ -29,11 +28,7 @@ const removeAccents = (str) =>
         .trim()
     : '';
 
-const resolvePosterUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith('/uploads')) return `http://localhost:5000${url}`;
-  return url;
-};
+const resolvePosterUrl = resolveBackendAssetUrl;
 
 export default function CountryInspectionDrawer({
   country,

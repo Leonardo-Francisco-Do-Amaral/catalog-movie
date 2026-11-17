@@ -34,17 +34,12 @@ import {
   compareTimeMachineCandidates,
 } from '../utils/xpSystem';
 import TrophyTestPanelModal from './TrophyTestPanelModal';
-
-const API_BASE_URL = 'http://localhost:5000/api';
+import { API_BASE_URL, resolveBackendAssetUrl } from '../utils/apiConfig';
 const LOCAL_STORAGE_KEY = 'cine_time_machine_offline_v1';
 
 const RARITY_KEYS_DESC = ['mythic', 'legendary', 'epic', 'rare', 'common'];
 
-const resolvePosterUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith('/uploads')) return `http://localhost:5000${url}`;
-  return url;
-};
+const resolvePosterUrl = resolveBackendAssetUrl;
 
 function getChrononautRank(conqueredYears) {
   if (conqueredYears >= 100) {

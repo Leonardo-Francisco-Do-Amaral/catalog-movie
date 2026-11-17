@@ -13,11 +13,9 @@ import {
   Flag
 } from 'lucide-react';
 
-const resolvePosterUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith('/uploads')) return `http://localhost:5000${url}`;
-  return url;
-};
+import { resolveBackendAssetUrl } from '../utils/apiConfig';
+
+const resolvePosterUrl = resolveBackendAssetUrl;
 
 export default function HistoricalTerritoriesDrawer({
   isOpen,

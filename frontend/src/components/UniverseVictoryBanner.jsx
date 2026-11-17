@@ -3,12 +3,9 @@ import { createPortal } from 'react-dom';
 import { Sparkles, X, Award, Film, Star, ChevronRight, Ghost, Crown } from 'lucide-react';
 import { stopAllTrophyAudio } from '../utils/trophyAudio';
 import { playUniverseMusicTrack, resolveUniverseVictoryTrack } from '../utils/universeAudio';
+import { resolveBackendAssetUrl } from '../utils/apiConfig';
 
-const resolvePosterUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith('/uploads')) return `http://localhost:5000${url}`;
-  return url;
-};
+const resolvePosterUrl = resolveBackendAssetUrl;
 
 const VICTORY_TIER_THEMES = {
   bronze: {

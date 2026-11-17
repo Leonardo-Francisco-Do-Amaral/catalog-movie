@@ -1,8 +1,6 @@
-export const resolvePosterUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith('/uploads')) return `http://localhost:5000${url}`;
-  return url;
-};
+import { resolveBackendAssetUrl } from '../../utils/apiConfig';
+
+export const resolvePosterUrl = resolveBackendAssetUrl;
 
 export const UNIVERSE_TIER_META = {
   bronze: {

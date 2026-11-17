@@ -453,7 +453,7 @@ export default function InteractiveGlobe3D({ countryCounts = {} }) {
           startMouseRef.current.localX = undefined;
           startMouseRef.current.localY = undefined;
         }}
-        className="cursor-grab active:cursor-grabbing max-w-full"
+        className="cursor-grab active:cursor-grabbing max-w-full h-auto touch-none"
       />
       <div className="text-[10px] uppercase font-bold text-zinc-500 mt-2 select-none text-center">
         🌐 Arraste para girar • Territórios iluminados possuem filmes assistidos

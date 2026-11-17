@@ -3,8 +3,7 @@ import axios from 'axios';
 import { RefreshCw, Search } from 'lucide-react';
 import { dispatchXpStatusUpdate, triggerUniverseVictory } from '../utils/xpSystem';
 import UniverseConstellationView from '../components/universes/UniverseConstellationView';
-
-const API_BASE_URL = 'http://localhost:5000/api';
+import { API_BASE_URL } from '../utils/apiConfig';
 
 const FILTER_TABS = [
   { id: 'all', label: '🌌 Todas' },
