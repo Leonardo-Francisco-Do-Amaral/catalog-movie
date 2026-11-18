@@ -2,12 +2,12 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { X, Sparkles, ArrowRight, Gift, Layers, Play, Square, Volume2 } from 'lucide-react';
 import WalkOfFameStickerCard from './WalkOfFameStickerCard';
 import {
+  getRisingStarTheme,
   getThemeForTier,
   getUnlockRoadmapForStar,
   isDirectorStar,
   isDubladorStar,
   resolveWalkMediaUrl,
-  RISING_STAR_THEME,
 } from '../utils/walkOfFameStickers';
 import {
   playWalkOfFamePackSound,
@@ -424,7 +424,7 @@ export default function WalkOfFamePackModal({
 
     const rawFromPct =
       pack.fromPct != null ? Number(pack.fromPct) : effFromTier ? defaultPctTable[effFromTier] || 0 : 0;
-    const minFallbackPct = isRisingDir ? 80 : isDir ? 20 : 15;
+    const minFallbackPct = isRisingDir ? 40 : isDir ? 20 : 15;
     const rawToPct =
       pack.toPct != null
         ? Number(pack.toPct)
@@ -472,7 +472,7 @@ export default function WalkOfFamePackModal({
       if (idx < 0 || idx >= packUnlockItems.length) return;
       const item = packUnlockItems[idx];
       const isRisingDir = isDirectorStar(pack?.star) && Boolean(pack?.star?.isNewEraVisionary);
-      const isFinal = item.key === 90 || (isRisingDir && item.key === 80);
+      const isFinal = item.key === 90 || (isRisingDir && item.key === 100);
 
       if (stopAuto) {
         setAutoAdvanceEnabled(false);
@@ -601,23 +601,27 @@ export default function WalkOfFamePackModal({
   const isRisingDirectorPack = isDirectorPack && Boolean(star.isNewEraVisionary);
   const resolvedToTier = toTier || star.statusTierKey || 'bronze';
   const toTheme = isRisingDirectorPack
-    ? RISING_STAR_THEME
+    ? getRisingStarTheme(resolvedToTier)
     : getThemeForTier(resolvedToTier, isDirectorPack);
   const effectiveFromTier =
-    !isRisingDirectorPack && fromTier && fromTier !== 'cement' && fromTier !== 'carving'
-      ? fromTier
-      : null;
-  const fromTheme = effectiveFromTier ? getThemeForTier(effectiveFromTier, isDirectorPack) : null;
+    fromTier && fromTier !== 'cement' && fromTier !== 'carving' ? fromTier : null;
+  const fromTheme = effectiveFromTier
+    ? isRisingDirectorPack
+      ? getRisingStarTheme(effectiveFromTier)
+      : getThemeForTier(effectiveFromTier, isDirectorPack)
+    : null;
   const isOverlayUpgrade = Boolean((packType === 'rarity_up' || star.isStuck) && effectiveFromTier);
 
   const currentItem = packUnlockItems[activeStepIndex] || packUnlockItems[0] || null;
   const activeRewardKey = currentItem?.key ?? null;
   const activeStepTheme = isRisingDirectorPack
-    ? RISING_STAR_THEME
+    ? getRisingStarTheme(currentItem?.tierKey || resolvedToTier)
     : getThemeForTier(currentItem?.tierKey || resolvedToTier, isDirectorPack);
 
-  const hasFinal90InPack = packUnlockItems.some((item) => item.key === 90);
-  const is90Reached = unlockedKeys.includes(90);
+  const hasFinal90InPack = packUnlockItems.some(
+    (item) => item.key === 90 || (isRisingDirectorPack && item.key === 100)
+  );
+  const is90Reached = unlockedKeys.includes(90) || (isRisingDirectorPack && unlockedKeys.includes(100));
 
   let cardSignatureMode = 'normal';
   if (hasFinal90InPack) {
@@ -650,6 +654,32 @@ export default function WalkOfFamePackModal({
     const handleTyped = () => setStepFinishedTyping(true);
 
     if (isDirectorPack) {
+      if (isRisingDirectorPack && key === 40) {
+        return (
+          <div
+            key={`stage_${key}_${burstNonce}`}
+            className="flex flex-col items-center md:items-start text-center md:text-left gap-3 rare-reveal-enter max-w-md"
+          >
+            <span className="text-[11px] font-mono font-black uppercase tracking-[0.22em] text-sky-300">
+              🌟 ESTÁGIO 1 • RANK X (40%): FIGURINHA + FRASE + CURIOSIDADE #1!
+            </span>
+            <TypewriterTextBlock
+              key={`${star.id}_rising_40_${burstNonce}`}
+              lines={[
+                star.quote ? `“${star.quote}”` : 'Frase de set liberada no Dossiê!',
+                star.curiosities?.[0]
+                  ? `🔍 Curiosidade #1: ${star.curiosities[0]}`
+                  : '🔍 Curiosidade #1 e upload de Foto Própria liberados!',
+              ]}
+              speedMs={21}
+              accentHex="#38bdf8"
+              onComplete={handleTyped}
+              className="text-xs sm:text-sm font-medium text-sky-50/95 leading-relaxed drop-shadow-[0_4px_14px_rgba(0,0,0,0.95)]"
+            />
+          </div>
+        );
+      }
+
       if (isRisingDirectorPack && key === 80) {
         const galaTitle = star.signatureFilm?.title || star.topUserFilm?.title || 'Obra-Prima Favorita';
         return (
@@ -657,23 +687,53 @@ export default function WalkOfFamePackModal({
             key={`stage_${key}_${burstNonce}`}
             className="flex flex-col items-center md:items-start text-center md:text-left gap-3 rare-reveal-enter max-w-md"
           >
-            <span className="text-[11px] font-mono font-black uppercase tracking-[0.24em] text-cyan-200">
-              🌟 ESTRELA EM ASCENSÃO • RANK X (80%+): FIGURINHA &amp; SHOW DE CARTAZES LIBERADOS!
+            <span className="text-[11px] font-mono font-black uppercase tracking-[0.22em] text-indigo-200">
+              ⚡ ESTÁGIO 2 • RANK X+ (80%): MANIAS DE SET (60%) + GALA &amp; OBRA-PRIMA (80%)!
             </span>
-            <div className="px-3.5 py-1.5 rounded-xl bg-cyan-950/75 border border-cyan-400/50 text-xs font-black text-cyan-100 flex items-center gap-2 shadow">
+            <DirectorObsessionsPreview obsessions={star.directorObsessions} />
+            <div className="px-3.5 py-1.5 rounded-xl bg-indigo-950/75 border border-indigo-400/50 text-xs font-black text-indigo-100 flex items-center gap-2 shadow">
               <span>🏆</span>
-              <span>Destaque na Carta: {galaTitle}</span>
+              <span>Obra-Prima na Carta: {galaTitle}</span>
             </div>
             <TypewriterTextBlock
               key={`${star.id}_rising_80_${burstNonce}`}
               lines={[
-                'Você atingiu 80% da filmografia e desbloqueou a figurinha exclusiva Estrela em Ascensão (Rank X)!',
-                '🃏 O Show de Cartazes & Veredito (Oscar e Framboesa de Ouro) também foi liberado junto com a figurinha!',
+                star.curiosities?.[1]
+                  ? `• Curiosidade #2: ${star.curiosities[1]}`
+                  : '• Bingo de Manias de Set (60%) e Curiosidade #2 liberados!',
+                star.curiosities?.[2]
+                  ? `• Curiosidade #3: ${star.curiosities[2]}`
+                  : '• Curiosidade #3 e selo de Obra-Prima Favorita liberados!',
               ]}
               speedMs={21}
-              accentHex="#22d3ee"
+              accentHex="#818cf8"
               onComplete={handleTyped}
-              className="text-xs sm:text-sm font-medium text-cyan-50/95 leading-relaxed drop-shadow-[0_4px_14px_rgba(0,0,0,0.95)]"
+              className="text-xs sm:text-sm font-medium text-indigo-50/95 leading-relaxed drop-shadow-[0_4px_14px_rgba(0,0,0,0.95)]"
+            />
+          </div>
+        );
+      }
+
+      if (isRisingDirectorPack && key === 100) {
+        return (
+          <div
+            key={`stage_${key}_${burstNonce}`}
+            className="flex flex-col items-center md:items-start text-center md:text-left gap-3 rare-reveal-enter max-w-md"
+          >
+            <span className="text-[11px] font-mono font-black uppercase tracking-[0.22em] text-amber-200">
+              👑 ESTÁGIO 3 • RANK X++ (100%): CÂNONE TOTAL — SHOW DE CARTAZES &amp; 10 AURAS!
+            </span>
+            <DirectorJuryTablePreview />
+            <TypewriterTextBlock
+              key={`${star.id}_rising_100_${burstNonce}`}
+              lines={[
+                `Você completou 100% da filmografia de ${star.name} e conquistou o Rank X++!`,
+                '🃏 O Show de Cartazes & Veredito (Oscar e Framboesa) + as 10 Auras Holográficas agora estão totalmente liberados!',
+              ]}
+              speedMs={21}
+              accentHex="#fde047"
+              onComplete={handleTyped}
+              className="text-xs sm:text-sm font-medium text-amber-50/95 leading-relaxed drop-shadow-[0_4px_14px_rgba(0,0,0,0.95)]"
             />
             {onOpenDirectorVerdict && (
               <button
@@ -682,7 +742,7 @@ export default function WalkOfFamePackModal({
                   e.stopPropagation();
                   onOpenDirectorVerdict(star);
                 }}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-400 via-amber-300 to-rose-400 hover:brightness-110 text-zinc-950 font-black text-xs shadow-lg cursor-pointer transition-transform active:scale-95"
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 via-sky-300 to-rose-400 hover:brightness-110 text-zinc-950 font-black text-xs shadow-lg cursor-pointer transition-transform active:scale-95"
               >
                 🃏 Abrir Show de Cartazes em Tela Cheia →
               </button>

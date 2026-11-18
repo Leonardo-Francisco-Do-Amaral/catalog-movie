@@ -1,22 +1,53 @@
-import React, { useState, useMemo } from 'react';
-import { X, CheckCircle2, Lock, Search, Trophy, Calendar, Sparkles } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import axios from 'axios';
+import { X, CheckCircle2, Lock, Search, Loader2 } from 'lucide-react';
 import { TIER_THEMES } from './PS5TrophyToastContainer';
 import { TrophyCardBadges, getCleanTrophyTitle } from './TrophyBadges';
+import { API_BASE_URL } from '../utils/apiConfig';
 
 export default function TrophyChecklistModal({ trophy, onClose }) {
   const [search, setSearch] = useState('');
+  const [loadedTrophy, setLoadedTrophy] = useState(null);
+  const [loadingChecklist, setLoadingChecklist] = useState(false);
 
-  if (!trophy) return null;
+  useEffect(() => {
+    let active = true;
+    setSearch('');
+    if (!trophy?.id) {
+      setLoadedTrophy(null);
+      return () => { active = false; };
+    }
+    if (Array.isArray(trophy.checklist) && trophy.checklist.length > 0) {
+      setLoadedTrophy(trophy);
+      setLoadingChecklist(false);
+      return () => { active = false; };
+    }
 
-  const tierKey = String(trophy.tier || 'bronze').toLowerCase();
-  const theme = TIER_THEMES[tierKey] || TIER_THEMES.bronze;
-  const isUnlocked = Boolean(trophy.is_unlocked);
-  const cleanTitle = getCleanTrophyTitle(trophy.title);
+    setLoadedTrophy(trophy);
+    setLoadingChecklist(true);
+    axios
+      .get(`${API_BASE_URL}/trophies/${encodeURIComponent(trophy.id)}/checklist`)
+      .then((res) => {
+        if (active && res.data?.success && res.data?.data) {
+          setLoadedTrophy(res.data.data);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setLoadingChecklist(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [trophy]);
+
+  const activeTrophy = loadedTrophy?.id === trophy?.id ? loadedTrophy : trophy;
 
   const formattedDate = useMemo(() => {
-    if (!trophy.unlocked_at) return null;
+    if (!activeTrophy?.unlocked_at) return null;
     try {
-      const d = new Date(trophy.unlocked_at);
+      const d = new Date(activeTrophy.unlocked_at);
       return d.toLocaleDateString('pt-BR', {
         day: '2-digit',
         month: '2-digit',
@@ -27,9 +58,9 @@ export default function TrophyChecklistModal({ trophy, onClose }) {
     } catch {
       return null;
     }
-  }, [trophy.unlocked_at]);
+  }, [activeTrophy?.unlocked_at]);
 
-  const checklistItems = trophy.checklist || [];
+  const checklistItems = useMemo(() => activeTrophy?.checklist || [], [activeTrophy]);
 
   const filteredItems = useMemo(() => {
     if (!search.trim()) return checklistItems;
@@ -42,8 +73,18 @@ export default function TrophyChecklistModal({ trophy, onClose }) {
     });
   }, [checklistItems, search]);
 
+  if (!activeTrophy) return null;
+
+  const visualTierKey =
+    activeTrophy.kind === 'rank'
+      ? String(activeTrophy.highest_unlocked_tier || activeTrophy.ranks?.[0]?.tier || 'bronze').toLowerCase()
+      : String(activeTrophy.tier || 'bronze').toLowerCase();
+  const theme = TIER_THEMES[visualTierKey] || TIER_THEMES.bronze;
+  const isUnlocked = Boolean(activeTrophy.is_unlocked);
+  const cleanTitle = getCleanTrophyTitle(activeTrophy.title);
   const conqueredCount = checklistItems.filter((i) => i.conquered).length;
   const totalItems = checklistItems.length;
+  const ranksList = activeTrophy.kind === 'rank' && Array.isArray(activeTrophy.ranks) ? activeTrophy.ranks : [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-fadeIn">
@@ -63,7 +104,7 @@ export default function TrophyChecklistModal({ trophy, onClose }) {
             <div
               className={`w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-2xl bg-gradient-to-br ${theme.iconBg} border ${theme.border} flex items-center justify-center text-3xl sm:text-4xl shadow-inner relative`}
             >
-              <span>{trophy.icon || theme.symbol}</span>
+              <span>{activeTrophy.icon || theme.symbol}</span>
               {isUnlocked && (
                 <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-slate-950 rounded-full p-0.5 shadow-md">
                   <CheckCircle2 className="w-4 h-4" />
@@ -73,7 +114,7 @@ export default function TrophyChecklistModal({ trophy, onClose }) {
 
             <div className="min-w-0">
               <TrophyCardBadges
-                trophy={trophy}
+                trophy={activeTrophy}
                 theme={theme}
                 isUnlocked={isUnlocked}
                 unlockedDateStr={formattedDate}
@@ -83,7 +124,7 @@ export default function TrophyChecklistModal({ trophy, onClose }) {
                 {cleanTitle}
               </h3>
               <p className="text-xs sm:text-sm text-zinc-400 mt-0.5 leading-relaxed">
-                {trophy.description}
+                {activeTrophy.description}
               </p>
             </div>
           </div>
@@ -101,12 +142,12 @@ export default function TrophyChecklistModal({ trophy, onClose }) {
         <div className="bg-zinc-900/80 border border-zinc-800/80 rounded-2xl p-4 flex flex-col gap-2 relative z-10">
           <div className="flex items-center justify-between text-xs font-bold">
             <span className="text-zinc-400 uppercase tracking-wider text-[11px]">
-              Progresso no Banco de Dados
+              {ranksList.length > 0 ? 'Próximo Marco de Rank' : 'Progresso no Banco de Dados'}
             </span>
             <span className="text-zinc-100 font-mono">
-              {Math.min(trophy.progress_current, trophy.progress_target)} / {trophy.progress_target}{' '}
+              {Math.min(activeTrophy.progress_current, activeTrophy.progress_target)} / {activeTrophy.progress_target}{' '}
               <span className="text-zinc-500">
-                ({Math.min(100, trophy.progress_percentage || 0)}%)
+                ({Math.min(100, activeTrophy.progress_percentage || 0)}%)
               </span>
             </span>
           </div>
@@ -115,13 +156,49 @@ export default function TrophyChecklistModal({ trophy, onClose }) {
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{
-                width: `${Math.min(100, trophy.progress_percentage || 0)}%`,
+                width: `${Math.min(100, activeTrophy.progress_percentage || 0)}%`,
                 backgroundColor: theme.accentColor,
                 boxShadow: `0 0 12px ${theme.accentColor}80`,
               }}
             />
           </div>
         </div>
+
+        {/* Trilha de 5 Ranks (para troféus evolutivos) */}
+        {ranksList.length > 0 && (
+          <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-3.5 flex flex-col gap-2 relative z-10">
+            <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-wider text-zinc-400">
+              <span>Trilha de Ranks ({activeTrophy.unlocked_ranks_count || 0}/{ranksList.length})</span>
+              <span className="text-amber-400">Teto: {activeTrophy.target_value}</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+              {ranksList.map((rk) => {
+                const rkTheme = TIER_THEMES[String(rk.tier || 'bronze').toLowerCase()] || TIER_THEMES.bronze;
+                const rkDone = Boolean(rk.is_unlocked);
+                return (
+                  <div
+                    key={rk.id}
+                    className={`rounded-xl p-2 border flex flex-col gap-1 transition-all ${
+                      rkDone
+                        ? `bg-zinc-950/90 ${rkTheme.border} ${rkTheme.glow}`
+                        : 'bg-zinc-950/50 border-zinc-800/70 opacity-75'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-1 text-[10px] font-black">
+                      <span>{rkTheme.symbol} {rkTheme.name}</span>
+                      <span className="font-mono text-zinc-300">
+                        {rk.progress_current}/{rk.progress_target}
+                      </span>
+                    </div>
+                    <p className="text-[10px] font-bold text-zinc-200 leading-tight line-clamp-2" title={rk.title}>
+                      {getCleanTrophyTitle(rk.title)}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Busca Interna se houver muitos itens */}
         {totalItems > 8 && (
@@ -139,7 +216,12 @@ export default function TrophyChecklistModal({ trophy, onClose }) {
 
         {/* Lista de Itens do Checklist */}
         <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 max-h-[46vh] scrollbar-thin scrollbar-thumb-zinc-700 relative z-10">
-          {filteredItems.length === 0 ? (
+          {loadingChecklist && checklistItems.length === 0 ? (
+            <div className="py-10 flex items-center justify-center gap-2 text-zinc-400 text-xs font-bold">
+              <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+              <span>Carregando checklist detalhado do banco...</span>
+            </div>
+          ) : filteredItems.length === 0 ? (
             <div className="py-8 text-center text-zinc-500 text-xs italic">
               Nenhum item correspondente no checklist.
             </div>

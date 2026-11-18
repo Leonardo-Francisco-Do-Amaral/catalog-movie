@@ -13,8 +13,20 @@ import {
   Flag,
   Film
 } from 'lucide-react';
-import { UN_COUNTRIES_195 } from '../data/unCountries195';
-import { getRarityMeta } from '../data/countryRarityTiers';
+import { UN_COUNTRIES_195, HISTORICAL_TERRITORIES } from '../data/unCountries195';
+import { getRarityMeta, resolveValidIsoFlagCode } from '../data/countryRarityTiers';
+import {
+  SOVIET_REPUBLIC_CODES,
+  CZECHOSLOVAKIA_CODES,
+  YUGOSLAVIA_CODES,
+  WW2_ALLIES_CODES,
+  WW2_AXIS_CODES,
+  WW2_AXIS_PRINCIPAL_CODES,
+  COLD_WAR_NATO_WEST_CODES,
+  COLD_WAR_WARSAW_OTHER_CODES,
+  COLD_WAR_5_RELICS,
+  resolveTimelineTargetTerritory
+} from '../data/mapTimelinesConfig';
 
 const MAP_W = 1200;
 const MAP_H = 640; // Proporção otimizada para máxima amplitude dos hemisférios Sul e Norte
@@ -79,18 +91,53 @@ const CONTINENT_CAMERAS = {
   Oceania: { cx: 1055, cy: 425, zoom: 2.3 }
 };
 
-// Microestados, ilhas e nações de foco rápido (como Uruguai) que ganham beacon tático dedicado
+// Microestados, ilhas e territórios pequenos que ganham beacon tático dedicado
 const MICROSTATE_CODES = new Set([
   'uy', // Uruguai (destaque garantido com beacon de clique fácil)
   'va', 'mc', 'sm', 'li', 'ad', 'mt', 'lu',
   'sg', 'bh', 'mv', 'qa',
   'sc', 'mu', 'km', 'cv', 'st',
   'ag', 'kn', 'dm', 'lc', 'vc', 'gd', 'bb', 'tt', 'bs',
-  'pw', 'nr', 'tv', 'mh', 'fm', 'ki', 'to', 'ws', 'fj', 'vu', 'sb'
+  'pw', 'nr', 'tv', 'mh', 'fm', 'ki', 'to', 'ws', 'fj', 'vu', 'sb',
+  'spec_hk', 'spec_mo', 'spec_pr', 'spec_fo', 'spec_tb', 'spec_ku',
+  'spec_pf', 'spec_mq', 'spec_gp', 'spec_re', 'spec_cw', 'spec_aw',
+  'spec_im', 'spec_bm', 'spec_gi', 'spec_ck', 'spec_gu', 'spec_aq'
 ]);
+
+const TIMELINE_WARP_THEMES = {
+  modern: {
+    ring: 'border-amber-400/70 shadow-[inset_0_0_90px_rgba(245,158,11,0.35)]',
+    bg: 'from-amber-500/20 via-violet-900/20 to-cyan-500/20',
+    badge: '⌛ FENDA TEMPORAL • ERA ATUAL'
+  },
+  ww2: {
+    ring: 'border-rose-500/80 shadow-[inset_0_0_110px_rgba(244,63,94,0.45)]',
+    bg: 'from-amber-500/25 via-rose-900/35 to-black/40',
+    badge: '⚔️ ZA WARUDO! • 2ª GUERRA (1939–1945)'
+  },
+  cold_war: {
+    ring: 'border-cyan-400/80 shadow-[inset_0_0_110px_rgba(34,211,238,0.4)]',
+    bg: 'from-cyan-500/25 via-red-900/25 to-slate-950/40',
+    badge: '❄️ OCARINA DO TEMPO • GUERRA FRIA (1949–1991)'
+  },
+  pioneers: {
+    ring: 'border-yellow-500/75 shadow-[inset_0_0_100px_rgba(234,179,8,0.35)]',
+    bg: 'from-amber-900/35 via-stone-800/35 to-black/40',
+    badge: '🕯️ ROLO CLÁSSICO • ERA PIONEIRA (1895–1949)'
+  },
+  relic_radar: {
+    ring: 'border-teal-400/85 shadow-[inset_0_0_120px_rgba(45,212,191,0.45)]',
+    bg: 'from-teal-500/25 via-indigo-900/35 to-rose-500/20',
+    badge: '🌌 MULTIVERSO • RADAR RELÍQUIAS & MÍTICOS'
+  }
+};
 
 export default function TacticalWorldMap({
   countries = [],
+  historicalCountries = [],
+  pioneerActiveCodes = null,
+  mapTimelineMode = 'modern',
+  timelineWarpKey = 0,
   selectedContinent = 'Todos',
   visibleCodesSet = null,
   onSelectCountry
@@ -100,6 +147,7 @@ export default function TacticalWorldMap({
   const [camera, setCamera] = useState(CONTINENT_CAMERAS.Todos);
   const [hoveredInfo, setHoveredInfo] = useState(null);
   const [cursorCoords, setCursorCoords] = useState(null);
+  const [isWarping, setIsWarping] = useState(false);
 
   const containerRef = useRef(null);
   const dragRef = useRef({
@@ -111,43 +159,55 @@ export default function TacticalWorldMap({
     startCy: 305
   });
 
-  // Mapa rápido por código do país
+  // Dispara pulso visual da Fenda Temporal quando troca a linha do tempo
+  useEffect(() => {
+    if (!timelineWarpKey) return undefined;
+    setIsWarping(true);
+    const t = setTimeout(() => setIsWarping(false), 1050);
+    return () => clearTimeout(t);
+  }, [timelineWarpKey, mapTimelineMode]);
+
+  // Mapa rápido combinando 195 Países + 30 Territórios Relíquia
   const countryByCode = useMemo(() => {
     const m = new Map();
     countries.forEach((c) => m.set(c.code, c));
+    historicalCountries.forEach((h) => m.set(h.code, h));
     return m;
-  }, [countries]);
+  }, [countries, historicalCountries]);
 
-  // Índice universal para casar cada polígono do Natural Earth com 1 dos 195 países da ONU
+  // Índice universal para casar cada polígono do Natural Earth com ONU 195 OU Relíquias Especiais
   const geoLookup = useMemo(() => {
-    const byIso3 = new Map();
-    const byIso2 = new Map();
-    const byName = new Map();
+    const byExactIso3 = new Map();
+    const byExactIso2 = new Map();
+    const byExactName = new Map();
 
+    // 1. Indexa primeiro territórios especiais (Hong Kong, Groenlândia, Macau, Faroé, Kosovo...)
+    HISTORICAL_TERRITORIES.forEach((h) => {
+      if (!h.isSpecialTerritory) return;
+      if (h.iso3) byExactIso3.set(h.iso3.toUpperCase(), h.code);
+      if (h.flagCode) byExactIso2.set(h.flagCode.toUpperCase(), h.code);
+      byExactName.set(removeAccents(h.name), h.code);
+      (h.aliases || []).forEach((al) => byExactName.set(removeAccents(al), h.code));
+    });
+
+    // 2. Indexa os 195 Países da ONU
     UN_COUNTRIES_195.forEach((c) => {
-      byIso3.set(c.iso3.toUpperCase(), c.code);
-      byIso2.set(c.code.toUpperCase(), c.code);
-      byName.set(removeAccents(c.name), c.code);
+      byExactIso3.set(c.iso3.toUpperCase(), c.code);
+      byExactIso2.set(c.code.toUpperCase(), c.code);
+      byExactName.set(removeAccents(c.name), c.code);
       if (c.aliases) {
-        c.aliases.forEach((al) => byName.set(removeAccents(al), c.code));
+        c.aliases.forEach((al) => byExactName.set(removeAccents(al), c.code));
       }
     });
 
     return (props) => {
       if (!props) return null;
-      const iso3Candidates = [
-        props.ISO_A3,
-        props.iso_a3,
-        props.ADM0_A3,
-        props.adm0_a3,
-        props.SOV_A3,
-        props.sov_a3,
-        props.GU_A3,
-        props.gu_a3
-      ];
-      for (const raw of iso3Candidates) {
+
+      // Prioriza código próprio do polígono (evita Groenlândia cair na Dinamarca via SOV_A3)
+      const primaryIso3 = [props.ISO_A3, props.iso_a3, props.ADM0_A3, props.adm0_a3, props.GU_A3, props.gu_a3];
+      for (const raw of primaryIso3) {
         if (raw && raw !== '-99') {
-          const hit = byIso3.get(String(raw).toUpperCase());
+          const hit = byExactIso3.get(String(raw).toUpperCase());
           if (hit) return hit;
         }
       }
@@ -155,28 +215,30 @@ export default function TacticalWorldMap({
       const iso2Candidates = [props.ISO_A2, props.iso_a2, props.WB_A2, props.wb_a2];
       for (const raw of iso2Candidates) {
         if (raw && raw !== '-99') {
-          const hit = byIso2.get(String(raw).toUpperCase());
+          const hit = byExactIso2.get(String(raw).toUpperCase());
           if (hit) return hit;
         }
       }
 
-      const nameCandidates = [
-        props.NAME,
-        props.name,
-        props.NAME_LONG,
-        props.name_long,
-        props.ADMIN,
-        props.admin,
-        props.FORMAL_EN,
-        props.formal_en,
-        props.SOVEREIGNT,
-        props.sovereignt
-      ];
-      for (const raw of nameCandidates) {
+      const primaryNames = [props.NAME, props.name, props.NAME_LONG, props.name_long, props.ADMIN, props.admin, props.FORMAL_EN, props.formal_en];
+      for (const raw of primaryNames) {
         if (raw) {
-          const hit = byName.get(removeAccents(raw));
+          const hit = byExactName.get(removeAccents(raw));
           if (hit) return hit;
         }
+      }
+
+      // Só recorre à soberania como último fallback
+      const sovIso3 = [props.SOV_A3, props.sov_a3];
+      for (const raw of sovIso3) {
+        if (raw && raw !== '-99') {
+          const hit = byExactIso3.get(String(raw).toUpperCase());
+          if (hit) return hit;
+        }
+      }
+      if (props.SOVEREIGNT || props.sovereignt) {
+        const hit = byExactName.get(removeAccents(props.SOVEREIGNT || props.sovereignt));
+        if (hit) return hit;
       }
 
       return null;
@@ -223,7 +285,7 @@ export default function TacticalWorldMap({
     setCamera(preset);
   }, [selectedContinent]);
 
-  // Pré-calcula os paths SVG e quais países possuem polígono mapeado
+  // Pré-calcula os paths SVG e quais territórios possuem polígono mapeado
   const { renderedPaths, polygonCodes } = useMemo(() => {
     const paths = [];
     const matched = new Set();
@@ -243,12 +305,41 @@ export default function TacticalWorldMap({
     return { renderedPaths: paths, polygonCodes: matched };
   }, [geoFeatures, geoLookup]);
 
-  // Beacons táticos para microestados ou países insulares sem polígono grande na escala atual
+  // Beacons táticos adaptativos conforme a Linha do Tempo ativa
   const tacticalBeacons = useMemo(() => {
-    return countries.filter(
+    if (mapTimelineMode === 'cold_war') {
+      const baseBeacons = countries.filter(
+        (c) =>
+          (MICROSTATE_CODES.has(c.code) || !polygonCodes.has(c.code)) &&
+          !SOVIET_REPUBLIC_CODES.has(c.code) &&
+          !YUGOSLAVIA_CODES.has(c.code)
+      );
+      const coldWarPins = COLD_WAR_5_RELICS.map((code) => countryByCode.get(code)).filter(Boolean);
+      return [...baseBeacons, ...coldWarPins];
+    }
+
+    if (mapTimelineMode === 'relic_radar') {
+      const relicPins = historicalCountries.filter(
+        (h) => h.lat != null && h.lon != null && (h.isSpecialTerritory || h.status === 'conquered')
+      );
+      const mythicPins = countries.filter(
+        (c) => c.rarityTier === 'mythic' && (MICROSTATE_CODES.has(c.code) || !polygonCodes.has(c.code))
+      );
+      return [...relicPins, ...mythicPins];
+    }
+
+    const baseUnBeacons = countries.filter(
       (c) => MICROSTATE_CODES.has(c.code) || !polygonCodes.has(c.code)
     );
-  }, [countries, polygonCodes]);
+    const specialRelicBeacons = historicalCountries.filter(
+      (h) =>
+        h.isSpecialTerritory &&
+        h.lat != null &&
+        h.lon != null &&
+        (MICROSTATE_CODES.has(h.code) || !polygonCodes.has(h.code))
+    );
+    return [...baseUnBeacons, ...specialRelicBeacons];
+  }, [countries, historicalCountries, polygonCodes, mapTimelineMode, countryByCode]);
 
   // Calcula viewBox atual a partir de camera { cx, cy, zoom }
   const viewW = MAP_W / camera.zoom;
@@ -339,7 +430,7 @@ export default function TacticalWorldMap({
     dragRef.current.active = false;
   };
 
-  const getCountryVisualStyle = (country, isHovered) => {
+  const getCountryVisualStyle = (rawCode, country, isHovered) => {
     if (!country) {
       return {
         fill: '#0b0f17',
@@ -349,10 +440,207 @@ export default function TacticalWorldMap({
       };
     }
 
-    const isFilteredIn = !visibleCodesSet || visibleCodesSet.has(country.code);
+    const isFilteredIn = !visibleCodesSet || visibleCodesSet.has(country.code) || (rawCode && visibleCodesSet.has(rawCode));
     const baseOpacity = isFilteredIn ? 1 : 0.16;
     const rarityMeta = getRarityMeta(country.rarityTier || country.code);
 
+    // 1. MODO SEGUNDA GUERRA MUNDIAL (1939–1945)
+    if (mapTimelineMode === 'ww2') {
+      const c = String(rawCode || country.code).toLowerCase();
+      const isSoviet = c === 'hist_su' || SOVIET_REPUBLIC_CODES.has(c);
+      const isAlly = WW2_ALLIES_CODES.has(c);
+      const isAxis = WW2_AXIS_CODES.has(c);
+      const isPrincipalAxis = WW2_AXIS_PRINCIPAL_CODES.has(c);
+      const isConquered = country.status === 'conquered';
+
+      if (isSoviet) {
+        return {
+          fill: isConquered
+            ? isHovered
+              ? 'rgba(220, 38, 38, 0.78)'
+              : 'rgba(185, 28, 28, 0.56)'
+            : isHovered
+              ? 'rgba(127, 29, 29, 0.5)'
+              : 'rgba(69, 10, 10, 0.42)',
+          stroke: isHovered ? '#fde047' : '#f59e0b',
+          strokeWidth: (isHovered ? 1.5 : 0.85) / Math.sqrt(camera.zoom),
+          opacity: baseOpacity
+        };
+      }
+      if (isAxis) {
+        return {
+          fill: isConquered
+            ? isHovered
+              ? 'rgba(244, 63, 94, 0.85)'
+              : isPrincipalAxis
+                ? 'rgba(225, 29, 72, 0.62)'
+                : 'rgba(190, 18, 60, 0.45)'
+            : isHovered
+              ? 'rgba(136, 19, 55, 0.55)'
+              : 'rgba(63, 12, 28, 0.42)',
+          stroke: isHovered ? '#fda4af' : isPrincipalAxis ? '#fb7185' : '#9f1239',
+          strokeWidth: (isHovered ? 1.55 : isPrincipalAxis ? 1.05 : 0.65) / Math.sqrt(camera.zoom),
+          opacity: baseOpacity
+        };
+      }
+      if (isAlly) {
+        return {
+          fill: isConquered
+            ? isHovered
+              ? 'rgba(56, 189, 248, 0.78)'
+              : 'rgba(14, 165, 233, 0.50)'
+            : isHovered
+              ? 'rgba(30, 58, 138, 0.52)'
+              : 'rgba(15, 35, 70, 0.45)',
+          stroke: isHovered ? '#bae6fd' : isConquered ? '#38bdf8' : '#1e40af',
+          strokeWidth: (isHovered ? 1.5 : 0.8) / Math.sqrt(camera.zoom),
+          opacity: baseOpacity
+        };
+      }
+      return {
+        fill: isConquered
+          ? isHovered
+            ? 'rgba(148, 163, 184, 0.5)'
+            : 'rgba(100, 116, 139, 0.34)'
+          : 'url(#fogOfWarHatch)',
+        stroke: isHovered ? '#cbd5e1' : '#334155',
+        strokeWidth: (isHovered ? 1.2 : 0.5) / Math.sqrt(camera.zoom),
+        opacity: baseOpacity * 0.85
+      };
+    }
+
+    // 2. MODO GUERRA FRIA (1949–1991): URSS + Alemanha Dividida + Iugoslávia + Checoslováquia
+    if (mapTimelineMode === 'cold_war') {
+      const c = String(rawCode || country.code).toLowerCase();
+      if (c === 'de') {
+        return {
+          fill: 'url(#dividedGermanyGrad)',
+          stroke: isHovered ? '#fde047' : '#38bdf8',
+          strokeWidth: (isHovered ? 1.7 : 1.05) / Math.sqrt(camera.zoom),
+          opacity: baseOpacity
+        };
+      }
+      if (c === 'hist_su' || SOVIET_REPUBLIC_CODES.has(c)) {
+        const isConquered = country.status === 'conquered';
+        return {
+          fill: isConquered
+            ? isHovered
+              ? 'rgba(220, 38, 38, 0.80)'
+              : 'rgba(185, 28, 28, 0.60)'
+            : 'rgba(69, 10, 10, 0.45)',
+          stroke: isHovered ? '#fef08a' : '#f59e0b',
+          strokeWidth: (isHovered ? 1.6 : 0.9) / Math.sqrt(camera.zoom),
+          opacity: baseOpacity
+        };
+      }
+      if (CZECHOSLOVAKIA_CODES.has(c) || YUGOSLAVIA_CODES.has(c)) {
+        const isConquered = country.status === 'conquered';
+        return {
+          fill: isConquered
+            ? isHovered
+              ? 'rgba(45, 212, 191, 0.82)'
+              : 'rgba(20, 184, 166, 0.56)'
+            : isHovered
+              ? 'rgba(17, 94, 89, 0.6)'
+              : 'rgba(19, 78, 74, 0.35)',
+          stroke: isHovered ? '#fef08a' : '#2dd4bf',
+          strokeWidth: (isHovered ? 1.55 : 1.0) / Math.sqrt(camera.zoom),
+          opacity: baseOpacity
+        };
+      }
+      if (COLD_WAR_WARSAW_OTHER_CODES.has(c)) {
+        const isConquered = country.status === 'conquered';
+        return {
+          fill: isConquered
+            ? isHovered
+              ? 'rgba(249, 115, 22, 0.72)'
+              : 'rgba(194, 65, 12, 0.48)'
+            : isHovered
+              ? 'rgba(124, 45, 18, 0.55)'
+              : 'rgba(67, 20, 7, 0.40)',
+          stroke: isHovered ? '#fdba74' : '#ea580c',
+          strokeWidth: (isHovered ? 1.4 : 0.75) / Math.sqrt(camera.zoom),
+          opacity: baseOpacity
+        };
+      }
+      if (COLD_WAR_NATO_WEST_CODES.has(c)) {
+        const isConquered = country.status === 'conquered';
+        return {
+          fill: isConquered
+            ? isHovered
+              ? 'rgba(34, 211, 238, 0.72)'
+              : 'rgba(6, 182, 212, 0.44)'
+            : isHovered
+              ? 'rgba(22, 78, 99, 0.55)'
+              : 'rgba(12, 45, 65, 0.38)',
+          stroke: isHovered ? '#cffafe' : '#22d3ee',
+          strokeWidth: (isHovered ? 1.4 : 0.7) / Math.sqrt(camera.zoom),
+          opacity: baseOpacity
+        };
+      }
+      return {
+        fill: country.status === 'conquered' ? 'rgba(100, 116, 139, 0.35)' : 'url(#fogOfWarHatch)',
+        stroke: isHovered ? '#94a3b8' : '#1e293b',
+        strokeWidth: (isHovered ? 1.2 : 0.5) / Math.sqrt(camera.zoom),
+        opacity: baseOpacity * 0.85
+      };
+    }
+
+    // 3. BÔNUS 1 — ERA DOS PIONEIROS / CINEMA MUDO (< 1950)
+    if (mapTimelineMode === 'pioneers') {
+      const c = String(country.code || '').toLowerCase();
+      const hasClassic = Boolean(pioneerActiveCodes?.has(c) || (rawCode && pioneerActiveCodes?.has(rawCode)));
+      if (hasClassic) {
+        return {
+          fill: isHovered ? 'rgba(245, 158, 11, 0.82)' : 'rgba(217, 119, 6, 0.56)',
+          stroke: isHovered ? '#fef3c7' : '#fbbf24',
+          strokeWidth: (isHovered ? 1.6 : 0.95) / Math.sqrt(camera.zoom),
+          opacity: baseOpacity
+        };
+      }
+      return {
+        fill: isHovered ? 'rgba(120, 113, 108, 0.42)' : '#141210',
+        stroke: isHovered ? '#d6d3d1' : '#292524',
+        strokeWidth: (isHovered ? 1.2 : 0.5) / Math.sqrt(camera.zoom),
+        opacity: baseOpacity * 0.72
+      };
+    }
+
+    // 4. BÔNUS 2 — LENTE MULTIVERSO (RADAR DE RELÍQUIAS & MÍTICOS)
+    if (mapTimelineMode === 'relic_radar') {
+      const isTargetRarity = rarityMeta.key === 'relic' || rarityMeta.key === 'mythic';
+      if (!isTargetRarity) {
+        return {
+          fill: isHovered ? 'rgba(30, 41, 59, 0.45)' : '#070b14',
+          stroke: isHovered ? '#475569' : '#111827',
+          strokeWidth: (isHovered ? 1.0 : 0.4) / Math.sqrt(camera.zoom),
+          opacity: baseOpacity * 0.45
+        };
+      }
+      if (country.status === 'conquered') {
+        return {
+          fill: isHovered ? rarityMeta.mapHoverFill : rarityMeta.mapFill,
+          stroke: isHovered ? rarityMeta.mapHoverStroke : rarityMeta.mapStroke,
+          strokeWidth: (isHovered ? 1.8 : 1.15) / Math.sqrt(camera.zoom),
+          opacity: 1
+        };
+      }
+      return {
+        fill: isHovered
+          ? rarityMeta.key === 'relic'
+            ? 'rgba(20, 184, 166, 0.52)'
+            : 'rgba(244, 63, 94, 0.52)'
+          : rarityMeta.key === 'relic'
+            ? 'rgba(19, 78, 74, 0.45)'
+            : 'rgba(136, 19, 55, 0.45)',
+        stroke: rarityMeta.key === 'relic' ? '#2dd4bf' : '#fb7185',
+        strokeWidth: (isHovered ? 1.5 : 0.85) / Math.sqrt(camera.zoom),
+        strokeDasharray: `${2.5 / Math.sqrt(camera.zoom)},${1.5 / Math.sqrt(camera.zoom)}`,
+        opacity: 0.95
+      };
+    }
+
+    // 5. MODO PADRÃO (ATLAS MODERNO — 6 TIERS DE RARIDADE)
     if (country.status === 'conquered') {
       return {
         fill: isHovered ? rarityMeta.mapHoverFill : rarityMeta.mapFill,
@@ -372,15 +660,18 @@ export default function TacticalWorldMap({
       };
     }
 
-    // Fog of War (Névoa de Guerra) — destaque sutil carmesim ao passar o mouse em países Míticos
+    // Fog of War (Névoa de Guerra) — destaque sutil para Míticos e Relíquias
     const isMythic = rarityMeta.key === 'mythic';
+    const isRelic = rarityMeta.key === 'relic';
     return {
       fill: isHovered
         ? isMythic
           ? 'rgba(136, 19, 55, 0.55)'
-          : 'rgba(51, 65, 85, 0.65)'
+          : isRelic
+            ? 'rgba(17, 94, 89, 0.58)'
+            : 'rgba(51, 65, 85, 0.65)'
         : 'url(#fogOfWarHatch)',
-      stroke: isHovered ? (isMythic ? '#fb7185' : '#94a3b8') : '#1e293b',
+      stroke: isHovered ? (isMythic ? '#fb7185' : isRelic ? '#2dd4bf' : '#94a3b8') : isRelic ? '#134e4a' : '#1e293b',
       strokeWidth: (isHovered ? 1.25 : 0.55) / Math.sqrt(camera.zoom),
       opacity: baseOpacity
     };
@@ -390,6 +681,9 @@ export default function TacticalWorldMap({
   const hoveredRarity = hoveredCountry
     ? getRarityMeta(hoveredCountry.rarityTier || hoveredCountry.code)
     : null;
+  const warpTheme = TIMELINE_WARP_THEMES[mapTimelineMode] || TIMELINE_WARP_THEMES.modern;
+  const westGermanyConquered = countryByCode.get('hist_de_w')?.status === 'conquered';
+  const eastGermanyConquered = countryByCode.get('hist_dd')?.status === 'conquered';
 
   return (
     <div
@@ -462,10 +756,23 @@ export default function TacticalWorldMap({
         </button>
       </div>
 
+      {/* Overlay de Pulso da Fenda Temporal (sincronizado com a música da linha do tempo!) */}
+      {isWarping && (
+        <div
+          className={`pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-gradient-to-br ${warpTheme.bg} border-4 ${warpTheme.ring} backdrop-blur-[1.5px] animate-pulse`}
+        >
+          <div className="px-5 py-2.5 rounded-2xl bg-zinc-950/90 border border-white/25 shadow-[0_0_50px_rgba(0,0,0,0.95)] text-xs sm:text-sm font-black uppercase tracking-[0.22em] text-white">
+            {warpTheme.badge}
+          </div>
+        </div>
+      )}
+
       {/* Malha SVG Tática Principal */}
       <svg
         viewBox={`${minX} ${minY} ${viewW} ${viewH}`}
-        className="w-full h-full block"
+        className={`w-full h-full block transition-all duration-500 ${
+          mapTimelineMode === 'pioneers' ? 'sepia-[0.42] contrast-[1.04]' : ''
+        }`}
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>
@@ -481,9 +788,18 @@ export default function TacticalWorldMap({
             <line x1="0" y1="0" x2="0" y2="6" stroke="#162033" strokeWidth="1.4" />
           </pattern>
 
+          {/* Gradiente Bipartido da Alemanha Dividida (Guerra Fria: Oeste RFA vs Leste RDA) */}
+          <linearGradient id="dividedGermanyGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor={westGermanyConquered ? '#0ea5e9' : '#1e3a5f'} stopOpacity="0.82" />
+            <stop offset="47%" stopColor={westGermanyConquered ? '#0284c7' : '#1e3a5f'} stopOpacity="0.82" />
+            <stop offset="50%" stopColor="#fde047" stopOpacity="1" />
+            <stop offset="53%" stopColor={eastGermanyConquered ? '#ef4444' : '#450a0a'} stopOpacity="0.82" />
+            <stop offset="100%" stopColor={eastGermanyConquered ? '#dc2626' : '#450a0a'} stopOpacity="0.82" />
+          </linearGradient>
+
           {/* Gradiente Oceânico Tático */}
           <radialGradient id="warRoomOcean" cx="50%" cy="45%" r="65%">
-            <stop offset="0%" stopColor="#0a1628" />
+            <stop offset="0%" stopColor={mapTimelineMode === 'ww2' ? '#1a1014' : mapTimelineMode === 'cold_war' ? '#091826' : '#0a1628'} />
             <stop offset="65%" stopColor="#060b16" />
             <stop offset="100%" stopColor="#03050a" />
           </radialGradient>
@@ -514,12 +830,14 @@ export default function TacticalWorldMap({
           })}
         </g>
 
-        {/* Polígonos dos Países */}
+        {/* Polígonos dos Países & Territórios */}
         <g>
           {renderedPaths.map((item) => {
-            const country = item.code ? countryByCode.get(item.code) : null;
-            const isHovered = Boolean(item.code && hoveredInfo === item.code);
-            const style = getCountryVisualStyle(country, isHovered);
+            const country = item.code
+              ? resolveTimelineTargetTerritory(item.code, mapTimelineMode, countryByCode)
+              : null;
+            const isHovered = Boolean(country && hoveredInfo === country.code);
+            const style = getCountryVisualStyle(item.code, country, isHovered);
 
             return (
               <path
@@ -532,7 +850,7 @@ export default function TacticalWorldMap({
                 opacity={style.opacity}
                 className={country ? 'transition-colors duration-150 cursor-pointer' : ''}
                 onMouseEnter={() => {
-                  if (item.code) setHoveredInfo(item.code);
+                  if (country) setHoveredInfo(country.code);
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -546,7 +864,7 @@ export default function TacticalWorldMap({
           })}
         </g>
 
-        {/* Beacons Táticos para Ilhas & Microestados (Garante que todos os 195 países sejam clicáveis) */}
+        {/* Beacons Táticos para Ilhas, Microestados, Relíquias e Alemanha Dividida */}
         <g>
           {tacticalBeacons.map((country) => {
             const isFilteredIn = !visibleCodesSet || visibleCodesSet.has(country.code);
@@ -557,11 +875,19 @@ export default function TacticalWorldMap({
             const isHovered = hoveredInfo === country.code;
             const rMeta = getRarityMeta(country.rarityTier || country.code);
             const isMythic = rMeta.key === 'mythic';
-            const r = (isHovered ? 4.4 : isMythic ? 2.9 : 2.5) / Math.sqrt(camera.zoom);
+            const isRelic = rMeta.key === 'relic';
+            const isColdWarFocus = mapTimelineMode === 'cold_war' && COLD_WAR_5_RELICS.includes(country.code);
+            const r = (isHovered ? 4.8 : isColdWarFocus ? 3.8 : isMythic || isRelic ? 3.0 : 2.5) / Math.sqrt(camera.zoom);
 
-            let fill = isMythic ? '#3f1122' : '#1e293b';
-            let stroke = isMythic ? '#9f1239' : '#475569';
-            if (country.status === 'conquered') {
+            let fill = isMythic ? '#3f1122' : isRelic ? '#134e4a' : '#1e293b';
+            let stroke = isMythic ? '#9f1239' : isRelic ? '#0d9488' : '#475569';
+            if (isColdWarFocus && country.code === 'hist_dd') {
+              fill = country.status === 'conquered' ? '#ef4444' : '#450a0a';
+              stroke = '#fca5a5';
+            } else if (isColdWarFocus && country.code === 'hist_de_w') {
+              fill = country.status === 'conquered' ? '#0ea5e9' : '#082f49';
+              stroke = '#7dd3fc';
+            } else if (country.status === 'conquered') {
               fill = rMeta.beaconFill;
               stroke = rMeta.beaconStroke;
             } else if (country.status === 'wishlist') {
@@ -573,7 +899,7 @@ export default function TacticalWorldMap({
               <g
                 key={`beacon-${country.code}`}
                 transform={`translate(${bx}, ${by})`}
-                opacity={isFilteredIn ? 0.96 : 0.18}
+                opacity={isFilteredIn ? 0.98 : 0.18}
                 className="cursor-pointer"
                 onMouseEnter={() => setHoveredInfo(country.code)}
                 onClick={(e) => {
@@ -583,24 +909,28 @@ export default function TacticalWorldMap({
                 }}
               >
                 <circle
-                  r={r * 1.7}
+                  r={r * 1.75}
                   fill="transparent"
                   stroke={
                     isHovered
                       ? isMythic
                         ? '#fb7185'
-                        : '#fbbf24'
-                      : country.status === 'conquered' && isMythic
-                        ? 'rgba(244, 63, 94, 0.55)'
+                        : isRelic
+                          ? '#2dd4bf'
+                          : '#fbbf24'
+                      : country.status === 'conquered' && (isMythic || isRelic)
+                        ? isRelic
+                          ? 'rgba(45, 212, 191, 0.55)'
+                          : 'rgba(244, 63, 94, 0.55)'
                         : 'transparent'
                   }
-                  strokeWidth={0.85 / Math.sqrt(camera.zoom)}
+                  strokeWidth={0.9 / Math.sqrt(camera.zoom)}
                 />
                 <polygon
                   points={`0,${-r} ${r},0 0,${r} ${-r},0`}
                   fill={fill}
                   stroke={stroke}
-                  strokeWidth={0.68 / Math.sqrt(camera.zoom)}
+                  strokeWidth={0.72 / Math.sqrt(camera.zoom)}
                 />
               </g>
             );
@@ -618,42 +948,102 @@ export default function TacticalWorldMap({
         </div>
       )}
 
-      {/* Legenda Inferior Estilo War Room (5 Tiers de Raridade do País + Névoa + Alvo) */}
+      {/* Legenda Inferior Adaptativa por Linha do Tempo */}
       <div className="pointer-events-none absolute bottom-3.5 left-5 right-5 z-20 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2.5 bg-zinc-950/90 border border-zinc-800/80 backdrop-blur-md px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider">
-          <span className="flex items-center gap-1.5 text-zinc-400">
-            <span className="w-2.5 h-2.5 rounded-sm bg-slate-800 border border-slate-600 inline-block" />
-            Névoa
-          </span>
-          <span className="flex items-center gap-1.5 text-amber-400/90">
-            <span className="w-2.5 h-2.5 rounded-sm bg-amber-500/20 border border-dashed border-amber-400 inline-block" />
-            Alvo
-          </span>
-          <span className="text-zinc-700">|</span>
-          <span className="flex items-center gap-1.5 text-emerald-400">
-            <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500/60 border border-emerald-300 inline-block" />
-            Comum
-          </span>
-          <span className="flex items-center gap-1.5 text-sky-400">
-            <span className="w-2.5 h-2.5 rounded-sm bg-sky-500/60 border border-sky-300 inline-block" />
-            Raro
-          </span>
-          <span className="flex items-center gap-1.5 text-purple-400">
-            <span className="w-2.5 h-2.5 rounded-sm bg-purple-500/60 border border-purple-300 inline-block" />
-            Épico
-          </span>
-          <span className="flex items-center gap-1.5 text-amber-300">
-            <span className="w-2.5 h-2.5 rounded-sm bg-amber-400/70 border border-yellow-200 inline-block" />
-            Lendário
-          </span>
-          <span className="flex items-center gap-1.5 text-rose-400">
-            <span className="w-2.5 h-2.5 rounded-sm bg-rose-500/80 border border-rose-200 inline-block animate-pulse" />
-            Mítico (18)
-          </span>
-        </div>
+        {mapTimelineMode === 'ww2' ? (
+          <div className="flex flex-wrap items-center gap-3 bg-zinc-950/90 border border-rose-500/35 backdrop-blur-md px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider">
+            <span className="flex items-center gap-1.5 text-sky-400">
+              <span className="w-2.5 h-2.5 rounded-sm bg-sky-500/70 border border-sky-300 inline-block" />
+              Aliados Ocidentais
+            </span>
+            <span className="flex items-center gap-1.5 text-amber-300">
+              <span className="w-2.5 h-2.5 rounded-sm bg-red-600/80 border border-amber-400 inline-block" />
+              URSS (Aliados Leste)
+            </span>
+            <span className="flex items-center gap-1.5 text-rose-400">
+              <span className="w-2.5 h-2.5 rounded-sm bg-rose-600/80 border border-rose-300 inline-block" />
+              Potências do Eixo
+            </span>
+            <span className="flex items-center gap-1.5 text-zinc-400">
+              <span className="w-2.5 h-2.5 rounded-sm bg-slate-600/50 border border-slate-400 inline-block" />
+              Neutros
+            </span>
+          </div>
+        ) : mapTimelineMode === 'cold_war' ? (
+          <div className="flex flex-wrap items-center gap-3 bg-zinc-950/90 border border-cyan-500/35 backdrop-blur-md px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider">
+            <span className="flex items-center gap-1.5 text-amber-300">
+              <span className="w-2.5 h-2.5 rounded-sm bg-red-600/80 border border-amber-400 inline-block" />
+              URSS (15 Repúblicas)
+            </span>
+            <span className="flex items-center gap-1.5 text-cyan-300">
+              <span className="w-2.5 h-2.5 rounded-sm bg-cyan-500/60 border border-cyan-300 inline-block" />
+              OTAN / Oeste
+            </span>
+            <span className="flex items-center gap-1.5 text-orange-400">
+              <span className="w-2.5 h-2.5 rounded-sm bg-orange-600/70 border border-orange-400 inline-block" />
+              Pacto de Varsóvia
+            </span>
+            <span className="flex items-center gap-1.5 text-teal-300">
+              <span className="w-2.5 h-2.5 rounded-sm bg-teal-500/70 border border-teal-300 inline-block" />
+              Checoslováquia / Iugoslávia
+            </span>
+            <span className="text-yellow-300">🧱 RFA vs RDA</span>
+          </div>
+        ) : mapTimelineMode === 'pioneers' ? (
+          <div className="flex flex-wrap items-center gap-3 bg-zinc-950/90 border border-amber-500/35 backdrop-blur-md px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider">
+            <span className="flex items-center gap-1.5 text-amber-300">
+              <span className="w-2.5 h-2.5 rounded-sm bg-amber-500/80 border border-yellow-200 inline-block" />
+              Com Filme Clássico (&lt; 1950)
+            </span>
+            <span className="flex items-center gap-1.5 text-stone-400">
+              <span className="w-2.5 h-2.5 rounded-sm bg-stone-800 border border-stone-600 inline-block" />
+              Sem Clássico Pré-1950
+            </span>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2.5 bg-zinc-950/90 border border-zinc-800/80 backdrop-blur-md px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider">
+            {mapTimelineMode !== 'relic_radar' && (
+              <>
+                <span className="flex items-center gap-1.5 text-zinc-400">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-slate-800 border border-slate-600 inline-block" />
+                  Névoa
+                </span>
+                <span className="flex items-center gap-1.5 text-amber-400/90">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-amber-500/20 border border-dashed border-amber-400 inline-block" />
+                  Alvo
+                </span>
+                <span className="text-zinc-700">|</span>
+                <span className="flex items-center gap-1.5 text-emerald-400">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500/60 border border-emerald-300 inline-block" />
+                  Comum
+                </span>
+                <span className="flex items-center gap-1.5 text-sky-400">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-sky-500/60 border border-sky-300 inline-block" />
+                  Raro
+                </span>
+                <span className="flex items-center gap-1.5 text-purple-400">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-purple-500/60 border border-purple-300 inline-block" />
+                  Épico
+                </span>
+                <span className="flex items-center gap-1.5 text-amber-300">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-amber-400/70 border border-yellow-200 inline-block" />
+                  Lendário
+                </span>
+              </>
+            )}
+            <span className="flex items-center gap-1.5 text-teal-300">
+              <span className="w-2.5 h-2.5 rounded-sm bg-teal-500/80 border border-teal-200 inline-block animate-pulse" />
+              Relíquia (30)
+            </span>
+            <span className="flex items-center gap-1.5 text-rose-400">
+              <span className="w-2.5 h-2.5 rounded-sm bg-rose-500/80 border border-rose-200 inline-block animate-pulse" />
+              Mítico (18)
+            </span>
+          </div>
+        )}
 
         <div className="hidden xl:flex items-center gap-1.5 bg-zinc-950/85 border border-zinc-800/80 px-3 py-1.5 rounded-xl text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-          <span>➕➖ Zoom nos Botões • Arraste p/ Mover • Clique no País p/ Inspecionar</span>
+          <span>➕➖ Zoom nos Botões • Arraste p/ Mover • Clique p/ Inspecionar</span>
         </div>
       </div>
 
@@ -666,17 +1056,29 @@ export default function TacticalWorldMap({
           }}
           className="pointer-events-none absolute z-30 w-68 bg-zinc-950/95 border border-zinc-700/90 rounded-2xl p-3 shadow-[0_15px_40px_rgba(0,0,0,0.9)] backdrop-blur-xl flex flex-col gap-2.5"
         >
-          {/* Cabeçalho da Província + Selo de Raridade do País */}
+          {/* Cabeçalho da Província + Selo de Raridade */}
           <div className="flex items-center justify-between gap-2 border-b border-zinc-800/80 pb-2">
             <div className="flex items-center gap-2 min-w-0">
-              <img
-                src={`https://flagcdn.com/w40/${hoveredCountry.code}.png`}
-                alt={hoveredCountry.name}
-                className="w-6 h-4 object-cover rounded border border-zinc-700 shrink-0"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
+              {(() => {
+                const rawFlag = resolveValidIsoFlagCode(hoveredCountry.flagCode, hoveredCountry.code);
+                if (rawFlag) {
+                  return (
+                    <img
+                      src={`https://flagcdn.com/w40/${rawFlag}.png`}
+                      alt={hoveredCountry.name}
+                      className="w-6 h-4 object-cover rounded border border-zinc-700 shrink-0"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  );
+                }
+                return (
+                  <span className="w-6 h-4 rounded bg-teal-950 border border-teal-500/40 flex items-center justify-center text-[11px] shrink-0">
+                    {hoveredCountry.badgeIcon || (hoveredCountry.code === 'hist_su' ? '☭' : '⏳')}
+                  </span>
+                );
+              })()}
               <span className="text-xs font-black text-zinc-100 uppercase tracking-wide truncate">
                 {hoveredCountry.name}
               </span>
@@ -685,7 +1087,7 @@ export default function TacticalWorldMap({
             <span
               className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border shrink-0 ${hoveredRarity.softBadge}`}
             >
-              {hoveredRarity.key === 'mythic' ? `🔥 ${hoveredRarity.label}` : hoveredRarity.label}
+              {hoveredRarity.key === 'mythic' ? `🔥 ${hoveredRarity.label}` : hoveredRarity.key === 'relic' ? `⏳ ${hoveredRarity.label}` : hoveredRarity.label}
             </span>
           </div>
 

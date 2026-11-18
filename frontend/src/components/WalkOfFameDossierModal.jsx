@@ -159,7 +159,7 @@ export default function WalkOfFameDossierModal({
   const isDirector = isDirectorStar(star);
   const isDublador = !isDirector && isDubladorStar(star);
   const isRisingStar = isDirector && Boolean(star.isNewEraVisionary);
-  const unlockFloor = isDirector ? (isRisingStar ? 80 : 20) : 15;
+  const unlockFloor = isDirector ? (isRisingStar ? 40 : 20) : 15;
   const roadmapForStar = getUnlockRoadmapForStar(star);
   const rewardHintByPct = Object.fromEntries(roadmapForStar.map((r) => [r.pct, r.short]));
   const roadmapByPct = Object.fromEntries(roadmapForStar.map((r) => [r.pct, r]));
@@ -320,7 +320,7 @@ export default function WalkOfFameDossierModal({
                   src={displayPortrait}
                   alt={displayName}
                   className={`w-full h-full object-cover object-top transition-all duration-500 ${
-                    !isRisingStar && pct < unlockFloor ? 'grayscale contrast-110 brightness-60' : ''
+                    pct < unlockFloor ? 'grayscale contrast-110 brightness-60' : ''
                   }`}
                 />
               ) : (
@@ -349,7 +349,7 @@ export default function WalkOfFameDossierModal({
                         className="pointer-events-none opacity-0 translate-y-1 group-hover/portraitRank:opacity-100 group-hover/portraitRank:translate-y-0 group-focus-within/portraitRank:opacity-100 group-focus-within/portraitRank:translate-y-0 transition-all duration-150 absolute left-0 top-full mt-1.5 w-60 z-40 rounded-xl bg-zinc-950/95 border border-cyan-400/55 px-2.5 py-2 text-left font-sans text-[11px] font-medium leading-relaxed text-zinc-100 shadow-2xl whitespace-normal"
                       >
                         <span className="block text-[10px] font-mono font-black uppercase tracking-wider text-cyan-300 mb-0.5">
-                          🌟 Estrela em Ascensão (Rank X)
+                          🌟 Estrela em Ascensão ({rpgRank === 'E' ? 'Rank X → X++' : `Rank ${rpgRank}`})
                         </span>
                         {RISING_STAR_RANK_X_TOOLTIP}
                       </span>
@@ -415,9 +415,9 @@ export default function WalkOfFameDossierModal({
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-zinc-950 border border-zinc-700 text-zinc-300">
                   {unlocks.skinsUnlocked
                     ? isRisingStar
-                      ? '✓ Liberado (Estrela em Ascensão)'
+                      ? '✓ Liberado (Rank X • 40%+)'
                       : `✓ Liberado (${isDirector ? '40' : '45'}%+)`
-                    : `🔒 ${isDirector ? '40' : '45'}%`}
+                    : `🔒 ${isRisingStar ? '40' : isDirector ? '40' : '45'}%`}
                 </span>
               </div>
 
@@ -578,7 +578,7 @@ export default function WalkOfFameDossierModal({
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-black uppercase tracking-wider text-sky-300">
                   {isRisingStar
-                    ? '🌟 Estrela em Ascensão — Gala & Cânone'
+                    ? '🌟 Rank X+ (80%) & Rank X++ (100%)'
                     : isDirector
                     ? '🌟 Take 4 & Take 5 — Gala & Cânone'
                     : '💎 Edição Assinada da Carta'}
@@ -586,11 +586,13 @@ export default function WalkOfFameDossierModal({
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-zinc-950 border border-sky-500/35 text-sky-200">
                   {unlocks.immortalUnlocked
                     ? isRisingStar
-                      ? '✓ Liberado (Rank X)'
+                      ? '✓ Liberado (Rank X++ • 100%)'
                       : '✓ Ativa'
+                    : isRisingStar && unlocks.galaUnlocked
+                    ? '⚡ Rank X+ Ativo (Auras em 100%)'
                     : isDirector && unlocks.galaUnlocked
                     ? '🎞️ Gala 80% Ativa (Auras 90%)'
-                    : '🔒 90%'}
+                    : `🔒 ${isRisingStar ? '100' : '90'}%`}
                 </span>
               </div>
 
@@ -622,9 +624,9 @@ export default function WalkOfFameDossierModal({
                         }
                         title={
                           auraUnlocked
-                            ? `${aura.label} (${aura.requiredStars === 0 ? '90%' : `${aura.requiredStars}★`})`
+                            ? `${aura.label} (${aura.requiredStars === 0 ? (isRisingStar ? '100%' : '90%') : `${aura.requiredStars}★`})`
                             : `${aura.label} — requer ${
-                                !unlocks.immortalUnlocked ? '90%' : `${aura.requiredStars}★`
+                                !unlocks.immortalUnlocked ? (isRisingStar ? '100%' : '90%') : `${aura.requiredStars}★`
                               }`
                         }
                         className={`p-1.5 rounded-xl border text-[10px] font-bold flex flex-col items-center gap-0.5 transition-all ${
@@ -641,7 +643,13 @@ export default function WalkOfFameDossierModal({
                         />
                         <span className="truncate max-w-full text-[9px]">{aura.shortLabel}</span>
                         <span className="font-mono text-[8px] opacity-80">
-                          {auraUnlocked ? (aura.requiredStars === 0 ? '90%' : `${aura.requiredStars}★`) : `🔒${aura.requiredStars}★`}
+                          {auraUnlocked
+                            ? aura.requiredStars === 0
+                              ? isRisingStar
+                                ? '100%'
+                                : '90%'
+                              : `${aura.requiredStars}★`
+                            : `🔒${aura.requiredStars}★`}
                         </span>
                       </button>
                     );
@@ -653,7 +661,7 @@ export default function WalkOfFameDossierModal({
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-1">
                   🏆 Obra-Prima Fixada na Figurinha{' '}
-                  {isRisingStar ? '(Estrela em Ascensão • Rank X)' : isDirector ? '(Take 4 • 80%+)' : ''}
+                  {isRisingStar ? '(Rank X+ • 80%+)' : isDirector ? '(Take 4 • 80%+)' : ''}
                 </span>
                 <select
                   disabled={
@@ -748,7 +756,7 @@ export default function WalkOfFameDossierModal({
                     )}
                     {!star.isStickerUnlocked && (
                       <span className="text-zinc-400 font-normal block text-[11px]">
-                        Slot bloqueado (0%–{isRisingStar ? '79' : isDirector ? '19' : '14'}%): atinja{' '}
+                        Slot bloqueado (0%–{isRisingStar ? '39' : isDirector ? '19' : '14'}%): atinja{' '}
                         {unlockFloor}% para liberar a figurinha
                       </span>
                     )}
@@ -931,7 +939,7 @@ export default function WalkOfFameDossierModal({
                       className="pointer-events-none opacity-0 translate-y-1 group-hover/headerRank:opacity-100 group-hover/headerRank:translate-y-0 group-focus-within/headerRank:opacity-100 group-focus-within/headerRank:translate-y-0 transition-all duration-150 absolute left-0 top-full mt-2 w-72 z-50 rounded-xl bg-zinc-950/95 border border-cyan-400/55 px-3 py-2.5 text-left font-sans text-[11px] font-medium leading-relaxed text-zinc-100 shadow-2xl whitespace-normal"
                     >
                       <span className="block text-[10px] font-mono font-black uppercase tracking-wider text-cyan-300 mb-1">
-                        🌟 Rank X — Estrela em Ascensão
+                        🌟 Estrela em Ascensão (Rank X → X++)
                       </span>
                       {RISING_STAR_RANK_X_TOOLTIP}
                     </span>
@@ -1001,32 +1009,14 @@ export default function WalkOfFameDossierModal({
             </div>
 
             {/* Escada de Progressão */}
-            {isRisingStar ? (
-              <div className="rounded-2xl bg-gradient-to-br from-cyan-500/10 via-zinc-900/80 to-indigo-500/10 border border-cyan-400/35 px-4 py-3 flex items-center justify-between gap-2 flex-wrap">
-                <span className="text-xs font-black uppercase tracking-wider text-cyan-200 flex items-center gap-1.5">
-                  <Award className="w-4 h-4 text-cyan-300" />
-                  <span>Estrela em Ascensão</span>
-                </span>
-                {star.nextMilestone ? (
-                  <span className="text-xs font-semibold text-cyan-200 bg-cyan-500/15 border border-cyan-400/40 px-2.5 py-1 rounded-lg">
-                    Falta{star.nextMilestone.remainingFilms === 1 ? '' : 'm'}{' '}
-                    <strong>{star.nextMilestone.remainingFilms}</strong> filme
-                    {star.nextMilestone.remainingFilms === 1 ? '' : 's'} para 🌟 Figurinha &amp; 🃏 Show de Cartazes (
-                    {star.nextMilestone.thresholdPct}%)
-                  </span>
-                ) : (
-                  <span className="text-xs font-bold text-cyan-200 bg-cyan-500/15 border border-cyan-400/45 px-2.5 py-1 rounded-lg">
-                    🌟 Rank X: Figurinha &amp; Show de Cartazes Conquistados!
-                  </span>
-                )}
-              </div>
-            ) : (
             <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800 p-4">
               <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
                 <span className="text-xs font-black uppercase tracking-wider text-zinc-200 flex items-center gap-1.5">
                   <Award className="w-4 h-4 text-amber-400" />
                   <span>
-                    {isDirector
+                    {isRisingStar
+                      ? 'Estrela em Ascensão — 3 Degraus (40% Rank X → 80% Rank X+ → 100% Rank X++)'
+                      : isDirector
                       ? 'As 5 Tomadas do Diretor (Take 1: 20% → Take 5: 90%/100%)'
                       : 'Jornada na Calçada da Fama (15% → 90%)'}
                   </span>
@@ -1040,14 +1030,19 @@ export default function WalkOfFameDossierModal({
                   </span>
                 ) : (
                   <span className="text-xs font-bold text-sky-300 bg-sky-500/15 border border-sky-400/40 px-2.5 py-1 rounded-lg">
-                    💎 {isDirector ? 'Take 5: Cânone Absoluto Conquistado!' : 'Nível Máximo Imortal Conquistado!'}
+                    💎{' '}
+                    {isRisingStar
+                      ? 'Rank X++: Platina Máxima Conquistada!'
+                      : isDirector
+                      ? 'Take 5: Cânone Absoluto Conquistado!'
+                      : 'Nível Máximo Imortal Conquistado!'}
                   </span>
                 )}
               </div>
 
               <div
                 className={`grid grid-cols-2 sm:grid-cols-3 ${
-                  isDirector ? 'md:grid-cols-5' : 'md:grid-cols-6'
+                  isRisingStar ? 'md:grid-cols-3' : isDirector ? 'md:grid-cols-5' : 'md:grid-cols-6'
                 } gap-2`}
               >
                 {(star.milestones || []).map((m) => {
@@ -1085,7 +1080,6 @@ export default function WalkOfFameDossierModal({
                 })}
               </div>
             </div>
-            )}
 
             {/* ===============================================================
                 BIOGRAFIA + MELHOR FILME / PIOR FILME / MÉDIA (COLAPSÁVEL)
@@ -1189,10 +1183,12 @@ export default function WalkOfFameDossierModal({
                 <span className="text-[10px] font-mono font-bold text-zinc-400">
                   {unlocks.quoteUnlocked
                     ? isRisingStar
-                      ? '🌟 Liberada (Estrela em Ascensão)'
+                      ? '🌟 Desbloqueada (Rank X • 40%+)'
                       : isDirector
                       ? '🎬 Desbloqueada (20%+)'
                       : '🎟️ Desbloqueada (15%+)'
+                    : isRisingStar
+                    ? '🔒 40%'
                     : isDirector
                     ? '🔒 20%'
                     : '🔒 15%'}
@@ -1206,8 +1202,14 @@ export default function WalkOfFameDossierModal({
                 </div>
               ) : (
                 <DossierLockBanner
-                  requiredPct={isDirector ? 20 : 15}
-                  tierTitle={isDirector ? 'Take 1: Claquete Inicial' : 'Teste de Elenco'}
+                  requiredPct={isRisingStar ? 40 : isDirector ? 20 : 15}
+                  tierTitle={
+                    isRisingStar
+                      ? 'Estágio 1: Rank X (40%)'
+                      : isDirector
+                      ? 'Take 1: Claquete Inicial'
+                      : 'Teste de Elenco'
+                  }
                   rewardLabel={isDirector ? 'Frase de Set' : 'Frase Marcante'}
                 />
               )}
@@ -1246,7 +1248,13 @@ export default function WalkOfFameDossierModal({
                       <li>
                         <DossierLockBanner
                           requiredPct={isDirector ? 40 : 30}
-                          tierTitle={isDirector ? 'Take 2: Corte do Diretor' : 'Rouba-Cena'}
+                          tierTitle={
+                            isRisingStar
+                              ? 'Estágio 1: Rank X (40%)'
+                              : isDirector
+                              ? 'Take 2: Corte do Diretor'
+                              : 'Rouba-Cena'
+                          }
                           rewardLabel={isDublador ? 'Todas as 3 Curiosidades' : 'Curiosidade #1'}
                         />
                       </li>
@@ -1274,6 +1282,8 @@ export default function WalkOfFameDossierModal({
                           tierTitle={
                             isDublador
                               ? 'Rouba-Cena'
+                              : isRisingStar
+                              ? 'Estágio 2: Rank X+ (80%)'
                               : isDirector
                               ? 'Take 4: Sessão de Gala 70mm'
                               : 'Estrela na Calçada'
@@ -1410,8 +1420,10 @@ export default function WalkOfFameDossierModal({
                   <span className="text-[10px] font-mono font-bold text-zinc-400">
                     {unlocks.timelineUnlocked
                       ? isRisingStar
-                        ? '🌟 Liberado (Estrela em Ascensão)'
+                        ? '⚡ Liberado (Rank X+ • 80%+)'
                         : '🎯 Liberado (Take 3 • 60%+)'
+                      : isRisingStar
+                      ? '🔒 80% (Rank X+)'
                       : '🔒 60%'}
                   </span>
                 </div>
@@ -1456,8 +1468,10 @@ export default function WalkOfFameDossierModal({
                   </div>
                 ) : (
                   <DossierLockBanner
-                    requiredPct={60}
-                    tierTitle="Take 3: DNA Autoral & Manias"
+                    requiredPct={isRisingStar ? 80 : 60}
+                    tierTitle={
+                      isRisingStar ? 'Estágio 2: Rank X+ (libera 60% & 80%)' : 'Take 3: DNA Autoral & Manias'
+                    }
                     rewardLabel="Manias & Marca Registrada de Set (Bingo Autoral)"
                   />
                 )}
@@ -1475,17 +1489,17 @@ export default function WalkOfFameDossierModal({
                   <h3 className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
                     <span>
                       {isRisingStar
-                        ? '🃏 Show de Cartazes & Veredito (Estrela em Ascensão)'
+                        ? '🃏 Show de Cartazes & Veredito (Rank X++ • 100%)'
                         : '🃏 Show de Cartazes & Veredito (Take 5 • 90% / 100%)'}
                     </span>
                   </h3>
                   <span className="text-[10px] font-mono font-bold text-zinc-400">
                     {verdictOpen
                       ? isRisingStar
-                        ? '🌟 Liberado (80%+)'
+                        ? '👑 Liberado (Rank X++ • 100%)'
                         : '🌟 Liberada (90%+)'
                       : isRisingStar
-                      ? '🔒 80%'
+                      ? '🔒 100%'
                       : '🔒 90%'}
                   </span>
                 </div>
@@ -1499,11 +1513,11 @@ export default function WalkOfFameDossierModal({
                   </button>
                 ) : (
                   <DossierLockBanner
-                    requiredPct={isRisingStar ? 80 : 90}
-                    tierTitle={isRisingStar ? 'Estrela em Ascensão (80%)' : 'Take 5: Cânone Absoluto'}
+                    requiredPct={isRisingStar ? 100 : 90}
+                    tierTitle={isRisingStar ? 'Estágio 3: Rank X++ (100%)' : 'Take 5: Cânone Absoluto'}
                     rewardLabel={
                       isRisingStar
-                        ? 'Show de Cartazes Espalhados & Veredito (libera junto com a figurinha aos 80%)'
+                        ? 'Show de Cartazes Espalhados & Premiação (desbloqueia tudo no 100%)'
                         : 'Show de Cartazes Espalhados & Premiação Oscar / Framboesa'
                     }
                   />

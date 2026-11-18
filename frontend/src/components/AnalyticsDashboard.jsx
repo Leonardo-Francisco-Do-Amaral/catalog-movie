@@ -35,7 +35,6 @@ import {
 } from 'lucide-react';
 import { getCountryIsoFromName } from './InteractiveGlobe3D';
 import TrophyChecklistModal from './TrophyChecklistModal';
-import { evaluateTrophiesClientSide } from '../utils/trophyEngineClient';
 import {
   TROPHY_XP_BY_TIER,
   TROPHY_TIER_META,
@@ -443,6 +442,7 @@ export default function AnalyticsDashboard({
       }
       if (mounted && movies.length > 0) {
         try {
+          const { evaluateTrophiesClientSide } = await import('../utils/trophyEngineClient');
           const fallback = evaluateTrophiesClientSide(movies);
           setTrophiesList(fallback?.trophies || []);
         } catch {
@@ -768,7 +768,10 @@ export default function AnalyticsDashboard({
         const stuckCountRank = stuckStarsInRank.length;
         const xpInRank = sumStarsXp(stuckStarsInRank);
         const carPoints = Math.round(stuckCountRank * meta.points * 10) / 10;
-        const poolTotal = rankKey === 'X' && isDirGroup ? risingPoolTotal : null;
+        const poolTotal =
+          (rankKey === 'X' || rankKey === 'X+' || rankKey === 'X++') && isDirGroup
+            ? risingPoolTotal
+            : null;
         const barDenominator = poolTotal && poolTotal > 0 ? poolTotal : Math.max(1, list.length);
         const barPct =
           stuckCountRank > 0
@@ -790,9 +793,7 @@ export default function AnalyticsDashboard({
           barPct,
         };
       });
-      const lockedRankECount = list.filter(
-        (s) => !isUnlockedStar(s) && !(isDirGroup && s.isNewEraVisionary)
-      ).length;
+      const lockedRankECount = list.filter((s) => !isUnlockedStar(s)).length;
       const totalCar =
         Math.round(rows.reduce((acc, r) => acc + r.carPoints, 0) * 10) / 10;
       return { rows, lockedRankECount, totalCar };
@@ -1403,7 +1404,7 @@ export default function AnalyticsDashboard({
                 )}
 
                 <div className="flex flex-col gap-2">
-                  {['mythic', 'legendary', 'epic', 'rare', 'common'].map((rKey) => {
+                  {['mythic', 'relic', 'legendary', 'epic', 'rare', 'common'].map((rKey) => {
                     const rInfo = xpSources.countries?.byRarity?.[rKey];
                     if (!rInfo) return null;
                     const rMeta = COUNTRY_RARITY_META[rKey] || {};
@@ -1791,7 +1792,7 @@ export default function AnalyticsDashboard({
                       🎬 {walkOfFameOverview.directors.stuck} / {walkOfFameOverview.directors.total} Coladas
                     </h3>
                     <div className="text-[11px] font-mono text-zinc-400 mt-0.5">
-                      🔓 {walkOfFameOverview.directors.unlocked} Liberadas • 💎 {walkOfFameOverview.directors.diamond} Cânone/Rank X • ⭐ +{walkOfFameOverview.directors.extraStars} ★
+                      🔓 {walkOfFameOverview.directors.unlocked} Liberadas • 💎 {walkOfFameOverview.directors.diamond} Cânone/Rank X++ • ⭐ +{walkOfFameOverview.directors.extraStars} ★
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">

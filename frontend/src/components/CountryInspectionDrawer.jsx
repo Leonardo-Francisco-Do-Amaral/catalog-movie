@@ -16,7 +16,7 @@ import {
   RefreshCw,
   Flag
 } from 'lucide-react';
-import { getRarityMeta } from '../data/countryRarityTiers';
+import { getRarityMeta, resolveValidIsoFlagCode } from '../data/countryRarityTiers';
 import { API_BASE_URL, resolveBackendAssetUrl } from '../utils/apiConfig';
 
 const removeAccents = (str) =>
@@ -121,9 +121,8 @@ export default function CountryInspectionDrawer({
 
   const isConquered = country.status === 'conquered' && Boolean(country.champion);
   const champion = country.champion;
-  const flagCode = (country.flagCode || country.code || '').toLowerCase();
-  const isHistorical = Boolean(country.era);
-  const rarityMeta = !isHistorical ? getRarityMeta(country.rarityTier || country.code) : null;
+  const flagCode = resolveValidIsoFlagCode(country.flagCode, country.code);
+  const rarityMeta = getRarityMeta(country.rarityTier || country.code);
 
   const handleSelectTmdbTarget = (item) => {
     setManualWishTitle(item.title || '');
@@ -156,7 +155,7 @@ export default function CountryInspectionDrawer({
         {/* Cabeçalho da Província */}
         <div className="px-6 py-5 border-b border-zinc-800/90 bg-zinc-900/50 flex items-start justify-between gap-4">
           <div className="flex items-center gap-3.5 min-w-0">
-            {flagCode && flagCode !== 'su' && !flagCode.startsWith('hist_') && !flagCode.startsWith('extra_') ? (
+            {flagCode ? (
               <img
                 src={`https://flagcdn.com/w80/${flagCode}.png`}
                 alt={country.name}
@@ -166,8 +165,8 @@ export default function CountryInspectionDrawer({
                 }}
               />
             ) : (
-              <div className="w-12 h-8 rounded-lg bg-zinc-900 border border-zinc-700 flex items-center justify-center text-sm shrink-0">
-                {country.code === 'hist_su' ? '☭' : '🚩'}
+              <div className="w-12 h-8 rounded-lg bg-teal-950/90 border border-teal-500/45 flex items-center justify-center text-base shrink-0">
+                {country.badgeIcon || (country.code === 'hist_su' ? '☭' : '⏳')}
               </div>
             )}
 
@@ -186,7 +185,11 @@ export default function CountryInspectionDrawer({
                     className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${rarityMeta.softBadge}`}
                     title={rarityMeta.shortDesc}
                   >
-                    {rarityMeta.key === 'mythic' ? `🔥 ${rarityMeta.label}` : rarityMeta.label}
+                    {rarityMeta.key === 'mythic'
+                      ? `🔥 ${rarityMeta.label}`
+                      : rarityMeta.key === 'relic'
+                        ? `⏳ ${rarityMeta.label} • +225 XP`
+                        : rarityMeta.label}
                   </span>
                 )}
               </div>
@@ -198,8 +201,8 @@ export default function CountryInspectionDrawer({
                   </span>
                 )}
                 {country.era && (
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
-                    Era: {country.era}
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-teal-300">
+                    • {country.era}
                   </span>
                 )}
                 <span className="text-zinc-700">•</span>
@@ -217,6 +220,11 @@ export default function CountryInspectionDrawer({
                   </span>
                 )}
               </div>
+              {country.description && (
+                <p className="text-[11px] text-zinc-400 mt-1.5 leading-relaxed">
+                  {country.description}
+                </p>
+              )}
             </div>
           </div>
 
@@ -469,8 +477,7 @@ export default function CountryInspectionDrawer({
               )}
 
               {/* Busca TMDB + Formulário Rápido de Alvo / Wishlist */}
-              {!isHistorical && (
-                <form onSubmit={handleSaveTargetSubmit} className="flex flex-col gap-3">
+              <form onSubmit={handleSaveTargetSubmit} className="flex flex-col gap-3">
                   <div className="relative">
                     <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1">
                       Buscar Filme-Alvo no TMDB (Opcional)
@@ -555,11 +562,10 @@ export default function CountryInspectionDrawer({
                     disabled={!manualWishTitle.trim() || savingAction}
                     className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 text-xs font-black uppercase tracking-wider py-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
-                    <Target className="w-4 h-4" />
-                    {country.wishlist ? 'Atualizar Alvo da Missão' : 'Marcar Filme como Alvo'}
-                  </button>
-                </form>
-              )}
+                  <Target className="w-4 h-4" />
+                  {country.wishlist ? 'Atualizar Alvo da Missão' : 'Marcar Filme como Alvo'}
+                </button>
+              </form>
             </div>
           )}
 

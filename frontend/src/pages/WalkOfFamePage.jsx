@@ -149,6 +149,23 @@ const DIRECTOR_PACK_TEST_PRESETS = [
   { key: 'extra_star', label: '★ Estrela Bônus', desc: 'Nova Aura (+60 XP)', fromTier: 'diamond', toTier: 'diamond', fromPct: 90, toPct: 100, extraStarsUnlocked: 1, packType: 'extra_star' },
 ];
 
+const RISING_STAR_PACK_TEST_PRESETS = [
+  { key: 'rx_40', label: '40% Rank X', desc: 'Estágio 1: Figurinha + Marco 40% (+70 XP)', fromTier: null, toTier: 'silver', fromPct: 0, toPct: 40, extraStarsUnlocked: 0, packType: 'new_sticker' },
+  { key: 'rx_80', label: '80% Rank X+', desc: 'Estágio 2: Marcos 60% & 80% (+150 XP)', fromTier: 'silver', toTier: 'mythic', fromPct: 40, toPct: 80, extraStarsUnlocked: 0, packType: 'rarity_up' },
+  { key: 'rx_100', label: '100% Rank X++', desc: 'Estágio 3: Show Cartazes + Auras (+125 XP)', fromTier: 'mythic', toTier: 'diamond', fromPct: 80, toPct: 100, extraStarsUnlocked: 0, packType: 'rarity_up' },
+  { key: 'rx_all', label: 'Jornada 40→100%', desc: 'Todos 3 Degraus (+345 XP)', fromTier: null, toTier: 'diamond', fromPct: 0, toPct: 100, extraStarsUnlocked: 1, packType: 'new_sticker' },
+  { key: 'extra_star', label: '★ Estrela Bônus', desc: 'Nova Aura (+60 XP)', fromTier: 'diamond', toTier: 'diamond', fromPct: 100, toPct: 100, extraStarsUnlocked: 1, packType: 'extra_star' },
+];
+
+const RISING_STAR_TEST_MILESTONE_PRESETS = [
+  { label: 'Dados Reais', pct: null, badge: 'Real' },
+  { label: 'Bloqueada', pct: 0, badge: '0%' },
+  { label: 'Rank X (Figurinha)', pct: 40, badge: '40%' },
+  { label: 'Rank X+ (60%+80%)', pct: 80, badge: '80%' },
+  { label: 'Rank X++ (Tudo)', pct: 100, badge: '100%' },
+  { label: '100% +★', pct: 100, badge: '100%+★' },
+];
+
 const DIRECTOR_FILTER_TABS = [
   { id: 'all', label: 'Todos os Cineastas', icon: '🌟', match: () => true },
   {
@@ -183,9 +200,12 @@ function buildSimulatedWalkXpGain(pack) {
   const toPct = Number(pack?.toPct ?? pack?.toPercentage ?? 15);
   const fromPct = Number(pack?.fromPct ?? pack?.fromPercentage ?? 0);
   const extraAfter = Number(pack?.extraStarsUnlocked ?? 0);
+  const isDir = pack?.star?.kind === 'director' || pack?.star?.alameda === 'diretores';
+  const isRising = isDir && Boolean(pack?.star?.isNewEraVisionary);
   const computedXp = Math.max(
     0,
-    computeWalkXpClient(toPct, extraAfter) - computeWalkXpClient(fromPct, 0)
+    computeWalkXpClient(toPct, extraAfter, isDir, isRising) -
+      computeWalkXpClient(fromPct, 0, isDir, isRising)
   );
   const packXp = Math.max(5, Number(pack?.packXp ?? computedXp) || 15);
   const prevInLevel = 273;
@@ -612,13 +632,18 @@ export default function WalkOfFamePage({
     );
   }, [directorVerdictStar, testStarSimulated, displayStars, payload]);
 
+  const isRisingBase = Boolean(testBaseStar?.kind === 'director' && testBaseStar?.isNewEraVisionary);
   const activeLabPackPresets = isDirectorsPage
-    ? DIRECTOR_PACK_TEST_PRESETS
+    ? isRisingBase
+      ? RISING_STAR_PACK_TEST_PRESETS
+      : DIRECTOR_PACK_TEST_PRESETS
     : isDubladoresPage
     ? DUBLADOR_PACK_TEST_PRESETS
     : PACK_TEST_PRESETS;
   const activeLabMilestonePresets = isDirectorsPage
-    ? DIRECTOR_TEST_MILESTONE_PRESETS
+    ? isRisingBase
+      ? RISING_STAR_TEST_MILESTONE_PRESETS
+      : DIRECTOR_TEST_MILESTONE_PRESETS
     : isDubladoresPage
     ? DUBLADOR_TEST_MILESTONE_PRESETS
     : TEST_MILESTONE_PRESETS;
@@ -849,8 +874,10 @@ export default function WalkOfFamePage({
     const isRisingBase = isDirectorsPage && Boolean(base.isNewEraVisionary);
     const effToPct =
       isRisingBase && preset.packType !== 'extra_star'
-        ? Math.max(80, Number(preset.toPct || 80))
+        ? Math.max(40, Number(preset.toPct || 40))
         : preset.toPct;
+    const resolvedRisingTier =
+      effToPct >= 100 ? 'diamond' : effToPct >= 80 ? 'mythic' : 'silver';
     const simulatedStar = applySimulatedMilestoneToStar(
       base,
       effToPct,
@@ -858,15 +885,15 @@ export default function WalkOfFamePage({
     );
     const packXp = Math.max(
       0,
-      computeWalkXpClient(effToPct, preset.extraStarsUnlocked ?? 0, isDirectorsPage) -
-        computeWalkXpClient(preset.fromPct, 0, isDirectorsPage)
+      computeWalkXpClient(effToPct, preset.extraStarsUnlocked ?? 0, isDirectorsPage, isRisingBase) -
+        computeWalkXpClient(preset.fromPct, 0, isDirectorsPage, isRisingBase)
     );
     const demoPack = {
       isDemo: true,
       packId: `demo_${preset.key}_${Date.now()}`,
       packType: preset.packType,
-      fromTier: isRisingBase ? null : preset.fromTier,
-      toTier: isRisingBase ? 'diamond' : preset.toTier,
+      fromTier: preset.fromTier,
+      toTier: isRisingBase ? resolvedRisingTier : preset.toTier,
       fromPct: preset.fromPct,
       toPct: effToPct,
       fromPercentage: preset.fromPct,
@@ -999,7 +1026,7 @@ export default function WalkOfFamePage({
                   </span>
                   <span className="text-zinc-600">|</span>
                   <span className="text-emerald-300 font-bold">
-                    🔓 {unlockedCount} liberadas ({isDirectorsPage ? '≥20% • Rank X: 80%' : '≥15%'})
+                    🔓 {unlockedCount} liberadas ({isDirectorsPage ? '≥20% • Rank X: 40%' : '≥15%'})
                   </span>
                 </div>
               )}
@@ -1343,7 +1370,7 @@ export default function WalkOfFamePage({
               >
                 <option value="all">Todos os Estados</option>
                 <option value="unlocked">
-                  🔓 Liberadas ({isDirectorsPage ? '≥ 20% • Rank X: 80%' : '≥ 15%'})
+                  🔓 Liberadas ({isDirectorsPage ? '≥ 20% • Rank X: 40%' : '≥ 15%'})
                 </option>
                 <option value="diamond">
                   💎 {isDirectorsPage ? 'Take 5 Cânone / Rank X' : 'Cracked Ice (≥ 90%)'}
@@ -1495,11 +1522,17 @@ export default function WalkOfFamePage({
               </span>
               <div className="flex flex-wrap items-center gap-1.5">
                 {(isDirectorsPage
-                  ? [
-                      { key: 'dir_20', label: '🎬 Notif. 20% Take 1 (+25 XP)' },
-                      { key: 'dir_60', label: '🎯 Notif. 60% Take 3 (+65 XP)' },
-                      { key: 'dir_90', label: '🌟 Notif. 90% Take 5 (+125 XP)' },
-                    ]
+                  ? isRisingBase
+                    ? [
+                        { key: 'rx_40', label: '🌟 Notif. 40% Rank X (+70 XP)' },
+                        { key: 'rx_80', label: '⚡ Notif. 80% Rank X+ (+150 XP)' },
+                        { key: 'rx_100', label: '👑 Notif. 100% Rank X++ (+125 XP)' },
+                      ]
+                    : [
+                        { key: 'dir_20', label: '🎬 Notif. 20% Take 1 (+25 XP)' },
+                        { key: 'dir_60', label: '🎯 Notif. 60% Take 3 (+65 XP)' },
+                        { key: 'dir_90', label: '🌟 Notif. 90% Take 5 (+125 XP)' },
+                      ]
                   : [
                       { key: 'lock_15', label: '🎟️ Notif. 15% (+20 XP)' },
                       { key: 'lock_75', label: '🎞️ Notif. 75% Timeline (+75 XP)' },
@@ -1564,7 +1597,7 @@ export default function WalkOfFamePage({
                     previewAllStickers ||
                       (simPct != null &&
                         simPct >=
-                          (isDirectorsPage ? (testStarSimulated.isNewEraVisionary ? 80 : 20) : 15))
+                          (isDirectorsPage ? (testStarSimulated.isNewEraVisionary ? 40 : 20) : 15))
                   )}
                   onStick={(id) =>
                     simPct != null ? triggerCardPasteAnim(id) : handleStick(id)
@@ -1614,14 +1647,18 @@ export default function WalkOfFamePage({
                         </button>
                         <p className="text-[10px] text-center text-indigo-200/85 leading-snug">
                           {testStarSimulated.isNewEraVisionary
-                            ? '🌟 Estrela em Ascensão (≤7 filmes • Rank X): figurinha e Show de Cartazes abrem juntos aos 80%!'
+                            ? '🌟 Estrela em Ascensão (≤7 filmes • Rank X → X++): 40% Figurinha + marco 40% • 80% marcos 60% & 80% • 100% tudo!'
                             : `🎯 ${testStarSimulated.directorStats?.ceilingTierLabel || 'Diretor & Roteirista'}`}
                         </p>
                         <p className="text-[10px] text-center text-zinc-400 leading-snug">
                           {testStarSimulated.isNewEraVisionary
-                            ? testStarSimulated.isStickerUnlocked
-                              ? '🌟 80%+: figurinha exclusiva e 🃏 Show de Cartazes desbloqueados!'
-                              : '🔒 Atinga 80% para desbloquear a figurinha e o 🃏 Show de Cartazes (demais seções já abertas).'
+                            ? labVerdictOpen
+                              ? '👑 100% Rank X++: Cânone Total liberado! Clique em 🃏 Júri para virar as cartas!'
+                              : testStarSimulated.unlocks?.galaUnlocked
+                              ? '⚡ 80% Rank X+: Marcos de 60% e 80% liberados! Falta 100% para 🃏 Júri e 10 Auras.'
+                              : testStarSimulated.isStickerUnlocked
+                              ? '🌟 40% Rank X: Figurinha + marco 40% liberados! Atinja 80% para Rank X+.'
+                              : '🔒 Atinja 40% para liberar Figurinha & marco 40% (Rank X), 80% para Rank X+ e 100% para Rank X++.'
                             : labVerdictOpen
                             ? '💡 Clique em 🃏 Júri na carta ou acima para virar as cartas secretas!'
                             : testStarSimulated.unlocks?.timelineUnlocked
@@ -1658,7 +1695,7 @@ export default function WalkOfFamePage({
                     <span>
                       {isDirectorsPage
                         ? testStarSimulated.isNewEraVisionary
-                          ? 'Foto da Figurinha (Liberado • Estrela em Ascensão Rank X)'
+                          ? 'Foto da Figurinha (Retrato Oficial + Foto Própria em 40% • Rank X)'
                           : 'Foto da Figurinha (Retrato Oficial + Opção de Foto Própria em 40%)'
                         : 'Skins Alternativas da Carta (Até 5 visuais • Libera em 45%)'}
                     </span>
@@ -1842,7 +1879,7 @@ export default function WalkOfFamePage({
                   <span className="text-[11px] font-black uppercase tracking-wider text-sky-300">
                     {isDirectorsPage
                       ? testStarSimulated.isNewEraVisionary
-                        ? '🌟 Estrela em Ascensão (Rank X — Obra-Prima & 10 Auras Liberados • Show de Cartazes aos 80%)'
+                        ? '🌟 Estrela em Ascensão (40% Rank X • 80% Rank X+ • 100% Rank X++ Show de Cartazes & Auras)'
                         : '🌟 Testes dos Takes 3–5 (60% DNA • 80% Gala • 90% Show de Cartazes & 10 Auras)'
                       : '💎 Testes de 75%+ / 90%+ (10 Auras por ★, Obra-Prima & Linha do Tempo)'}
                   </span>
@@ -1860,7 +1897,9 @@ export default function WalkOfFamePage({
 
                 {/* Simulador de Estrelas Bônus 0★ → 9★ para testar as 10 Auras */}
                 {simPct != null &&
-                  (simPct >= 90 || (isDirectorsPage && testStarSimulated.isNewEraVisionary)) && (
+                  (isDirectorsPage && testStarSimulated.isNewEraVisionary
+                    ? simPct >= 100
+                    : simPct >= 90) && (
                   <div className="flex items-center justify-between gap-2 flex-wrap rounded-xl bg-zinc-950/75 border border-zinc-800 px-3 py-2">
                     <span className="text-[10px] font-black uppercase tracking-wider text-amber-300">
                       Simular Estrelas Bônus (desbloqueia 1 cor por ★):
@@ -2000,7 +2039,7 @@ export default function WalkOfFamePage({
                           }`}
                           title={
                             testStarSimulated.isNewEraVisionary
-                              ? 'Abrir Show de Cartazes: Cartas Viradas, Oscar & Framboesa (80%+)'
+                              ? 'Abrir Show de Cartazes: Cartas Viradas, Oscar & Framboesa (Rank X++ • 100%)'
                               : 'Abrir Show de Cartazes: Cartas Viradas, Oscar & Framboesa (90%+)'
                           }
                         >
@@ -2109,7 +2148,7 @@ export default function WalkOfFamePage({
                 previewAllStickers ||
                   (simApplyToGrid &&
                     simPct != null &&
-                    simPct >= (isDirectorsPage ? (star.isNewEraVisionary ? 80 : 20) : 15))
+                    simPct >= (isDirectorsPage ? (star.isNewEraVisionary ? 40 : 20) : 15))
               )}
               onStick={handleGridStick}
               onUnstick={isSimGridActive ? undefined : handleUnstick}

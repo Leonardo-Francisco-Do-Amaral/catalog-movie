@@ -1,6 +1,5 @@
-import { UN_COUNTRIES_195 } from '../data/unCountries195';
+import { UN_COUNTRIES_195, HISTORICAL_TERRITORIES } from '../data/unCountries195';
 import { getCountryRarityTier } from '../data/countryRarityTiers';
-import { evaluateTrophiesClientSide } from './trophyEngineClient';
 
 export const XP_PER_MOVIE = 10;
 export const MIN_TIME_MACHINE_YEAR = 1920;
@@ -56,6 +55,7 @@ export const COUNTRY_XP_BY_RARITY = {
   rare: 45,
   epic: 65,
   legendary: 100,
+  relic: 225,
   mythic: 300,
 };
 
@@ -72,6 +72,7 @@ export const COUNTRY_RARITY_META = {
   rare: { label: 'Raro', pluralLabel: 'Raros', icon: '🔵', xpEach: 45, color: 'text-sky-300', badge: 'bg-sky-500/15 border-sky-400/40 text-sky-300' },
   epic: { label: 'Épico', pluralLabel: 'Épicos', icon: '💜', xpEach: 65, color: 'text-purple-300', badge: 'bg-purple-500/15 border-purple-400/40 text-purple-300' },
   legendary: { label: 'Lendário', pluralLabel: 'Lendários', icon: '🥇', xpEach: 100, color: 'text-amber-300', badge: 'bg-amber-500/15 border-amber-400/45 text-amber-300' },
+  relic: { label: 'Relíquia', pluralLabel: 'Relíquias', icon: '⏳', xpEach: 225, color: 'text-teal-300', badge: 'bg-teal-500/20 border-teal-400/50 text-teal-200' },
   mythic: { label: 'Mítico', pluralLabel: 'Míticos', icon: '💎', xpEach: 300, color: 'text-rose-300', badge: 'bg-rose-500/20 border-rose-500/50 text-rose-300' },
 };
 
@@ -407,7 +408,16 @@ export function calculateClientXpStatus(movies = [], trophiesOverride = null, lo
 
   const unLookup = new Map();
   const unByCode = new Map();
-  const rarityTotals = { common: 0, rare: 0, epic: 0, legendary: 0, mythic: 0 };
+  const histLookup = new Map();
+  const histByCode = new Map();
+  const rarityTotals = {
+    common: 0,
+    rare: 0,
+    epic: 0,
+    legendary: 0,
+    relic: HISTORICAL_TERRITORIES.length,
+    mythic: 0,
+  };
 
   UN_COUNTRIES_195.forEach((c) => {
     unByCode.set(c.code, c);
@@ -417,6 +427,14 @@ export function calculateClientXpStatus(movies = [], trophiesOverride = null, lo
     (c.aliases || []).forEach((al) => unLookup.set(cleanStr(al), c.code));
     const r = c.rarityTier || getCountryRarityTier(c.code);
     rarityTotals[r] = (rarityTotals[r] || 0) + 1;
+  });
+
+  HISTORICAL_TERRITORIES.forEach((h) => {
+    histByCode.set(h.code, h);
+    histLookup.set(cleanStr(h.code), h.code);
+    if (h.iso3) histLookup.set(cleanStr(h.iso3), h.code);
+    histLookup.set(cleanStr(h.name), h.code);
+    (h.aliases || []).forEach((al) => histLookup.set(cleanStr(al), h.code));
   });
 
   // Deduplica filmes únicos
@@ -434,6 +452,8 @@ export function calculateClientXpStatus(movies = [], trophiesOverride = null, lo
 
   let pendingCoproductionsCount = 0;
   const conqueredCodes = {};
+  let totalConqueredCount = 0;
+  let relicsConqueredCount = 0;
 
   uniqueMovies.forEach((m) => {
     const mid = m.movie_id || m.id;
@@ -441,10 +461,11 @@ export function calculateClientXpStatus(movies = [], trophiesOverride = null, lo
     const resolvedCodes = [];
     const seen = new Set();
     rawCountries.forEach((raw) => {
-      const u = unLookup.get(cleanStr(raw));
-      if (u && !seen.has(u)) {
-        seen.add(u);
-        resolvedCodes.push(u);
+      const cleanedRaw = cleanStr(raw);
+      const codeMatch = histLookup.get(cleanedRaw) || unLookup.get(cleanedRaw);
+      if (codeMatch && !seen.has(codeMatch)) {
+        seen.add(codeMatch);
+        resolvedCodes.push(codeMatch);
       }
     });
 
@@ -457,7 +478,9 @@ export function calculateClientXpStatus(movies = [], trophiesOverride = null, lo
     }
 
     const activeCode = (manualCode || resolvedCodes[0] || '').toLowerCase();
-    if (activeCode && unByCode.has(activeCode) && !conqueredCodes[activeCode]) {
+    if (!activeCode || conqueredCodes[activeCode]) return;
+
+    if (unByCode.has(activeCode)) {
       const def = unByCode.get(activeCode);
       const rarity = def.rarityTier || getCountryRarityTier(activeCode);
       conqueredCodes[activeCode] = {
@@ -465,6 +488,15 @@ export function calculateClientXpStatus(movies = [], trophiesOverride = null, lo
         rarity,
         xp: COUNTRY_XP_BY_RARITY[rarity] || 30,
       };
+      totalConqueredCount += 1;
+    } else if (histByCode.has(activeCode)) {
+      const hDef = histByCode.get(activeCode);
+      conqueredCodes[activeCode] = {
+        name: hDef.name,
+        rarity: 'relic',
+        xp: COUNTRY_XP_BY_RARITY.relic,
+      };
+      relicsConqueredCount += 1;
     }
   });
 
@@ -473,6 +505,7 @@ export function calculateClientXpStatus(movies = [], trophiesOverride = null, lo
     rare: { ...COUNTRY_RARITY_META.rare, count: 0, total: rarityTotals.rare, totalXp: 0 },
     epic: { ...COUNTRY_RARITY_META.epic, count: 0, total: rarityTotals.epic, totalXp: 0 },
     legendary: { ...COUNTRY_RARITY_META.legendary, count: 0, total: rarityTotals.legendary, totalXp: 0 },
+    relic: { ...COUNTRY_RARITY_META.relic, count: 0, total: rarityTotals.relic, totalXp: 0 },
     mythic: { ...COUNTRY_RARITY_META.mythic, count: 0, total: rarityTotals.mythic, totalXp: 0 },
   };
 
@@ -483,9 +516,7 @@ export function calculateClientXpStatus(movies = [], trophiesOverride = null, lo
     countriesXp += info.xp;
   });
 
-  const trophiesList = Array.isArray(trophiesOverride)
-    ? trophiesOverride
-    : evaluateTrophiesClientSide(movies)?.trophies || [];
+  const trophiesList = Array.isArray(trophiesOverride) ? trophiesOverride : [];
 
   const byTier = {
     platinum: { ...TROPHY_TIER_META.platinum, count: 0, total: 0, totalXp: 0 },
@@ -501,6 +532,28 @@ export function calculateClientXpStatus(movies = [], trophiesOverride = null, lo
   let totalUnlocked = 0;
 
   trophiesList.forEach((t) => {
+    const isRankCard = t.kind === 'rank' || (Array.isArray(t.ranks) && t.ranks.length > 0);
+    if (isRankCard && Array.isArray(t.ranks) && t.ranks.length > 0) {
+      t.ranks.forEach((r) => {
+        const tier = String(r.tier || 'bronze').toLowerCase();
+        if (!byTier[tier]) return;
+        byTier[tier].total += 1;
+        if (r.is_unlocked) {
+          const xpVal = TROPHY_XP_BY_TIER[tier] || 15;
+          byTier[tier].count += 1;
+          byTier[tier].totalXp += xpVal;
+          trophiesXp += xpVal;
+          totalUnlocked += 1;
+          unlockedIds[r.id] = {
+            title: r.title || t.title,
+            tier,
+            xp: xpVal,
+          };
+        }
+      });
+      return;
+    }
+
     const tier = String(t.tier || 'bronze').toLowerCase();
     if (!byTier[tier]) return;
     byTier[tier].total += 1;
@@ -532,7 +585,9 @@ export function calculateClientXpStatus(movies = [], trophiesOverride = null, lo
         totalXp: moviesXp,
       },
       countries: {
-        totalConqueredCount: Object.keys(conqueredCodes).length,
+        totalConqueredCount,
+        relicsConqueredCount,
+        relicsTotalCount: rarityTotals.relic,
         pendingCoproductionsCount,
         conqueredCodes,
         byRarity,
@@ -624,13 +679,16 @@ export function computeXpGainEvent(prev, next) {
       tags.push({
         type: 'country',
         icon: meta.icon,
-        label: `+${c.xp} XP País ${meta.label} (${c.name})`,
+        label:
+          c.rarity === 'relic'
+            ? `+${c.xp} XP Relíquia (${c.name})`
+            : `+${c.xp} XP País ${meta.label} (${c.name})`,
         xp: c.xp,
         rarityOrTier: c.rarity,
       });
     });
   } else if (newCountries.length > 2) {
-    ['mythic', 'legendary', 'epic', 'rare', 'common'].forEach((r) => {
+    ['mythic', 'relic', 'legendary', 'epic', 'rare', 'common'].forEach((r) => {
       const group = newCountries.filter((c) => c.rarity === r);
       if (group.length > 0) {
         const meta = COUNTRY_RARITY_META[r];
@@ -639,9 +697,13 @@ export function computeXpGainEvent(prev, next) {
           type: 'country',
           icon: meta.icon,
           label:
-            group.length === 1
-              ? `+${sumXp} XP País ${meta.label} (${group[0].name})`
-              : `+${sumXp} XP ${group.length} Países ${meta.pluralLabel}`,
+            r === 'relic'
+              ? group.length === 1
+                ? `+${sumXp} XP Relíquia (${group[0].name})`
+                : `+${sumXp} XP ${group.length} Relíquias`
+              : group.length === 1
+                ? `+${sumXp} XP País ${meta.label} (${group[0].name})`
+                : `+${sumXp} XP ${group.length} Países ${meta.pluralLabel}`,
           xp: sumXp,
           rarityOrTier: r,
         });

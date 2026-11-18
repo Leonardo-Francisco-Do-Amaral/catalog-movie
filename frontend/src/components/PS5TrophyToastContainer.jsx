@@ -15,7 +15,6 @@ export const CATEGORY_LABELS = {
   mafia_hollywood: 'A Máfia de Hollywood',
   tribunal_critica: 'Tribunal da Crítica',
   ritual_cinefilo: 'O Ritual do Cinéfilo',
-  sessao_secreta: 'Sessão Secreta',
   multi: 'Multicategoria',
   tags: 'Tags & Curadoria',
   generos: 'Gêneros Cinematográficos',

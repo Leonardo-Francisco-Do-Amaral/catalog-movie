@@ -18,7 +18,6 @@ import XPGainToastContainer from '../components/XPGainToastContainer';
 import UniverseVictoryBanner from '../components/UniverseVictoryBanner';
 import UniverseMusicPlayer from '../components/UniverseMusicPlayer';
 import ApiRefreshToastContainer, { triggerApiRefreshToast } from '../components/ApiRefreshToastContainer';
-import { evaluateTrophiesClientSide } from '../utils/trophyEngineClient';
 import {
   calculateClientXpStatus,
   computeXpGainEvent,
@@ -544,10 +543,13 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
     return () => window.removeEventListener('hashchange', checkHashTab);
   }, []);
 
-  const checkTrophyUnlocks = useCallback(async (currentMovies = allMovies, forceAlerts = false) => {
+  const checkTrophyUnlocks = useCallback(async (currentMovies = allMovies, forceAlerts = false, evalOptions = {}) => {
+    const shouldEvaluate = Boolean(evalOptions?.shouldEvaluate);
     try {
-      // 1. Tenta avaliar pelo backend
-      const res = await axios.post(`${API_BASE_URL}/trophies/evaluate`, { markNew: true });
+      // 1. Leitura rápida em cache no carregamento inicial; só reavalia tudo em mutações explícitas (ex: importação)
+      const res = shouldEvaluate
+        ? await axios.post(`${API_BASE_URL}/trophies/evaluate`, { markNew: true })
+        : await axios.get(`${API_BASE_URL}/trophies`);
       if (res.data?.success && res.data?.data) {
         const newlyUnlocked = res.data.data.newlyUnlocked || [];
         const progressedTrophies = res.data.data.progressedTrophies || [];
@@ -562,8 +564,14 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
             trophyIds: newlyUnlocked.map((x) => x.id),
           }).catch(() => {});
         }
-        res.data.data.trophies.forEach((t) => {
-          if (t.is_unlocked) unlockedTrophyIdsRef.current.add(t.id);
+        (res.data.data.trophies || []).forEach((t) => {
+          if (t.kind === 'rank' && Array.isArray(t.ranks)) {
+            t.ranks.forEach((r) => {
+              if (r.is_unlocked) unlockedTrophyIdsRef.current.add(r.id);
+            });
+          } else if (t.is_unlocked) {
+            unlockedTrophyIdsRef.current.add(t.id);
+          }
         });
         initialTrophyScanDoneRef.current = true;
         if (res.data.data.xpStatus) {
@@ -578,10 +586,22 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
 
     if (Array.isArray(currentMovies) && currentMovies.length > 0) {
       try {
+        const { evaluateTrophiesClientSide } = await import('../utils/trophyEngineClient');
         const clientResult = evaluateTrophiesClientSide(currentMovies);
         const newUnlocks = [];
         clientResult.trophies.forEach((t) => {
-          if (t.is_unlocked) {
+          if (t.kind === 'rank' && Array.isArray(t.ranks)) {
+            t.ranks.forEach((r) => {
+              if (r.is_unlocked) {
+                if (!unlockedTrophyIdsRef.current.has(r.id)) {
+                  if (initialTrophyScanDoneRef.current || forceAlerts) {
+                    newUnlocks.push({ ...r, category: t.category, icon: t.icon, is_rank_step: true });
+                  }
+                  unlockedTrophyIdsRef.current.add(r.id);
+                }
+              }
+            });
+          } else if (t.is_unlocked) {
             if (!unlockedTrophyIdsRef.current.has(t.id)) {
               if (initialTrophyScanDoneRef.current || forceAlerts) {
                 newUnlocks.push(t);
@@ -1487,7 +1507,7 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
           const prevXp = xpStatusRef.current;
           const loaded = await fetchData({ runTrophyScan: false });
           await fetchWalkOfFamePacks();
-          const nextXp = await checkTrophyUnlocks(loaded, true);
+          const nextXp = await checkTrophyUnlocks(loaded, true, { shouldEvaluate: true });
           if (prevXp && nextXp) {
             const gain = computeXpGainEvent(prevXp, nextXp);
             if (gain) {

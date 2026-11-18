@@ -1,6 +1,6 @@
 import { query } from '../config/database';
 import { TrophyTier } from '../data/trophyDefinitions';
-import { CountryRarityTier, getCountryRarityTier, UN_COUNTRIES_195 } from '../data/unCountries195';
+import { CountryRarityTier, getCountryRarityTier, HISTORICAL_TERRITORIES, UN_COUNTRIES_195 } from '../data/unCountries195';
 import { buildWorldChallengePayload } from './worldChallengeService';
 import {
   buildTimeMachinePayload,
@@ -45,6 +45,7 @@ export const COUNTRY_XP_BY_RARITY: Record<CountryRarityTier, number> = {
   rare: 45,
   epic: 65,
   legendary: 100,
+  relic: 225,
   mythic: 300,
 };
 
@@ -56,6 +57,7 @@ export const COUNTRY_RARITY_META: Record<
   rare: { label: 'Raro', pluralLabel: 'Raros', icon: '🔵', xpEach: 45 },
   epic: { label: 'Épico', pluralLabel: 'Épicos', icon: '💜', xpEach: 65 },
   legendary: { label: 'Lendário', pluralLabel: 'Lendários', icon: '🥇', xpEach: 100 },
+  relic: { label: 'Relíquia', pluralLabel: 'Relíquias', icon: '⏳', xpEach: 225 },
   mythic: { label: 'Mítico', pluralLabel: 'Míticos', icon: '💎', xpEach: 300 },
 };
 
@@ -187,6 +189,8 @@ export interface UserXpStatus extends LevelProgressInfo {
     };
     countries: {
       totalConqueredCount: number;
+      relicsConqueredCount: number;
+      relicsTotalCount: number;
       pendingCoproductionsCount: number;
       conqueredCodes: Record<string, { name: string; rarity: CountryRarityTier; xp: number }>;
       byRarity: Record<
@@ -253,6 +257,8 @@ export interface WorldChallengeNotification {
   kind: 'country_unlock' | 'country_dethrone';
   countryCode: string;
   countryName: string;
+  flagCode?: string | null;
+  badgeIcon?: string | null;
   rarity: CountryRarityTier;
   xp: number;
   movieId?: number;
@@ -347,11 +353,11 @@ export async function getQuickWalkOfFameXpSummary(): Promise<WalkOfFameXpSummary
       const isRisingStar = Boolean(isDirector && def?.isNewEraVisionary);
       const claimedPct = Math.max(0, Number(r.claimed_xp_pct || 0));
       const claimedExtraStars = Math.max(0, Number(r.claimed_xp_extra_stars || 0));
-      const split = computeWalkXpSplit(claimedPct, claimedExtraStars, isDirector);
+      const split = computeWalkXpSplit(claimedPct, claimedExtraStars, isDirector, isRisingStar);
 
       const rawStuckTier = r.stuck_tier ? String(r.stuck_tier) : null;
       const stuckExtraStars = Math.max(0, Number(r.stuck_extra_stars || 0));
-      const isValidStuck = Boolean(rawStuckTier && (!isRisingStar || rawStuckTier === 'diamond'));
+      const isValidStuck = Boolean(rawStuckTier && rawStuckTier !== 'cement' && rawStuckTier !== 'carving');
       const stuckRank = isValidStuck
         ? resolveRpgRankFromTier(rawStuckTier, stuckExtraStars, isDirector, isRisingStar)
         : null;
@@ -401,7 +407,7 @@ export async function getQuickWalkOfFameXpSummary(): Promise<WalkOfFameXpSummary
 
 export function buildUserXpStatus(
   worldData: WorldChallengePayload,
-  trophiesList: Array<{ id: string; title: string; tier: TrophyTier; is_unlocked: boolean }>,
+  trophiesList: Array<{ id: string; kind?: string; title: string; tier: TrophyTier; is_unlocked: boolean; ranks?: any[] }>,
   universeSummary: UniverseXpSummary = EMPTY_UNIVERSE_XP_SUMMARY,
   walkOfFameSummary: WalkOfFameXpSummary = EMPTY_WALK_OF_FAME_XP_SUMMARY
 ): UserXpStatus {
@@ -414,14 +420,16 @@ export function buildUserXpStatus(
     (m) => isMovieCoproduction(m) && m.originMode !== 'manual'
   ).length;
 
-  // 2. XP por Países Conquistados no Desafio 195 (por raridade)
-  // REGRA DE OURO: um país só gera XP se possuir ao menos 1 filme de país único (!isCoproduction)
+  // 2. XP por Países (195 ONU) e Territórios Relíquia Conquistados no Desafio 195 (por raridade)
+  // REGRA DE OURO: um país/território só gera XP se possuir ao menos 1 filme de origem única (!isCoproduction)
   // OU uma coprodução validada manualmente na Central de Curadoria (originMode === 'manual')!
+  const relicsList = worldData.historicalCountries || HISTORICAL_TERRITORIES;
   const rarityTotals: Record<CountryRarityTier, number> = {
     common: 0,
     rare: 0,
     epic: 0,
     legendary: 0,
+    relic: relicsList.length,
     mythic: 0,
   };
   UN_COUNTRIES_195.forEach((c) => {
@@ -434,11 +442,14 @@ export function buildUserXpStatus(
     rare: { ...COUNTRY_RARITY_META.rare, count: 0, total: rarityTotals.rare, totalXp: 0 },
     epic: { ...COUNTRY_RARITY_META.epic, count: 0, total: rarityTotals.epic, totalXp: 0 },
     legendary: { ...COUNTRY_RARITY_META.legendary, count: 0, total: rarityTotals.legendary, totalXp: 0 },
+    relic: { ...COUNTRY_RARITY_META.relic, count: 0, total: rarityTotals.relic, totalXp: 0 },
     mythic: { ...COUNTRY_RARITY_META.mythic, count: 0, total: rarityTotals.mythic, totalXp: 0 },
   };
 
   const conqueredCodes: Record<string, { name: string; rarity: CountryRarityTier; xp: number }> = {};
   let countriesXp = 0;
+  let totalConqueredCount = 0;
+  let relicsConqueredCount = 0;
 
   for (const country of worldData.countries || []) {
     if (country.status !== 'conquered') continue;
@@ -452,6 +463,7 @@ export function buildUserXpStatus(
     byRarity[rarity].count += 1;
     byRarity[rarity].totalXp += xpVal;
     countriesXp += xpVal;
+    totalConqueredCount += 1;
     conqueredCodes[country.code.toLowerCase()] = {
       name: country.name,
       rarity,
@@ -459,7 +471,25 @@ export function buildUserXpStatus(
     };
   }
 
-  const totalConqueredCount = Object.keys(conqueredCodes).length;
+  for (const relic of worldData.historicalCountries || []) {
+    if (relic.status !== 'conquered') continue;
+    const validRepresentatives = (relic.candidates || []).filter(
+      (m) => !isMovieCoproduction(m) || m.originMode === 'manual'
+    );
+    if (validRepresentatives.length === 0) continue;
+
+    const rarity: CountryRarityTier = 'relic';
+    const xpVal = COUNTRY_XP_BY_RARITY.relic;
+    byRarity.relic.count += 1;
+    byRarity.relic.totalXp += xpVal;
+    countriesXp += xpVal;
+    relicsConqueredCount += 1;
+    conqueredCodes[relic.code.toLowerCase()] = {
+      name: relic.name,
+      rarity,
+      xp: xpVal,
+    };
+  }
 
   // 3. XP por Troféus Conquistados
   const byTier: UserXpStatus['sources']['trophies']['byTier'] = {
@@ -475,9 +505,35 @@ export function buildUserXpStatus(
   let trophiesXp = 0;
   let totalUnlocked = 0;
 
+  let totalAvailableCount = 0;
+
   for (const t of trophiesList || []) {
+    const isRankCard = t.kind === 'rank' || (Array.isArray(t.ranks) && t.ranks.length > 0);
+    if (isRankCard && Array.isArray(t.ranks) && t.ranks.length > 0) {
+      for (const r of t.ranks) {
+        const tier = (String(r.tier || 'bronze').toLowerCase() as TrophyTier) || 'bronze';
+        if (!byTier[tier]) continue;
+        totalAvailableCount += 1;
+        byTier[tier].total += 1;
+        if (r.is_unlocked) {
+          const xpVal = TROPHY_XP_BY_TIER[tier] || 15;
+          byTier[tier].count += 1;
+          byTier[tier].totalXp += xpVal;
+          trophiesXp += xpVal;
+          totalUnlocked += 1;
+          unlockedIds[r.id] = {
+            title: r.title || t.title,
+            tier,
+            xp: xpVal,
+          };
+        }
+      }
+      continue;
+    }
+
     const tier = (String(t.tier || 'bronze').toLowerCase() as TrophyTier) || 'bronze';
     if (!byTier[tier]) continue;
+    totalAvailableCount += 1;
     byTier[tier].total += 1;
     if (t.is_unlocked) {
       const xpVal = TROPHY_XP_BY_TIER[tier] || 15;
@@ -522,6 +578,8 @@ export function buildUserXpStatus(
       },
       countries: {
         totalConqueredCount,
+        relicsConqueredCount,
+        relicsTotalCount: rarityTotals.relic,
         pendingCoproductionsCount,
         conqueredCodes,
         byRarity,
@@ -529,7 +587,7 @@ export function buildUserXpStatus(
       },
       trophies: {
         totalUnlocked,
-        totalAvailable: (trophiesList || []).length,
+        totalAvailable: totalAvailableCount,
         unlockedIds,
         byTier,
         totalXp: trophiesXp,
@@ -674,13 +732,26 @@ export function computeWorldChallengeEvents(
 ): WorldChallengeNotification[] {
   if (!prevWorld?.countries || !nextWorld?.countries) return [];
 
-  const prevByCode = new Map(prevWorld.countries.map((c) => [c.code.toLowerCase(), c]));
+  const prevList = [
+    ...(prevWorld.countries || []),
+    ...(prevWorld.historicalCountries || []),
+  ];
+  const nextList = [
+    ...(nextWorld.countries || []),
+    ...(nextWorld.historicalCountries || []),
+  ];
+
+  const prevByCode = new Map(prevList.map((c) => [c.code.toLowerCase(), c]));
   const events: WorldChallengeNotification[] = [];
 
-  for (const nextCountry of nextWorld.countries) {
+  for (const nextCountry of nextList) {
     const code = nextCountry.code.toLowerCase();
     const prevCountry = prevByCode.get(code);
     const rarity: CountryRarityTier = nextCountry.rarityTier || getCountryRarityTier(code);
+    const rawFlag =
+      'flagCode' in nextCountry ? nextCountry.flagCode : nextCountry.code;
+    const badgeIcon =
+      'badgeIcon' in nextCountry ? nextCountry.badgeIcon || null : null;
 
     if ((!prevCountry || prevCountry.status !== 'conquered') && nextCountry.status === 'conquered' && nextCountry.champion) {
       events.push({
@@ -688,6 +759,8 @@ export function computeWorldChallengeEvents(
         kind: 'country_unlock',
         countryCode: nextCountry.code,
         countryName: nextCountry.name,
+        flagCode: rawFlag || null,
+        badgeIcon,
         rarity,
         xp: COUNTRY_XP_BY_RARITY[rarity] || 30,
         movieId: Number(nextCountry.champion.movie_id),
@@ -722,6 +795,8 @@ export function computeWorldChallengeEvents(
         kind: 'country_dethrone',
         countryCode: nextCountry.code,
         countryName: nextCountry.name,
+        flagCode: rawFlag || null,
+        badgeIcon,
         rarity,
         xp: 0,
         movieId: nextId,
@@ -745,26 +820,57 @@ export function computeWorldChallengeEvents(
 /**
  * Snapshot rápido do banco antes de uma mutação (evita reavaliar 432 regras duas vezes).
  */
+function parseRanksForXp(ranksConfigRaw: unknown, ranksStateRaw: unknown, fallbackTitle: string): any[] {
+  const cfg = Array.isArray(ranksConfigRaw) ? ranksConfigRaw : [];
+  const stateArr = Array.isArray(ranksStateRaw)
+    ? ranksStateRaw
+    : ranksStateRaw && typeof ranksStateRaw === 'object'
+      ? Object.values(ranksStateRaw as Record<string, any>)
+      : [];
+
+  if (cfg.length === 0 && stateArr.length > 0) return stateArr;
+
+  const stateById = new Map<string, any>(stateArr.filter((s) => s?.id).map((s) => [String(s.id), s]));
+  return cfg.map((c: any) => {
+    const st = stateById.get(String(c.id)) || {};
+    return {
+      id: String(c.id),
+      tier: c.tier || 'bronze',
+      title: c.title || fallbackTitle,
+      is_unlocked: Boolean(st.is_unlocked),
+    };
+  });
+}
+
 export async function getQuickXpSnapshot(
-  options: { worldData?: WorldChallengePayload } = {}
+  options: { worldData?: WorldChallengePayload; trophiesOverride?: any[] } = {}
 ): Promise<UserXpStatus> {
   const [worldData, trophiesRes, universeSummary, walkOfFameSummary] = await Promise.all([
     options.worldData ? Promise.resolve(options.worldData) : buildWorldChallengePayload(),
-    query(`
-      SELECT t.id, t.title, t.tier, COALESCE(ut.is_unlocked, FALSE) AS is_unlocked
-      FROM trophies t
-      LEFT JOIN user_trophies ut ON ut.trophy_id = t.id
-    `),
+    options.trophiesOverride
+      ? Promise.resolve(null)
+      : query(`
+          SELECT t.id, t.kind, t.title, t.tier, t.ranks_config, COALESCE(ut.is_unlocked, FALSE) AS is_unlocked, ut.ranks_state
+          FROM trophies t
+          LEFT JOIN user_trophies ut ON ut.trophy_id = t.id
+        `),
     getQuickUniverseXpSummary().catch(() => EMPTY_UNIVERSE_XP_SUMMARY),
     getQuickWalkOfFameXpSummary().catch(() => EMPTY_WALK_OF_FAME_XP_SUMMARY),
   ]);
 
-  const trophiesList = trophiesRes.rows.map((r: any) => ({
-    id: String(r.id),
-    title: String(r.title || ''),
-    tier: (String(r.tier || 'bronze').toLowerCase() as TrophyTier) || 'bronze',
-    is_unlocked: Boolean(r.is_unlocked),
-  }));
+  const trophiesList = options.trophiesOverride
+    ? options.trophiesOverride
+    : (trophiesRes?.rows || []).map((r: any) => ({
+        id: String(r.id),
+        kind: String(r.kind || 'unique'),
+        title: String(r.title || ''),
+        tier: (String(r.tier || 'bronze').toLowerCase() as TrophyTier) || 'bronze',
+        is_unlocked: Boolean(r.is_unlocked),
+        ranks:
+          r.kind === 'rank' || (Array.isArray(r.ranks_config) && r.ranks_config.length > 0)
+            ? parseRanksForXp(r.ranks_config, r.ranks_state, String(r.title || ''))
+            : undefined,
+      }));
 
   return buildUserXpStatus(worldData, trophiesList, universeSummary, walkOfFameSummary);
 }
@@ -811,13 +917,16 @@ export function computeXpGainEvent(
       tags.push({
         type: 'country',
         icon: meta.icon,
-        label: `+${c.xp} XP País ${meta.label} (${c.name})`,
+        label:
+          c.rarity === 'relic'
+            ? `+${c.xp} XP Relíquia (${c.name})`
+            : `+${c.xp} XP País ${meta.label} (${c.name})`,
         xp: c.xp,
         rarityOrTier: c.rarity,
       });
     }
   } else if (newCountries.length > 2) {
-    const order: CountryRarityTier[] = ['mythic', 'legendary', 'epic', 'rare', 'common'];
+    const order: CountryRarityTier[] = ['mythic', 'relic', 'legendary', 'epic', 'rare', 'common'];
     for (const r of order) {
       const group = newCountries.filter((c) => c.rarity === r);
       if (group.length > 0) {
@@ -827,9 +936,13 @@ export function computeXpGainEvent(
           type: 'country',
           icon: meta.icon,
           label:
-            group.length === 1
-              ? `+${sumXp} XP País ${meta.label} (${group[0].name})`
-              : `+${sumXp} XP ${group.length} Países ${meta.pluralLabel}`,
+            r === 'relic'
+              ? group.length === 1
+                ? `+${sumXp} XP Relíquia (${group[0].name})`
+                : `+${sumXp} XP ${group.length} Relíquias`
+              : group.length === 1
+                ? `+${sumXp} XP País ${meta.label} (${group[0].name})`
+                : `+${sumXp} XP ${group.length} Países ${meta.pluralLabel}`,
           xp: sumXp,
           rarityOrTier: r,
         });

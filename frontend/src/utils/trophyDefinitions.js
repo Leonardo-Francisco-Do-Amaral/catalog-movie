@@ -51,29 +51,747 @@ export const TIER_CONFIG = {
 
 export const TROPHY_DEFINITIONS = [
   {
-    "id": "vm_br_first",
+    "id": "vm_rank_brasil",
+    "kind": "rank",
     "category": "volta_ao_mundo",
-    "tier": "bronze",
-    "title": "É do Brasil!",
-    "description": "Conquistar 1 filme do Brasil (1 filme).",
+    "categories": [
+      "volta_ao_mundo"
+    ],
+    "tier": "mythic",
+    "title": "É do Brasil! (Pátria Cinematográfica)",
+    "description": "Assistir filmes do Brasil (inclui coproduções).",
     "icon": "🇧🇷",
     "target_type": "country_movie_count",
-    "target_value": 1,
+    "target_value": 70,
     "target_metadata": {
       "countryCode": "br",
       "countryName": "Brasil"
     },
-    "sort_order": 1,
+    "ranks": [
+      {
+        "id": "vm_rank_brasil__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "É do Brasil!",
+        "description": "Assistir filmes do Brasil (inclui coproduções). (Rank Bronze: meta 1).",
+        "legacy_id": "vm_br_first"
+      },
+      {
+        "id": "vm_rank_brasil__silver",
+        "tier": "silver",
+        "target_value": 10,
+        "title": "Cinema Nacional",
+        "description": "Assistir filmes do Brasil (inclui coproduções). (Rank Prata: meta 10).",
+        "legacy_id": "vm_br_10"
+      },
+      {
+        "id": "vm_rank_brasil__epic",
+        "tier": "epic",
+        "target_value": 25,
+        "title": "Cinéfilo Cult Brasileiro",
+        "description": "Assistir filmes do Brasil (inclui coproduções). (Rank Épico: meta 25).",
+        "legacy_id": "vm_br_20"
+      },
+      {
+        "id": "vm_rank_brasil__gold",
+        "tier": "gold",
+        "target_value": 45,
+        "title": "Cinema em Casa",
+        "description": "Assistir filmes do Brasil (inclui coproduções). (Rank Ouro: meta 45).",
+        "legacy_id": "vm_br_35"
+      },
+      {
+        "id": "vm_rank_brasil__mythic",
+        "tier": "mythic",
+        "target_value": 70,
+        "title": "Como Alguém Pode Falar Mal dos Filmes do Brasil?",
+        "description": "Assistir filmes do Brasil (inclui coproduções). (Rank Mítico: meta 70).",
+        "legacy_id": "vm_br_50"
+      }
+    ],
+    "legacy_ids": [
+      "vm_br_first",
+      "vm_br_10",
+      "vm_br_20",
+      "vm_br_35",
+      "vm_br_50"
+    ],
+    "sort_order": 1
+  },
+  {
+    "id": "vm_rank_countries_195",
+    "kind": "rank",
+    "category": "volta_ao_mundo",
     "categories": [
       "volta_ao_mundo"
-    ]
+    ],
+    "tier": "mythic",
+    "title": "Dono do Tabuleiro de War (Da Bruxa do 71 aos 195!)",
+    "description": "Conquistar países diferentes no Desafio dos 195 (país de origem único).",
+    "icon": "🗺️",
+    "target_type": "conquered_countries_count",
+    "target_value": 195,
+    "target_metadata": {},
+    "ranks": [
+      {
+        "id": "vm_rank_countries_195__bronze",
+        "tier": "bronze",
+        "target_value": 25,
+        "title": "Mochileiro Continental (25 Países)",
+        "description": "Conquistar países diferentes no Desafio dos 195 (país de origem único). (Rank Bronze: meta 25).",
+        "legacy_id": "vm_countries_25"
+      },
+      {
+        "id": "vm_rank_countries_195__silver",
+        "tier": "silver",
+        "target_value": 50,
+        "title": "Cidadão do Mundo (50 Países)",
+        "description": "Conquistar países diferentes no Desafio dos 195 (país de origem único). (Rank Prata: meta 50).",
+        "legacy_id": "vm_countries_50"
+      },
+      {
+        "id": "vm_rank_countries_195__epic",
+        "tier": "epic",
+        "target_value": 71,
+        "title": "A Bruxa do 71? (71 Países!)",
+        "description": "Conquistar países diferentes no Desafio dos 195 (país de origem único). (Rank Épico: meta 71).",
+        "legacy_id": "vm_countries_71"
+      },
+      {
+        "id": "vm_rank_countries_195__gold",
+        "tier": "gold",
+        "target_value": 130,
+        "title": "A Reta Final (130 Países)",
+        "description": "Conquistar países diferentes no Desafio dos 195 (país de origem único). (Rank Ouro: meta 130).",
+        "legacy_id": "vm_countries_150"
+      },
+      {
+        "id": "vm_rank_countries_195__mythic",
+        "tier": "mythic",
+        "target_value": 195,
+        "title": "Dono do Tabuleiro de War (195 Países!)",
+        "description": "Conquistar países diferentes no Desafio dos 195 (país de origem único). (Rank Mítico: meta 195).",
+        "legacy_id": "vm_war_board_100"
+      }
+    ],
+    "legacy_ids": [
+      "vm_countries_25",
+      "vm_countries_50",
+      "vm_countries_71",
+      "vm_countries_150",
+      "vm_war_board_100"
+    ],
+    "sort_order": 2
+  },
+  {
+    "id": "vm_rank_eua",
+    "kind": "rank",
+    "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
+    "tier": "mythic",
+    "title": "Hollywood! (O Império do Tio Sam)",
+    "description": "Assistir filmes dos Estados Unidos (inclui coproduções).",
+    "icon": "🇺🇸",
+    "target_type": "country_movie_count",
+    "target_value": 400,
+    "target_metadata": {
+      "countryCode": "us",
+      "countryName": "Estados Unidos"
+    },
+    "ranks": [
+      {
+        "id": "vm_rank_eua__bronze",
+        "tier": "bronze",
+        "target_value": 50,
+        "title": "Passaporte Americano (50 EUA)",
+        "description": "Assistir filmes dos Estados Unidos (inclui coproduções). (Rank Bronze: meta 50).",
+        "legacy_id": "vm_us_300"
+      },
+      {
+        "id": "vm_rank_eua__silver",
+        "tier": "silver",
+        "target_value": 120,
+        "title": "Rota 66 de Cinema (120 EUA)",
+        "description": "Assistir filmes dos Estados Unidos (inclui coproduções). (Rank Prata: meta 120).",
+        "legacy_id": "vm_us_300"
+      },
+      {
+        "id": "vm_rank_eua__epic",
+        "tier": "epic",
+        "target_value": 200,
+        "title": "Estrela na Calçada (200 EUA)",
+        "description": "Assistir filmes dos Estados Unidos (inclui coproduções). (Rank Épico: meta 200).",
+        "legacy_id": "vm_us_300"
+      },
+      {
+        "id": "vm_rank_eua__gold",
+        "tier": "gold",
+        "target_value": 300,
+        "title": "Hollywood! (300 EUA)",
+        "description": "Assistir filmes dos Estados Unidos (inclui coproduções). (Rank Ouro: meta 300).",
+        "legacy_id": "vm_us_300"
+      },
+      {
+        "id": "vm_rank_eua__mythic",
+        "tier": "mythic",
+        "target_value": 400,
+        "title": "O Pior País do Mundo Ainda Faz Uns Filmes Bons! (400 EUA)",
+        "description": "Assistir filmes dos Estados Unidos (inclui coproduções). (Rank Mítico: meta 400).",
+        "legacy_id": "vm_us_500"
+      }
+    ],
+    "legacy_ids": [
+      "vm_us_300",
+      "vm_us_300",
+      "vm_us_300",
+      "vm_us_300",
+      "vm_us_500"
+    ],
+    "sort_order": 3
+  },
+  {
+    "id": "vm_rank_franca",
+    "kind": "rank",
+    "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
+    "tier": "mythic",
+    "title": "Baguete, Vinho & Nouvelle Vague",
+    "description": "Assistir filmes da França (inclui coproduções).",
+    "icon": "🥖",
+    "target_type": "country_movie_count",
+    "target_value": 10,
+    "target_metadata": {
+      "countryCode": "fr",
+      "countryName": "França"
+    },
+    "ranks": [
+      {
+        "id": "vm_rank_franca__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Baguete, Vinho & Nouvelle Vague • Rank Bronze",
+        "description": "Assistir filmes da França (inclui coproduções). (Rank Bronze: meta 1).",
+        "legacy_id": "vm_fr_first"
+      },
+      {
+        "id": "vm_rank_franca__silver",
+        "tier": "silver",
+        "target_value": 3,
+        "title": "Baguete, Vinho & Nouvelle Vague • Rank Prata",
+        "description": "Assistir filmes da França (inclui coproduções). (Rank Prata: meta 3)."
+      },
+      {
+        "id": "vm_rank_franca__epic",
+        "tier": "epic",
+        "target_value": 5,
+        "title": "Baguete, Vinho & Nouvelle Vague • Rank Épico",
+        "description": "Assistir filmes da França (inclui coproduções). (Rank Épico: meta 5)."
+      },
+      {
+        "id": "vm_rank_franca__gold",
+        "tier": "gold",
+        "target_value": 8,
+        "title": "Baguete, Vinho & Nouvelle Vague • Rank Ouro",
+        "description": "Assistir filmes da França (inclui coproduções). (Rank Ouro: meta 8)."
+      },
+      {
+        "id": "vm_rank_franca__mythic",
+        "tier": "mythic",
+        "target_value": 10,
+        "title": "Baguete, Vinho & Nouvelle Vague • Rank Mítico",
+        "description": "Assistir filmes da França (inclui coproduções). (Rank Mítico: meta 10)."
+      }
+    ],
+    "legacy_ids": [
+      "vm_fr_first"
+    ],
+    "sort_order": 4
+  },
+  {
+    "id": "vm_rank_japao",
+    "kind": "rank",
+    "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
+    "tier": "mythic",
+    "title": "Otaku ou Cinéfilo? (Terra do Sol Nascente)",
+    "description": "Assistir filmes do Japão (inclui coproduções).",
+    "icon": "⛩️",
+    "target_type": "country_movie_count",
+    "target_value": 30,
+    "target_metadata": {
+      "countryCode": "jp",
+      "countryName": "Japão"
+    },
+    "ranks": [
+      {
+        "id": "vm_rank_japao__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Otaku ou Cinéfilo? (Terra do Sol Nascente) • Rank Bronze",
+        "description": "Assistir filmes do Japão (inclui coproduções). (Rank Bronze: meta 1).",
+        "legacy_id": "vm_jp_first"
+      },
+      {
+        "id": "vm_rank_japao__silver",
+        "tier": "silver",
+        "target_value": 5,
+        "title": "Otaku ou Cinéfilo? (Terra do Sol Nascente) • Rank Prata",
+        "description": "Assistir filmes do Japão (inclui coproduções). (Rank Prata: meta 5)."
+      },
+      {
+        "id": "vm_rank_japao__epic",
+        "tier": "epic",
+        "target_value": 12,
+        "title": "Otaku ou Cinéfilo? (Terra do Sol Nascente) • Rank Épico",
+        "description": "Assistir filmes do Japão (inclui coproduções). (Rank Épico: meta 12)."
+      },
+      {
+        "id": "vm_rank_japao__gold",
+        "tier": "gold",
+        "target_value": 20,
+        "title": "Otaku ou Cinéfilo? (Terra do Sol Nascente) • Rank Ouro",
+        "description": "Assistir filmes do Japão (inclui coproduções). (Rank Ouro: meta 20)."
+      },
+      {
+        "id": "vm_rank_japao__mythic",
+        "tier": "mythic",
+        "target_value": 30,
+        "title": "Otaku ou Cinéfilo? (Terra do Sol Nascente) • Rank Mítico",
+        "description": "Assistir filmes do Japão (inclui coproduções). (Rank Mítico: meta 30)."
+      }
+    ],
+    "legacy_ids": [
+      "vm_jp_first"
+    ],
+    "sort_order": 5
+  },
+  {
+    "id": "vm_rank_coreia_sul",
+    "kind": "rank",
+    "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
+    "tier": "mythic",
+    "title": "K-Pop, Dorama e Parasita",
+    "description": "Assistir filmes da Coreia do Sul (inclui coproduções).",
+    "icon": "🥢",
+    "target_type": "country_movie_count",
+    "target_value": 5,
+    "target_metadata": {
+      "countryCode": "kr",
+      "countryName": "Coreia do Sul"
+    },
+    "ranks": [
+      {
+        "id": "vm_rank_coreia_sul__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "K-Pop, Dorama e Parasita • Rank Bronze",
+        "description": "Assistir filmes da Coreia do Sul (inclui coproduções). (Rank Bronze: meta 1).",
+        "legacy_id": "vm_kr_first"
+      },
+      {
+        "id": "vm_rank_coreia_sul__silver",
+        "tier": "silver",
+        "target_value": 2,
+        "title": "K-Pop, Dorama e Parasita • Rank Prata",
+        "description": "Assistir filmes da Coreia do Sul (inclui coproduções). (Rank Prata: meta 2)."
+      },
+      {
+        "id": "vm_rank_coreia_sul__epic",
+        "tier": "epic",
+        "target_value": 3,
+        "title": "K-Pop, Dorama e Parasita • Rank Épico",
+        "description": "Assistir filmes da Coreia do Sul (inclui coproduções). (Rank Épico: meta 3)."
+      },
+      {
+        "id": "vm_rank_coreia_sul__gold",
+        "tier": "gold",
+        "target_value": 4,
+        "title": "K-Pop, Dorama e Parasita • Rank Ouro",
+        "description": "Assistir filmes da Coreia do Sul (inclui coproduções). (Rank Ouro: meta 4)."
+      },
+      {
+        "id": "vm_rank_coreia_sul__mythic",
+        "tier": "mythic",
+        "target_value": 5,
+        "title": "K-Pop, Dorama e Parasita • Rank Mítico",
+        "description": "Assistir filmes da Coreia do Sul (inclui coproduções). (Rank Mítico: meta 5)."
+      }
+    ],
+    "legacy_ids": [
+      "vm_kr_first"
+    ],
+    "sort_order": 6
+  },
+  {
+    "id": "vm_rank_islandia",
+    "kind": "rank",
+    "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
+    "tier": "mythic",
+    "title": "Só Tem Gelo, Vulcão e Paisagem Bonita",
+    "description": "Assistir filmes da Islândia (inclui coproduções).",
+    "icon": "🌋",
+    "target_type": "country_movie_count",
+    "target_value": 10,
+    "target_metadata": {
+      "countryCode": "is",
+      "countryName": "Islândia"
+    },
+    "ranks": [
+      {
+        "id": "vm_rank_islandia__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Só Tem Gelo, Vulcão e Paisagem Bonita • Rank Bronze",
+        "description": "Assistir filmes da Islândia (inclui coproduções). (Rank Bronze: meta 1).",
+        "legacy_id": "vm_is_first"
+      },
+      {
+        "id": "vm_rank_islandia__silver",
+        "tier": "silver",
+        "target_value": 3,
+        "title": "Só Tem Gelo, Vulcão e Paisagem Bonita • Rank Prata",
+        "description": "Assistir filmes da Islândia (inclui coproduções). (Rank Prata: meta 3)."
+      },
+      {
+        "id": "vm_rank_islandia__epic",
+        "tier": "epic",
+        "target_value": 5,
+        "title": "Só Tem Gelo, Vulcão e Paisagem Bonita • Rank Épico",
+        "description": "Assistir filmes da Islândia (inclui coproduções). (Rank Épico: meta 5)."
+      },
+      {
+        "id": "vm_rank_islandia__gold",
+        "tier": "gold",
+        "target_value": 8,
+        "title": "Só Tem Gelo, Vulcão e Paisagem Bonita • Rank Ouro",
+        "description": "Assistir filmes da Islândia (inclui coproduções). (Rank Ouro: meta 8)."
+      },
+      {
+        "id": "vm_rank_islandia__mythic",
+        "tier": "mythic",
+        "target_value": 10,
+        "title": "Só Tem Gelo, Vulcão e Paisagem Bonita • Rank Mítico",
+        "description": "Assistir filmes da Islândia (inclui coproduções). (Rank Mítico: meta 10)."
+      }
+    ],
+    "legacy_ids": [
+      "vm_is_first"
+    ],
+    "sort_order": 7
+  },
+  {
+    "id": "vm_rank_eurotrip",
+    "kind": "rank",
+    "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
+    "tier": "mythic",
+    "title": "Eurotrip Sem Sair do Sofá",
+    "description": "Assistir filmes de países europeus (inclui coproduções).",
+    "icon": "🚂",
+    "target_type": "continent_movie_count",
+    "target_value": 60,
+    "target_metadata": {
+      "continent": "Europa"
+    },
+    "ranks": [
+      {
+        "id": "vm_rank_eurotrip__bronze",
+        "tier": "bronze",
+        "target_value": 5,
+        "title": "Eurotrip Sem Sair do Sofá • Rank Bronze",
+        "description": "Assistir filmes de países europeus (inclui coproduções). (Rank Bronze: meta 5).",
+        "legacy_id": "vm_eurotrip_100"
+      },
+      {
+        "id": "vm_rank_eurotrip__silver",
+        "tier": "silver",
+        "target_value": 15,
+        "title": "Eurotrip Sem Sair do Sofá • Rank Prata",
+        "description": "Assistir filmes de países europeus (inclui coproduções). (Rank Prata: meta 15)."
+      },
+      {
+        "id": "vm_rank_eurotrip__epic",
+        "tier": "epic",
+        "target_value": 30,
+        "title": "Eurotrip Sem Sair do Sofá • Rank Épico",
+        "description": "Assistir filmes de países europeus (inclui coproduções). (Rank Épico: meta 30)."
+      },
+      {
+        "id": "vm_rank_eurotrip__gold",
+        "tier": "gold",
+        "target_value": 45,
+        "title": "Eurotrip Sem Sair do Sofá • Rank Ouro",
+        "description": "Assistir filmes de países europeus (inclui coproduções). (Rank Ouro: meta 45)."
+      },
+      {
+        "id": "vm_rank_eurotrip__mythic",
+        "tier": "mythic",
+        "target_value": 60,
+        "title": "Eurotrip Sem Sair do Sofá • Rank Mítico",
+        "description": "Assistir filmes de países europeus (inclui coproduções). (Rank Mítico: meta 60)."
+      }
+    ],
+    "legacy_ids": [
+      "vm_eurotrip_100"
+    ],
+    "sort_order": 8
+  },
+  {
+    "id": "vm_rank_japao_sem_animes",
+    "kind": "rank",
+    "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo",
+      "dna_cinefilo",
+      "anatomia_cinema"
+    ],
+    "tier": "mythic",
+    "title": "Cadê os Animes?! (O Outro Lado do Japão)",
+    "description": "Filmes do Japão sem tags Baseado em Anime/Jogo e sem gêneros Terror/Animação (inclui coproduções).",
+    "icon": "🗾",
+    "target_type": "multi_ritual_rule",
+    "target_value": 10,
+    "target_metadata": {
+      "ruleKey": "japao_sem_animes_games_terror_5"
+    },
+    "ranks": [
+      {
+        "id": "vm_rank_japao_sem_animes__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Cadê os Animes?! (O Outro Lado do Japão) • Rank Bronze",
+        "description": "Filmes do Japão sem tags Baseado em Anime/Jogo e sem gêneros Terror/Animação (inclui coproduções). (Rank Bronze: meta 1).",
+        "legacy_id": "multi_vm_dna_ac_japao_sem_animes_5"
+      },
+      {
+        "id": "vm_rank_japao_sem_animes__silver",
+        "tier": "silver",
+        "target_value": 3,
+        "title": "Cadê os Animes?! (O Outro Lado do Japão) • Rank Prata",
+        "description": "Filmes do Japão sem tags Baseado em Anime/Jogo e sem gêneros Terror/Animação (inclui coproduções). (Rank Prata: meta 3)."
+      },
+      {
+        "id": "vm_rank_japao_sem_animes__epic",
+        "tier": "epic",
+        "target_value": 5,
+        "title": "Cadê os Animes?! (O Outro Lado do Japão) • Rank Épico",
+        "description": "Filmes do Japão sem tags Baseado em Anime/Jogo e sem gêneros Terror/Animação (inclui coproduções). (Rank Épico: meta 5)."
+      },
+      {
+        "id": "vm_rank_japao_sem_animes__gold",
+        "tier": "gold",
+        "target_value": 8,
+        "title": "Cadê os Animes?! (O Outro Lado do Japão) • Rank Ouro",
+        "description": "Filmes do Japão sem tags Baseado em Anime/Jogo e sem gêneros Terror/Animação (inclui coproduções). (Rank Ouro: meta 8)."
+      },
+      {
+        "id": "vm_rank_japao_sem_animes__mythic",
+        "tier": "mythic",
+        "target_value": 10,
+        "title": "Cadê os Animes?! (O Outro Lado do Japão) • Rank Mítico",
+        "description": "Filmes do Japão sem tags Baseado em Anime/Jogo e sem gêneros Terror/Animação (inclui coproduções). (Rank Mítico: meta 10)."
+      }
+    ],
+    "legacy_ids": [
+      "multi_vm_dna_ac_japao_sem_animes_5"
+    ],
+    "sort_order": 9
+  },
+  {
+    "id": "vm_rank_em_familia_estrangeiro",
+    "kind": "rank",
+    "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo",
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Melhor que Duolingo (Legenda Coletiva)",
+    "description": "Filmes com a tag Em Família produzidos fora do Brasil e dos EUA (inclui coproduções).",
+    "icon": "🗣️",
+    "target_type": "tag_non_br_us_count",
+    "target_value": 10,
+    "target_metadata": {
+      "tag": "Em Família"
+    },
+    "ranks": [
+      {
+        "id": "vm_rank_em_familia_estrangeiro__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Melhor que Duolingo (Legenda Coletiva) • Rank Bronze",
+        "description": "Filmes com a tag Em Família produzidos fora do Brasil e dos EUA (inclui coproduções). (Rank Bronze: meta 1).",
+        "legacy_id": "tc_em_familia_estrangeiro_5"
+      },
+      {
+        "id": "vm_rank_em_familia_estrangeiro__silver",
+        "tier": "silver",
+        "target_value": 3,
+        "title": "Melhor que Duolingo (Legenda Coletiva) • Rank Prata",
+        "description": "Filmes com a tag Em Família produzidos fora do Brasil e dos EUA (inclui coproduções). (Rank Prata: meta 3)."
+      },
+      {
+        "id": "vm_rank_em_familia_estrangeiro__epic",
+        "tier": "epic",
+        "target_value": 5,
+        "title": "Melhor que Duolingo (Legenda Coletiva) • Rank Épico",
+        "description": "Filmes com a tag Em Família produzidos fora do Brasil e dos EUA (inclui coproduções). (Rank Épico: meta 5)."
+      },
+      {
+        "id": "vm_rank_em_familia_estrangeiro__gold",
+        "tier": "gold",
+        "target_value": 8,
+        "title": "Melhor que Duolingo (Legenda Coletiva) • Rank Ouro",
+        "description": "Filmes com a tag Em Família produzidos fora do Brasil e dos EUA (inclui coproduções). (Rank Ouro: meta 8)."
+      },
+      {
+        "id": "vm_rank_em_familia_estrangeiro__mythic",
+        "tier": "mythic",
+        "target_value": 10,
+        "title": "Melhor que Duolingo (Legenda Coletiva) • Rank Mítico",
+        "description": "Filmes com a tag Em Família produzidos fora do Brasil e dos EUA (inclui coproduções). (Rank Mítico: meta 10)."
+      }
+    ],
+    "legacy_ids": [
+      "tc_em_familia_estrangeiro_5"
+    ],
+    "sort_order": 10
+  },
+  {
+    "id": "vm_historical_relics_extinct",
+    "kind": "unique",
+    "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
+    "tier": "gold",
+    "title": "Atlas Fantasma: Nações Que Não Existem Mais!",
+    "description": "Conquistar no mapa (país de origem único) pelo menos 4 das 7 nações históricas extintas: União Soviética, Alemanha Ocidental, Alemanha Oriental, Iugoslávia, Checoslováquia, Sérvia e Montenegro ou Antilhas Holandesas.",
+    "icon": "⏳",
+    "target_type": "historical_territories_list",
+    "target_value": 4,
+    "target_metadata": {
+      "territoryCodes": [
+        "hist_su",
+        "hist_de_w",
+        "hist_dd",
+        "hist_yu",
+        "hist_cs",
+        "hist_scg",
+        "hist_an"
+      ],
+      "minCount": 4
+    },
+    "legacy_ids": [
+      "vm_historical_relics_extinct"
+    ],
+    "sort_order": 11
+  },
+  {
+    "id": "vm_allies_vs_axis",
+    "kind": "unique",
+    "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
+    "tier": "epic",
+    "title": "Aliados vs. Eixo: O Tabuleiro da Segunda Guerra",
+    "description": "Conquistar no Desafio dos 195 / Relíquias (país de origem único) os blocos históricos: EUA, Reino Unido, França e União Soviética (ou Rússia) vs. Alemanha (ou Ocidental/Oriental), Itália e Japão (7 frentes).",
+    "icon": "⚔️",
+    "target_type": "allies_vs_axis_checklist",
+    "target_value": 7,
+    "target_metadata": {
+      "slots": [
+        {
+          "id": "us",
+          "name": "Aliados: Estados Unidos",
+          "flag": "us",
+          "codes": [
+            "us"
+          ]
+        },
+        {
+          "id": "gb",
+          "name": "Aliados: Reino Unido",
+          "flag": "gb",
+          "codes": [
+            "gb"
+          ]
+        },
+        {
+          "id": "fr",
+          "name": "Aliados: França",
+          "flag": "fr",
+          "codes": [
+            "fr"
+          ]
+        },
+        {
+          "id": "su_ru",
+          "name": "Aliados: União Soviética ou Rússia",
+          "flag": "ru",
+          "codes": [
+            "hist_su",
+            "ru"
+          ]
+        },
+        {
+          "id": "de",
+          "name": "Eixo: Alemanha (ou Ocidental/Oriental)",
+          "flag": "de",
+          "codes": [
+            "de",
+            "hist_de_w",
+            "hist_dd"
+          ]
+        },
+        {
+          "id": "it",
+          "name": "Eixo: Itália",
+          "flag": "it",
+          "codes": [
+            "it"
+          ]
+        },
+        {
+          "id": "jp",
+          "name": "Eixo: Japão",
+          "flag": "jp",
+          "codes": [
+            "jp"
+          ]
+        }
+      ]
+    },
+    "legacy_ids": [
+      "vm_allies_vs_axis"
+    ],
+    "sort_order": 12
   },
   {
     "id": "vm_mx_first",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "bronze",
     "title": "É o Filme do Pelé?",
-    "description": "Conquistar 1 filme do México (1 filme).",
+    "description": "Conquistar 1 filme do México (1 filme) (inclui coproduções).",
     "icon": "🌮",
     "target_type": "country_movie_count",
     "target_value": 1,
@@ -81,17 +799,21 @@ export const TROPHY_DEFINITIONS = [
       "countryCode": "mx",
       "countryName": "México"
     },
-    "sort_order": 2,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_mx_first"
+    ],
+    "sort_order": 13
   },
   {
     "id": "vm_nl_first",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "bronze",
     "title": "Errou!",
-    "description": "Conquistar 1 filme dos Países Baixos / Holanda (1 filme).",
+    "description": "Conquistar 1 filme dos Países Baixos / Holanda (1 filme) (inclui coproduções).",
     "icon": "🌷",
     "target_type": "country_movie_count",
     "target_value": 1,
@@ -99,17 +821,21 @@ export const TROPHY_DEFINITIONS = [
       "countryCode": "nl",
       "countryName": "Países Baixos"
     },
-    "sort_order": 3,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_nl_first"
+    ],
+    "sort_order": 14
   },
   {
     "id": "vm_mc_first",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "bronze",
     "title": "Não Era Só Corrida?",
-    "description": "Conquistar 1 filme de Mônaco (1 filme).",
+    "description": "Conquistar 1 filme de Mônaco (1 filme) (inclui coproduções).",
     "icon": "🏎️",
     "target_type": "country_movie_count",
     "target_value": 1,
@@ -117,17 +843,21 @@ export const TROPHY_DEFINITIONS = [
       "countryCode": "mc",
       "countryName": "Mônaco"
     },
-    "sort_order": 4,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_mc_first"
+    ],
+    "sort_order": 15
   },
   {
     "id": "vm_qa_first",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "bronze",
     "title": "Não Podiam Construir um País Melhor?",
-    "description": "Conquistar 1 filme do Catar (1 filme).",
+    "description": "Conquistar 1 filme do Catar (1 filme) (inclui coproduções).",
     "icon": "🏙️",
     "target_type": "country_movie_count",
     "target_value": 1,
@@ -135,17 +865,21 @@ export const TROPHY_DEFINITIONS = [
       "countryCode": "qa",
       "countryName": "Catar"
     },
-    "sort_order": 5,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_qa_first"
+    ],
+    "sort_order": 16
   },
   {
     "id": "vm_cv_first",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "bronze",
     "title": "Vozinha Feliz!",
-    "description": "Conquistar 1 filme de Cabo Verde (1 filme).",
+    "description": "Conquistar 1 filme de Cabo Verde (1 filme) (inclui coproduções).",
     "icon": "🏝️",
     "target_type": "country_movie_count",
     "target_value": 1,
@@ -153,14 +887,18 @@ export const TROPHY_DEFINITIONS = [
       "countryCode": "cv",
       "countryName": "Cabo Verde"
     },
-    "sort_order": 6,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_cv_first"
+    ],
+    "sort_order": 17
   },
   {
     "id": "vm_diff_td_ro",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "bronze",
     "title": "Iguais, Mas Diferentes I",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Chade e Romênia (2 países).",
@@ -173,14 +911,18 @@ export const TROPHY_DEFINITIONS = [
         "ro"
       ]
     },
-    "sort_order": 7,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_diff_td_ro"
+    ],
+    "sort_order": 18
   },
   {
     "id": "vm_diff_id_mc",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "bronze",
     "title": "Iguais, Mas Diferentes II",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Indonésia e Mônaco (2 países).",
@@ -193,14 +935,18 @@ export const TROPHY_DEFINITIONS = [
         "mc"
       ]
     },
-    "sort_order": 8,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_diff_id_mc"
+    ],
+    "sort_order": 19
   },
   {
     "id": "vm_diff_ie_ci",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "bronze",
     "title": "Iguais, Mas Diferentes III",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Irlanda e Costa do Marfim (2 países).",
@@ -213,14 +959,18 @@ export const TROPHY_DEFINITIONS = [
         "ci"
       ]
     },
-    "sort_order": 9,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_diff_ie_ci"
+    ],
+    "sort_order": 20
   },
   {
     "id": "vm_diff_ml_gn",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "bronze",
     "title": "Iguais, Mas Diferentes IV",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Mali e Guiné (2 países).",
@@ -233,31 +983,18 @@ export const TROPHY_DEFINITIONS = [
         "gn"
       ]
     },
-    "sort_order": 10,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_first_foreign",
-    "category": "volta_ao_mundo",
-    "tier": "bronze",
-    "title": "Passaporte Carimbado",
-    "description": "Conquistar 1 país estrangeiro no Desafio dos 195 (1 país fora o Brasil).",
-    "icon": "🛂",
-    "target_type": "conquered_countries_count",
-    "target_value": 1,
-    "target_metadata": {
-      "excludeCode": "br"
-    },
-    "sort_order": 11,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_diff_ml_gn"
+    ],
+    "sort_order": 21
   },
   {
     "id": "vm_triple_border",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "bronze",
     "title": "Tríplice Fronteira",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Brasil, Argentina e Paraguai (3 países).",
@@ -271,17 +1008,21 @@ export const TROPHY_DEFINITIONS = [
         "py"
       ]
     },
-    "sort_order": 12,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_triple_border"
+    ],
+    "sort_order": 22
   },
   {
     "id": "vm_pt_first",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "bronze",
     "title": "Devolve Nosso Ouro!",
-    "description": "Conquistar 1 filme de Portugal (1 filme).",
+    "description": "Conquistar 1 filme de Portugal (1 filme) (inclui coproduções).",
     "icon": "🇵🇹",
     "target_type": "country_movie_count",
     "target_value": 1,
@@ -289,107 +1030,21 @@ export const TROPHY_DEFINITIONS = [
       "countryCode": "pt",
       "countryName": "Portugal"
     },
-    "sort_order": 13,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_ar_first",
-    "category": "volta_ao_mundo",
-    "tier": "bronze",
-    "title": "Hermanos, Mas Só na Hora do Cinema",
-    "description": "Conquistar 1 filme da Argentina (1 filme).",
-    "icon": "🇦🇷",
-    "target_type": "country_movie_count",
-    "target_value": 1,
-    "target_metadata": {
-      "countryCode": "ar",
-      "countryName": "Argentina"
-    },
-    "sort_order": 14,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_fr_first",
-    "category": "volta_ao_mundo",
-    "tier": "bronze",
-    "title": "Baguete, Vinho e Filme Cult",
-    "description": "Conquistar 1 filme da França (1 filme).",
-    "icon": "🥖",
-    "target_type": "country_movie_count",
-    "target_value": 1,
-    "target_metadata": {
-      "countryCode": "fr",
-      "countryName": "França"
-    },
-    "sort_order": 15,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_it_first",
-    "category": "volta_ao_mundo",
-    "tier": "bronze",
-    "title": "Mamma Mia!",
-    "description": "Conquistar 1 filme da Itália (1 filme).",
-    "icon": "🍕",
-    "target_type": "country_movie_count",
-    "target_value": 1,
-    "target_metadata": {
-      "countryCode": "it",
-      "countryName": "Itália"
-    },
-    "sort_order": 16,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_jp_first",
-    "category": "volta_ao_mundo",
-    "tier": "bronze",
-    "title": "Otaku ou Cinéfilo?",
-    "description": "Conquistar 1 filme do Japão (1 filme).",
-    "icon": "⛩️",
-    "target_type": "country_movie_count",
-    "target_value": 1,
-    "target_metadata": {
-      "countryCode": "jp",
-      "countryName": "Japão"
-    },
-    "sort_order": 17,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_kr_first",
-    "category": "volta_ao_mundo",
-    "tier": "bronze",
-    "title": "K-Pop, Dorama e Parasita",
-    "description": "Conquistar 1 filme da Coreia do Sul (1 filme).",
-    "icon": "🥢",
-    "target_type": "country_movie_count",
-    "target_value": 1,
-    "target_metadata": {
-      "countryCode": "kr",
-      "countryName": "Coreia do Sul"
-    },
-    "sort_order": 18,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_pt_first"
+    ],
+    "sort_order": 23
   },
   {
     "id": "vm_in_first",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "bronze",
     "title": "Dança, Música e 3 Horas de Filme!",
-    "description": "Conquistar 1 filme da Índia (1 filme).",
+    "description": "Conquistar 1 filme da Índia (1 filme) (inclui coproduções).",
     "icon": "👳",
     "target_type": "country_movie_count",
     "target_value": 1,
@@ -397,17 +1052,21 @@ export const TROPHY_DEFINITIONS = [
       "countryCode": "in",
       "countryName": "Índia"
     },
-    "sort_order": 19,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_in_first"
+    ],
+    "sort_order": 24
   },
   {
     "id": "vm_au_first",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "bronze",
     "title": "Aqui Tem Mais Canguru que Gente!",
-    "description": "Conquistar 1 filme da Austrália (1 filme).",
+    "description": "Conquistar 1 filme da Austrália (1 filme) (inclui coproduções).",
     "icon": "🦘",
     "target_type": "country_movie_count",
     "target_value": 1,
@@ -415,17 +1074,21 @@ export const TROPHY_DEFINITIONS = [
       "countryCode": "au",
       "countryName": "Austrália"
     },
-    "sort_order": 20,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_au_first"
+    ],
+    "sort_order": 25
   },
   {
     "id": "vm_ro_first",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "bronze",
     "title": "Cuidado com o Drácula!",
-    "description": "Conquistar 1 filme da Romênia (1 filme).",
+    "description": "Conquistar 1 filme da Romênia (1 filme) (inclui coproduções).",
     "icon": "🧛",
     "target_type": "country_movie_count",
     "target_value": 1,
@@ -433,53 +1096,21 @@ export const TROPHY_DEFINITIONS = [
       "countryCode": "ro",
       "countryName": "Romênia"
     },
-    "sort_order": 21,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_is_first",
-    "category": "volta_ao_mundo",
-    "tier": "bronze",
-    "title": "Só Tem Gelo, Vulcão e Paisagem Bonita",
-    "description": "Conquistar 1 filme da Islândia (1 filme).",
-    "icon": "🌋",
-    "target_type": "country_movie_count",
-    "target_value": 1,
-    "target_metadata": {
-      "countryCode": "is",
-      "countryName": "Islândia"
-    },
-    "sort_order": 22,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_br_10",
-    "category": "volta_ao_mundo",
-    "tier": "silver",
-    "title": "Cinema Nacional",
-    "description": "Conquistar 10 filmes do Brasil (10 filmes).",
-    "icon": "🎬",
-    "target_type": "country_movie_count",
-    "target_value": 10,
-    "target_metadata": {
-      "countryCode": "br",
-      "countryName": "Brasil"
-    },
-    "sort_order": 23,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_ro_first"
+    ],
+    "sort_order": 26
   },
   {
     "id": "vm_de_7",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "silver",
     "title": "Terror do Brasil",
-    "description": "Conquistar 7 filmes da Alemanha (7 filmes).",
+    "description": "Conquistar 7 filmes da Alemanha (7 filmes) (inclui coproduções).",
     "icon": "⚽",
     "target_type": "country_movie_count",
     "target_value": 7,
@@ -487,17 +1118,21 @@ export const TROPHY_DEFINITIONS = [
       "countryCode": "de",
       "countryName": "Alemanha"
     },
-    "sort_order": 24,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_de_7"
+    ],
+    "sort_order": 27
   },
   {
     "id": "vm_ancient_wonders",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "silver",
     "title": "Será Que Foram Criadas por Aliens?",
-    "description": "Conquistar 7 filmes dos países das 7 Maravilhas do Mundo Antigo: 2 filmes do Egito, 1 filme do Iraque, 2 filmes da Grécia e 2 filmes da Turquia (7 filmes).",
+    "description": "Conquistar 7 filmes dos países das 7 Maravilhas do Mundo Antigo: 2 filmes do Egito, 1 filme do Iraque, 2 filmes da Grécia e 2 filmes da Turquia (7 filmes) (inclui coproduções).",
     "icon": "🏺",
     "target_type": "country_movie_counts",
     "target_value": 7,
@@ -525,14 +1160,18 @@ export const TROPHY_DEFINITIONS = [
         }
       ]
     },
-    "sort_order": 25,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_ancient_wonders"
+    ],
+    "sort_order": 28
   },
   {
     "id": "vm_modern_wonders",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "silver",
     "title": "Agora Todo Mundo Tem Maravilhas?",
     "description": "Conquistar no Desafio dos 195 (país de origem único) os 7 países das Maravilhas do Mundo Moderno: Brasil, China, Peru, Jordânia, Itália, Índia e México (7 países).",
@@ -550,14 +1189,18 @@ export const TROPHY_DEFINITIONS = [
         "mx"
       ]
     },
-    "sort_order": 26,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_modern_wonders"
+    ],
+    "sort_order": 29
   },
   {
     "id": "vm_world_cup_champs",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "silver",
     "title": "No Futebol Eles São Bons, e no Cinema?",
     "description": "Conquistar no Desafio dos 195 (país de origem único) os campeões mundiais: Alemanha, Argentina, Brasil, Espanha, França, Inglaterra (ou Reino Unido), Itália e Uruguai (8 países).",
@@ -576,14 +1219,18 @@ export const TROPHY_DEFINITIONS = [
         "uy"
       ]
     },
-    "sort_order": 27,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_world_cup_champs"
+    ],
+    "sort_order": 30
   },
   {
     "id": "vm_freezing_cold",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "silver",
     "title": "Frio, Muito Frio!",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Rússia, Canadá, Mongólia, Noruega, Islândia e Finlândia (6 países).",
@@ -600,14 +1247,18 @@ export const TROPHY_DEFINITIONS = [
         "fi"
       ]
     },
-    "sort_order": 28,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_freezing_cold"
+    ],
+    "sort_order": 31
   },
   {
     "id": "vm_exotic_flags",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "silver",
     "title": "Minha Bandeira É Exótica!",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Nepal, Suíça, Quirguistão e Paraguai (4 países).",
@@ -622,14 +1273,18 @@ export const TROPHY_DEFINITIONS = [
         "py"
       ]
     },
-    "sort_order": 29,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_exotic_flags"
+    ],
+    "sort_order": 32
   },
   {
     "id": "vm_top_gdp",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "silver",
     "title": "Rico, Mais Que Você!",
     "description": "Conquistar no Desafio dos 195 (país de origem único): EUA, China, Alemanha, Japão e Índia (5 países).",
@@ -645,28 +1300,18 @@ export const TROPHY_DEFINITIONS = [
         "in"
       ]
     },
-    "sort_order": 30,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_countries_25",
-    "category": "volta_ao_mundo",
-    "tier": "silver",
-    "title": "Mochileiro Continental",
-    "description": "Conquistar 25 países diferentes no Desafio dos 195 (25 países).",
-    "icon": "🎒",
-    "target_type": "conquered_countries_count",
-    "target_value": 25,
-    "sort_order": 31,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_top_gdp"
+    ],
+    "sort_order": 33
   },
   {
     "id": "vm_vikings",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "silver",
     "title": "Vikings na Tela",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Dinamarca, Noruega, Suécia, Finlândia e Islândia (5 países).",
@@ -682,14 +1327,18 @@ export const TROPHY_DEFINITIONS = [
         "is"
       ]
     },
-    "sort_order": 32,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_vikings"
+    ],
+    "sort_order": 34
   },
   {
     "id": "vm_parallel_38",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "silver",
     "title": "Tensão no Paralelo 38",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Coreia do Sul e Coreia do Norte (2 países).",
@@ -702,42 +1351,18 @@ export const TROPHY_DEFINITIONS = [
         "kp"
       ]
     },
-    "sort_order": 33,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_cold_war",
-    "category": "volta_ao_mundo",
-    "tier": "silver",
-    "title": "Guerra Fria no Sofá",
-    "description": "Conquistar 5 filmes dos Estados Unidos e 5 filmes da Rússia (10 filmes).",
-    "icon": "🚀",
-    "target_type": "country_movie_counts",
-    "target_value": 10,
-    "target_metadata": {
-      "requirements": [
-        {
-          "code": "us",
-          "name": "Estados Unidos",
-          "min": 5
-        },
-        {
-          "code": "ru",
-          "name": "Rússia",
-          "min": 5
-        }
-      ]
-    },
-    "sort_order": 34,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_parallel_38"
+    ],
+    "sort_order": 35
   },
   {
     "id": "vm_andes",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "silver",
     "title": "Cordilheira dos Andes",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Chile, Argentina, Bolívia, Peru, Equador, Colômbia e Venezuela (7 países).",
@@ -755,38 +1380,18 @@ export const TROPHY_DEFINITIONS = [
         "ve"
       ]
     },
-    "sort_order": 35,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_caribbean_pirates",
-    "category": "volta_ao_mundo",
-    "tier": "silver",
-    "title": "Piratas do Caribe (Sem o Johnny Depp)",
-    "description": "Conquistar no Desafio dos 195 (país de origem único): Cuba, Jamaica, Haiti, República Dominicana, Bahamas e Trinidad e Tobago (6 países).",
-    "icon": "🏴‍☠️",
-    "target_type": "country_list",
-    "target_value": 6,
-    "target_metadata": {
-      "countryCodes": [
-        "cu",
-        "jm",
-        "ht",
-        "do",
-        "bs",
-        "tt"
-      ]
-    },
-    "sort_order": 36,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_andes"
+    ],
+    "sort_order": 36
   },
   {
     "id": "vm_cradle_civilization",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "silver",
     "title": "Berço da Civilização",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Grécia, Itália, Egito, Irã, Iraque e China (6 países).",
@@ -803,14 +1408,18 @@ export const TROPHY_DEFINITIONS = [
         "cn"
       ]
     },
-    "sort_order": 37,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_cradle_civilization"
+    ],
+    "sort_order": 37
   },
   {
     "id": "vm_chocolate_neutral",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "silver",
     "title": "Neutros, Ricos e Cheios de Chocolate",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Suíça, Áustria, Bélgica e Liechtenstein (4 países).",
@@ -825,14 +1434,18 @@ export const TROPHY_DEFINITIONS = [
         "li"
       ]
     },
-    "sort_order": 38,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_chocolate_neutral"
+    ],
+    "sort_order": 38
   },
   {
     "id": "vm_asian_tigers",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "silver",
     "title": "Tigres Asiáticos",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Coreia do Sul, Cingapura, Malásia, Tailândia e Indonésia (5 países).",
@@ -848,14 +1461,18 @@ export const TROPHY_DEFINITIONS = [
         "id"
       ]
     },
-    "sort_order": 39,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_asian_tigers"
+    ],
+    "sort_order": 39
   },
   {
     "id": "vm_commonwealth",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "silver",
     "title": "O Sol Nunca se Põe na Commonwealth",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Reino Unido, Canadá, Austrália, Nova Zelândia, Índia e África do Sul (6 países).",
@@ -872,67 +1489,21 @@ export const TROPHY_DEFINITIONS = [
         "za"
       ]
     },
-    "sort_order": 40,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_countries_50",
-    "category": "volta_ao_mundo",
-    "tier": "silver",
-    "title": "Cidadão do Mundo",
-    "description": "Conquistar 50 países diferentes no Desafio dos 195 (50 países).",
-    "icon": "🌐",
-    "target_type": "conquered_countries_count",
-    "target_value": 50,
-    "sort_order": 41,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_br_20",
-    "category": "volta_ao_mundo",
-    "tier": "epic",
-    "title": "Cinéfilo Cult",
-    "description": "Conquistar 20 filmes do Brasil (20 filmes).",
-    "icon": "🎞️",
-    "target_type": "country_movie_count",
-    "target_value": 20,
-    "target_metadata": {
-      "countryCode": "br",
-      "countryName": "Brasil"
-    },
-    "sort_order": 42,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_us_300",
-    "category": "volta_ao_mundo",
-    "tier": "epic",
-    "title": "Hollywood!",
-    "description": "Conquistar 300 filmes dos Estados Unidos (300 filmes).",
-    "icon": "⭐",
-    "target_type": "country_movie_count",
-    "target_value": 300,
-    "target_metadata": {
-      "countryCode": "us",
-      "countryName": "Estados Unidos"
-    },
-    "sort_order": 43,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_commonwealth"
+    ],
+    "sort_order": 40
   },
   {
     "id": "vm_kp_first",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "epic",
     "title": "Não Era Proibido?",
-    "description": "Conquistar 1 filme da Coreia do Norte (1 filme).",
+    "description": "Conquistar 1 filme da Coreia do Norte (1 filme) (inclui coproduções).",
     "icon": "🚨",
     "target_type": "country_movie_count",
     "target_value": 1,
@@ -940,42 +1511,18 @@ export const TROPHY_DEFINITIONS = [
       "countryCode": "kp",
       "countryName": "Coreia do Norte"
     },
-    "sort_order": 44,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_first_mythic",
-    "category": "volta_ao_mundo",
-    "tier": "epic",
-    "title": "Seu Primeiro Mítico!",
-    "description": "Conquistar 1 país com classificação Mítico na página Desafio dos 195 (1 país).",
-    "icon": "💎",
-    "target_type": "rarity_mythic_count",
-    "target_value": 1,
-    "sort_order": 45,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_countries_71",
-    "category": "volta_ao_mundo",
-    "tier": "epic",
-    "title": "A Bruxa do 71?",
-    "description": "Conquistar 71 países diferentes no Desafio dos 195 (71 países).",
-    "icon": "🧙‍♀️",
-    "target_type": "conquered_countries_count",
-    "target_value": 71,
-    "sort_order": 46,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_kp_first"
+    ],
+    "sort_order": 41
   },
   {
     "id": "vm_hot_desert",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "epic",
     "title": "Quente, Muito Quente!",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Burkina Faso, Mali, Senegal, Mauritânia e Tuvalu (5 países).",
@@ -991,14 +1538,18 @@ export const TROPHY_DEFINITIONS = [
         "tv"
       ]
     },
-    "sort_order": 47,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_hot_desert"
+    ],
+    "sort_order": 42
   },
   {
     "id": "vm_high_income",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "epic",
     "title": "As Pessoas Têm Dinheiro Aqui, Bom pra Viver! (Ou Não)",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Luxemburgo, Irlanda, Suíça, Catar e Cingapura (5 países).",
@@ -1014,14 +1565,18 @@ export const TROPHY_DEFINITIONS = [
         "sg"
       ]
     },
-    "sort_order": 48,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_high_income"
+    ],
+    "sort_order": 43
   },
   {
     "id": "vm_theocratic",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "epic",
     "title": "Teocráticos! Deus Acima de Todos (Ou Quase)",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Afeganistão, Arábia Saudita, Cidade do Vaticano, Irã, Mauritânia e Iêmen (6 países).",
@@ -1038,14 +1593,18 @@ export const TROPHY_DEFINITIONS = [
         "ye"
       ]
     },
-    "sort_order": 49,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_theocratic"
+    ],
+    "sort_order": 44
   },
   {
     "id": "vm_communist",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "epic",
     "title": "Você É um Comunista Safado?!",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Cuba, China, Vietnã, Laos e Coreia do Norte (5 países).",
@@ -1061,53 +1620,18 @@ export const TROPHY_DEFINITIONS = [
         "kp"
       ]
     },
-    "sort_order": 50,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_countries_100",
-    "category": "volta_ao_mundo",
-    "tier": "epic",
-    "title": "Centenário",
-    "description": "Conquistar 100 países diferentes no Desafio dos 195 (100 países).",
-    "icon": "💯",
-    "target_type": "conquered_countries_count",
-    "target_value": 100,
-    "sort_order": 51,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_stan_gang",
-    "category": "volta_ao_mundo",
-    "tier": "epic",
-    "title": "A Gangue do \"Stão\"",
-    "description": "Conquistar no Desafio dos 195 (país de origem único): Cazaquistão, Uzbequistão, Turcomenistão, Quirguistão, Tajiquistão, Afeganistão e Paquistão (7 países).",
-    "icon": "🐎",
-    "target_type": "country_list",
-    "target_value": 7,
-    "target_metadata": {
-      "countryCodes": [
-        "kz",
-        "uz",
-        "tm",
-        "kg",
-        "tj",
-        "af",
-        "pk"
-      ]
-    },
-    "sort_order": 52,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_communist"
+    ],
+    "sort_order": 45
   },
   {
     "id": "vm_microstates",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "epic",
     "title": "Menores que o Bairro da Minha Vó!",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Cidade do Vaticano, Mônaco, San Marino, Liechtenstein, Andorra e Malta (6 países).",
@@ -1124,14 +1648,18 @@ export const TROPHY_DEFINITIONS = [
         "mt"
       ]
     },
-    "sort_order": 53,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_microstates"
+    ],
+    "sort_order": 46
   },
   {
     "id": "vm_balkans_powder_keg",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "epic",
     "title": "Barril de Pólvora (Bálcãs)",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Sérvia, Croácia, Bósnia e Herzegovina, Eslovênia, Montenegro, Macedônia do Norte, Albânia, Bulgária, Romênia e Grécia (10 países).",
@@ -1152,14 +1680,18 @@ export const TROPHY_DEFINITIONS = [
         "gr"
       ]
     },
-    "sort_order": 54,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_balkans_powder_keg"
+    ],
+    "sort_order": 47
   },
   {
     "id": "vm_iron_curtain",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "epic",
     "title": "Cortina de Ferro (Ex-URSS)",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Rússia, Ucrânia, Belarus, Estônia, Letônia, Lituânia, Geórgia, Armênia e Azerbaijão (9 países).",
@@ -1179,14 +1711,18 @@ export const TROPHY_DEFINITIONS = [
         "az"
       ]
     },
-    "sort_order": 55,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_iron_curtain"
+    ],
+    "sort_order": 48
   },
   {
     "id": "vm_brics_plus",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "epic",
     "title": "BRICS+ no Cinema",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Brasil, Rússia, Índia, China, África do Sul, Egito, Etiópia, Irã e Emirados Árabes Unidos (9 países).",
@@ -1206,42 +1742,18 @@ export const TROPHY_DEFINITIONS = [
         "ae"
       ]
     },
-    "sort_order": 56,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_landlocked",
-    "category": "volta_ao_mundo",
-    "tier": "epic",
-    "title": "Sem Praia, Só Montanha e Mato!",
-    "description": "Conquistar no Desafio dos 195 (país de origem único): Bolívia, Paraguai, Suíça, Áustria, Mongólia, Nepal, Butão, Etiópia, Ruanda e Chade (10 países).",
-    "icon": "⛰️",
-    "target_type": "country_list",
-    "target_value": 10,
-    "target_metadata": {
-      "countryCodes": [
-        "bo",
-        "py",
-        "ch",
-        "at",
-        "mn",
-        "np",
-        "bt",
-        "et",
-        "rw",
-        "td"
-      ]
-    },
-    "sort_order": 57,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_brics_plus"
+    ],
+    "sort_order": 49
   },
   {
     "id": "vm_far_away",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "epic",
     "title": "Onde Judas Perdeu as Botas!",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Madagascar, Islândia, Nova Zelândia, Sri Lanka, Filipinas, Fiji e Papua-Nova Guiné (7 países).",
@@ -1259,53 +1771,21 @@ export const TROPHY_DEFINITIONS = [
         "pg"
       ]
     },
-    "sort_order": 58,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_br_35",
-    "category": "volta_ao_mundo",
-    "tier": "gold",
-    "title": "Cinema em Casa",
-    "description": "Conquistar 35 filmes do Brasil (35 filmes).",
-    "icon": "🏠",
-    "target_type": "country_movie_count",
-    "target_value": 35,
-    "target_metadata": {
-      "countryCode": "br",
-      "countryName": "Brasil"
-    },
-    "sort_order": 59,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_us_500",
-    "category": "volta_ao_mundo",
-    "tier": "gold",
-    "title": "O Pior País do Mundo Ainda Faz Uns Filmes Bons!",
-    "description": "Conquistar 500 filmes dos Estados Unidos (500 filmes).",
-    "icon": "🦅",
-    "target_type": "country_movie_count",
-    "target_value": 500,
-    "target_metadata": {
-      "countryCode": "us",
-      "countryName": "Estados Unidos"
-    },
-    "sort_order": 60,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_far_away"
+    ],
+    "sort_order": 50
   },
   {
     "id": "vm_va_first",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "gold",
     "title": "Eles Fazem Filmes?",
-    "description": "Conquistar 1 filme da Cidade do Vaticano (1 filme).",
+    "description": "Conquistar 1 filme da Cidade do Vaticano (1 filme) (inclui coproduções).",
     "icon": "🇻🇦",
     "target_type": "country_movie_count",
     "target_value": 1,
@@ -1313,28 +1793,18 @@ export const TROPHY_DEFINITIONS = [
       "countryCode": "va",
       "countryName": "Cidade do Vaticano"
     },
-    "sort_order": 61,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_one_of_each_rarity",
-    "category": "volta_ao_mundo",
-    "tier": "gold",
-    "title": "Um de Cada!",
-    "description": "Conquistar pelo menos 1 país de cada raridade (Comum, Raro, Épico, Lendário e Mítico) na página Desafio dos 195 (5 raridades).",
-    "icon": "🌈",
-    "target_type": "rarity_tier_coverage",
-    "target_value": 5,
-    "sort_order": 62,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_va_first"
+    ],
+    "sort_order": 51
   },
   {
     "id": "vm_cplp_portuguese",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "gold",
     "title": "Eles Falam Português (Ou Quase)",
     "description": "Conquistar no Desafio dos 195 (país de origem único) os 9 países da CPLP: Portugal, Brasil, Angola, Moçambique, Cabo Verde, Guiné-Bissau, São Tomé e Príncipe, Guiné Equatorial e Timor-Leste (9 países).",
@@ -1354,14 +1824,18 @@ export const TROPHY_DEFINITIONS = [
         "tl"
       ]
     },
-    "sort_order": 63,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_cplp_portuguese"
+    ],
+    "sort_order": 52
   },
   {
     "id": "vm_most_populous",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "gold",
     "title": "Muita Gente Mora Aqui!",
     "description": "Conquistar no Desafio dos 195 (país de origem único) os 15 países mais populosos: Índia, China, EUA, Indonésia, Paquistão, Nigéria, Brasil, Bangladesh, Rússia, Etiópia, México, Japão, Egito, Filipinas e República Democrática do Congo (15 países).",
@@ -1387,28 +1861,18 @@ export const TROPHY_DEFINITIONS = [
         "cd"
       ]
     },
-    "sort_order": 64,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_countries_150",
-    "category": "volta_ao_mundo",
-    "tier": "gold",
-    "title": "A Reta Final",
-    "description": "Conquistar 150 países diferentes no Desafio dos 195 (150 países).",
-    "icon": "🏁",
-    "target_type": "conquered_countries_count",
-    "target_value": 150,
-    "sort_order": 65,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_most_populous"
+    ],
+    "sort_order": 53
   },
   {
     "id": "vm_patria_grande",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "gold",
     "title": "Pátria Grande (América Latina Unida)",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Brasil, Argentina, Uruguai, Paraguai, Chile, Bolívia, Peru, Equador, Colômbia, Venezuela, México, Cuba, República Dominicana, Haiti, Guatemala, Honduras, El Salvador, Nicarágua, Costa Rica e Panamá (20 países).",
@@ -1439,14 +1903,18 @@ export const TROPHY_DEFINITIONS = [
         "pa"
       ]
     },
-    "sort_order": 66,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_patria_grande"
+    ],
+    "sort_order": 54
   },
   {
     "id": "vm_european_union",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "gold",
     "title": "Passaporte Europeu (União Europeia)",
     "description": "Conquistar no Desafio dos 195 (país de origem único) os 27 países da União Europeia: Alemanha, Áustria, Bélgica, Bulgária, Chipre, Croácia, Dinamarca, Eslováquia, Eslovênia, Espanha, Estônia, Finlândia, França, Grécia, Hungria, Irlanda, Itália, Letônia, Lituânia, Luxemburgo, Malta, Países Baixos, Polônia, Portugal, República Tcheca, Romênia e Suécia (27 países).",
@@ -1484,14 +1952,18 @@ export const TROPHY_DEFINITIONS = [
         "se"
       ]
     },
-    "sort_order": 67,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_european_union"
+    ],
+    "sort_order": 55
   },
   {
     "id": "vm_arab_world",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "gold",
     "title": "As Mil e Uma Noites (Mundo Árabe)",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Egito, Argélia, Sudão, Iraque, Marrocos, Arábia Saudita, Iêmen, Síria, Tunísia, Jordânia, Emirados Árabes Unidos, Líbano, Líbia, Omã e Catar (15 países).",
@@ -1517,89 +1989,18 @@ export const TROPHY_DEFINITIONS = [
         "qa"
       ]
     },
-    "sort_order": 68,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_orient_master",
-    "category": "volta_ao_mundo",
-    "tier": "gold",
-    "title": "Mestre do Oriente",
-    "description": "Conquistar 50 filmes somados entre Japão, Coreia do Sul e China (50 filmes).",
-    "icon": "🐉",
-    "target_type": "multi_country_movie_sum",
-    "target_value": 50,
-    "target_metadata": {
-      "countryCodes": [
-        "jp",
-        "kr",
-        "cn"
-      ],
-      "countryNames": [
-        "Japão",
-        "Coreia do Sul",
-        "China"
-      ]
-    },
-    "sort_order": 69,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_eurotrip_100",
-    "category": "volta_ao_mundo",
-    "tier": "gold",
-    "title": "Eurotrip Sem Sair do Sofá",
-    "description": "Conquistar 100 filmes de países europeus no total (100 filmes).",
-    "icon": "🚂",
-    "target_type": "continent_movie_count",
-    "target_value": 100,
-    "target_metadata": {
-      "continent": "Europa"
-    },
-    "sort_order": 70,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_countries_175",
-    "category": "volta_ao_mundo",
-    "tier": "gold",
-    "title": "Quase Zerando o Planeta!",
-    "description": "Conquistar 175 países diferentes no Desafio dos 195 (175 países).",
-    "icon": "🚀",
-    "target_type": "conquered_countries_count",
-    "target_value": 175,
-    "sort_order": 71,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_br_50",
-    "category": "volta_ao_mundo",
-    "tier": "mythic",
-    "title": "Como Alguém Pode Falar Mal dos Filmes do Brasil?",
-    "description": "Conquistar 50 filmes do Brasil (50 filmes).",
-    "icon": "🇧🇷",
-    "target_type": "country_movie_count",
-    "target_value": 50,
-    "target_metadata": {
-      "countryCode": "br",
-      "countryName": "Brasil"
-    },
-    "sort_order": 72,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_arab_world"
+    ],
+    "sort_order": 56
   },
   {
     "id": "vm_monarchies",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "mythic",
     "title": "Ainda Existe Monarquia?",
     "description": "Conquistar no Desafio dos 195 (país de origem único) as 43 monarquias oficiais: Andorra, Antígua e Barbuda, Arábia Saudita, Austrália, Bahamas, Bahrein, Bélgica, Belize, Brunei, Butão, Camboja, Canadá, Catar, Cidade do Vaticano, Dinamarca, Emirados Árabes Unidos, Espanha, Essuatíni, Granada, Ilhas Salomão, Jamaica, Japão, Jordânia, Kuwait, Lesoto, Liechtenstein, Luxemburgo, Malásia, Marrocos, Mônaco, Noruega, Nova Zelândia, Omã, Países Baixos, Papua-Nova Guiné, Reino Unido, Santa Lúcia, São Cristóvão e Névis, São Vicente e Granadinas, Suécia, Tailândia, Tonga e Tuvalu (43 países).",
@@ -1653,14 +2054,18 @@ export const TROPHY_DEFINITIONS = [
         "tv"
       ]
     },
-    "sort_order": 73,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_monarchies"
+    ],
+    "sort_order": 57
   },
   {
     "id": "vm_conqueror_south_america",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "mythic",
     "title": "Conquistador da América do Sul",
     "description": "Conquistar 100% da América do Sul no Desafio dos 195 (12 países).",
@@ -1684,14 +2089,18 @@ export const TROPHY_DEFINITIONS = [
         "ve"
       ]
     },
-    "sort_order": 74,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_conqueror_south_america"
+    ],
+    "sort_order": 58
   },
   {
     "id": "vm_conqueror_north_america",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "mythic",
     "title": "Conquistador da América do Norte e Caribe",
     "description": "Conquistar 100% da América do Norte, Central e Caribe no Desafio dos 195 (23 países).",
@@ -1726,14 +2135,18 @@ export const TROPHY_DEFINITIONS = [
         "us"
       ]
     },
-    "sort_order": 75,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_conqueror_north_america"
+    ],
+    "sort_order": 59
   },
   {
     "id": "vm_conqueror_europe",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "mythic",
     "title": "Conquistador da Europa",
     "description": "Conquistar 100% da Europa no Desafio dos 195 (44 países).",
@@ -1744,14 +2157,18 @@ export const TROPHY_DEFINITIONS = [
       "regionName": "Europa",
       "continent": "Europa"
     },
-    "sort_order": 76,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_conqueror_europe"
+    ],
+    "sort_order": 60
   },
   {
     "id": "vm_conqueror_asia",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "mythic",
     "title": "Conquistador da Ásia",
     "description": "Conquistar 100% da Ásia no Desafio dos 195 (48 países).",
@@ -1762,14 +2179,18 @@ export const TROPHY_DEFINITIONS = [
       "regionName": "Ásia",
       "continent": "Ásia"
     },
-    "sort_order": 77,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_conqueror_asia"
+    ],
+    "sort_order": 61
   },
   {
     "id": "vm_conqueror_africa",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "mythic",
     "title": "Conquistador da África",
     "description": "Conquistar 100% da África no Desafio dos 195 (54 países).",
@@ -1780,14 +2201,18 @@ export const TROPHY_DEFINITIONS = [
       "regionName": "África",
       "continent": "África"
     },
-    "sort_order": 78,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_conqueror_africa"
+    ],
+    "sort_order": 62
   },
   {
     "id": "vm_conqueror_oceania",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "mythic",
     "title": "Conquistador da Oceania",
     "description": "Conquistar 100% da Oceania no Desafio dos 195 (14 países).",
@@ -1798,28 +2223,18 @@ export const TROPHY_DEFINITIONS = [
       "regionName": "Oceania",
       "continent": "Oceania"
     },
-    "sort_order": 79,
-    "categories": [
-      "volta_ao_mundo"
-    ]
-  },
-  {
-    "id": "vm_mythic_pantheon",
-    "category": "volta_ao_mundo",
-    "tier": "mythic",
-    "title": "O Panteão dos 18 Míticos",
-    "description": "Conquistar todos os 18 países classificados como Míticos na página Desafio dos 195 (18 países).",
-    "icon": "⚡",
-    "target_type": "rarity_all_mythic",
-    "target_value": 18,
-    "sort_order": 80,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_conqueror_oceania"
+    ],
+    "sort_order": 63
   },
   {
     "id": "vm_hardest_camera",
+    "kind": "unique",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "mythic",
     "title": "Onde Acharam Uma Câmera Aqui?!",
     "description": "Conquistar no Desafio dos 195 (país de origem único): Tuvalu, Nauru, Palau, Ilhas Marshall, Micronésia, São Cristóvão e Névis, Dominica, Kiribati, Tonga e São Tomé e Príncipe (10 países).",
@@ -1840,49 +2255,170 @@ export const TROPHY_DEFINITIONS = [
         "st"
       ]
     },
-    "sort_order": 81,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_hardest_camera"
+    ],
+    "sort_order": 64
   },
   {
-    "id": "vm_un_ambassador",
+    "id": "vm_petroleum_countries_4",
+    "kind": "unique",
     "category": "volta_ao_mundo",
-    "tier": "mythic",
-    "title": "Embaixador da ONU",
-    "description": "Conquistar 1.000 filmes no total e conquistar pelo menos 100 países diferentes no Desafio dos 195 (1000 filmes + 100 países).",
-    "icon": "🇺🇳",
-    "target_type": "global_movie_and_country_count",
-    "target_value": 100,
+    "categories": [
+      "volta_ao_mundo"
+    ],
+    "tier": "silver",
+    "title": "Aqui Não Tem Petróleo!! (Só Democracia Forçada)",
+    "description": "Conquistar no Desafio dos 195 (país de origem único): Iraque, Irã, Venezuela e Síria (4 países).",
+    "icon": "🛢️",
+    "target_type": "world_countries_checklist",
+    "target_value": 4,
     "target_metadata": {
-      "minMovies": 1000,
-      "minCountries": 100
+      "countries": [
+        {
+          "code": "iq",
+          "name": "Iraque"
+        },
+        {
+          "code": "ir",
+          "name": "Irã"
+        },
+        {
+          "code": "ve",
+          "name": "Venezuela"
+        },
+        {
+          "code": "sy",
+          "name": "Síria"
+        }
+      ]
     },
-    "sort_order": 82,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_petroleum_countries_4"
+    ],
+    "sort_order": 65
   },
   {
-    "id": "vm_war_board_100",
+    "id": "multi_vm_rc_senna_1994",
+    "kind": "unique",
     "category": "volta_ao_mundo",
-    "tier": "mythic",
-    "title": "Dono do Tabuleiro de War (100% Mundial)",
-    "description": "Conquistar TODOS os 195 países na página Desafio dos 195 (195 países).",
-    "icon": "🪐",
-    "target_type": "conquered_countries_count",
-    "target_value": 195,
-    "sort_order": 83,
     "categories": [
-      "volta_ao_mundo"
-    ]
+      "volta_ao_mundo",
+      "ritual_cinefilo"
+    ],
+    "tier": "bronze",
+    "title": "Ayrton Senna: Descanse em Paz (Legado de 1994)",
+    "description": "Conquistar 1 filme gravado/lançado em 1994 produzido no Brasil (1 filme).",
+    "icon": "🏎️",
+    "target_type": "multi_ritual_rule",
+    "target_value": 1,
+    "target_metadata": {
+      "ruleKey": "brazil_year_1994"
+    },
+    "legacy_ids": [
+      "multi_vm_rc_senna_1994"
+    ],
+    "sort_order": 66
+  },
+  {
+    "id": "multi_vm_rc_copa_brasil_1950_2014",
+    "kind": "unique",
+    "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo",
+      "ritual_cinefilo"
+    ],
+    "tier": "bronze",
+    "title": "Copa no Brasil! (Do Maracanazo ao 7x1)",
+    "description": "Conquistar 1 filme do Brasil lançado em 1950 e 1 filme do Brasil lançado em 2014 (2 filmes).",
+    "icon": "🏟️",
+    "target_type": "multi_ritual_rule",
+    "target_value": 2,
+    "target_metadata": {
+      "ruleKey": "brazil_copa_1950_2014"
+    },
+    "legacy_ids": [
+      "multi_vm_rc_copa_brasil_1950_2014"
+    ],
+    "sort_order": 67
+  },
+  {
+    "id": "multi_vm_rc_brasil_cinema_5",
+    "kind": "unique",
+    "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo",
+      "ritual_cinefilo"
+    ],
+    "tier": "silver",
+    "title": "Prestigiando o Cinema Nacional na Telona!",
+    "description": "Conquistar 5 filmes do Brasil assistidos no Cinema (5 filmes).",
+    "icon": "🇧🇷",
+    "target_type": "multi_ritual_rule",
+    "target_value": 5,
+    "target_metadata": {
+      "ruleKey": "brasil_cinema_5"
+    },
+    "legacy_ids": [
+      "multi_vm_rc_brasil_cinema_5"
+    ],
+    "sort_order": 68
+  },
+  {
+    "id": "multi_vm_ac_biografia_fora_eua_br_5",
+    "kind": "unique",
+    "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo",
+      "anatomia_cinema"
+    ],
+    "tier": "silver",
+    "title": "Sobre Outros Países (Vidas Além do Eixo EUA-Brasil)",
+    "description": "Conquistar 5 filmes do gênero Biografia que NÃO foram filmados nos Estados Unidos nem no Brasil (5 filmes).",
+    "icon": "📜",
+    "target_type": "multi_ritual_rule",
+    "target_value": 5,
+    "target_metadata": {
+      "ruleKey": "biografia_non_us_non_br_5"
+    },
+    "legacy_ids": [
+      "multi_vm_ac_biografia_fora_eua_br_5"
+    ],
+    "sort_order": 69
+  },
+  {
+    "id": "multi_viajante_imortal_9_decadas_18",
+    "kind": "unique",
+    "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo",
+      "ritual_cinefilo",
+      "tribunal_critica"
+    ],
+    "tier": "mythic",
+    "title": "Viajante Imortal das Décadas (90 Anos de Cinema Aclamado)",
+    "description": "Conquistar pelo menos 2 filmes com Minha Nota >= 8.000 em cada uma das 9 décadas entre 1940s e 2020s, somando pelo menos 10 países diferentes no Desafio dos 195 (país de origem único) (18 filmes no checklist).",
+    "icon": "🧭",
+    "target_type": "multi_ritual_rule",
+    "target_value": 18,
+    "target_metadata": {
+      "ruleKey": "viajante_9_decadas_18"
+    },
+    "legacy_ids": [
+      "multi_viajante_imortal_9_decadas_18"
+    ],
+    "sort_order": 70
   },
   {
     "id": "vm_platinum_legend",
+    "kind": "platinum",
     "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
     "tier": "platinum",
     "title": "A Lenda Definitiva do Cinema",
-    "description": "Conquistar TODOS os troféus da categoria Volta ao Mundo (verificação dinâmica: desbloqueia automaticamente quando 100% dos outros 122 troféus da categoria \"Volta ao Mundo\" estiverem conquistados, incluindo multicategoria).",
+    "description": "Conquistar 100% dos troféus e ranks da categoria Volta ao Mundo (incluindo multicategoria).",
     "icon": "🏆",
     "target_type": "platinum_dynamic",
     "target_value": 122,
@@ -1890,77 +2426,162 @@ export const TROPHY_DEFINITIONS = [
       "category": "volta_ao_mundo",
       "categoryScope": "volta_ao_mundo"
     },
-    "sort_order": 84,
-    "categories": [
-      "volta_ao_mundo"
-    ]
+    "legacy_ids": [
+      "vm_platinum_legend"
+    ],
+    "sort_order": 71
   },
   {
-    "id": "dna_invocaversus_1",
+    "id": "dna_rank_sk",
+    "kind": "rank",
     "category": "dna_cinefilo",
-    "tier": "bronze",
-    "title": "Ed e Lorraine Estão Orgulhosos!",
-    "description": "Conquistar 1 filme com a tag \"invocaversus\" (1 filme).",
-    "icon": "🕯️",
-    "target_type": "tag_movie_count",
-    "target_value": 1,
-    "target_metadata": {
-      "tags": [
-        "invocaversus"
-      ]
-    },
-    "sort_order": 101,
     "categories": [
       "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_sk_1",
-    "category": "dna_cinefilo",
-    "tier": "bronze",
-    "title": "Bem-vindo ao Maine!",
-    "description": "Conquistar 1 filme com a tag SK (Stephen King) (1 filme).",
+    ],
+    "tier": "mythic",
+    "title": "Biógrafo Oficial do Stephen King",
+    "description": "Assistir filmes com a tag SK (Stephen King).",
     "icon": "🎈",
     "target_type": "tag_movie_count",
-    "target_value": 1,
+    "target_value": 25,
     "target_metadata": {
       "tags": [
         "SK"
       ]
     },
-    "sort_order": 102,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "ranks": [
+      {
+        "id": "dna_rank_sk__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Bem-vindo ao Maine!",
+        "description": "Assistir filmes com a tag SK (Stephen King). (Rank Bronze: meta 1).",
+        "legacy_id": "dna_sk_1"
+      },
+      {
+        "id": "dna_rank_sk__silver",
+        "tier": "silver",
+        "target_value": 5,
+        "title": "Turista de Derry e Castle Rock",
+        "description": "Assistir filmes com a tag SK (Stephen King). (Rank Prata: meta 5).",
+        "legacy_id": "dna_sk_5"
+      },
+      {
+        "id": "dna_rank_sk__epic",
+        "tier": "epic",
+        "target_value": 10,
+        "title": "O Iluminado do Stephen King",
+        "description": "Assistir filmes com a tag SK (Stephen King). (Rank Épico: meta 10).",
+        "legacy_id": "dna_sk_10"
+      },
+      {
+        "id": "dna_rank_sk__gold",
+        "tier": "gold",
+        "target_value": 18,
+        "title": "A Torre Negra de Stephen King",
+        "description": "Assistir filmes com a tag SK (Stephen King). (Rank Ouro: meta 18).",
+        "legacy_id": "dna_sk_18"
+      },
+      {
+        "id": "dna_rank_sk__mythic",
+        "tier": "mythic",
+        "target_value": 25,
+        "title": "Biógrafo Oficial do Stephen King",
+        "description": "Assistir filmes com a tag SK (Stephen King). (Rank Mítico: meta 25).",
+        "legacy_id": "dna_sk_25"
+      }
+    ],
+    "legacy_ids": [
+      "dna_sk_1",
+      "dna_sk_5",
+      "dna_sk_10",
+      "dna_sk_18",
+      "dna_sk_25"
+    ],
+    "sort_order": 72
   },
   {
-    "id": "dna_top250_1",
+    "id": "dna_rank_top250",
+    "kind": "rank",
     "category": "dna_cinefilo",
-    "tier": "bronze",
-    "title": "O Início da Alta Cultura",
-    "description": "Conquistar 1 filme com a tag TOP250 (1 filme).",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Panteão do IMDb (Top 250)",
+    "description": "Assistir filmes com a tag TOP250.",
     "icon": "⭐",
     "target_type": "tag_movie_count",
-    "target_value": 1,
+    "target_value": 50,
     "target_metadata": {
       "tags": [
         "TOP250"
       ]
     },
-    "sort_order": 103,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "ranks": [
+      {
+        "id": "dna_rank_top250__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "O Início da Alta Cultura",
+        "description": "Assistir filmes com a tag TOP250. (Rank Bronze: meta 1).",
+        "legacy_id": "dna_top250_1"
+      },
+      {
+        "id": "dna_rank_top250__silver",
+        "tier": "silver",
+        "target_value": 10,
+        "title": "Fiscal Oficial de Nota do IMDb",
+        "description": "Assistir filmes com a tag TOP250. (Rank Prata: meta 10).",
+        "legacy_id": "dna_top250_10"
+      },
+      {
+        "id": "dna_rank_top250__epic",
+        "tier": "epic",
+        "target_value": 20,
+        "title": "Frequentador do Tapete Vermelho",
+        "description": "Assistir filmes com a tag TOP250. (Rank Épico: meta 20).",
+        "legacy_id": "dna_top250_20"
+      },
+      {
+        "id": "dna_rank_top250__gold",
+        "tier": "gold",
+        "target_value": 35,
+        "title": "Elite do IMDb",
+        "description": "Assistir filmes com a tag TOP250. (Rank Ouro: meta 35).",
+        "legacy_id": "dna_top250_35"
+      },
+      {
+        "id": "dna_rank_top250__mythic",
+        "tier": "mythic",
+        "target_value": 50,
+        "title": "Panteão do IMDb (Top 250)",
+        "description": "Assistir filmes com a tag TOP250. (Rank Mítico: meta 50).",
+        "legacy_id": "dna_top250_50"
+      }
+    ],
+    "legacy_ids": [
+      "dna_top250_1",
+      "dna_top250_10",
+      "dna_top250_20",
+      "dna_top250_35",
+      "dna_top250_50"
+    ],
+    "sort_order": 73
   },
   {
-    "id": "dna_vamp_kid_1",
+    "id": "dna_rank_vamp_kid",
+    "kind": "rank",
     "category": "dna_cinefilo",
-    "tier": "bronze",
-    "title": "O Terror de Todo Pai?",
-    "description": "Conquistar 1 filme com as tags Vampiro e Criança Malvada ao mesmo tempo (1 filme).",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Uma Epidemia de Mini Vampiros?",
+    "description": "Assistir filmes com as tags Vampiro e Criança Malvada ao mesmo tempo.",
     "icon": "🧛",
     "target_type": "tag_double_and",
-    "target_value": 1,
+    "target_value": 15,
     "target_metadata": {
       "tags": [
         "Vampiro",
@@ -1968,14 +2589,1904 @@ export const TROPHY_DEFINITIONS = [
       ],
       "tagMode": "double_and"
     },
-    "sort_order": 104,
+    "ranks": [
+      {
+        "id": "dna_rank_vamp_kid__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "O Terror de Todo Pai?",
+        "description": "Assistir filmes com as tags Vampiro e Criança Malvada ao mesmo tempo. (Rank Bronze: meta 1).",
+        "legacy_id": "dna_vamp_kid_1"
+      },
+      {
+        "id": "dna_rank_vamp_kid__silver",
+        "tier": "silver",
+        "target_value": 3,
+        "title": "Presinhas no Recreio",
+        "description": "Assistir filmes com as tags Vampiro e Criança Malvada ao mesmo tempo. (Rank Prata: meta 3).",
+        "legacy_id": "dna_vamp_kid_5"
+      },
+      {
+        "id": "dna_rank_vamp_kid__epic",
+        "tier": "epic",
+        "target_value": 6,
+        "title": "Uma Epidemia de Mini Vampiros?",
+        "description": "Assistir filmes com as tags Vampiro e Criança Malvada ao mesmo tempo. (Rank Épico: meta 6)."
+      },
+      {
+        "id": "dna_rank_vamp_kid__gold",
+        "tier": "gold",
+        "target_value": 10,
+        "title": "Orfanato da Transilvânia",
+        "description": "Assistir filmes com as tags Vampiro e Criança Malvada ao mesmo tempo. (Rank Ouro: meta 10)."
+      },
+      {
+        "id": "dna_rank_vamp_kid__mythic",
+        "tier": "mythic",
+        "target_value": 15,
+        "title": "Creche dos Mortos-Vivos",
+        "description": "Assistir filmes com as tags Vampiro e Criança Malvada ao mesmo tempo. (Rank Mítico: meta 15)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_vamp_kid_1",
+      "dna_vamp_kid_5"
+    ],
+    "sort_order": 74
+  },
+  {
+    "id": "dna_rank_game",
+    "kind": "rank",
+    "category": "dna_cinefilo",
     "categories": [
       "dna_cinefilo"
-    ]
+    ],
+    "tier": "mythic",
+    "title": "Do Controle do PS5 Direto pra Pipoca",
+    "description": "Assistir filmes com a tag Baseado em jogo.",
+    "icon": "🎮",
+    "target_type": "tag_movie_count",
+    "target_value": 25,
+    "target_metadata": {
+      "tags": [
+        "Baseado em jogo"
+      ]
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_game__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Finalmente Uma Adaptação Que Presta? (Ou Não)",
+        "description": "Assistir filmes com a tag Baseado em jogo. (Rank Bronze: meta 1).",
+        "legacy_id": "dna_game_1"
+      },
+      {
+        "id": "dna_rank_game__silver",
+        "tier": "silver",
+        "target_value": 5,
+        "title": "Player 2 Conectado",
+        "description": "Assistir filmes com a tag Baseado em jogo. (Rank Prata: meta 5).",
+        "legacy_id": "dna_game_10"
+      },
+      {
+        "id": "dna_rank_game__epic",
+        "tier": "epic",
+        "target_value": 10,
+        "title": "Do Controle do PS5 Direto pra Pipoca",
+        "description": "Assistir filmes com a tag Baseado em jogo. (Rank Épico: meta 10)."
+      },
+      {
+        "id": "dna_rank_game__gold",
+        "tier": "gold",
+        "target_value": 18,
+        "title": "Platina na Tela Grande",
+        "description": "Assistir filmes com a tag Baseado em jogo. (Rank Ouro: meta 18)."
+      },
+      {
+        "id": "dna_rank_game__mythic",
+        "tier": "mythic",
+        "target_value": 25,
+        "title": "Fliperama Cinematográfico",
+        "description": "Assistir filmes com a tag Baseado em jogo. (Rank Mítico: meta 25)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_game_1",
+      "dna_game_10"
+    ],
+    "sort_order": 75
+  },
+  {
+    "id": "dna_rank_anthro",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Esse Bicho Tá Falando e Usando Roupa?!",
+    "description": "Assistir filmes com a tag Animais antropomorficos.",
+    "icon": "🦊",
+    "target_type": "tag_movie_count",
+    "target_value": 20,
+    "target_metadata": {
+      "tags": [
+        "Animais antropomorficos"
+      ]
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_anthro__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Esse Bicho Tá Falando e Usando Roupa?!",
+        "description": "Assistir filmes com a tag Animais antropomorficos. (Rank Bronze: meta 1).",
+        "legacy_id": "dna_anthro_1"
+      },
+      {
+        "id": "dna_rank_anthro__silver",
+        "tier": "silver",
+        "target_value": 5,
+        "title": "Reunião na Floresta Encantada",
+        "description": "Assistir filmes com a tag Animais antropomorficos. (Rank Prata: meta 5).",
+        "legacy_id": "dna_animais_antropo_10"
+      },
+      {
+        "id": "dna_rank_anthro__epic",
+        "tier": "epic",
+        "target_value": 10,
+        "title": "É um Digimon ou Pokémon?",
+        "description": "Assistir filmes com a tag Animais antropomorficos. (Rank Épico: meta 10)."
+      },
+      {
+        "id": "dna_rank_anthro__gold",
+        "tier": "gold",
+        "target_value": 15,
+        "title": "Zoológico de Terno e Gravata",
+        "description": "Assistir filmes com a tag Animais antropomorficos. (Rank Ouro: meta 15)."
+      },
+      {
+        "id": "dna_rank_anthro__mythic",
+        "tier": "mythic",
+        "target_value": 20,
+        "title": "Fábula Suprema dos Bichos",
+        "description": "Assistir filmes com a tag Animais antropomorficos. (Rank Mítico: meta 20)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_anthro_1",
+      "dna_animais_antropo_10"
+    ],
+    "sort_order": 76
+  },
+  {
+    "id": "dna_rank_repeat",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Síndrome da Sessão da Tarde (Vale a Pena Ver de Novo!)",
+    "description": "Assistir filmes com a tag Repetido.",
+    "icon": "🔁",
+    "target_type": "tag_movie_count",
+    "target_value": 30,
+    "target_metadata": {
+      "tags": [
+        "Repetido"
+      ]
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_repeat__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Vale a Pena Ver de Novo!",
+        "description": "Assistir filmes com a tag Repetido. (Rank Bronze: meta 1).",
+        "legacy_id": "dna_repeat_1"
+      },
+      {
+        "id": "dna_rank_repeat__silver",
+        "tier": "silver",
+        "target_value": 5,
+        "title": "Botão Replay Sem Freio",
+        "description": "Assistir filmes com a tag Repetido. (Rank Prata: meta 5).",
+        "legacy_id": "dna_repeat_15"
+      },
+      {
+        "id": "dna_rank_repeat__epic",
+        "tier": "epic",
+        "target_value": 12,
+        "title": "Já Sei as Falas de Cor",
+        "description": "Assistir filmes com a tag Repetido. (Rank Épico: meta 12)."
+      },
+      {
+        "id": "dna_rank_repeat__gold",
+        "tier": "gold",
+        "target_value": 20,
+        "title": "Reprise Eterna do Sofá",
+        "description": "Assistir filmes com a tag Repetido. (Rank Ouro: meta 20)."
+      },
+      {
+        "id": "dna_rank_repeat__mythic",
+        "tier": "mythic",
+        "target_value": 30,
+        "title": "Loop Infinito da Sessão da Tarde",
+        "description": "Assistir filmes com a tag Repetido. (Rank Mítico: meta 30)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_repeat_1",
+      "dna_repeat_15"
+    ],
+    "sort_order": 77
+  },
+  {
+    "id": "dna_rank_final_epico",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "De Pé no Sofá Aplaudindo os Créditos!",
+    "description": "Assistir filmes com a tag Final Epico.",
+    "icon": "🍿",
+    "target_type": "tag_movie_count",
+    "target_value": 100,
+    "target_metadata": {
+      "tags": [
+        "Final Epico"
+      ]
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_final_epico__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Absolute Cinema!",
+        "description": "Assistir filmes com a tag Final Epico. (Rank Bronze: meta 1).",
+        "legacy_id": "dna_epic_final_1"
+      },
+      {
+        "id": "dna_rank_final_epico__silver",
+        "tier": "silver",
+        "target_value": 15,
+        "title": "Queixo Caído nos Créditos",
+        "description": "Assistir filmes com a tag Final Epico. (Rank Prata: meta 15).",
+        "legacy_id": "dna_epic_final_25"
+      },
+      {
+        "id": "dna_rank_final_epico__epic",
+        "tier": "epic",
+        "target_value": 35,
+        "title": "De Pé no Sofá Aplaudindo!",
+        "description": "Assistir filmes com a tag Final Epico. (Rank Épico: meta 35).",
+        "legacy_id": "dna_epic_final_25"
+      },
+      {
+        "id": "dna_rank_final_epico__gold",
+        "tier": "gold",
+        "target_value": 65,
+        "title": "Apoteose Cinematográfica",
+        "description": "Assistir filmes com a tag Final Epico. (Rank Ouro: meta 65).",
+        "legacy_id": "dna_epic_final_75"
+      },
+      {
+        "id": "dna_rank_final_epico__mythic",
+        "tier": "mythic",
+        "target_value": 100,
+        "title": "Só Assisto Obras-Primas! (100 Finais Épicos)",
+        "description": "Assistir filmes com a tag Final Epico. (Rank Mítico: meta 100).",
+        "legacy_id": "dna_epic_final_75"
+      }
+    ],
+    "legacy_ids": [
+      "dna_epic_final_1",
+      "dna_epic_final_25",
+      "dna_epic_final_25",
+      "dna_epic_final_75",
+      "dna_epic_final_75"
+    ],
+    "sort_order": 78
+  },
+  {
+    "id": "dna_rank_gore",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Açougueiro de Hollywood (Haja Sangue Falso!)",
+    "description": "Assistir filmes com a tag Gore.",
+    "icon": "🩸",
+    "target_type": "tag_movie_count",
+    "target_value": 130,
+    "target_metadata": {
+      "tags": [
+        "Gore"
+      ]
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_gore__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Proibido Assistir Almoçando!",
+        "description": "Assistir filmes com a tag Gore. (Rank Bronze: meta 1).",
+        "legacy_id": "dna_gore_1"
+      },
+      {
+        "id": "dna_rank_gore__silver",
+        "tier": "silver",
+        "target_value": 15,
+        "title": "Açougueiro de Hollywood",
+        "description": "Assistir filmes com a tag Gore. (Rank Prata: meta 15).",
+        "legacy_id": "dna_gore_10"
+      },
+      {
+        "id": "dna_rank_gore__epic",
+        "tier": "epic",
+        "target_value": 45,
+        "title": "Banho de Ketchup Industrial",
+        "description": "Assistir filmes com a tag Gore. (Rank Épico: meta 45)."
+      },
+      {
+        "id": "dna_rank_gore__gold",
+        "tier": "gold",
+        "target_value": 85,
+        "title": "Mestre do Splatter",
+        "description": "Assistir filmes com a tag Gore. (Rank Ouro: meta 85)."
+      },
+      {
+        "id": "dna_rank_gore__mythic",
+        "tier": "mythic",
+        "target_value": 130,
+        "title": "Carnificina Suprema (130 Gore)",
+        "description": "Assistir filmes com a tag Gore. (Rank Mítico: meta 130)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_gore_1",
+      "dna_gore_10"
+    ],
+    "sort_order": 79
+  },
+  {
+    "id": "dna_rank_lgbt",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Todas as Cores na Tela",
+    "description": "Assistir filmes com a tag Personagem LGBT.",
+    "icon": "🏳️‍🌈",
+    "target_type": "tag_movie_count",
+    "target_value": 100,
+    "target_metadata": {
+      "tags": [
+        "Personagem LGBT"
+      ]
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_lgbt__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Todas as Cores na Tela",
+        "description": "Assistir filmes com a tag Personagem LGBT. (Rank Bronze: meta 1).",
+        "legacy_id": "dna_lgbt_1"
+      },
+      {
+        "id": "dna_rank_lgbt__silver",
+        "tier": "silver",
+        "target_value": 15,
+        "title": "Love is Love",
+        "description": "Assistir filmes com a tag Personagem LGBT. (Rank Prata: meta 15).",
+        "legacy_id": "dna_lgbt_15"
+      },
+      {
+        "id": "dna_rank_lgbt__epic",
+        "tier": "epic",
+        "target_value": 40,
+        "title": "O Mundo É Colorido",
+        "description": "Assistir filmes com a tag Personagem LGBT. (Rank Épico: meta 40).",
+        "legacy_id": "dna_lgbt_30"
+      },
+      {
+        "id": "dna_rank_lgbt__gold",
+        "tier": "gold",
+        "target_value": 70,
+        "title": "Você É Livre!",
+        "description": "Assistir filmes com a tag Personagem LGBT. (Rank Ouro: meta 70).",
+        "legacy_id": "dna_lgbt_50"
+      },
+      {
+        "id": "dna_rank_lgbt__mythic",
+        "tier": "mythic",
+        "target_value": 100,
+        "title": "Todas as Letras! (100 Filmes)",
+        "description": "Assistir filmes com a tag Personagem LGBT. (Rank Mítico: meta 100).",
+        "legacy_id": "dna_lgbt_75"
+      }
+    ],
+    "legacy_ids": [
+      "dna_lgbt_1",
+      "dna_lgbt_15",
+      "dna_lgbt_30",
+      "dna_lgbt_50",
+      "dna_lgbt_75"
+    ],
+    "sort_order": 80
+  },
+  {
+    "id": "dna_rank_vamp_lgbt",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Não Existe Vampiro Hétero?",
+    "description": "Assistir filmes com as tags Vampiro e Personagem LGBT ao mesmo tempo.",
+    "icon": "🦇",
+    "target_type": "tag_double_and",
+    "target_value": 20,
+    "target_metadata": {
+      "tags": [
+        "Vampiro",
+        "Personagem LGBT"
+      ],
+      "tagMode": "double_and"
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_vamp_lgbt__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Vampiros São Gays?",
+        "description": "Assistir filmes com as tags Vampiro e Personagem LGBT ao mesmo tempo. (Rank Bronze: meta 1).",
+        "legacy_id": "dna_vamp_lgbt_1"
+      },
+      {
+        "id": "dna_rank_vamp_lgbt__silver",
+        "tier": "silver",
+        "target_value": 5,
+        "title": "Sim, os Vampiros Gays!",
+        "description": "Assistir filmes com as tags Vampiro e Personagem LGBT ao mesmo tempo. (Rank Prata: meta 5).",
+        "legacy_id": "dna_vamp_lgbt_5"
+      },
+      {
+        "id": "dna_rank_vamp_lgbt__epic",
+        "tier": "epic",
+        "target_value": 10,
+        "title": "Não Existe Vampiro Hétero?",
+        "description": "Assistir filmes com as tags Vampiro e Personagem LGBT ao mesmo tempo. (Rank Épico: meta 10).",
+        "legacy_id": "dna_vamp_lgbt_10"
+      },
+      {
+        "id": "dna_rank_vamp_lgbt__gold",
+        "tier": "gold",
+        "target_value": 15,
+        "title": "Baile Noturno Colorido",
+        "description": "Assistir filmes com as tags Vampiro e Personagem LGBT ao mesmo tempo. (Rank Ouro: meta 15)."
+      },
+      {
+        "id": "dna_rank_vamp_lgbt__mythic",
+        "tier": "mythic",
+        "target_value": 20,
+        "title": "Clã Arco-Íris da Transilvânia",
+        "description": "Assistir filmes com as tags Vampiro e Personagem LGBT ao mesmo tempo. (Rank Mítico: meta 20)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_vamp_lgbt_1",
+      "dna_vamp_lgbt_5",
+      "dna_vamp_lgbt_10"
+    ],
+    "sort_order": 81
+  },
+  {
+    "id": "dna_rank_em_familia",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "O Clã Reunido (Tudo É Melhor com Amigos e Família!)",
+    "description": "Assistir filmes com a tag Em Família.",
+    "icon": "👨‍👩‍👧‍👦",
+    "target_type": "tag_movie_count",
+    "target_value": 100,
+    "target_metadata": {
+      "tags": [
+        "Em Família"
+      ]
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_em_familia__bronze",
+        "tier": "bronze",
+        "target_value": 10,
+        "title": "O Clã Reunido na Frente da TV!",
+        "description": "Assistir filmes com a tag Em Família. (Rank Bronze: meta 10).",
+        "legacy_id": "tc_em_familia_10"
+      },
+      {
+        "id": "dna_rank_em_familia__silver",
+        "tier": "silver",
+        "target_value": 25,
+        "title": "Sala Lotada de Pipoca",
+        "description": "Assistir filmes com a tag Em Família. (Rank Prata: meta 25).",
+        "legacy_id": "tc_em_familia_10"
+      },
+      {
+        "id": "dna_rank_em_familia__epic",
+        "tier": "epic",
+        "target_value": 45,
+        "title": "Tudo É Bem Melhor com Amigos e Família!",
+        "description": "Assistir filmes com a tag Em Família. (Rank Épico: meta 45).",
+        "legacy_id": "tc_em_familia_45"
+      },
+      {
+        "id": "dna_rank_em_familia__gold",
+        "tier": "gold",
+        "target_value": 75,
+        "title": "Domingo Eterno com a Galera",
+        "description": "Assistir filmes com a tag Em Família. (Rank Ouro: meta 75)."
+      },
+      {
+        "id": "dna_rank_em_familia__mythic",
+        "tier": "mythic",
+        "target_value": 100,
+        "title": "Matriz Familiar do Cinema (100 Filmes)",
+        "description": "Assistir filmes com a tag Em Família. (Rank Mítico: meta 100)."
+      }
+    ],
+    "legacy_ids": [
+      "tc_em_familia_10",
+      "tc_em_familia_10",
+      "tc_em_familia_45"
+    ],
+    "sort_order": 82
+  },
+  {
+    "id": "dna_rank_brasil_colorido",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "volta_ao_mundo"
+    ],
+    "tier": "mythic",
+    "title": "Brasil Colorido",
+    "description": "Assistir filmes do Brasil com a tag Personagem LGBT (inclui coproduções).",
+    "icon": "🦜",
+    "target_type": "tag_hybrid_country",
+    "target_value": 20,
+    "target_metadata": {
+      "tags": [
+        "Personagem LGBT"
+      ],
+      "countryCode": "br",
+      "countryName": "Brasil",
+      "countryFlag": "🇧🇷",
+      "isHybrid": true
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_brasil_colorido__bronze",
+        "tier": "bronze",
+        "target_value": 2,
+        "title": "Brasil Colorido • Rank Bronze",
+        "description": "Assistir filmes do Brasil com a tag Personagem LGBT (inclui coproduções). (Rank Bronze: meta 2).",
+        "legacy_id": "dna_lgbt_br_20"
+      },
+      {
+        "id": "dna_rank_brasil_colorido__silver",
+        "tier": "silver",
+        "target_value": 5,
+        "title": "Brasil Colorido • Rank Prata",
+        "description": "Assistir filmes do Brasil com a tag Personagem LGBT (inclui coproduções). (Rank Prata: meta 5)."
+      },
+      {
+        "id": "dna_rank_brasil_colorido__epic",
+        "tier": "epic",
+        "target_value": 10,
+        "title": "Brasil Colorido • Rank Épico",
+        "description": "Assistir filmes do Brasil com a tag Personagem LGBT (inclui coproduções). (Rank Épico: meta 10)."
+      },
+      {
+        "id": "dna_rank_brasil_colorido__gold",
+        "tier": "gold",
+        "target_value": 15,
+        "title": "Brasil Colorido • Rank Ouro",
+        "description": "Assistir filmes do Brasil com a tag Personagem LGBT (inclui coproduções). (Rank Ouro: meta 15)."
+      },
+      {
+        "id": "dna_rank_brasil_colorido__mythic",
+        "tier": "mythic",
+        "target_value": 20,
+        "title": "Brasil Colorido • Rank Mítico",
+        "description": "Assistir filmes do Brasil com a tag Personagem LGBT (inclui coproduções). (Rank Mítico: meta 20)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_lgbt_br_20"
+    ],
+    "sort_order": 83
+  },
+  {
+    "id": "dna_rank_anime_us",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "volta_ao_mundo"
+    ],
+    "tier": "mythic",
+    "title": "Hollywood Estragou Meu Anime?!",
+    "description": "Filmes dos EUA com a tag Baseado em Anime (inclui coproduções).",
+    "icon": "🎬",
+    "target_type": "tag_hybrid_country",
+    "target_value": 10,
+    "target_metadata": {
+      "tags": [
+        "Baseado em Anime"
+      ],
+      "countryCode": "us",
+      "countryName": "Estados Unidos",
+      "countryFlag": "🇺🇸",
+      "isHybrid": true
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_anime_us__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Hollywood Estragou Meu Anime?! • Rank Bronze",
+        "description": "Filmes dos EUA com a tag Baseado em Anime (inclui coproduções). (Rank Bronze: meta 1).",
+        "legacy_id": "dna_anime_us_3"
+      },
+      {
+        "id": "dna_rank_anime_us__silver",
+        "tier": "silver",
+        "target_value": 3,
+        "title": "Hollywood Estragou Meu Anime?! • Rank Prata",
+        "description": "Filmes dos EUA com a tag Baseado em Anime (inclui coproduções). (Rank Prata: meta 3)."
+      },
+      {
+        "id": "dna_rank_anime_us__epic",
+        "tier": "epic",
+        "target_value": 5,
+        "title": "Hollywood Estragou Meu Anime?! • Rank Épico",
+        "description": "Filmes dos EUA com a tag Baseado em Anime (inclui coproduções). (Rank Épico: meta 5)."
+      },
+      {
+        "id": "dna_rank_anime_us__gold",
+        "tier": "gold",
+        "target_value": 8,
+        "title": "Hollywood Estragou Meu Anime?! • Rank Ouro",
+        "description": "Filmes dos EUA com a tag Baseado em Anime (inclui coproduções). (Rank Ouro: meta 8)."
+      },
+      {
+        "id": "dna_rank_anime_us__mythic",
+        "tier": "mythic",
+        "target_value": 10,
+        "title": "Hollywood Estragou Meu Anime?! • Rank Mítico",
+        "description": "Filmes dos EUA com a tag Baseado em Anime (inclui coproduções). (Rank Mítico: meta 10)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_anime_us_3"
+    ],
+    "sort_order": 84
+  },
+  {
+    "id": "dna_rank_abuse_kid",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "A Culpa É dos Pais!",
+    "description": "Filmes com as tags Abuso Familiar e Criança Malvada ao mesmo tempo.",
+    "icon": "🏚️",
+    "target_type": "tag_double_and",
+    "target_value": 40,
+    "target_metadata": {
+      "tags": [
+        "Abuso Familiar",
+        "Criança Malvada"
+      ],
+      "tagMode": "double_and"
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_abuse_kid__bronze",
+        "tier": "bronze",
+        "target_value": 5,
+        "title": "A Culpa É dos Pais! • Rank Bronze",
+        "description": "Filmes com as tags Abuso Familiar e Criança Malvada ao mesmo tempo. (Rank Bronze: meta 5).",
+        "legacy_id": "dna_abuse_kid_20"
+      },
+      {
+        "id": "dna_rank_abuse_kid__silver",
+        "tier": "silver",
+        "target_value": 10,
+        "title": "A Culpa É dos Pais! • Rank Prata",
+        "description": "Filmes com as tags Abuso Familiar e Criança Malvada ao mesmo tempo. (Rank Prata: meta 10)."
+      },
+      {
+        "id": "dna_rank_abuse_kid__epic",
+        "tier": "epic",
+        "target_value": 20,
+        "title": "A Culpa É dos Pais! • Rank Épico",
+        "description": "Filmes com as tags Abuso Familiar e Criança Malvada ao mesmo tempo. (Rank Épico: meta 20)."
+      },
+      {
+        "id": "dna_rank_abuse_kid__gold",
+        "tier": "gold",
+        "target_value": 30,
+        "title": "A Culpa É dos Pais! • Rank Ouro",
+        "description": "Filmes com as tags Abuso Familiar e Criança Malvada ao mesmo tempo. (Rank Ouro: meta 30)."
+      },
+      {
+        "id": "dna_rank_abuse_kid__mythic",
+        "tier": "mythic",
+        "target_value": 40,
+        "title": "A Culpa É dos Pais! • Rank Mítico",
+        "description": "Filmes com as tags Abuso Familiar e Criança Malvada ao mesmo tempo. (Rank Mítico: meta 40)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_abuse_kid_20"
+    ],
+    "sort_order": 85
+  },
+  {
+    "id": "dna_rank_dystopia",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Será Que o Mundo Acaba Assim?",
+    "description": "Filmes com a tag Dystopia.",
+    "icon": "☣️",
+    "target_type": "tag_movie_count",
+    "target_value": 20,
+    "target_metadata": {
+      "tags": [
+        "Dystopia"
+      ]
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_dystopia__bronze",
+        "tier": "bronze",
+        "target_value": 2,
+        "title": "Será Que o Mundo Acaba Assim? • Rank Bronze",
+        "description": "Filmes com a tag Dystopia. (Rank Bronze: meta 2).",
+        "legacy_id": "dna_dystopia_20"
+      },
+      {
+        "id": "dna_rank_dystopia__silver",
+        "tier": "silver",
+        "target_value": 5,
+        "title": "Será Que o Mundo Acaba Assim? • Rank Prata",
+        "description": "Filmes com a tag Dystopia. (Rank Prata: meta 5)."
+      },
+      {
+        "id": "dna_rank_dystopia__epic",
+        "tier": "epic",
+        "target_value": 10,
+        "title": "Será Que o Mundo Acaba Assim? • Rank Épico",
+        "description": "Filmes com a tag Dystopia. (Rank Épico: meta 10)."
+      },
+      {
+        "id": "dna_rank_dystopia__gold",
+        "tier": "gold",
+        "target_value": 15,
+        "title": "Será Que o Mundo Acaba Assim? • Rank Ouro",
+        "description": "Filmes com a tag Dystopia. (Rank Ouro: meta 15)."
+      },
+      {
+        "id": "dna_rank_dystopia__mythic",
+        "tier": "mythic",
+        "target_value": 20,
+        "title": "Será Que o Mundo Acaba Assim? • Rank Mítico",
+        "description": "Filmes com a tag Dystopia. (Rank Mítico: meta 20)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_dystopia_20"
+    ],
+    "sort_order": 86
+  },
+  {
+    "id": "dna_rank_viagem_tempo",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Vai e Volta",
+    "description": "Filmes com a tag Viagem no Tempo.",
+    "icon": "⏳",
+    "target_type": "tag_movie_count",
+    "target_value": 20,
+    "target_metadata": {
+      "tags": [
+        "Viagem no Tempo"
+      ]
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_viagem_tempo__bronze",
+        "tier": "bronze",
+        "target_value": 2,
+        "title": "Vai e Volta • Rank Bronze",
+        "description": "Filmes com a tag Viagem no Tempo. (Rank Bronze: meta 2).",
+        "legacy_id": "dna_time_10"
+      },
+      {
+        "id": "dna_rank_viagem_tempo__silver",
+        "tier": "silver",
+        "target_value": 5,
+        "title": "Vai e Volta • Rank Prata",
+        "description": "Filmes com a tag Viagem no Tempo. (Rank Prata: meta 5)."
+      },
+      {
+        "id": "dna_rank_viagem_tempo__epic",
+        "tier": "epic",
+        "target_value": 10,
+        "title": "Vai e Volta • Rank Épico",
+        "description": "Filmes com a tag Viagem no Tempo. (Rank Épico: meta 10)."
+      },
+      {
+        "id": "dna_rank_viagem_tempo__gold",
+        "tier": "gold",
+        "target_value": 15,
+        "title": "Vai e Volta • Rank Ouro",
+        "description": "Filmes com a tag Viagem no Tempo. (Rank Ouro: meta 15)."
+      },
+      {
+        "id": "dna_rank_viagem_tempo__mythic",
+        "tier": "mythic",
+        "target_value": 20,
+        "title": "Vai e Volta • Rank Mítico",
+        "description": "Filmes com a tag Viagem no Tempo. (Rank Mítico: meta 20)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_time_10"
+    ],
+    "sort_order": 87
+  },
+  {
+    "id": "dna_rank_emotional_tragic",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Terapia Pra Quê se Eu Tenho Esse Catálogo?",
+    "description": "Quotas iguais de filmes Emocionante e Trágico.",
+    "icon": "😭",
+    "target_type": "tag_checklist_quota",
+    "target_value": 20,
+    "target_metadata": {
+      "quotas": [
+        {
+          "tag": "Emocionante",
+          "count": 5
+        },
+        {
+          "tag": "Trágico",
+          "count": 5
+        }
+      ]
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_emotional_tragic__bronze",
+        "tier": "bronze",
+        "target_value": 4,
+        "title": "Terapia Pra Quê se Eu Tenho Esse Catálogo? • Rank Bronze",
+        "description": "Quotas iguais de filmes Emocionante e Trágico. (Rank Bronze: meta 4).",
+        "legacy_id": "dna_emotional_tragic_10"
+      },
+      {
+        "id": "dna_rank_emotional_tragic__silver",
+        "tier": "silver",
+        "target_value": 8,
+        "title": "Terapia Pra Quê se Eu Tenho Esse Catálogo? • Rank Prata",
+        "description": "Quotas iguais de filmes Emocionante e Trágico. (Rank Prata: meta 8)."
+      },
+      {
+        "id": "dna_rank_emotional_tragic__epic",
+        "tier": "epic",
+        "target_value": 12,
+        "title": "Terapia Pra Quê se Eu Tenho Esse Catálogo? • Rank Épico",
+        "description": "Quotas iguais de filmes Emocionante e Trágico. (Rank Épico: meta 12)."
+      },
+      {
+        "id": "dna_rank_emotional_tragic__gold",
+        "tier": "gold",
+        "target_value": 16,
+        "title": "Terapia Pra Quê se Eu Tenho Esse Catálogo? • Rank Ouro",
+        "description": "Quotas iguais de filmes Emocionante e Trágico. (Rank Ouro: meta 16)."
+      },
+      {
+        "id": "dna_rank_emotional_tragic__mythic",
+        "tier": "mythic",
+        "target_value": 20,
+        "title": "Terapia Pra Quê se Eu Tenho Esse Catálogo? • Rank Mítico",
+        "description": "Quotas iguais de filmes Emocionante e Trágico. (Rank Mítico: meta 20)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_emotional_tragic_10"
+    ],
+    "sort_order": 88
+  },
+  {
+    "id": "dna_rank_abuse",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Jantar de Família Mais Tranquilo do Ano",
+    "description": "Filmes com a tag Abuso Familiar.",
+    "icon": "🍷",
+    "target_type": "tag_movie_count",
+    "target_value": 50,
+    "target_metadata": {
+      "tags": [
+        "Abuso Familiar"
+      ]
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_abuse__bronze",
+        "tier": "bronze",
+        "target_value": 5,
+        "title": "Jantar de Família Mais Tranquilo do Ano • Rank Bronze",
+        "description": "Filmes com a tag Abuso Familiar. (Rank Bronze: meta 5).",
+        "legacy_id": "dna_abuse_5"
+      },
+      {
+        "id": "dna_rank_abuse__silver",
+        "tier": "silver",
+        "target_value": 12,
+        "title": "Jantar de Família Mais Tranquilo do Ano • Rank Prata",
+        "description": "Filmes com a tag Abuso Familiar. (Rank Prata: meta 12)."
+      },
+      {
+        "id": "dna_rank_abuse__epic",
+        "tier": "epic",
+        "target_value": 25,
+        "title": "Jantar de Família Mais Tranquilo do Ano • Rank Épico",
+        "description": "Filmes com a tag Abuso Familiar. (Rank Épico: meta 25)."
+      },
+      {
+        "id": "dna_rank_abuse__gold",
+        "tier": "gold",
+        "target_value": 38,
+        "title": "Jantar de Família Mais Tranquilo do Ano • Rank Ouro",
+        "description": "Filmes com a tag Abuso Familiar. (Rank Ouro: meta 38)."
+      },
+      {
+        "id": "dna_rank_abuse__mythic",
+        "tier": "mythic",
+        "target_value": 50,
+        "title": "Jantar de Família Mais Tranquilo do Ano • Rank Mítico",
+        "description": "Filmes com a tag Abuso Familiar. (Rank Mítico: meta 50)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_abuse_5"
+    ],
+    "sort_order": 89
+  },
+  {
+    "id": "dna_rank_prejudice",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Feridas da Sociedade",
+    "description": "Filmes com a tag Preconceito.",
+    "icon": "💔",
+    "target_type": "tag_movie_count",
+    "target_value": 50,
+    "target_metadata": {
+      "tags": [
+        "Preconceito"
+      ]
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_prejudice__bronze",
+        "tier": "bronze",
+        "target_value": 5,
+        "title": "Feridas da Sociedade • Rank Bronze",
+        "description": "Filmes com a tag Preconceito. (Rank Bronze: meta 5).",
+        "legacy_id": "dna_prejudice_5"
+      },
+      {
+        "id": "dna_rank_prejudice__silver",
+        "tier": "silver",
+        "target_value": 12,
+        "title": "Feridas da Sociedade • Rank Prata",
+        "description": "Filmes com a tag Preconceito. (Rank Prata: meta 12)."
+      },
+      {
+        "id": "dna_rank_prejudice__epic",
+        "tier": "epic",
+        "target_value": 25,
+        "title": "Feridas da Sociedade • Rank Épico",
+        "description": "Filmes com a tag Preconceito. (Rank Épico: meta 25)."
+      },
+      {
+        "id": "dna_rank_prejudice__gold",
+        "tier": "gold",
+        "target_value": 38,
+        "title": "Feridas da Sociedade • Rank Ouro",
+        "description": "Filmes com a tag Preconceito. (Rank Ouro: meta 38)."
+      },
+      {
+        "id": "dna_rank_prejudice__mythic",
+        "tier": "mythic",
+        "target_value": 50,
+        "title": "Feridas da Sociedade • Rank Mítico",
+        "description": "Filmes com a tag Preconceito. (Rank Mítico: meta 50)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_prejudice_5"
+    ],
+    "sort_order": 90
+  },
+  {
+    "id": "dna_rank_demon_relig",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Chama o Padre Que o Bagulho Ficou Doido!",
+    "description": "Filmes com as tags Demônio e Religião ao mesmo tempo.",
+    "icon": "⛪",
+    "target_type": "tag_double_and",
+    "target_value": 30,
+    "target_metadata": {
+      "tags": [
+        "Demônio",
+        "Religião"
+      ],
+      "tagMode": "double_and"
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_demon_relig__bronze",
+        "tier": "bronze",
+        "target_value": 3,
+        "title": "Chama o Padre Que o Bagulho Ficou Doido! • Rank Bronze",
+        "description": "Filmes com as tags Demônio e Religião ao mesmo tempo. (Rank Bronze: meta 3).",
+        "legacy_id": "dna_demon_relig_5"
+      },
+      {
+        "id": "dna_rank_demon_relig__silver",
+        "tier": "silver",
+        "target_value": 8,
+        "title": "Chama o Padre Que o Bagulho Ficou Doido! • Rank Prata",
+        "description": "Filmes com as tags Demônio e Religião ao mesmo tempo. (Rank Prata: meta 8)."
+      },
+      {
+        "id": "dna_rank_demon_relig__epic",
+        "tier": "epic",
+        "target_value": 15,
+        "title": "Chama o Padre Que o Bagulho Ficou Doido! • Rank Épico",
+        "description": "Filmes com as tags Demônio e Religião ao mesmo tempo. (Rank Épico: meta 15)."
+      },
+      {
+        "id": "dna_rank_demon_relig__gold",
+        "tier": "gold",
+        "target_value": 22,
+        "title": "Chama o Padre Que o Bagulho Ficou Doido! • Rank Ouro",
+        "description": "Filmes com as tags Demônio e Religião ao mesmo tempo. (Rank Ouro: meta 22)."
+      },
+      {
+        "id": "dna_rank_demon_relig__mythic",
+        "tier": "mythic",
+        "target_value": 30,
+        "title": "Chama o Padre Que o Bagulho Ficou Doido! • Rank Mítico",
+        "description": "Filmes com as tags Demônio e Religião ao mesmo tempo. (Rank Mítico: meta 30)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_demon_relig_5"
+    ],
+    "sort_order": 91
+  },
+  {
+    "id": "dna_rank_xmen",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Matrícula Aprovada no Instituto Xavier",
+    "description": "Filmes com a tag X-Men.",
+    "icon": "🧬",
+    "target_type": "tag_movie_count",
+    "target_value": 15,
+    "target_metadata": {
+      "tags": [
+        "X-Men"
+      ]
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_xmen__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Matrícula Aprovada no Instituto Xavier • Rank Bronze",
+        "description": "Filmes com a tag X-Men. (Rank Bronze: meta 1).",
+        "legacy_id": "dna_xmen_5"
+      },
+      {
+        "id": "dna_rank_xmen__silver",
+        "tier": "silver",
+        "target_value": 3,
+        "title": "Matrícula Aprovada no Instituto Xavier • Rank Prata",
+        "description": "Filmes com a tag X-Men. (Rank Prata: meta 3)."
+      },
+      {
+        "id": "dna_rank_xmen__epic",
+        "tier": "epic",
+        "target_value": 6,
+        "title": "Matrícula Aprovada no Instituto Xavier • Rank Épico",
+        "description": "Filmes com a tag X-Men. (Rank Épico: meta 6)."
+      },
+      {
+        "id": "dna_rank_xmen__gold",
+        "tier": "gold",
+        "target_value": 10,
+        "title": "Matrícula Aprovada no Instituto Xavier • Rank Ouro",
+        "description": "Filmes com a tag X-Men. (Rank Ouro: meta 10)."
+      },
+      {
+        "id": "dna_rank_xmen__mythic",
+        "tier": "mythic",
+        "target_value": 15,
+        "title": "Matrícula Aprovada no Instituto Xavier • Rank Mítico",
+        "description": "Filmes com a tag X-Men. (Rank Mítico: meta 15)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_xmen_5"
+    ],
+    "sort_order": 92
+  },
+  {
+    "id": "dna_rank_power_lgbt",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Mais Forte que um Gaydar!",
+    "description": "Filmes com as tags Super Poder e Personagem LGBT ao mesmo tempo.",
+    "icon": "⚡",
+    "target_type": "tag_double_and",
+    "target_value": 10,
+    "target_metadata": {
+      "tags": [
+        "Super Poder",
+        "Personagem LGBT"
+      ],
+      "tagMode": "double_and"
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_power_lgbt__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Mais Forte que um Gaydar! • Rank Bronze",
+        "description": "Filmes com as tags Super Poder e Personagem LGBT ao mesmo tempo. (Rank Bronze: meta 1).",
+        "legacy_id": "dna_power_lgbt_5"
+      },
+      {
+        "id": "dna_rank_power_lgbt__silver",
+        "tier": "silver",
+        "target_value": 3,
+        "title": "Mais Forte que um Gaydar! • Rank Prata",
+        "description": "Filmes com as tags Super Poder e Personagem LGBT ao mesmo tempo. (Rank Prata: meta 3)."
+      },
+      {
+        "id": "dna_rank_power_lgbt__epic",
+        "tier": "epic",
+        "target_value": 5,
+        "title": "Mais Forte que um Gaydar! • Rank Épico",
+        "description": "Filmes com as tags Super Poder e Personagem LGBT ao mesmo tempo. (Rank Épico: meta 5)."
+      },
+      {
+        "id": "dna_rank_power_lgbt__gold",
+        "tier": "gold",
+        "target_value": 8,
+        "title": "Mais Forte que um Gaydar! • Rank Ouro",
+        "description": "Filmes com as tags Super Poder e Personagem LGBT ao mesmo tempo. (Rank Ouro: meta 8)."
+      },
+      {
+        "id": "dna_rank_power_lgbt__mythic",
+        "tier": "mythic",
+        "target_value": 10,
+        "title": "Mais Forte que um Gaydar! • Rank Mítico",
+        "description": "Filmes com as tags Super Poder e Personagem LGBT ao mesmo tempo. (Rank Mítico: meta 10)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_power_lgbt_5"
+    ],
+    "sort_order": 93
+  },
+  {
+    "id": "dna_rank_facts_br",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "volta_ao_mundo"
+    ],
+    "tier": "mythic",
+    "title": "Fatos Brasileiros",
+    "description": "Filmes do Brasil com a tag Fatos Reais (inclui coproduções).",
+    "icon": "🇧🇷",
+    "target_type": "tag_hybrid_country",
+    "target_value": 20,
+    "target_metadata": {
+      "tags": [
+        "Fatos Reais"
+      ],
+      "countryCode": "br",
+      "countryName": "Brasil",
+      "countryFlag": "🇧🇷",
+      "isHybrid": true
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_facts_br__bronze",
+        "tier": "bronze",
+        "target_value": 2,
+        "title": "Fatos Brasileiros • Rank Bronze",
+        "description": "Filmes do Brasil com a tag Fatos Reais (inclui coproduções). (Rank Bronze: meta 2).",
+        "legacy_id": "dna_facts_br_10"
+      },
+      {
+        "id": "dna_rank_facts_br__silver",
+        "tier": "silver",
+        "target_value": 5,
+        "title": "Fatos Brasileiros • Rank Prata",
+        "description": "Filmes do Brasil com a tag Fatos Reais (inclui coproduções). (Rank Prata: meta 5)."
+      },
+      {
+        "id": "dna_rank_facts_br__epic",
+        "tier": "epic",
+        "target_value": 10,
+        "title": "Fatos Brasileiros • Rank Épico",
+        "description": "Filmes do Brasil com a tag Fatos Reais (inclui coproduções). (Rank Épico: meta 10)."
+      },
+      {
+        "id": "dna_rank_facts_br__gold",
+        "tier": "gold",
+        "target_value": 15,
+        "title": "Fatos Brasileiros • Rank Ouro",
+        "description": "Filmes do Brasil com a tag Fatos Reais (inclui coproduções). (Rank Ouro: meta 15)."
+      },
+      {
+        "id": "dna_rank_facts_br__mythic",
+        "tier": "mythic",
+        "target_value": 20,
+        "title": "Fatos Brasileiros • Rank Mítico",
+        "description": "Filmes do Brasil com a tag Fatos Reais (inclui coproduções). (Rank Mítico: meta 20)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_facts_br_10"
+    ],
+    "sort_order": 94
+  },
+  {
+    "id": "dna_rank_marvel_dc",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Guerra Civil dos Quadrinhos (Sem Clubismo!)",
+    "description": "Quotas iguais de filmes Marvel e DC (até 10 de cada = 20).",
+    "icon": "⚔️",
+    "target_type": "tag_checklist_quota",
+    "target_value": 20,
+    "target_metadata": {
+      "quotas": [
+        {
+          "tag": "Marvel",
+          "count": 15
+        },
+        {
+          "tag": "DC",
+          "count": 15
+        }
+      ],
+      "tags": [
+        "Marvel",
+        "DC"
+      ]
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_marvel_dc__bronze",
+        "tier": "bronze",
+        "target_value": 4,
+        "title": "Guerra Civil dos Quadrinhos (Sem Clubismo!) • Rank Bronze",
+        "description": "Quotas iguais de filmes Marvel e DC (até 10 de cada = 20). (Rank Bronze: meta 4).",
+        "legacy_id": "dna_marvel_dc_30"
+      },
+      {
+        "id": "dna_rank_marvel_dc__silver",
+        "tier": "silver",
+        "target_value": 8,
+        "title": "Guerra Civil dos Quadrinhos (Sem Clubismo!) • Rank Prata",
+        "description": "Quotas iguais de filmes Marvel e DC (até 10 de cada = 20). (Rank Prata: meta 8)."
+      },
+      {
+        "id": "dna_rank_marvel_dc__epic",
+        "tier": "epic",
+        "target_value": 12,
+        "title": "Guerra Civil dos Quadrinhos (Sem Clubismo!) • Rank Épico",
+        "description": "Quotas iguais de filmes Marvel e DC (até 10 de cada = 20). (Rank Épico: meta 12)."
+      },
+      {
+        "id": "dna_rank_marvel_dc__gold",
+        "tier": "gold",
+        "target_value": 16,
+        "title": "Guerra Civil dos Quadrinhos (Sem Clubismo!) • Rank Ouro",
+        "description": "Quotas iguais de filmes Marvel e DC (até 10 de cada = 20). (Rank Ouro: meta 16)."
+      },
+      {
+        "id": "dna_rank_marvel_dc__mythic",
+        "tier": "mythic",
+        "target_value": 20,
+        "title": "Guerra Civil dos Quadrinhos (Sem Clubismo!) • Rank Mítico",
+        "description": "Quotas iguais de filmes Marvel e DC (até 10 de cada = 20). (Rank Mítico: meta 20)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_marvel_dc_30"
+    ],
+    "sort_order": 95
+  },
+  {
+    "id": "dna_rank_super_poder",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Todo Mundo Tem Poder?",
+    "description": "Filmes com a tag Super Poder.",
+    "icon": "💥",
+    "target_type": "tag_movie_count",
+    "target_value": 50,
+    "target_metadata": {
+      "tags": [
+        "Super Poder"
+      ]
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_super_poder__bronze",
+        "tier": "bronze",
+        "target_value": 5,
+        "title": "Todo Mundo Tem Poder? • Rank Bronze",
+        "description": "Filmes com a tag Super Poder. (Rank Bronze: meta 5).",
+        "legacy_id": "dna_power_100"
+      },
+      {
+        "id": "dna_rank_super_poder__silver",
+        "tier": "silver",
+        "target_value": 12,
+        "title": "Todo Mundo Tem Poder? • Rank Prata",
+        "description": "Filmes com a tag Super Poder. (Rank Prata: meta 12)."
+      },
+      {
+        "id": "dna_rank_super_poder__epic",
+        "tier": "epic",
+        "target_value": 25,
+        "title": "Todo Mundo Tem Poder? • Rank Épico",
+        "description": "Filmes com a tag Super Poder. (Rank Épico: meta 25)."
+      },
+      {
+        "id": "dna_rank_super_poder__gold",
+        "tier": "gold",
+        "target_value": 38,
+        "title": "Todo Mundo Tem Poder? • Rank Ouro",
+        "description": "Filmes com a tag Super Poder. (Rank Ouro: meta 38)."
+      },
+      {
+        "id": "dna_rank_super_poder__mythic",
+        "tier": "mythic",
+        "target_value": 50,
+        "title": "Todo Mundo Tem Poder? • Rank Mítico",
+        "description": "Filmes com a tag Super Poder. (Rank Mítico: meta 50)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_power_100"
+    ],
+    "sort_order": 96
+  },
+  {
+    "id": "dna_rank_kid_school",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Ainda Bem que Não Sou Professor Deles!",
+    "description": "Filmes com as tags Criança Malvada e Colegio/Escola ao mesmo tempo.",
+    "icon": "🎒",
+    "target_type": "tag_double_and",
+    "target_value": 20,
+    "target_metadata": {
+      "tags": [
+        "Criança Malvada",
+        "Colegio/Escola"
+      ],
+      "tagMode": "double_and"
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_kid_school__bronze",
+        "tier": "bronze",
+        "target_value": 2,
+        "title": "Ainda Bem que Não Sou Professor Deles! • Rank Bronze",
+        "description": "Filmes com as tags Criança Malvada e Colegio/Escola ao mesmo tempo. (Rank Bronze: meta 2).",
+        "legacy_id": "dna_kid_school_30"
+      },
+      {
+        "id": "dna_rank_kid_school__silver",
+        "tier": "silver",
+        "target_value": 5,
+        "title": "Ainda Bem que Não Sou Professor Deles! • Rank Prata",
+        "description": "Filmes com as tags Criança Malvada e Colegio/Escola ao mesmo tempo. (Rank Prata: meta 5)."
+      },
+      {
+        "id": "dna_rank_kid_school__epic",
+        "tier": "epic",
+        "target_value": 10,
+        "title": "Ainda Bem que Não Sou Professor Deles! • Rank Épico",
+        "description": "Filmes com as tags Criança Malvada e Colegio/Escola ao mesmo tempo. (Rank Épico: meta 10)."
+      },
+      {
+        "id": "dna_rank_kid_school__gold",
+        "tier": "gold",
+        "target_value": 15,
+        "title": "Ainda Bem que Não Sou Professor Deles! • Rank Ouro",
+        "description": "Filmes com as tags Criança Malvada e Colegio/Escola ao mesmo tempo. (Rank Ouro: meta 15)."
+      },
+      {
+        "id": "dna_rank_kid_school__mythic",
+        "tier": "mythic",
+        "target_value": 20,
+        "title": "Ainda Bem que Não Sou Professor Deles! • Rank Mítico",
+        "description": "Filmes com as tags Criança Malvada e Colegio/Escola ao mesmo tempo. (Rank Mítico: meta 20)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_kid_school_30"
+    ],
+    "sort_order": 97
+  },
+  {
+    "id": "dna_rank_kid_us",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "volta_ao_mundo"
+    ],
+    "tier": "mythic",
+    "title": "Manual de Como Não se Criar uma Criança",
+    "description": "Filmes dos EUA com a tag Criança Malvada (inclui coproduções).",
+    "icon": "👿",
+    "target_type": "tag_hybrid_country",
+    "target_value": 30,
+    "target_metadata": {
+      "tags": [
+        "Criança Malvada"
+      ],
+      "countryCode": "us",
+      "countryName": "Estados Unidos",
+      "countryFlag": "🇺🇸",
+      "isHybrid": true
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_kid_us__bronze",
+        "tier": "bronze",
+        "target_value": 3,
+        "title": "Manual de Como Não se Criar uma Criança • Rank Bronze",
+        "description": "Filmes dos EUA com a tag Criança Malvada (inclui coproduções). (Rank Bronze: meta 3).",
+        "legacy_id": "dna_kid_us_30"
+      },
+      {
+        "id": "dna_rank_kid_us__silver",
+        "tier": "silver",
+        "target_value": 8,
+        "title": "Manual de Como Não se Criar uma Criança • Rank Prata",
+        "description": "Filmes dos EUA com a tag Criança Malvada (inclui coproduções). (Rank Prata: meta 8)."
+      },
+      {
+        "id": "dna_rank_kid_us__epic",
+        "tier": "epic",
+        "target_value": 15,
+        "title": "Manual de Como Não se Criar uma Criança • Rank Épico",
+        "description": "Filmes dos EUA com a tag Criança Malvada (inclui coproduções). (Rank Épico: meta 15)."
+      },
+      {
+        "id": "dna_rank_kid_us__gold",
+        "tier": "gold",
+        "target_value": 22,
+        "title": "Manual de Como Não se Criar uma Criança • Rank Ouro",
+        "description": "Filmes dos EUA com a tag Criança Malvada (inclui coproduções). (Rank Ouro: meta 22)."
+      },
+      {
+        "id": "dna_rank_kid_us__mythic",
+        "tier": "mythic",
+        "target_value": 30,
+        "title": "Manual de Como Não se Criar uma Criança • Rank Mítico",
+        "description": "Filmes dos EUA com a tag Criança Malvada (inclui coproduções). (Rank Mítico: meta 30)."
+      }
+    ],
+    "legacy_ids": [
+      "dna_kid_us_30"
+    ],
+    "sort_order": 98
+  },
+  {
+    "id": "dna_rank_pirata_lgbt",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "ritual_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "A Bandeira Desse Pirata É Diferente! (Arco-Íris nos Sete Mares)",
+    "description": "Filmes com tag Personagem LGBT vistos em My Family Cine, YouTube ou Internet.",
+    "icon": "🏳️‍🌈",
+    "target_type": "multi_ritual_rule",
+    "target_value": 20,
+    "target_metadata": {
+      "ruleKey": "pirata_tag_lgbt_15"
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_pirata_lgbt__bronze",
+        "tier": "bronze",
+        "target_value": 2,
+        "title": "A Bandeira Desse Pirata É Diferente! (Arco-Íris nos Sete Mares) • Rank Bronze",
+        "description": "Filmes com tag Personagem LGBT vistos em My Family Cine, YouTube ou Internet. (Rank Bronze: meta 2).",
+        "legacy_id": "multi_dna_rc_pirata_lgbt_15"
+      },
+      {
+        "id": "dna_rank_pirata_lgbt__silver",
+        "tier": "silver",
+        "target_value": 5,
+        "title": "A Bandeira Desse Pirata É Diferente! (Arco-Íris nos Sete Mares) • Rank Prata",
+        "description": "Filmes com tag Personagem LGBT vistos em My Family Cine, YouTube ou Internet. (Rank Prata: meta 5)."
+      },
+      {
+        "id": "dna_rank_pirata_lgbt__epic",
+        "tier": "epic",
+        "target_value": 10,
+        "title": "A Bandeira Desse Pirata É Diferente! (Arco-Íris nos Sete Mares) • Rank Épico",
+        "description": "Filmes com tag Personagem LGBT vistos em My Family Cine, YouTube ou Internet. (Rank Épico: meta 10)."
+      },
+      {
+        "id": "dna_rank_pirata_lgbt__gold",
+        "tier": "gold",
+        "target_value": 15,
+        "title": "A Bandeira Desse Pirata É Diferente! (Arco-Íris nos Sete Mares) • Rank Ouro",
+        "description": "Filmes com tag Personagem LGBT vistos em My Family Cine, YouTube ou Internet. (Rank Ouro: meta 15)."
+      },
+      {
+        "id": "dna_rank_pirata_lgbt__mythic",
+        "tier": "mythic",
+        "target_value": 20,
+        "title": "A Bandeira Desse Pirata É Diferente! (Arco-Íris nos Sete Mares) • Rank Mítico",
+        "description": "Filmes com tag Personagem LGBT vistos em My Family Cine, YouTube ou Internet. (Rank Mítico: meta 20)."
+      }
+    ],
+    "legacy_ids": [
+      "multi_dna_rc_pirata_lgbt_15"
+    ],
+    "sort_order": 99
+  },
+  {
+    "id": "dna_rank_folha_branco",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "DNA Cinéfilo: Ué, uma Folha em Branco?!",
+    "description": "Filmes cadastrados com 0 tags vinculadas.",
+    "icon": "📄",
+    "target_type": "movie_zero_tags_count",
+    "target_value": 10,
+    "target_metadata": {
+      "tagCount": 0
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_folha_branco__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "DNA Cinéfilo: Ué, uma Folha em Branco?! • Rank Bronze",
+        "description": "Filmes cadastrados com 0 tags vinculadas. (Rank Bronze: meta 1).",
+        "legacy_id": "tc_folha_em_branco_15"
+      },
+      {
+        "id": "dna_rank_folha_branco__silver",
+        "tier": "silver",
+        "target_value": 3,
+        "title": "DNA Cinéfilo: Ué, uma Folha em Branco?! • Rank Prata",
+        "description": "Filmes cadastrados com 0 tags vinculadas. (Rank Prata: meta 3)."
+      },
+      {
+        "id": "dna_rank_folha_branco__epic",
+        "tier": "epic",
+        "target_value": 5,
+        "title": "DNA Cinéfilo: Ué, uma Folha em Branco?! • Rank Épico",
+        "description": "Filmes cadastrados com 0 tags vinculadas. (Rank Épico: meta 5)."
+      },
+      {
+        "id": "dna_rank_folha_branco__gold",
+        "tier": "gold",
+        "target_value": 8,
+        "title": "DNA Cinéfilo: Ué, uma Folha em Branco?! • Rank Ouro",
+        "description": "Filmes cadastrados com 0 tags vinculadas. (Rank Ouro: meta 8)."
+      },
+      {
+        "id": "dna_rank_folha_branco__mythic",
+        "tier": "mythic",
+        "target_value": 10,
+        "title": "DNA Cinéfilo: Ué, uma Folha em Branco?! • Rank Mítico",
+        "description": "Filmes cadastrados com 0 tags vinculadas. (Rank Mítico: meta 10)."
+      }
+    ],
+    "legacy_ids": [
+      "tc_folha_em_branco_15"
+    ],
+    "sort_order": 100
+  },
+  {
+    "id": "dna_rank_em_familia_cinema",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "ritual_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Pipoca Dividida (Disputa de Balde na Fileira F)",
+    "description": "Filmes com tag Em Família assistidos no Cinema.",
+    "icon": "🍿",
+    "target_type": "tag_platform_count",
+    "target_value": 20,
+    "target_metadata": {
+      "tag": "Em Família",
+      "platform": "Cinema"
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_em_familia_cinema__bronze",
+        "tier": "bronze",
+        "target_value": 2,
+        "title": "Pipoca Dividida (Disputa de Balde na Fileira F) • Rank Bronze",
+        "description": "Filmes com tag Em Família assistidos no Cinema. (Rank Bronze: meta 2).",
+        "legacy_id": "tc_em_familia_cinema_10"
+      },
+      {
+        "id": "dna_rank_em_familia_cinema__silver",
+        "tier": "silver",
+        "target_value": 5,
+        "title": "Pipoca Dividida (Disputa de Balde na Fileira F) • Rank Prata",
+        "description": "Filmes com tag Em Família assistidos no Cinema. (Rank Prata: meta 5)."
+      },
+      {
+        "id": "dna_rank_em_familia_cinema__epic",
+        "tier": "epic",
+        "target_value": 10,
+        "title": "Pipoca Dividida (Disputa de Balde na Fileira F) • Rank Épico",
+        "description": "Filmes com tag Em Família assistidos no Cinema. (Rank Épico: meta 10)."
+      },
+      {
+        "id": "dna_rank_em_familia_cinema__gold",
+        "tier": "gold",
+        "target_value": 15,
+        "title": "Pipoca Dividida (Disputa de Balde na Fileira F) • Rank Ouro",
+        "description": "Filmes com tag Em Família assistidos no Cinema. (Rank Ouro: meta 15)."
+      },
+      {
+        "id": "dna_rank_em_familia_cinema__mythic",
+        "tier": "mythic",
+        "target_value": 20,
+        "title": "Pipoca Dividida (Disputa de Balde na Fileira F) • Rank Mítico",
+        "description": "Filmes com tag Em Família assistidos no Cinema. (Rank Mítico: meta 20)."
+      }
+    ],
+    "legacy_ids": [
+      "tc_em_familia_cinema_10"
+    ],
+    "sort_order": 101
+  },
+  {
+    "id": "dna_rank_em_familia_agosto",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "data_limite"
+    ],
+    "tier": "mythic",
+    "title": "Festa de Aniversário com a Galera!",
+    "description": "Filmes com tag Em Família assistidos no mês de Agosto.",
+    "icon": "🎂",
+    "target_type": "tag_month",
+    "target_value": 10,
+    "target_metadata": {
+      "tag": "Em Família",
+      "month": 8
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_em_familia_agosto__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Festa de Aniversário com a Galera! • Rank Bronze",
+        "description": "Filmes com tag Em Família assistidos no mês de Agosto. (Rank Bronze: meta 1).",
+        "legacy_id": "tc_em_familia_agosto_5"
+      },
+      {
+        "id": "dna_rank_em_familia_agosto__silver",
+        "tier": "silver",
+        "target_value": 3,
+        "title": "Festa de Aniversário com a Galera! • Rank Prata",
+        "description": "Filmes com tag Em Família assistidos no mês de Agosto. (Rank Prata: meta 3)."
+      },
+      {
+        "id": "dna_rank_em_familia_agosto__epic",
+        "tier": "epic",
+        "target_value": 5,
+        "title": "Festa de Aniversário com a Galera! • Rank Épico",
+        "description": "Filmes com tag Em Família assistidos no mês de Agosto. (Rank Épico: meta 5)."
+      },
+      {
+        "id": "dna_rank_em_familia_agosto__gold",
+        "tier": "gold",
+        "target_value": 8,
+        "title": "Festa de Aniversário com a Galera! • Rank Ouro",
+        "description": "Filmes com tag Em Família assistidos no mês de Agosto. (Rank Ouro: meta 8)."
+      },
+      {
+        "id": "dna_rank_em_familia_agosto__mythic",
+        "tier": "mythic",
+        "target_value": 10,
+        "title": "Festa de Aniversário com a Galera! • Rank Mítico",
+        "description": "Filmes com tag Em Família assistidos no mês de Agosto. (Rank Mítico: meta 10)."
+      }
+    ],
+    "legacy_ids": [
+      "tc_em_familia_agosto_5"
+    ],
+    "sort_order": 102
+  },
+  {
+    "id": "dna_rank_milagre_jogo",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "tribunal_critica"
+    ],
+    "tier": "mythic",
+    "title": "Milagre na Indústria: Essa Adaptação Ficou Boa?!",
+    "description": "Filmes com tag Baseado em jogo e Minha Nota >= 8.000.",
+    "icon": "👾",
+    "target_type": "tag_min_rating_count",
+    "target_value": 10,
+    "target_metadata": {
+      "tag": "Baseado em jogo",
+      "minRating": 8000
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_milagre_jogo__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Milagre na Indústria: Essa Adaptação Ficou Boa?! • Rank Bronze",
+        "description": "Filmes com tag Baseado em jogo e Minha Nota >= 8.000. (Rank Bronze: meta 1).",
+        "legacy_id": "tc_milagre_industria_baseado_jogo_nota_8"
+      },
+      {
+        "id": "dna_rank_milagre_jogo__silver",
+        "tier": "silver",
+        "target_value": 3,
+        "title": "Milagre na Indústria: Essa Adaptação Ficou Boa?! • Rank Prata",
+        "description": "Filmes com tag Baseado em jogo e Minha Nota >= 8.000. (Rank Prata: meta 3)."
+      },
+      {
+        "id": "dna_rank_milagre_jogo__epic",
+        "tier": "epic",
+        "target_value": 5,
+        "title": "Milagre na Indústria: Essa Adaptação Ficou Boa?! • Rank Épico",
+        "description": "Filmes com tag Baseado em jogo e Minha Nota >= 8.000. (Rank Épico: meta 5)."
+      },
+      {
+        "id": "dna_rank_milagre_jogo__gold",
+        "tier": "gold",
+        "target_value": 8,
+        "title": "Milagre na Indústria: Essa Adaptação Ficou Boa?! • Rank Ouro",
+        "description": "Filmes com tag Baseado em jogo e Minha Nota >= 8.000. (Rank Ouro: meta 8)."
+      },
+      {
+        "id": "dna_rank_milagre_jogo__mythic",
+        "tier": "mythic",
+        "target_value": 10,
+        "title": "Milagre na Indústria: Essa Adaptação Ficou Boa?! • Rank Mítico",
+        "description": "Filmes com tag Baseado em jogo e Minha Nota >= 8.000. (Rank Mítico: meta 10)."
+      }
+    ],
+    "legacy_ids": [
+      "tc_milagre_industria_baseado_jogo_nota_8"
+    ],
+    "sort_order": 103
   },
   {
     "id": "dna_kid_1",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "bronze",
     "title": "Propaganda de Anticoncepcional!",
     "description": "Conquistar 1 filme com a tag Criança Malvada (1 filme).",
@@ -1987,14 +4498,18 @@ export const TROPHY_DEFINITIONS = [
         "Criança Malvada"
       ]
     },
-    "sort_order": 105,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_kid_1"
+    ],
+    "sort_order": 104
   },
   {
     "id": "dna_school_1",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "bronze",
     "title": "Nem nas Férias Eu Escapo da Escola?!",
     "description": "Conquistar 1 filme com a tag Colegio/Escola (1 filme).",
@@ -2006,33 +4521,18 @@ export const TROPHY_DEFINITIONS = [
         "Colegio/Escola"
       ]
     },
-    "sort_order": 106,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_game_1",
-    "category": "dna_cinefilo",
-    "tier": "bronze",
-    "title": "Finalmente Uma Adaptação Que Presta? (Ou Não)",
-    "description": "Conquistar 1 filme com a tag Baseado em jogo (1 filme).",
-    "icon": "🎮",
-    "target_type": "tag_movie_count",
-    "target_value": 1,
-    "target_metadata": {
-      "tags": [
-        "Baseado em jogo"
-      ]
-    },
-    "sort_order": 107,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_school_1"
+    ],
+    "sort_order": 105
   },
   {
     "id": "dna_anime_1",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "bronze",
     "title": "Medo Genuíno de Live-Action!",
     "description": "Conquistar 1 filme com a tag Baseado em Anime (1 filme).",
@@ -2044,33 +4544,18 @@ export const TROPHY_DEFINITIONS = [
         "Baseado em Anime"
       ]
     },
-    "sort_order": 108,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_anthro_1",
-    "category": "dna_cinefilo",
-    "tier": "bronze",
-    "title": "Esse Bicho Tá Falando e Usando Roupa?!",
-    "description": "Conquistar 1 filme com a tag Animais antropomorficos (1 filme).",
-    "icon": "🦊",
-    "target_type": "tag_movie_count",
-    "target_value": 1,
-    "target_metadata": {
-      "tags": [
-        "Animais antropomorficos"
-      ]
-    },
-    "sort_order": 109,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_anime_1"
+    ],
+    "sort_order": 106
   },
   {
     "id": "dna_silent_1",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "bronze",
     "title": "Ué, a TV Ficou no Mute?",
     "description": "Conquistar 1 filme com a tag Mudo (1 filme).",
@@ -2082,14 +4567,18 @@ export const TROPHY_DEFINITIONS = [
         "Mudo"
       ]
     },
-    "sort_order": 110,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_silent_1"
+    ],
+    "sort_order": 107
   },
   {
     "id": "dna_bw_1",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "bronze",
     "title": "Acabou a Tinta da Televisão!",
     "description": "Conquistar 1 filme com a tag Preto e branco (1 filme).",
@@ -2101,33 +4590,18 @@ export const TROPHY_DEFINITIONS = [
         "Preto e branco"
       ]
     },
-    "sort_order": 111,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_repeat_1",
-    "category": "dna_cinefilo",
-    "tier": "bronze",
-    "title": "Vale a Pena Ver de Novo!",
-    "description": "Conquistar 1 filme com a tag Repetido (1 filme).",
-    "icon": "🔁",
-    "target_type": "tag_movie_count",
-    "target_value": 1,
-    "target_metadata": {
-      "tags": [
-        "Repetido"
-      ]
-    },
-    "sort_order": 112,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_bw_1"
+    ],
+    "sort_order": 108
   },
   {
     "id": "dna_parody_1",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "bronze",
     "title": "Nada se Cria, Tudo se Zomba",
     "description": "Conquistar 1 filme com a tag Paródia (1 filme).",
@@ -2139,14 +4613,18 @@ export const TROPHY_DEFINITIONS = [
         "Paródia"
       ]
     },
-    "sort_order": 113,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_parody_1"
+    ],
+    "sort_order": 109
   },
   {
     "id": "dna_xmas_1",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "bronze",
     "title": "Já É Natal na Leader Magazine!",
     "description": "Conquistar 1 filme com a tag Natal (1 filme).",
@@ -2158,14 +4636,18 @@ export const TROPHY_DEFINITIONS = [
         "Natal"
       ]
     },
-    "sort_order": 114,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_xmas_1"
+    ],
+    "sort_order": 110
   },
   {
     "id": "dna_alien_1",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "bronze",
     "title": "Busquem Conhecimento!",
     "description": "Conquistar 1 filme com a tag Aliens (1 filme).",
@@ -2177,52 +4659,18 @@ export const TROPHY_DEFINITIONS = [
         "Aliens"
       ]
     },
-    "sort_order": 115,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_epic_final_1",
-    "category": "dna_cinefilo",
-    "tier": "bronze",
-    "title": "Absolute Cinema!",
-    "description": "Conquistar 1 filme com a tag Final Epico (1 filme).",
-    "icon": "🍿",
-    "target_type": "tag_movie_count",
-    "target_value": 1,
-    "target_metadata": {
-      "tags": [
-        "Final Epico"
-      ]
-    },
-    "sort_order": 116,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_gore_1",
-    "category": "dna_cinefilo",
-    "tier": "bronze",
-    "title": "Proibido Assistir Almoçando!",
-    "description": "Conquistar 1 filme com a tag Gore (1 filme).",
-    "icon": "🩸",
-    "target_type": "tag_movie_count",
-    "target_value": 1,
-    "target_metadata": {
-      "tags": [
-        "Gore"
-      ]
-    },
-    "sort_order": 117,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_alien_1"
+    ],
+    "sort_order": 111
   },
   {
     "id": "dna_kidnap_1",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "bronze",
     "title": "Alô, Liam Neeson? Preciso de Ajuda!",
     "description": "Conquistar 1 filme com a tag Sequestro (1 filme).",
@@ -2234,33 +4682,18 @@ export const TROPHY_DEFINITIONS = [
         "Sequestro"
       ]
     },
-    "sort_order": 118,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_lgbt_1",
-    "category": "dna_cinefilo",
-    "tier": "bronze",
-    "title": "Todas as Cores na Tela",
-    "description": "Conquistar 1 filme com a tag Personagem LGBT (1 filme).",
-    "icon": "🏳️‍🌈",
-    "target_type": "tag_movie_count",
-    "target_value": 1,
-    "target_metadata": {
-      "tags": [
-        "Personagem LGBT"
-      ]
-    },
-    "sort_order": 119,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_kidnap_1"
+    ],
+    "sort_order": 112
   },
   {
     "id": "dna_wizard_1",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "bronze",
     "title": "Cadê Minha Carta de Hogwarts?",
     "description": "Conquistar 1 filme com a tag Bruxo (1 filme).",
@@ -2272,120 +4705,19 @@ export const TROPHY_DEFINITIONS = [
         "Bruxo"
       ]
     },
-    "sort_order": 120,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_anime_us_3",
-    "category": "dna_cinefilo",
-    "tier": "bronze",
-    "title": "Hollywood Estragou Meu Anime?!",
-    "description": "Conquistar 3 filmes dos Estados Unidos com a tag Baseado em Anime (3 filmes).",
-    "icon": "🎬",
-    "target_type": "tag_hybrid_country",
-    "target_value": 3,
-    "target_metadata": {
-      "tags": [
-        "Baseado em Anime"
-      ],
-      "countryCode": "us",
-      "countryName": "Estados Unidos",
-      "countryFlag": "🇺🇸",
-      "isHybrid": true
-    },
-    "sort_order": 121,
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_lgbt_15",
-    "category": "dna_cinefilo",
-    "tier": "silver",
-    "title": "Love is Love",
-    "description": "Conquistar 15 filmes com a tag Personagem LGBT (15 filmes).",
-    "icon": "💖",
-    "target_type": "tag_movie_count",
-    "target_value": 15,
-    "target_metadata": {
-      "tags": [
-        "Personagem LGBT"
-      ]
-    },
-    "sort_order": 122,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_vamp_lgbt_1",
-    "category": "dna_cinefilo",
-    "tier": "silver",
-    "title": "Vampiros São Gays?",
-    "description": "Conquistar 1 filme com as tags Vampiro e Personagem LGBT ao mesmo tempo (1 filme).",
-    "icon": "🦇",
-    "target_type": "tag_double_and",
-    "target_value": 1,
-    "target_metadata": {
-      "tags": [
-        "Vampiro",
-        "Personagem LGBT"
-      ],
-      "tagMode": "double_and"
-    },
-    "sort_order": 123,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_vamp_kid_5",
-    "category": "dna_cinefilo",
-    "tier": "silver",
-    "title": "Uma Epidemia de Mini Vampiros?",
-    "description": "Conquistar 5 filmes com as tags Vampiro e Criança Malvada ao mesmo tempo (5 filmes).",
-    "icon": "🩸",
-    "target_type": "tag_double_and",
-    "target_value": 5,
-    "target_metadata": {
-      "tags": [
-        "Vampiro",
-        "Criança Malvada"
-      ],
-      "tagMode": "double_and"
-    },
-    "sort_order": 124,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_abuse_kid_20",
-    "category": "dna_cinefilo",
-    "tier": "silver",
-    "title": "A Culpa É dos Pais!",
-    "description": "Conquistar 20 filmes com as tags Abuso Familiar e Criança Malvada ao mesmo tempo (20 filmes).",
-    "icon": "🏚️",
-    "target_type": "tag_double_and",
-    "target_value": 20,
-    "target_metadata": {
-      "tags": [
-        "Abuso Familiar",
-        "Criança Malvada"
-      ],
-      "tagMode": "double_and"
-    },
-    "sort_order": 125,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_wizard_1"
+    ],
+    "sort_order": 113
   },
   {
     "id": "dna_alien_mx_1",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "volta_ao_mundo",
+      "dna_cinefilo"
+    ],
     "tier": "silver",
     "title": "Já Chegou o Disco Voador!",
     "description": "Conquistar 1 filme do México com a tag Aliens (1 filme).",
@@ -2401,110 +4733,18 @@ export const TROPHY_DEFINITIONS = [
       "countryFlag": "🇲🇽",
       "isHybrid": true
     },
-    "sort_order": 126,
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_dystopia_20",
-    "category": "dna_cinefilo",
-    "tier": "silver",
-    "title": "Será Que o Mundo Acaba Assim?",
-    "description": "Conquistar 20 filmes com a tag Dystopia (20 filmes).",
-    "icon": "☣️",
-    "target_type": "tag_movie_count",
-    "target_value": 20,
-    "target_metadata": {
-      "tags": [
-        "Dystopia"
-      ]
-    },
-    "sort_order": 127,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_time_10",
-    "category": "dna_cinefilo",
-    "tier": "silver",
-    "title": "Vai e Volta",
-    "description": "Conquistar 10 filmes com a tag Viagem no Tempo (10 filmes).",
-    "icon": "⏳",
-    "target_type": "tag_movie_count",
-    "target_value": 10,
-    "target_metadata": {
-      "tags": [
-        "Viagem no Tempo"
-      ]
-    },
-    "sort_order": 128,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_sk_5",
-    "category": "dna_cinefilo",
-    "tier": "silver",
-    "title": "Turista de Derry e Castle Rock",
-    "description": "Conquistar 5 filmes com a tag SK (Stephen King) (5 filmes).",
-    "icon": "🤡",
-    "target_type": "tag_movie_count",
-    "target_value": 5,
-    "target_metadata": {
-      "tags": [
-        "SK"
-      ]
-    },
-    "sort_order": 129,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_top250_10",
-    "category": "dna_cinefilo",
-    "tier": "silver",
-    "title": "Fiscal Oficial de Nota do IMDb",
-    "description": "Conquistar 10 filmes com a tag TOP250 (10 filmes).",
-    "icon": "📊",
-    "target_type": "tag_movie_count",
-    "target_value": 10,
-    "target_metadata": {
-      "tags": [
-        "TOP250"
-      ]
-    },
-    "sort_order": 130,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_invocaversus_5",
-    "category": "dna_cinefilo",
-    "tier": "silver",
-    "title": "Chave do Museu Oculto dos Warren",
-    "description": "Conquistar 5 filmes com a tag \"invocaversus\" (5 filmes).",
-    "icon": "🗝️",
-    "target_type": "tag_movie_count",
-    "target_value": 5,
-    "target_metadata": {
-      "tags": [
-        "invocaversus"
-      ]
-    },
-    "sort_order": 131,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_alien_mx_1"
+    ],
+    "sort_order": 114
   },
   {
     "id": "dna_true_crime_reais_10",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "silver",
     "title": "Ouvinte de Podcast de True Crime às 3h da Manhã",
     "description": "Conquistar 5 filmes com a tag Crime real e 5 filmes com a tag Fatos Reais (10 filmes).",
@@ -2523,78 +4763,18 @@ export const TROPHY_DEFINITIONS = [
         }
       ]
     },
-    "sort_order": 132,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_emotional_tragic_10",
-    "category": "dna_cinefilo",
-    "tier": "silver",
-    "title": "Terapia Pra Quê se Eu Tenho Esse Catálogo?",
-    "description": "Conquistar 5 filmes com a tag Emocionante e 5 filmes com a tag Trágico (10 filmes).",
-    "icon": "😭",
-    "target_type": "tag_checklist_quota",
-    "target_value": 10,
-    "target_metadata": {
-      "quotas": [
-        {
-          "tag": "Emocionante",
-          "count": 5
-        },
-        {
-          "tag": "Trágico",
-          "count": 5
-        }
-      ]
-    },
-    "sort_order": 133,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_abuse_5",
-    "category": "dna_cinefilo",
-    "tier": "silver",
-    "title": "Jantar de Família Mais Tranquilo do Ano",
-    "description": "Conquistar 5 filmes com a tag Abuso Familiar (5 filmes).",
-    "icon": "🍷",
-    "target_type": "tag_movie_count",
-    "target_value": 5,
-    "target_metadata": {
-      "tags": [
-        "Abuso Familiar"
-      ]
-    },
-    "sort_order": 134,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_prejudice_5",
-    "category": "dna_cinefilo",
-    "tier": "silver",
-    "title": "Feridas da Sociedade",
-    "description": "Conquistar 5 filmes com a tag Preconceito (5 filmes).",
-    "icon": "💔",
-    "target_type": "tag_movie_count",
-    "target_value": 5,
-    "target_metadata": {
-      "tags": [
-        "Preconceito"
-      ]
-    },
-    "sort_order": 135,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_true_crime_reais_10"
+    ],
+    "sort_order": 115
   },
   {
     "id": "dna_vamp_wolf_6",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "silver",
     "title": "Team Edward ou Team Jacob?",
     "description": "Conquistar 3 filmes com a tag Vampiro e 3 filmes com a tag Lobisomem (6 filmes).",
@@ -2613,35 +4793,18 @@ export const TROPHY_DEFINITIONS = [
         }
       ]
     },
-    "sort_order": 136,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_demon_relig_5",
-    "category": "dna_cinefilo",
-    "tier": "silver",
-    "title": "Chama o Padre Que o Bagulho Ficou Doido!",
-    "description": "Conquistar 5 filmes com as tags Demônio e Religião ao mesmo tempo (5 filmes).",
-    "icon": "⛪",
-    "target_type": "tag_double_and",
-    "target_value": 5,
-    "target_metadata": {
-      "tags": [
-        "Demônio",
-        "Religião"
-      ],
-      "tagMode": "double_and"
-    },
-    "sort_order": 137,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_vamp_wolf_6"
+    ],
+    "sort_order": 116
   },
   {
     "id": "dna_zombie_dystopia_5",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "silver",
     "title": "Manual de Sobrevivência do Fim do Mundo",
     "description": "Conquistar 5 filmes com as tags Zumbi e Dystopia ao mesmo tempo (5 filmes).",
@@ -2655,52 +4818,18 @@ export const TROPHY_DEFINITIONS = [
       ],
       "tagMode": "double_and"
     },
-    "sort_order": 138,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_game_10",
-    "category": "dna_cinefilo",
-    "tier": "silver",
-    "title": "Do Controle do PS5 Direto pra Pipoca",
-    "description": "Conquistar 10 filmes com a tag Baseado em jogo (10 filmes).",
-    "icon": "🕹️",
-    "target_type": "tag_movie_count",
-    "target_value": 10,
-    "target_metadata": {
-      "tags": [
-        "Baseado em jogo"
-      ]
-    },
-    "sort_order": 139,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_xmen_5",
-    "category": "dna_cinefilo",
-    "tier": "silver",
-    "title": "Matrícula Aprovada no Instituto Xavier",
-    "description": "Conquistar 5 filmes com a tag X-Men (5 filmes).",
-    "icon": "🧬",
-    "target_type": "tag_movie_count",
-    "target_value": 5,
-    "target_metadata": {
-      "tags": [
-        "X-Men"
-      ]
-    },
-    "sort_order": 140,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_zombie_dystopia_5"
+    ],
+    "sort_order": 117
   },
   {
     "id": "dna_villain_10",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "silver",
     "title": "No Fundo, o Vilão Tinha Razão!",
     "description": "Conquistar 10 filmes com a tag Vilão (10 filmes).",
@@ -2712,33 +4841,18 @@ export const TROPHY_DEFINITIONS = [
         "Vilão"
       ]
     },
-    "sort_order": 141,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_gore_10",
-    "category": "dna_cinefilo",
-    "tier": "silver",
-    "title": "Açougueiro de Hollywood (Haja Sangue Falso!)",
-    "description": "Conquistar 10 filmes com a tag Gore (10 filmes).",
-    "icon": "🪓",
-    "target_type": "tag_movie_count",
-    "target_value": 10,
-    "target_metadata": {
-      "tags": [
-        "Gore"
-      ]
-    },
-    "sort_order": 142,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_villain_10"
+    ],
+    "sort_order": 118
   },
   {
     "id": "dna_ghost_10",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "silver",
     "title": "Quem Você Vai Chamar? (Ghostbusters!)",
     "description": "Conquistar 10 filmes com a tag Fantasma (10 filmes).",
@@ -2750,86 +4864,18 @@ export const TROPHY_DEFINITIONS = [
         "Fantasma"
       ]
     },
-    "sort_order": 143,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_zombie_kr_3",
-    "category": "dna_cinefilo",
-    "tier": "silver",
-    "title": "Trem para Busan!",
-    "description": "Conquistar 3 filmes da Coreia do Sul com a tag Zumbi (3 filmes).",
-    "icon": "🚆",
-    "target_type": "tag_hybrid_country",
-    "target_value": 3,
-    "target_metadata": {
-      "tags": [
-        "Zumbi"
-      ],
-      "countryCode": "kr",
-      "countryName": "Coreia do Sul",
-      "countryFlag": "🇰🇷",
-      "isHybrid": true
-    },
-    "sort_order": 144,
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_ghost_jp_5",
-    "category": "dna_cinefilo",
-    "tier": "silver",
-    "title": "Sadako Saiu da TV!",
-    "description": "Conquistar 5 filmes do Japão com a tag Fantasma (5 filmes).",
-    "icon": "📼",
-    "target_type": "tag_hybrid_country",
-    "target_value": 5,
-    "target_metadata": {
-      "tags": [
-        "Fantasma"
-      ],
-      "countryCode": "jp",
-      "countryName": "Japão",
-      "countryFlag": "🇯🇵",
-      "isHybrid": true
-    },
-    "sort_order": 145,
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_bw_fr_3",
-    "category": "dna_cinefilo",
-    "tier": "silver",
-    "title": "Baguete em Preto e Branco (Nouvelle Vague)",
-    "description": "Conquistar 3 filmes da França com a tag Preto e branco (3 filmes).",
-    "icon": "🥖",
-    "target_type": "tag_hybrid_country",
-    "target_value": 3,
-    "target_metadata": {
-      "tags": [
-        "Preto e branco"
-      ],
-      "countryCode": "fr",
-      "countryName": "França",
-      "countryFlag": "🇫🇷",
-      "isHybrid": true
-    },
-    "sort_order": 146,
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_ghost_10"
+    ],
+    "sort_order": 119
   },
   {
     "id": "dna_time_epic_5",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "silver",
     "title": "Plot Twist que Explodiu Minha Cabeça!",
     "description": "Conquistar 5 filmes com as tags Viagem no Tempo e Final Epico ao mesmo tempo (5 filmes).",
@@ -2843,14 +4889,18 @@ export const TROPHY_DEFINITIONS = [
       ],
       "tagMode": "double_and"
     },
-    "sort_order": 147,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_time_epic_5"
+    ],
+    "sort_order": 120
   },
   {
     "id": "dna_xmas_horror_3",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "silver",
     "title": "Natal Sangrento!",
     "description": "Conquistar 3 filmes que tenham a tag Natal combinada com Gore, Demônio, Zumbi ou Vilão no mesmo filme (3 filmes).",
@@ -2870,99 +4920,18 @@ export const TROPHY_DEFINITIONS = [
         "Gore/Demônio/Zumbi/Vilão"
       ]
     },
-    "sort_order": 148,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_lgbt_30",
-    "category": "dna_cinefilo",
-    "tier": "epic",
-    "title": "O Mundo É Colorido",
-    "description": "Conquistar 30 filmes com a tag Personagem LGBT (30 filmes).",
-    "icon": "🌈",
-    "target_type": "tag_movie_count",
-    "target_value": 30,
-    "target_metadata": {
-      "tags": [
-        "Personagem LGBT"
-      ]
-    },
-    "sort_order": 149,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_vamp_lgbt_5",
-    "category": "dna_cinefilo",
-    "tier": "epic",
-    "title": "Sim, os Vampiros Gays!",
-    "description": "Conquistar 5 filmes com as tags Vampiro e Personagem LGBT ao mesmo tempo (5 filmes).",
-    "icon": "🧛‍♂️",
-    "target_type": "tag_double_and",
-    "target_value": 5,
-    "target_metadata": {
-      "tags": [
-        "Vampiro",
-        "Personagem LGBT"
-      ],
-      "tagMode": "double_and"
-    },
-    "sort_order": 150,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_power_lgbt_5",
-    "category": "dna_cinefilo",
-    "tier": "epic",
-    "title": "Mais Forte que um Gaydar!",
-    "description": "Conquistar 5 filmes com as tags Super Poder e Personagem LGBT ao mesmo tempo (5 filmes).",
-    "icon": "⚡",
-    "target_type": "tag_double_and",
-    "target_value": 5,
-    "target_metadata": {
-      "tags": [
-        "Super Poder",
-        "Personagem LGBT"
-      ],
-      "tagMode": "double_and"
-    },
-    "sort_order": 151,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_facts_br_10",
-    "category": "dna_cinefilo",
-    "tier": "epic",
-    "title": "Fatos Brasileiros",
-    "description": "Conquistar 10 filmes do Brasil com a tag Fatos Reais (10 filmes).",
-    "icon": "🇧🇷",
-    "target_type": "tag_hybrid_country",
-    "target_value": 10,
-    "target_metadata": {
-      "tags": [
-        "Fatos Reais"
-      ],
-      "countryCode": "br",
-      "countryName": "Brasil",
-      "countryFlag": "🇧🇷",
-      "isHybrid": true
-    },
-    "sort_order": 152,
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_xmas_horror_3"
+    ],
+    "sort_order": 121
   },
   {
     "id": "dna_game_anime_25",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "epic",
     "title": "8 ou 80",
     "description": "Conquistar 25 filmes somados com a tag Baseado em jogo ou Baseado em Anime (25 filmes).",
@@ -2976,71 +4945,18 @@ export const TROPHY_DEFINITIONS = [
       ],
       "tagMode": "double_or"
     },
-    "sort_order": 153,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_sk_10",
-    "category": "dna_cinefilo",
-    "tier": "epic",
-    "title": "O Iluminado do Stephen King",
-    "description": "Conquistar 10 filmes com a tag SK (Stephen King) (10 filmes).",
-    "icon": "🪓",
-    "target_type": "tag_movie_count",
-    "target_value": 10,
-    "target_metadata": {
-      "tags": [
-        "SK"
-      ]
-    },
-    "sort_order": 154,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_top250_20",
-    "category": "dna_cinefilo",
-    "tier": "epic",
-    "title": "Frequentador do Tapete Vermelho",
-    "description": "Conquistar 20 filmes com a tag TOP250 (20 filmes).",
-    "icon": "🏆",
-    "target_type": "tag_movie_count",
-    "target_value": 20,
-    "target_metadata": {
-      "tags": [
-        "TOP250"
-      ]
-    },
-    "sort_order": 155,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_invocaversus_10",
-    "category": "dna_cinefilo",
-    "tier": "epic",
-    "title": "Exorcista Oficial do \"Invocaversus\"",
-    "description": "Conquistar 10 filmes com a tag \"invocaversus\" (10 filmes).",
-    "icon": "✝️",
-    "target_type": "tag_movie_count",
-    "target_value": 10,
-    "target_metadata": {
-      "tags": [
-        "invocaversus"
-      ]
-    },
-    "sort_order": 156,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_game_anime_25"
+    ],
+    "sort_order": 122
   },
   {
     "id": "dna_supernatural_bestiary_12",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "epic",
     "title": "Chama os Irmãos Winchester! (Bestiário Sobrenatural)",
     "description": "Conquistar pelo menos 2 filmes de cada criatura: Bruxo, Fantasma, Demônio, Vampiro, Lobisomem e Zumbi (12 filmes).",
@@ -3083,82 +4999,18 @@ export const TROPHY_DEFINITIONS = [
         "Zumbi"
       ]
     },
-    "sort_order": 157,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_marvel_dc_30",
-    "category": "dna_cinefilo",
-    "tier": "epic",
-    "title": "Guerra Civil dos Quadrinhos (Sem Clubismo!)",
-    "description": "Conquistar 15 filmes com a tag Marvel e 15 filmes com a tag DC (30 filmes).",
-    "icon": "⚔️",
-    "target_type": "tag_checklist_quota",
-    "target_value": 30,
-    "target_metadata": {
-      "quotas": [
-        {
-          "tag": "Marvel",
-          "count": 15
-        },
-        {
-          "tag": "DC",
-          "count": 15
-        }
-      ],
-      "tags": [
-        "Marvel",
-        "DC"
-      ]
-    },
-    "sort_order": 158,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_epic_final_25",
-    "category": "dna_cinefilo",
-    "tier": "epic",
-    "title": "De Pé no Sofá Aplaudindo os Créditos!",
-    "description": "Conquistar 25 filmes com a tag Final Epico (25 filmes).",
-    "icon": "👏",
-    "target_type": "tag_movie_count",
-    "target_value": 25,
-    "target_metadata": {
-      "tags": [
-        "Final Epico"
-      ]
-    },
-    "sort_order": 159,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_repeat_15",
-    "category": "dna_cinefilo",
-    "tier": "epic",
-    "title": "Síndrome da Sessão da Tarde (Já Sei as Falas de Cor)",
-    "description": "Conquistar 15 filmes com a tag Repetido (15 filmes).",
-    "icon": "📺",
-    "target_type": "tag_movie_count",
-    "target_value": 15,
-    "target_metadata": {
-      "tags": [
-        "Repetido"
-      ]
-    },
-    "sort_order": 160,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_supernatural_bestiary_12"
+    ],
+    "sort_order": 123
   },
   {
     "id": "dna_cult_classic_13",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "epic",
     "title": "Cinéfilo Cult de Boina e Cachimbo",
     "description": "Conquistar 10 filmes com a tag Preto e branco e 3 filmes com a tag Mudo (13 filmes).",
@@ -3181,20 +5033,24 @@ export const TROPHY_DEFINITIONS = [
         "Mudo"
       ]
     },
-    "sort_order": 161,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_cult_classic_13"
+    ],
+    "sort_order": 124
   },
   {
     "id": "dna_facts_supernatural_5",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "epic",
     "title": "Baseado em Fatos... Sobrenaturais?!",
-    "description": "Conquistar 5 filmes que tenham a tag Fatos Reais combinada com Fantasma, Demônio ou Aliens no mesmo filme (5 filmes).",
+    "description": "Conquistar 3 filmes que tenham a tag Fatos Reais combinada com Fantasma, Demônio ou Aliens no mesmo filme.",
     "icon": "🔮",
     "target_type": "tag_multi_or_and",
-    "target_value": 5,
+    "target_value": 3,
     "target_metadata": {
       "mainTag": "Fatos Reais",
       "anyOfTags": [
@@ -3207,14 +5063,18 @@ export const TROPHY_DEFINITIONS = [
         "Fantasma/Demônio/Aliens"
       ]
     },
-    "sort_order": 162,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_facts_supernatural_5"
+    ],
+    "sort_order": 125
   },
   {
     "id": "dna_cry_epic_10",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "epic",
     "title": "Chorei Horrores, Mas Valeu Cada Segundo!",
     "description": "Conquistar 10 filmes que tenham Emocionante ou Trágico combinado com Final Epico no mesmo filme (10 filmes).",
@@ -3232,84 +5092,19 @@ export const TROPHY_DEFINITIONS = [
         "Final Epico"
       ]
     },
-    "sort_order": 163,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_lgbt_prejudice_10",
-    "category": "dna_cinefilo",
-    "tier": "epic",
-    "title": "Amor Contra o Preconceito",
-    "description": "Conquistar 10 filmes com as tags Personagem LGBT e Preconceito ao mesmo tempo (10 filmes).",
-    "icon": "✊",
-    "target_type": "tag_double_and",
-    "target_value": 10,
-    "target_metadata": {
-      "tags": [
-        "Personagem LGBT",
-        "Preconceito"
-      ],
-      "tagMode": "double_and"
-    },
-    "sort_order": 164,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_vatican_demon_3",
-    "category": "dna_cinefilo",
-    "tier": "epic",
-    "title": "O Exorcista do Vaticano!",
-    "description": "Conquistar 3 filmes da Itália ou Cidade do Vaticano com as tags Demônio e Religião (3 filmes).",
-    "icon": "🇻🇦",
-    "target_type": "tag_hybrid_multi_country",
-    "target_value": 3,
-    "target_metadata": {
-      "tags": [
-        "Demônio",
-        "Religião"
-      ],
-      "countryCodes": [
-        "it",
-        "va"
-      ],
-      "countryName": "Itália / Vaticano",
-      "countryFlag": "🇻🇦",
-      "isHybrid": true
-    },
-    "sort_order": 165,
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_power_multiverse_10",
-    "category": "dna_cinefilo",
-    "tier": "epic",
-    "title": "Crise nos Infinitos Multiversos",
-    "description": "Conquistar 10 filmes com as tags Super Poder e Multiverso ao mesmo tempo (10 filmes).",
-    "icon": "🌀",
-    "target_type": "tag_double_and",
-    "target_value": 10,
-    "target_metadata": {
-      "tags": [
-        "Super Poder",
-        "Multiverso"
-      ],
-      "tagMode": "double_and"
-    },
-    "sort_order": 166,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_cry_epic_10"
+    ],
+    "sort_order": 126
   },
   {
     "id": "dna_crime_br_10",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "volta_ao_mundo",
+      "dna_cinefilo"
+    ],
     "tier": "epic",
     "title": "Retrato da Realidade Brasileira",
     "description": "Conquistar 10 filmes do Brasil com a tag Crime real (10 filmes).",
@@ -3325,74 +5120,19 @@ export const TROPHY_DEFINITIONS = [
       "countryFlag": "🇧🇷",
       "isHybrid": true
     },
-    "sort_order": 167,
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_lgbt_50",
-    "category": "dna_cinefilo",
-    "tier": "gold",
-    "title": "Você É Livre!",
-    "description": "Conquistar 50 filmes com a tag Personagem LGBT (50 filmes).",
-    "icon": "🕊️",
-    "target_type": "tag_movie_count",
-    "target_value": 50,
-    "target_metadata": {
-      "tags": [
-        "Personagem LGBT"
-      ]
-    },
-    "sort_order": 168,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_vamp_lgbt_10",
-    "category": "dna_cinefilo",
-    "tier": "gold",
-    "title": "Não Existe Vampiro Hétero?",
-    "description": "Conquistar 10 filmes com as tags Vampiro e Personagem LGBT ao mesmo tempo (10 filmes).",
-    "icon": "🍷",
-    "target_type": "tag_double_and",
-    "target_value": 10,
-    "target_metadata": {
-      "tags": [
-        "Vampiro",
-        "Personagem LGBT"
-      ],
-      "tagMode": "double_and"
-    },
-    "sort_order": 169,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_power_100",
-    "category": "dna_cinefilo",
-    "tier": "gold",
-    "title": "Todo Mundo Tem Poder?",
-    "description": "Conquistar 100 filmes com a tag Super Poder (100 filmes).",
-    "icon": "💥",
-    "target_type": "tag_movie_count",
-    "target_value": 100,
-    "target_metadata": {
-      "tags": [
-        "Super Poder"
-      ]
-    },
-    "sort_order": 170,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_crime_br_10"
+    ],
+    "sort_order": 127
   },
   {
     "id": "dna_power_non_us_20",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "volta_ao_mundo",
+      "dna_cinefilo"
+    ],
     "tier": "gold",
     "title": "Não É Só os EUA que Tem Super-Herói!",
     "description": "Conquistar 20 filmes com a tag Super Poder que NÃO foram produzidos nos Estados Unidos (20 filmes).",
@@ -3408,136 +5148,25 @@ export const TROPHY_DEFINITIONS = [
       "countryFlag": "🌐",
       "isHybrid": true
     },
-    "sort_order": 171,
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_kid_school_30",
-    "category": "dna_cinefilo",
-    "tier": "gold",
-    "title": "Ainda Bem que Não Sou Professor Deles!",
-    "description": "Conquistar 30 filmes com as tags Criança Malvada e Colegio/Escola ao mesmo tempo (30 filmes).",
-    "icon": "🎒",
-    "target_type": "tag_double_and",
-    "target_value": 30,
-    "target_metadata": {
-      "tags": [
-        "Criança Malvada",
-        "Colegio/Escola"
-      ],
-      "tagMode": "double_and"
-    },
-    "sort_order": 172,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_sk_18",
-    "category": "dna_cinefilo",
-    "tier": "gold",
-    "title": "A Torre Negra de Stephen King",
-    "description": "Conquistar 18 filmes com a tag SK (Stephen King) (18 filmes).",
-    "icon": "🗼",
-    "target_type": "tag_movie_count",
-    "target_value": 18,
-    "target_metadata": {
-      "tags": [
-        "SK"
-      ]
-    },
-    "sort_order": 173,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_top250_35",
-    "category": "dna_cinefilo",
-    "tier": "gold",
-    "title": "Elite do IMDb",
-    "description": "Conquistar 35 filmes com a tag TOP250 (35 filmes).",
-    "icon": "🌟",
-    "target_type": "tag_movie_count",
-    "target_value": 35,
-    "target_metadata": {
-      "tags": [
-        "TOP250"
-      ]
-    },
-    "sort_order": 174,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_horror_master_60",
-    "category": "dna_cinefilo",
-    "tier": "gold",
-    "title": "Senhor das Trevas (Mestre do Terror)",
-    "description": "Conquistar 60 filmes somados entre as tags \"invocaversus\", Bruxo, Criança Malvada, Demônio, Fantasma, Gore, Lobisomem, SK, Vampiro e Zumbi (60 filmes).",
-    "icon": "💀",
-    "target_type": "tag_pool_sum",
-    "target_value": 60,
-    "target_metadata": {
-      "tags": [
-        "invocaversus",
-        "Bruxo",
-        "Criança Malvada",
-        "Demônio",
-        "Fantasma",
-        "Gore",
-        "Lobisomem",
-        "SK",
-        "Vampiro",
-        "Zumbi"
-      ]
-    },
-    "sort_order": 175,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_geek_master_60",
-    "category": "dna_cinefilo",
-    "tier": "gold",
-    "title": "Rei da Comic-Con (Mestre Geek & Sci-Fi)",
-    "description": "Conquistar 60 filmes somados entre as tags Aliens, Baseado em Anime, Baseado em jogo, DC, Dystopia, Marvel, Multiverso, Super Poder, Viagem no Tempo e X-Men (60 filmes).",
-    "icon": "🚀",
-    "target_type": "tag_pool_sum",
-    "target_value": 60,
-    "target_metadata": {
-      "tags": [
-        "Aliens",
-        "Baseado em Anime",
-        "Baseado em jogo",
-        "DC",
-        "Dystopia",
-        "Marvel",
-        "Multiverso",
-        "Super Poder",
-        "Viagem no Tempo",
-        "X-Men"
-      ]
-    },
-    "sort_order": 176,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_power_non_us_20"
+    ],
+    "sort_order": 128
   },
   {
     "id": "dna_asian_horror_15",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "volta_ao_mundo",
+      "dna_cinefilo"
+    ],
     "tier": "gold",
     "title": "Terror Asiático Não Perdoa!",
-    "description": "Conquistar 15 filmes de terror (Fantasma, Demônio, Gore ou Zumbi) produzidos no Japão, Coreia do Sul, Tailândia ou Indonésia (15 filmes).",
+    "description": "Conquistar 5 filmes de terror (Fantasma, Demônio, Gore ou Zumbi) produzidos no Japão, Coreia do Sul, Tailândia ou Indonésia (inclui coproduções).",
     "icon": "👺",
     "target_type": "tag_hybrid_asian_horror",
-    "target_value": 15,
+    "target_value": 5,
     "target_metadata": {
       "tags": [
         "Fantasma/Demônio/Gore/Zumbi"
@@ -3558,60 +5187,25 @@ export const TROPHY_DEFINITIONS = [
       "countryFlag": "⛩️",
       "isHybrid": true
     },
-    "sort_order": 177,
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_bingo_all_39",
-    "category": "dna_cinefilo",
-    "tier": "gold",
-    "title": "Bingo Completo das Tags!",
-    "description": "Conquistar pelo menos 1 filme em CADA UMA das 39 tags cadastradas no sistema (39 tags).",
-    "icon": "🎯",
-    "target_type": "tag_all_39_coverage",
-    "target_value": 39,
-    "target_metadata": {
-      "minPerTag": 1,
-      "tags": [
-        "Todas as 39 Tags"
-      ]
-    },
-    "sort_order": 178,
-    "categories": [
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_lgbt_75",
-    "category": "dna_cinefilo",
-    "tier": "mythic",
-    "title": "Todas as Letras!",
-    "description": "Conquistar 75 filmes com a tag Personagem LGBT (75 filmes).",
-    "icon": "🦄",
-    "target_type": "tag_movie_count",
-    "target_value": 75,
-    "target_metadata": {
-      "tags": [
-        "Personagem LGBT"
-      ]
-    },
-    "sort_order": 179,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_asian_horror_15"
+    ],
+    "sort_order": 129
   },
   {
     "id": "dna_gore_br_15",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "volta_ao_mundo",
+      "dna_cinefilo"
+    ],
     "tier": "mythic",
     "title": "A Nossa Bandeira Vai Ser Vermelha!!",
-    "description": "Conquistar 15 filmes do Brasil com a tag Gore (15 filmes).",
+    "description": "Conquistar 5 filmes do Brasil com a tag Gore (inclui coproduções).",
     "icon": "🩸",
     "target_type": "tag_hybrid_country",
-    "target_value": 15,
+    "target_value": 5,
     "target_metadata": {
       "tags": [
         "Gore"
@@ -3621,63 +5215,19 @@ export const TROPHY_DEFINITIONS = [
       "countryFlag": "🇧🇷",
       "isHybrid": true
     },
-    "sort_order": 180,
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_lgbt_br_20",
-    "category": "dna_cinefilo",
-    "tier": "mythic",
-    "title": "Brasil Colorido",
-    "description": "Conquistar 20 filmes do Brasil com a tag Personagem LGBT (20 filmes).",
-    "icon": "🦜",
-    "target_type": "tag_hybrid_country",
-    "target_value": 20,
-    "target_metadata": {
-      "tags": [
-        "Personagem LGBT"
-      ],
-      "countryCode": "br",
-      "countryName": "Brasil",
-      "countryFlag": "🇧🇷",
-      "isHybrid": true
-    },
-    "sort_order": 181,
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_kid_us_30",
-    "category": "dna_cinefilo",
-    "tier": "mythic",
-    "title": "Manual de Como Não se Criar uma Criança",
-    "description": "Conquistar 30 filmes dos Estados Unidos com a tag Criança Malvada (30 filmes).",
-    "icon": "👿",
-    "target_type": "tag_hybrid_country",
-    "target_value": 30,
-    "target_metadata": {
-      "tags": [
-        "Criança Malvada"
-      ],
-      "countryCode": "us",
-      "countryName": "Estados Unidos",
-      "countryFlag": "🇺🇸",
-      "isHybrid": true
-    },
-    "sort_order": 182,
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_gore_br_15"
+    ],
+    "sort_order": 130
   },
   {
     "id": "dna_lgbt_africa_20",
+    "kind": "unique",
     "category": "dna_cinefilo",
+    "categories": [
+      "volta_ao_mundo",
+      "dna_cinefilo"
+    ],
     "tier": "mythic",
     "title": "Coragem!!!",
     "description": "Conquistar 20 filmes produzidos em países da África com a tag Personagem LGBT (20 filmes).",
@@ -3693,95 +5243,530 @@ export const TROPHY_DEFINITIONS = [
       "countryFlag": "🌍",
       "isHybrid": true
     },
-    "sort_order": 183,
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_lgbt_africa_20"
+    ],
+    "sort_order": 131
   },
   {
-    "id": "dna_sk_25",
+    "id": "multi_dna_rc_pirata_crime_real_15",
+    "kind": "unique",
     "category": "dna_cinefilo",
-    "tier": "mythic",
-    "title": "Biógrafo Oficial do Stephen King",
-    "description": "Conquistar 25 filmes com a tag SK (Stephen King) (25 filmes).",
-    "icon": "👑",
-    "target_type": "tag_movie_count",
-    "target_value": 25,
+    "categories": [
+      "dna_cinefilo",
+      "ritual_cinefilo"
+    ],
+    "tier": "silver",
+    "title": "Essa Caveira Significa Perigo! PE-RI-GO! Ouviram Bem?! PE-RI-GO!",
+    "description": "Conquistar 15 filmes com a tag Crime real assistidos em My Family Cine, Internet ou YouTube somados (15 filmes).",
+    "icon": "☠️",
+    "target_type": "multi_ritual_rule",
+    "target_value": 15,
+    "target_metadata": {
+      "ruleKey": "pirata_tag_crime_real_15"
+    },
+    "legacy_ids": [
+      "multi_dna_rc_pirata_crime_real_15"
+    ],
+    "sort_order": 132
+  },
+  {
+    "id": "multi_dna_rc_antigo_pb_mudo_3",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "ritual_cinefilo"
+    ],
+    "tier": "silver",
+    "title": "Mudo e em Preto e Branco como nos Anos 20!",
+    "description": "Conquistar 3 filmes lançados antes de 1960 que possuam as tags Preto e branco ou Mudo (3 filmes).",
+    "icon": "🎬",
+    "target_type": "multi_ritual_rule",
+    "target_value": 3,
+    "target_metadata": {
+      "ruleKey": "pre_1960_pb_mudo_3"
+    },
+    "legacy_ids": [
+      "multi_dna_rc_antigo_pb_mudo_3"
+    ],
+    "sort_order": 133
+  },
+  {
+    "id": "multi_dna_rc_netflix_gore_30",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "ritual_cinefilo"
+    ],
+    "tier": "epic",
+    "title": "Vermelho para Combinar com a Logo (TUDUM Sangrento!)",
+    "description": "Conquistar 30 filmes com a tag Gore assistidos na Netflix (30 filmes).",
+    "icon": "🩸",
+    "target_type": "multi_ritual_rule",
+    "target_value": 30,
+    "target_metadata": {
+      "ruleKey": "netflix_gore_30"
+    },
+    "legacy_ids": [
+      "multi_dna_rc_netflix_gore_30"
+    ],
+    "sort_order": 134
+  },
+  {
+    "id": "multi_dna_ac_rc_minecraft_stack_64",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "anatomia_cinema"
+    ],
+    "tier": "epic",
+    "title": "Um Stack Completo de 64 Blocos! (Crafting Table do Minecraft)",
+    "description": "Juntar um Stack completo de 64 filmes somando elementos do Minecraft: tags Baseado em jogo, Zumbi, Bruxo ou Animais antropomorficos combinadas com gênero Aventura ou Fantasia (64 filmes).",
+    "icon": "🧱",
+    "target_type": "multi_ritual_rule",
+    "target_value": 64,
+    "target_metadata": {
+      "ruleKey": "minecraft_stack_64"
+    },
+    "legacy_ids": [
+      "multi_dna_ac_rc_minecraft_stack_64"
+    ],
+    "sort_order": 135
+  },
+  {
+    "id": "multi_dna_rc_marvel_dc_cinema_20",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "ritual_cinefilo"
+    ],
+    "tier": "epic",
+    "title": "Maratona Marvel & DC na Poltrona do Cinema!",
+    "description": "Conquistar 20 filmes com a tag Marvel ou DC assistidos diretamente no Cinema (20 filmes).",
+    "icon": "🦸",
+    "target_type": "multi_ritual_rule",
+    "target_value": 20,
+    "target_metadata": {
+      "ruleKey": "marvel_dc_cinema_20"
+    },
+    "legacy_ids": [
+      "multi_dna_rc_marvel_dc_cinema_20"
+    ],
+    "sort_order": 136
+  },
+  {
+    "id": "dna_animais_gore_1",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "bronze",
+    "title": "DNA Cinéfilo: Tá Pegando Fogo, Bicho! (Churrasco no Bosque)",
+    "description": "Conquistar 1 filme que possua as tags Animais antropomorficos e Gore ao mesmo tempo (1 filme).",
+    "icon": "🔥",
+    "target_type": "tag_double_and",
+    "target_value": 1,
     "target_metadata": {
       "tags": [
-        "SK"
+        "Animais antropomorficos",
+        "Gore"
       ]
     },
-    "sort_order": 184,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_animais_gore_1"
+    ],
+    "sort_order": 137
   },
   {
-    "id": "dna_top250_50",
+    "id": "dna_caso_evandro_crime_final_epico_7",
+    "kind": "unique",
     "category": "dna_cinefilo",
-    "tier": "mythic",
-    "title": "Panteão do IMDb (Top 250)",
-    "description": "Conquistar 50 filmes com a tag TOP250 (50 filmes).",
-    "icon": "🏛️",
-    "target_type": "tag_movie_count",
-    "target_value": 50,
-    "target_metadata": {
-      "tags": [
-        "TOP250"
-      ]
-    },
-    "sort_order": 185,
     "categories": [
       "dna_cinefilo"
-    ]
-  },
-  {
-    "id": "dna_epic_final_75",
-    "category": "dna_cinefilo",
-    "tier": "mythic",
-    "title": "Só Assisto Obras-Primas!",
-    "description": "Conquistar 75 filmes com a tag Final Epico (75 filmes).",
-    "icon": "🏆",
-    "target_type": "tag_movie_count",
-    "target_value": 75,
+    ],
+    "tier": "epic",
+    "title": "DNA Cinéfilo: O Caso Evandro (Verdades e Finais Chocantes)",
+    "description": "Conquistar 7 filmes que possuam as tags Crime real e Final Epico ao mesmo tempo (7 filmes).",
+    "icon": "🔍",
+    "target_type": "tag_double_and",
+    "target_value": 7,
     "target_metadata": {
       "tags": [
+        "Crime real",
         "Final Epico"
       ]
     },
-    "sort_order": 186,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_caso_evandro_crime_final_epico_7"
+    ],
+    "sort_order": 138
   },
   {
-    "id": "dna_veteran_all_39",
+    "id": "tc_em_familia_terror_5",
+    "kind": "unique",
     "category": "dna_cinefilo",
-    "tier": "mythic",
-    "title": "Veterano de Todas as Tribos",
-    "description": "Conquistar pelo menos 5 filmes em CADA UMA das 39 tags do catálogo (39 tags com 5 filmes cada).",
-    "icon": "🎖️",
-    "target_type": "tag_all_39_coverage",
-    "target_value": 39,
+    "categories": [
+      "dna_cinefilo",
+      "anatomia_cinema"
+    ],
+    "tier": "bronze",
+    "title": "Susto Compartilhado (Segura no Meu Braço!)",
+    "description": "Conquistar 5 filmes do gênero Terror que possuam a tag Em Família (5 filmes).",
+    "icon": "😱",
+    "target_type": "genre_tag_and",
+    "target_value": 5,
     "target_metadata": {
-      "minPerTag": 5,
-      "tags": [
-        "Todas as 39 Tags"
-      ]
+      "genre": "Terror",
+      "tag": "Em Família"
     },
-    "sort_order": 187,
+    "legacy_ids": [
+      "tc_em_familia_terror_5"
+    ],
+    "sort_order": 139
+  },
+  {
+    "id": "tc_em_familia_natal_3",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "data_limite"
+    ],
+    "tier": "bronze",
+    "title": "Ceia de Natal com Cinema e Família",
+    "description": "Conquistar 3 filmes com a tag Em Família que tenham a tag Natal OU tenham sido assistidos no mês de Dezembro (3 filmes).",
+    "icon": "🎄",
+    "target_type": "tag_and_tag_or_month",
+    "target_value": 3,
+    "target_metadata": {
+      "tag": "Em Família",
+      "orTag": "Natal",
+      "orMonth": 12
+    },
+    "legacy_ids": [
+      "tc_em_familia_natal_3"
+    ],
+    "sort_order": 140
+  },
+  {
+    "id": "tc_em_familia_nota_85_10",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "tribunal_critica"
+    ],
+    "tier": "silver",
+    "title": "Todos Estavam Aplaudindo ou Fui Só Eu Mesmo?!",
+    "description": "Conquistar 10 filmes com a tag Em Família cuja Minha Nota seja maior ou igual a 8.500 (10 filmes).",
+    "icon": "👏",
+    "target_type": "tag_min_rating_count",
+    "target_value": 10,
+    "target_metadata": {
+      "tag": "Em Família",
+      "minRating": 8500
+    },
+    "legacy_ids": [
+      "tc_em_familia_nota_85_10"
+    ],
+    "sort_order": 141
+  },
+  {
+    "id": "tc_em_familia_marvel_dc_5",
+    "kind": "unique",
+    "category": "dna_cinefilo",
     "categories": [
       "dna_cinefilo"
-    ]
+    ],
+    "tier": "silver",
+    "title": "Maratona dos Heróis com a Turma",
+    "description": "Conquistar 5 filmes com a tag Em Família que também possuam a tag Marvel ou DC (5 filmes).",
+    "icon": "🦸‍♂️",
+    "target_type": "tag_and_any_of_tags",
+    "target_value": 5,
+    "target_metadata": {
+      "tag": "Em Família",
+      "orTags": [
+        "Marvel",
+        "DC"
+      ]
+    },
+    "legacy_ids": [
+      "tc_em_familia_marvel_dc_5"
+    ],
+    "sort_order": 142
+  },
+  {
+    "id": "tc_em_familia_nota_90_5",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "tribunal_critica"
+    ],
+    "tier": "epic",
+    "title": "Debate de Cozinha Pós-Créditos (Unanimidade Máxima)",
+    "description": "Conquistar 5 filmes com a tag Em Família avaliados com Minha Nota maior ou igual a 9.000 (5 filmes).",
+    "icon": "🍽️",
+    "target_type": "tag_min_rating_count",
+    "target_value": 5,
+    "target_metadata": {
+      "tag": "Em Família",
+      "minRating": 9000
+    },
+    "legacy_ids": [
+      "tc_em_familia_nota_90_5"
+    ],
+    "sort_order": 143
+  },
+  {
+    "id": "tc_muitas_tags_7_30",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "gold",
+    "title": "DNA Cinéfilo: Isso Aqui É uma Loucura Generalizada!",
+    "description": "Conquistar 30 filmes cadastrados que possuam 7 ou mais tags customizadas vinculadas no mesmo filme (30 filmes).",
+    "icon": "🌪️",
+    "target_type": "movies_min_tags_count",
+    "target_value": 30,
+    "target_metadata": {
+      "minTags": 7
+    },
+    "legacy_ids": [
+      "tc_muitas_tags_7_30"
+    ],
+    "sort_order": 144
+  },
+  {
+    "id": "tc_you_died_terror_tragico_nota_3",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "anatomia_cinema",
+      "tribunal_critica"
+    ],
+    "tier": "epic",
+    "title": "YOU DIED! (Nem com Guia do Detonado)",
+    "description": "Conquistar 3 filmes que combinem simultaneamente o gênero Terror, a tag Trágico e Minha Nota estritamente maior que 8.500 (3 filmes).",
+    "icon": "💀",
+    "target_type": "terror_tragico_min_rating",
+    "target_value": 3,
+    "target_metadata": {
+      "genre": "Terror",
+      "tag": "Trágico",
+      "minRating": 8500
+    },
+    "legacy_ids": [
+      "tc_you_died_terror_tragico_nota_3"
+    ],
+    "sort_order": 145
+  },
+  {
+    "id": "tc_press_f_tragico_emocionante_fisica_5",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "ritual_cinefilo"
+    ],
+    "tier": "silver",
+    "title": "Press F to Pay Respects",
+    "description": "Conquistar 5 filmes que possuam a tag pessoal Trágico OU a tag pessoal Emocionante, assistidos em mídia física (Blu-ray ou DVD) (5 filmes).",
+    "icon": "⌨️",
+    "target_type": "tags_or_physical_media_count",
+    "target_value": 5,
+    "target_metadata": {
+      "orTags": [
+        "Trágico",
+        "Emocionante"
+      ]
+    },
+    "legacy_ids": [
+      "tc_press_f_tragico_emocionante_fisica_5"
+    ],
+    "sort_order": 146
+  },
+  {
+    "id": "tc_ah_shit_repetido_crime_acao_1990_2004_1",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "anatomia_cinema",
+      "ritual_cinefilo"
+    ],
+    "tier": "bronze",
+    "title": "Ah Shit, Here We Go Again... (CJ de Volta ao Bairro)",
+    "description": "Conquistar 1 filme que possua a tag Repetido, pertença ao gênero Crime OU Ação, e tenha ano de lançamento situado entre 1990 e 2004 (1 filme).",
+    "icon": "🚲",
+    "target_type": "tag_and_genres_or_year_range",
+    "target_value": 1,
+    "target_metadata": {
+      "tag": "Repetido",
+      "orGenres": [
+        "Crime",
+        "Ação"
+      ],
+      "minYear": 1990,
+      "maxYear": 2004
+    },
+    "legacy_ids": [
+      "tc_ah_shit_repetido_crime_acao_1990_2004_1"
+    ],
+    "sort_order": 147
+  },
+  {
+    "id": "tc_magia_profunda_bruxa_decadas",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "ritual_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Não me cite a Magia Profunda, Bruxa. Eu estava lá quando ela foi escrita.",
+    "description": "Conquistar pelo menos 1 filme com a tag Bruxo em cada uma das 8 décadas entre 1960s e 2030s (1960s, 1970s, 1980s, 1990s, 2000s, 2010s, 2020s, 2030s) (8 décadas no checklist).",
+    "icon": "🧙‍♀️",
+    "target_type": "tag_decades_checklist",
+    "target_value": 8,
+    "target_metadata": {
+      "tag": "Bruxo",
+      "decades": [
+        1960,
+        1970,
+        1980,
+        1990,
+        2000,
+        2010,
+        2020,
+        2030
+      ]
+    },
+    "legacy_ids": [
+      "tc_magia_profunda_bruxa_decadas"
+    ],
+    "sort_order": 148
+  },
+  {
+    "id": "tc_new_game_plus_repetido_nota_9",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "tribunal_critica"
+    ],
+    "tier": "gold",
+    "title": "New Game+ (A Revanche dos Veteranos)",
+    "description": "Conquistar 5 filmes cadastrados com a tag Repetido cuja Minha Nota seja maior ou igual a 9.000 (5 filmes).",
+    "icon": "🔁",
+    "target_type": "tag_min_rating_count",
+    "target_value": 5,
+    "target_metadata": {
+      "tag": "Repetido",
+      "minRating": 9000
+    },
+    "legacy_ids": [
+      "tc_new_game_plus_repetido_nota_9"
+    ],
+    "sort_order": 149
+  },
+  {
+    "id": "tc_climao_almoco_domingo",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "anatomia_cinema"
+    ],
+    "tier": "epic",
+    "title": "Climão no Almoço de Domingo (Chama a Christina Rocha!)",
+    "description": "Conquistar 10 filmes do gênero Drama que possuam a tag Em família combinada com a tag Abuso familiar OU Preconceito (10 filmes).",
+    "icon": "🛋️",
+    "target_type": "genre_and_tag_and_any_tag",
+    "target_value": 10,
+    "target_metadata": {
+      "genre": "Drama",
+      "requiredTag": "Em Família",
+      "orTags": [
+        "Abuso Familiar",
+        "Preconceito"
+      ]
+    },
+    "legacy_ids": [
+      "tc_climao_almoco_domingo"
+    ],
+    "sort_order": 150
+  },
+  {
+    "id": "tc_cake_is_a_lie_ficcao_dystopia_viagem_nota_lt5",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "anatomia_cinema",
+      "tribunal_critica"
+    ],
+    "tier": "silver",
+    "title": "O Bolo É uma Mentira! (The Cake Is a Lie)",
+    "description": "Conquistar 3 filmes do gênero Ficção Científica com a tag Dystopia OU Viagem no tempo que tenham recebido Minha Nota abaixo de 5.000 (3 filmes).",
+    "icon": "🎂",
+    "target_type": "genre_and_tags_or_max_rating",
+    "target_value": 3,
+    "target_metadata": {
+      "genre": "Ficção Científica",
+      "orTags": [
+        "Dystopia",
+        "Viagem no Tempo"
+      ],
+      "maxRating": 5000
+    },
+    "legacy_ids": [
+      "tc_cake_is_a_lie_ficcao_dystopia_viagem_nota_lt5"
+    ],
+    "sort_order": 151
+  },
+  {
+    "id": "tc_e_verdade_esse_bilete_fatos_reais_nota_lt6",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "tribunal_critica"
+    ],
+    "tier": "silver",
+    "title": "\"É Verdade Esse Bilete\" (Confia!)",
+    "description": "Conquistar 5 filmes com a tag Fatos reais que tenham recebido Minha Nota abaixo de 6.000 (5 filmes).",
+    "icon": "🎟️",
+    "target_type": "tag_max_rating_count",
+    "target_value": 5,
+    "target_metadata": {
+      "tag": "Fatos reais",
+      "maxRating": 6000
+    },
+    "legacy_ids": [
+      "tc_e_verdade_esse_bilete_fatos_reais_nota_lt6"
+    ],
+    "sort_order": 152
   },
   {
     "id": "dna_platinum_master",
+    "kind": "platinum",
     "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
     "tier": "platinum",
     "title": "O Arquivista Supremo das Tags",
-    "description": "Conquistar TODOS os troféus da categoria DNA Cinéfilo (desbloqueio dinâmico automático ao atingir 100% dos outros 119 troféus desta categoria, incluindo multicategoria).",
+    "description": "Conquistar 100% dos troféus e ranks da categoria DNA Cinéfilo (incluindo multicategoria).",
     "icon": "🏆",
     "target_type": "platinum_dynamic",
     "target_value": 119,
@@ -3789,47 +5774,569 @@ export const TROPHY_DEFINITIONS = [
       "category": "dna_cinefilo",
       "categoryScope": "dna_cinefilo"
     },
-    "sort_order": 188,
-    "categories": [
-      "dna_cinefilo"
-    ]
+    "legacy_ids": [
+      "dna_platinum_master"
+    ],
+    "sort_order": 153
   },
   {
-    "id": "ac_curta_1",
+    "id": "ac_rank_curta",
+    "kind": "rank",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
     ],
-    "tier": "bronze",
-    "title": "Anatomia do Cinema: Acabou Antes da Pipoca Esfriar!",
-    "description": "Conquistar 1 filme do gênero Curta (1 filme).",
+    "tier": "mythic",
+    "title": "Anatomia do Cinema: Maratona Expressa de Curtas",
+    "description": "Assistir filmes do gênero Curta.",
     "icon": "⏱️",
     "target_type": "genre_count",
-    "target_value": 1,
+    "target_value": 50,
     "target_metadata": {
       "genre": "Curta"
     },
-    "sort_order": 201
+    "ranks": [
+      {
+        "id": "ac_rank_curta__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Acabou Antes da Pipoca Esfriar!",
+        "description": "Assistir filmes do gênero Curta. (Rank Bronze: meta 1).",
+        "legacy_id": "ac_curta_1"
+      },
+      {
+        "id": "ac_rank_curta__silver",
+        "tier": "silver",
+        "target_value": 10,
+        "title": "Maratona Rápida no Horário de Almoço",
+        "description": "Assistir filmes do gênero Curta. (Rank Prata: meta 10).",
+        "legacy_id": "ac_curta_10"
+      },
+      {
+        "id": "ac_rank_curta__epic",
+        "tier": "epic",
+        "target_value": 20,
+        "title": "Festival de Curtas-Metragens",
+        "description": "Assistir filmes do gênero Curta. (Rank Épico: meta 20)."
+      },
+      {
+        "id": "ac_rank_curta__gold",
+        "tier": "gold",
+        "target_value": 35,
+        "title": "Dose Diária de Curta",
+        "description": "Assistir filmes do gênero Curta. (Rank Ouro: meta 35)."
+      },
+      {
+        "id": "ac_rank_curta__mythic",
+        "tier": "mythic",
+        "target_value": 50,
+        "title": "Mestre dos Curtas (50 Filmes)",
+        "description": "Assistir filmes do gênero Curta. (Rank Mítico: meta 50)."
+      }
+    ],
+    "legacy_ids": [
+      "ac_curta_1",
+      "ac_curta_10"
+    ],
+    "sort_order": 154
   },
   {
-    "id": "ac_faroeste_1",
+    "id": "ac_rank_faroeste",
+    "kind": "rank",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
     ],
-    "tier": "bronze",
-    "title": "Anatomia do Cinema: Esta Cidade É Pequena Demais para Nós Dois",
-    "description": "Conquistar 1 filme do gênero Faroeste (1 filme).",
+    "tier": "mythic",
+    "title": "Anatomia do Cinema: Gatilho Mais Rápido do Oeste",
+    "description": "Assistir filmes do gênero Faroeste.",
     "icon": "🤠",
     "target_type": "genre_count",
-    "target_value": 1,
+    "target_value": 15,
     "target_metadata": {
       "genre": "Faroeste"
     },
-    "sort_order": 202
+    "ranks": [
+      {
+        "id": "ac_rank_faroeste__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Esta Cidade É Pequena Demais para Nós Dois",
+        "description": "Assistir filmes do gênero Faroeste. (Rank Bronze: meta 1).",
+        "legacy_id": "ac_faroeste_1"
+      },
+      {
+        "id": "ac_rank_faroeste__silver",
+        "tier": "silver",
+        "target_value": 3,
+        "title": "Duelo ao Meio-Dia",
+        "description": "Assistir filmes do gênero Faroeste. (Rank Prata: meta 3).",
+        "legacy_id": "ac_faroeste_10"
+      },
+      {
+        "id": "ac_rank_faroeste__epic",
+        "tier": "epic",
+        "target_value": 6,
+        "title": "Xerife da Fronteira",
+        "description": "Assistir filmes do gênero Faroeste. (Rank Épico: meta 6)."
+      },
+      {
+        "id": "ac_rank_faroeste__gold",
+        "tier": "gold",
+        "target_value": 10,
+        "title": "Gatilho Mais Rápido do Oeste",
+        "description": "Assistir filmes do gênero Faroeste. (Rank Ouro: meta 10)."
+      },
+      {
+        "id": "ac_rank_faroeste__mythic",
+        "tier": "mythic",
+        "target_value": 15,
+        "title": "Lenda do Velho Oeste (15 Faroestes)",
+        "description": "Assistir filmes do gênero Faroeste. (Rank Mítico: meta 15)."
+      }
+    ],
+    "legacy_ids": [
+      "ac_faroeste_1",
+      "ac_faroeste_10"
+    ],
+    "sort_order": 155
+  },
+  {
+    "id": "ac_rank_drama",
+    "kind": "rank",
+    "category": "anatomia_cinema",
+    "categories": [
+      "anatomia_cinema"
+    ],
+    "tier": "mythic",
+    "title": "Anatomia do Cinema: Haja Terapia! (Rei do Drama)",
+    "description": "Assistir filmes do gênero Drama.",
+    "icon": "🎭",
+    "target_type": "genre_count",
+    "target_value": 120,
+    "target_metadata": {
+      "genre": "Drama"
+    },
+    "ranks": [
+      {
+        "id": "ac_rank_drama__bronze",
+        "tier": "bronze",
+        "target_value": 15,
+        "title": "Anatomia do Cinema: Haja Terapia! (Rei do Drama) • Rank Bronze",
+        "description": "Assistir filmes do gênero Drama. (Rank Bronze: meta 15).",
+        "legacy_id": "ac_drama_150"
+      },
+      {
+        "id": "ac_rank_drama__silver",
+        "tier": "silver",
+        "target_value": 35,
+        "title": "Anatomia do Cinema: Haja Terapia! (Rei do Drama) • Rank Prata",
+        "description": "Assistir filmes do gênero Drama. (Rank Prata: meta 35)."
+      },
+      {
+        "id": "ac_rank_drama__epic",
+        "tier": "epic",
+        "target_value": 60,
+        "title": "Anatomia do Cinema: Haja Terapia! (Rei do Drama) • Rank Épico",
+        "description": "Assistir filmes do gênero Drama. (Rank Épico: meta 60)."
+      },
+      {
+        "id": "ac_rank_drama__gold",
+        "tier": "gold",
+        "target_value": 90,
+        "title": "Anatomia do Cinema: Haja Terapia! (Rei do Drama) • Rank Ouro",
+        "description": "Assistir filmes do gênero Drama. (Rank Ouro: meta 90)."
+      },
+      {
+        "id": "ac_rank_drama__mythic",
+        "tier": "mythic",
+        "target_value": 120,
+        "title": "Anatomia do Cinema: Haja Terapia! (Rei do Drama) • Rank Mítico",
+        "description": "Assistir filmes do gênero Drama. (Rank Mítico: meta 120)."
+      }
+    ],
+    "legacy_ids": [
+      "ac_drama_150"
+    ],
+    "sort_order": 156
+  },
+  {
+    "id": "ac_rank_comedia",
+    "kind": "rank",
+    "category": "anatomia_cinema",
+    "categories": [
+      "anatomia_cinema"
+    ],
+    "tier": "mythic",
+    "title": "Anatomia do Cinema: Rir É o Melhor Remédio",
+    "description": "Assistir filmes do gênero Comédia.",
+    "icon": "😂",
+    "target_type": "genre_count",
+    "target_value": 50,
+    "target_metadata": {
+      "genre": "Comédia"
+    },
+    "ranks": [
+      {
+        "id": "ac_rank_comedia__bronze",
+        "tier": "bronze",
+        "target_value": 5,
+        "title": "Anatomia do Cinema: Rir É o Melhor Remédio • Rank Bronze",
+        "description": "Assistir filmes do gênero Comédia. (Rank Bronze: meta 5).",
+        "legacy_id": "ac_comedia_100"
+      },
+      {
+        "id": "ac_rank_comedia__silver",
+        "tier": "silver",
+        "target_value": 12,
+        "title": "Anatomia do Cinema: Rir É o Melhor Remédio • Rank Prata",
+        "description": "Assistir filmes do gênero Comédia. (Rank Prata: meta 12)."
+      },
+      {
+        "id": "ac_rank_comedia__epic",
+        "tier": "epic",
+        "target_value": 25,
+        "title": "Anatomia do Cinema: Rir É o Melhor Remédio • Rank Épico",
+        "description": "Assistir filmes do gênero Comédia. (Rank Épico: meta 25)."
+      },
+      {
+        "id": "ac_rank_comedia__gold",
+        "tier": "gold",
+        "target_value": 38,
+        "title": "Anatomia do Cinema: Rir É o Melhor Remédio • Rank Ouro",
+        "description": "Assistir filmes do gênero Comédia. (Rank Ouro: meta 38)."
+      },
+      {
+        "id": "ac_rank_comedia__mythic",
+        "tier": "mythic",
+        "target_value": 50,
+        "title": "Anatomia do Cinema: Rir É o Melhor Remédio • Rank Mítico",
+        "description": "Assistir filmes do gênero Comédia. (Rank Mítico: meta 50)."
+      }
+    ],
+    "legacy_ids": [
+      "ac_comedia_100"
+    ],
+    "sort_order": 157
+  },
+  {
+    "id": "ac_rank_terror_suspense",
+    "kind": "rank",
+    "category": "anatomia_cinema",
+    "categories": [
+      "anatomia_cinema"
+    ],
+    "tier": "mythic",
+    "title": "Anatomia do Cinema: Mestre do Medo e da Tensão",
+    "description": "Quotas equilibradas de Terror + Suspense (até 20 Terror + 20 Suspense = 40 filmes).",
+    "icon": "🩸",
+    "target_type": "genre_quotas",
+    "target_value": 40,
+    "target_metadata": {
+      "quotas": [
+        {
+          "genre": "Terror",
+          "count": 20
+        },
+        {
+          "genre": "Suspense",
+          "count": 20
+        }
+      ]
+    },
+    "ranks": [
+      {
+        "id": "ac_rank_terror_suspense__bronze",
+        "tier": "bronze",
+        "target_value": 4,
+        "title": "Anatomia do Cinema: Mestre do Medo e da Tensão • Rank Bronze",
+        "description": "Quotas equilibradas de Terror + Suspense (até 20 Terror + 20 Suspense = 40 filmes). (Rank Bronze: meta 4).",
+        "legacy_id": "ac_terror_suspense_quota_150"
+      },
+      {
+        "id": "ac_rank_terror_suspense__silver",
+        "tier": "silver",
+        "target_value": 10,
+        "title": "Anatomia do Cinema: Mestre do Medo e da Tensão • Rank Prata",
+        "description": "Quotas equilibradas de Terror + Suspense (até 20 Terror + 20 Suspense = 40 filmes). (Rank Prata: meta 10)."
+      },
+      {
+        "id": "ac_rank_terror_suspense__epic",
+        "tier": "epic",
+        "target_value": 20,
+        "title": "Anatomia do Cinema: Mestre do Medo e da Tensão • Rank Épico",
+        "description": "Quotas equilibradas de Terror + Suspense (até 20 Terror + 20 Suspense = 40 filmes). (Rank Épico: meta 20)."
+      },
+      {
+        "id": "ac_rank_terror_suspense__gold",
+        "tier": "gold",
+        "target_value": 30,
+        "title": "Anatomia do Cinema: Mestre do Medo e da Tensão • Rank Ouro",
+        "description": "Quotas equilibradas de Terror + Suspense (até 20 Terror + 20 Suspense = 40 filmes). (Rank Ouro: meta 30)."
+      },
+      {
+        "id": "ac_rank_terror_suspense__mythic",
+        "tier": "mythic",
+        "target_value": 40,
+        "title": "Anatomia do Cinema: Mestre do Medo e da Tensão • Rank Mítico",
+        "description": "Quotas equilibradas de Terror + Suspense (até 20 Terror + 20 Suspense = 40 filmes). (Rank Mítico: meta 40)."
+      }
+    ],
+    "legacy_ids": [
+      "ac_terror_suspense_quota_150"
+    ],
+    "sort_order": 158
+  },
+  {
+    "id": "ac_rank_acao_aventura",
+    "kind": "rank",
+    "category": "anatomia_cinema",
+    "categories": [
+      "anatomia_cinema"
+    ],
+    "tier": "mythic",
+    "title": "Anatomia do Cinema: Viciado em Adrenalina",
+    "description": "Quotas equilibradas de Ação + Aventura (até 45 Ação + 45 Aventura = 90 filmes).",
+    "icon": "🏎️",
+    "target_type": "genre_quotas",
+    "target_value": 90,
+    "target_metadata": {
+      "quotas": [
+        {
+          "genre": "Ação",
+          "count": 45
+        },
+        {
+          "genre": "Aventura",
+          "count": 45
+        }
+      ]
+    },
+    "ranks": [
+      {
+        "id": "ac_rank_acao_aventura__bronze",
+        "tier": "bronze",
+        "target_value": 10,
+        "title": "Anatomia do Cinema: Viciado em Adrenalina • Rank Bronze",
+        "description": "Quotas equilibradas de Ação + Aventura (até 45 Ação + 45 Aventura = 90 filmes). (Rank Bronze: meta 10).",
+        "legacy_id": "ac_acao_aventura_quota_150"
+      },
+      {
+        "id": "ac_rank_acao_aventura__silver",
+        "tier": "silver",
+        "target_value": 24,
+        "title": "Anatomia do Cinema: Viciado em Adrenalina • Rank Prata",
+        "description": "Quotas equilibradas de Ação + Aventura (até 45 Ação + 45 Aventura = 90 filmes). (Rank Prata: meta 24)."
+      },
+      {
+        "id": "ac_rank_acao_aventura__epic",
+        "tier": "epic",
+        "target_value": 44,
+        "title": "Anatomia do Cinema: Viciado em Adrenalina • Rank Épico",
+        "description": "Quotas equilibradas de Ação + Aventura (até 45 Ação + 45 Aventura = 90 filmes). (Rank Épico: meta 44)."
+      },
+      {
+        "id": "ac_rank_acao_aventura__gold",
+        "tier": "gold",
+        "target_value": 66,
+        "title": "Anatomia do Cinema: Viciado em Adrenalina • Rank Ouro",
+        "description": "Quotas equilibradas de Ação + Aventura (até 45 Ação + 45 Aventura = 90 filmes). (Rank Ouro: meta 66)."
+      },
+      {
+        "id": "ac_rank_acao_aventura__mythic",
+        "tier": "mythic",
+        "target_value": 90,
+        "title": "Anatomia do Cinema: Viciado em Adrenalina • Rank Mítico",
+        "description": "Quotas equilibradas de Ação + Aventura (até 45 Ação + 45 Aventura = 90 filmes). (Rank Mítico: meta 90)."
+      }
+    ],
+    "legacy_ids": [
+      "ac_acao_aventura_quota_150"
+    ],
+    "sort_order": 159
+  },
+  {
+    "id": "ac_rank_quimera_4_generos",
+    "kind": "rank",
+    "category": "anatomia_cinema",
+    "categories": [
+      "anatomia_cinema"
+    ],
+    "tier": "mythic",
+    "title": "Anatomia do Cinema: Quimera Cinematográfica (4+ Gêneros)",
+    "description": "Assistir filmes com 4 ou mais gêneros oficiais simultâneos.",
+    "icon": "🐉",
+    "target_type": "movie_min_genre_count",
+    "target_value": 30,
+    "target_metadata": {
+      "minGenresPerMovie": 4
+    },
+    "ranks": [
+      {
+        "id": "ac_rank_quimera_4_generos__bronze",
+        "tier": "bronze",
+        "target_value": 3,
+        "title": "Anatomia do Cinema: Quimera Cinematográfica (4+ Gêneros) • Rank Bronze",
+        "description": "Assistir filmes com 4 ou mais gêneros oficiais simultâneos. (Rank Bronze: meta 3).",
+        "legacy_id": "ac_quimera_4_generos_15"
+      },
+      {
+        "id": "ac_rank_quimera_4_generos__silver",
+        "tier": "silver",
+        "target_value": 8,
+        "title": "Anatomia do Cinema: Quimera Cinematográfica (4+ Gêneros) • Rank Prata",
+        "description": "Assistir filmes com 4 ou mais gêneros oficiais simultâneos. (Rank Prata: meta 8)."
+      },
+      {
+        "id": "ac_rank_quimera_4_generos__epic",
+        "tier": "epic",
+        "target_value": 15,
+        "title": "Anatomia do Cinema: Quimera Cinematográfica (4+ Gêneros) • Rank Épico",
+        "description": "Assistir filmes com 4 ou mais gêneros oficiais simultâneos. (Rank Épico: meta 15)."
+      },
+      {
+        "id": "ac_rank_quimera_4_generos__gold",
+        "tier": "gold",
+        "target_value": 22,
+        "title": "Anatomia do Cinema: Quimera Cinematográfica (4+ Gêneros) • Rank Ouro",
+        "description": "Assistir filmes com 4 ou mais gêneros oficiais simultâneos. (Rank Ouro: meta 22)."
+      },
+      {
+        "id": "ac_rank_quimera_4_generos__mythic",
+        "tier": "mythic",
+        "target_value": 30,
+        "title": "Anatomia do Cinema: Quimera Cinematográfica (4+ Gêneros) • Rank Mítico",
+        "description": "Assistir filmes com 4 ou mais gêneros oficiais simultâneos. (Rank Mítico: meta 30)."
+      }
+    ],
+    "legacy_ids": [
+      "ac_quimera_4_generos_15"
+    ],
+    "sort_order": 160
+  },
+  {
+    "id": "ac_rank_animacao_dublada",
+    "kind": "rank",
+    "category": "anatomia_cinema",
+    "categories": [
+      "anatomia_cinema",
+      "ritual_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Dublagem de Ouro nos Desenhos!",
+    "description": "Assistir filmes de Animação com áudio Dublado.",
+    "icon": "🎙️",
+    "target_type": "multi_ritual_rule",
+    "target_value": 30,
+    "target_metadata": {
+      "ruleKey": "animacao_dublada_15"
+    },
+    "ranks": [
+      {
+        "id": "ac_rank_animacao_dublada__bronze",
+        "tier": "bronze",
+        "target_value": 3,
+        "title": "Dublagem de Ouro nos Desenhos! • Rank Bronze",
+        "description": "Assistir filmes de Animação com áudio Dublado. (Rank Bronze: meta 3).",
+        "legacy_id": "multi_ac_rc_animacao_dublada_15"
+      },
+      {
+        "id": "ac_rank_animacao_dublada__silver",
+        "tier": "silver",
+        "target_value": 8,
+        "title": "Dublagem de Ouro nos Desenhos! • Rank Prata",
+        "description": "Assistir filmes de Animação com áudio Dublado. (Rank Prata: meta 8)."
+      },
+      {
+        "id": "ac_rank_animacao_dublada__epic",
+        "tier": "epic",
+        "target_value": 15,
+        "title": "Dublagem de Ouro nos Desenhos! • Rank Épico",
+        "description": "Assistir filmes de Animação com áudio Dublado. (Rank Épico: meta 15)."
+      },
+      {
+        "id": "ac_rank_animacao_dublada__gold",
+        "tier": "gold",
+        "target_value": 22,
+        "title": "Dublagem de Ouro nos Desenhos! • Rank Ouro",
+        "description": "Assistir filmes de Animação com áudio Dublado. (Rank Ouro: meta 22)."
+      },
+      {
+        "id": "ac_rank_animacao_dublada__mythic",
+        "tier": "mythic",
+        "target_value": 30,
+        "title": "Dublagem de Ouro nos Desenhos! • Rank Mítico",
+        "description": "Assistir filmes de Animação com áudio Dublado. (Rank Mítico: meta 30)."
+      }
+    ],
+    "legacy_ids": [
+      "multi_ac_rc_animacao_dublada_15"
+    ],
+    "sort_order": 161
+  },
+  {
+    "id": "ac_rank_terror_sem_gore",
+    "kind": "rank",
+    "category": "anatomia_cinema",
+    "categories": [
+      "anatomia_cinema",
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Ué, Cadê o Sangue?! Temos que Fazer o Código ABACABB!",
+    "description": "Assistir filmes do gênero Terror sem a tag Gore.",
+    "icon": "👻",
+    "target_type": "multi_ritual_rule",
+    "target_value": 30,
+    "target_metadata": {
+      "ruleKey": "terror_sem_gore_30"
+    },
+    "ranks": [
+      {
+        "id": "ac_rank_terror_sem_gore__bronze",
+        "tier": "bronze",
+        "target_value": 3,
+        "title": "Ué, Cadê o Sangue?! Temos que Fazer o Código ABACABB! • Rank Bronze",
+        "description": "Assistir filmes do gênero Terror sem a tag Gore. (Rank Bronze: meta 3).",
+        "legacy_id": "multi_ac_dna_terror_sem_gore_30"
+      },
+      {
+        "id": "ac_rank_terror_sem_gore__silver",
+        "tier": "silver",
+        "target_value": 8,
+        "title": "Ué, Cadê o Sangue?! Temos que Fazer o Código ABACABB! • Rank Prata",
+        "description": "Assistir filmes do gênero Terror sem a tag Gore. (Rank Prata: meta 8)."
+      },
+      {
+        "id": "ac_rank_terror_sem_gore__epic",
+        "tier": "epic",
+        "target_value": 15,
+        "title": "Ué, Cadê o Sangue?! Temos que Fazer o Código ABACABB! • Rank Épico",
+        "description": "Assistir filmes do gênero Terror sem a tag Gore. (Rank Épico: meta 15)."
+      },
+      {
+        "id": "ac_rank_terror_sem_gore__gold",
+        "tier": "gold",
+        "target_value": 22,
+        "title": "Ué, Cadê o Sangue?! Temos que Fazer o Código ABACABB! • Rank Ouro",
+        "description": "Assistir filmes do gênero Terror sem a tag Gore. (Rank Ouro: meta 22)."
+      },
+      {
+        "id": "ac_rank_terror_sem_gore__mythic",
+        "tier": "mythic",
+        "target_value": 30,
+        "title": "Ué, Cadê o Sangue?! Temos que Fazer o Código ABACABB! • Rank Mítico",
+        "description": "Assistir filmes do gênero Terror sem a tag Gore. (Rank Mítico: meta 30)."
+      }
+    ],
+    "legacy_ids": [
+      "multi_ac_dna_terror_sem_gore_30"
+    ],
+    "sort_order": 162
   },
   {
     "id": "ac_doc_1",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -3843,10 +6350,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "genre": "Documentário"
     },
-    "sort_order": 203
+    "legacy_ids": [
+      "ac_doc_1"
+    ],
+    "sort_order": 163
   },
   {
     "id": "ac_musica_1",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -3860,10 +6371,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "genre": "Música"
     },
-    "sort_order": 204
+    "legacy_ids": [
+      "ac_musica_1"
+    ],
+    "sort_order": 164
   },
   {
     "id": "ac_animacao_1",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -3877,10 +6392,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "genre": "Animação"
     },
-    "sort_order": 205
+    "legacy_ids": [
+      "ac_animacao_1"
+    ],
+    "sort_order": 165
   },
   {
     "id": "ac_acao_aventura_1",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -3897,10 +6416,14 @@ export const TROPHY_DEFINITIONS = [
         "Aventura"
       ]
     },
-    "sort_order": 206
+    "legacy_ids": [
+      "ac_acao_aventura_1"
+    ],
+    "sort_order": 166
   },
   {
     "id": "ac_comedia_romance_1",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -3917,10 +6440,14 @@ export const TROPHY_DEFINITIONS = [
         "Romance"
       ]
     },
-    "sort_order": 207
+    "legacy_ids": [
+      "ac_comedia_romance_1"
+    ],
+    "sort_order": 167
   },
   {
     "id": "ac_crime_policial_1",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -3937,10 +6464,14 @@ export const TROPHY_DEFINITIONS = [
         "Policial"
       ]
     },
-    "sort_order": 208
+    "legacy_ids": [
+      "ac_crime_policial_1"
+    ],
+    "sort_order": 168
   },
   {
     "id": "ac_misterio_suspense_1",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -3957,10 +6488,14 @@ export const TROPHY_DEFINITIONS = [
         "Suspense"
       ]
     },
-    "sort_order": 209
+    "legacy_ids": [
+      "ac_misterio_suspense_1"
+    ],
+    "sort_order": 169
   },
   {
     "id": "ac_terrir_5",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -3977,10 +6512,14 @@ export const TROPHY_DEFINITIONS = [
         "Comédia"
       ]
     },
-    "sort_order": 210
+    "legacy_ids": [
+      "ac_terrir_5"
+    ],
+    "sort_order": 170
   },
   {
     "id": "ac_ficcao_terror_5",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -3997,10 +6536,14 @@ export const TROPHY_DEFINITIONS = [
         "Terror"
       ]
     },
-    "sort_order": 211
+    "legacy_ids": [
+      "ac_ficcao_terror_5"
+    ],
+    "sort_order": 171
   },
   {
     "id": "ac_bio_historia_10",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -4017,10 +6560,14 @@ export const TROPHY_DEFINITIONS = [
         "História"
       ]
     },
-    "sort_order": 212
+    "legacy_ids": [
+      "ac_bio_historia_10"
+    ],
+    "sort_order": 172
   },
   {
     "id": "ac_guerra_drama_10",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -4037,10 +6584,14 @@ export const TROPHY_DEFINITIONS = [
         "Drama"
       ]
     },
-    "sort_order": 213
+    "legacy_ids": [
+      "ac_guerra_drama_10"
+    ],
+    "sort_order": 173
   },
   {
     "id": "ac_drama_romance_15",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -4057,10 +6608,14 @@ export const TROPHY_DEFINITIONS = [
         "Romance"
       ]
     },
-    "sort_order": 214
+    "legacy_ids": [
+      "ac_drama_romance_15"
+    ],
+    "sort_order": 174
   },
   {
     "id": "ac_animacao_familia_15",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -4077,10 +6632,14 @@ export const TROPHY_DEFINITIONS = [
         "Família"
       ]
     },
-    "sort_order": 215
+    "legacy_ids": [
+      "ac_animacao_familia_15"
+    ],
+    "sort_order": 175
   },
   {
     "id": "ac_fantasia_aventura_15",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -4097,44 +6656,14 @@ export const TROPHY_DEFINITIONS = [
         "Aventura"
       ]
     },
-    "sort_order": 216
-  },
-  {
-    "id": "ac_curta_10",
-    "category": "anatomia_cinema",
-    "categories": [
-      "anatomia_cinema"
+    "legacy_ids": [
+      "ac_fantasia_aventura_15"
     ],
-    "tier": "silver",
-    "title": "Anatomia do Cinema: Maratona Rápida no Horário de Almoço",
-    "description": "Conquistar 10 filmes do gênero Curta (10 filmes).",
-    "icon": "⚡",
-    "target_type": "genre_count",
-    "target_value": 10,
-    "target_metadata": {
-      "genre": "Curta"
-    },
-    "sort_order": 217
-  },
-  {
-    "id": "ac_faroeste_10",
-    "category": "anatomia_cinema",
-    "categories": [
-      "anatomia_cinema"
-    ],
-    "tier": "silver",
-    "title": "Anatomia do Cinema: Gatilho Mais Rápido do Oeste",
-    "description": "Conquistar 10 filmes do gênero Faroeste (10 filmes).",
-    "icon": "🐎",
-    "target_type": "genre_count",
-    "target_value": 10,
-    "target_metadata": {
-      "genre": "Faroeste"
-    },
-    "sort_order": 218
+    "sort_order": 176
   },
   {
     "id": "ac_policial_misterio_20",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -4151,10 +6680,14 @@ export const TROPHY_DEFINITIONS = [
         "Mistério"
       ]
     },
-    "sort_order": 219
+    "legacy_ids": [
+      "ac_policial_misterio_20"
+    ],
+    "sort_order": 177
   },
   {
     "id": "ac_animacao_adulta_3",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -4173,10 +6706,14 @@ export const TROPHY_DEFINITIONS = [
         "Guerra"
       ]
     },
-    "sort_order": 220
+    "legacy_ids": [
+      "ac_animacao_adulta_3"
+    ],
+    "sort_order": 178
   },
   {
     "id": "ac_faroeste_weird_2",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -4195,10 +6732,14 @@ export const TROPHY_DEFINITIONS = [
         "Terror"
       ]
     },
-    "sort_order": 221
+    "legacy_ids": [
+      "ac_faroeste_weird_2"
+    ],
+    "sort_order": 179
   },
   {
     "id": "ac_guerra_comedia_3",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -4215,10 +6756,14 @@ export const TROPHY_DEFINITIONS = [
         "Comédia"
       ]
     },
-    "sort_order": 222
+    "legacy_ids": [
+      "ac_guerra_comedia_3"
+    ],
+    "sort_order": 180
   },
   {
     "id": "ac_familia_spooky_5",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -4236,10 +6781,14 @@ export const TROPHY_DEFINITIONS = [
         "Mistério"
       ]
     },
-    "sort_order": 223
+    "legacy_ids": [
+      "ac_familia_spooky_5"
+    ],
+    "sort_order": 181
   },
   {
     "id": "ac_doc_crime_10",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -4257,10 +6806,14 @@ export const TROPHY_DEFINITIONS = [
         "Policial"
       ]
     },
-    "sort_order": 224
+    "legacy_ids": [
+      "ac_doc_crime_10"
+    ],
+    "sort_order": 182
   },
   {
     "id": "ac_bio_musica_10",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -4277,10 +6830,14 @@ export const TROPHY_DEFINITIONS = [
         "Música"
       ]
     },
-    "sort_order": 225
+    "legacy_ids": [
+      "ac_bio_musica_10"
+    ],
+    "sort_order": 183
   },
   {
     "id": "ac_misterio_suspense_terror_10",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -4298,10 +6855,14 @@ export const TROPHY_DEFINITIONS = [
         "Terror"
       ]
     },
-    "sort_order": 226
+    "legacy_ids": [
+      "ac_misterio_suspense_terror_10"
+    ],
+    "sort_order": 184
   },
   {
     "id": "ac_blockbuster_triplo_15",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -4319,10 +6880,14 @@ export const TROPHY_DEFINITIONS = [
         "Ficção Científica"
       ]
     },
-    "sort_order": 227
+    "legacy_ids": [
+      "ac_blockbuster_triplo_15"
+    ],
+    "sort_order": 185
   },
   {
     "id": "ac_mafia_triplo_15",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -4340,10 +6905,14 @@ export const TROPHY_DEFINITIONS = [
         "Policial"
       ]
     },
-    "sort_order": 228
+    "legacy_ids": [
+      "ac_mafia_triplo_15"
+    ],
+    "sort_order": 186
   },
   {
     "id": "ac_trincheira_amor_5",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -4361,160 +6930,48 @@ export const TROPHY_DEFINITIONS = [
         "Drama"
       ]
     },
-    "sort_order": 229
-  },
-  {
-    "id": "ac_bingo_21_generos",
-    "category": "anatomia_cinema",
-    "categories": [
-      "anatomia_cinema"
+    "legacy_ids": [
+      "ac_trincheira_amor_5"
     ],
-    "tier": "gold",
-    "title": "Anatomia do Cinema: Cardápio Completo (Bingo dos 21 Gêneros)",
-    "description": "Conquistar pelo menos 1 filme em CADA UM dos 21 gêneros oficiais (21 gêneros).",
-    "icon": "🎰",
-    "target_type": "genre_all_21_coverage",
-    "target_value": 21,
-    "target_metadata": {
-      "minPerGenre": 1
-    },
-    "sort_order": 230
-  },
-  {
-    "id": "ac_quimera_4_generos_15",
-    "category": "anatomia_cinema",
-    "categories": [
-      "anatomia_cinema"
-    ],
-    "tier": "gold",
-    "title": "Anatomia do Cinema: Quimera Cinematográfica (4 Gêneros num Filme Só!)",
-    "description": "Conquistar 15 filmes que possuam 4 ou mais gêneros oficiais simultaneamente (15 filmes).",
-    "icon": "🐉",
-    "target_type": "movie_min_genre_count",
-    "target_value": 15,
-    "target_metadata": {
-      "minGenresPerMovie": 4
-    },
-    "sort_order": 231
-  },
-  {
-    "id": "ac_drama_150",
-    "category": "anatomia_cinema",
-    "categories": [
-      "anatomia_cinema"
-    ],
-    "tier": "gold",
-    "title": "Anatomia do Cinema: Haja Terapia! (Rei do Drama)",
-    "description": "Conquistar 150 filmes do gênero Drama (150 filmes).",
-    "icon": "🎭",
-    "target_type": "genre_count",
-    "target_value": 150,
-    "target_metadata": {
-      "genre": "Drama"
-    },
-    "sort_order": 232
-  },
-  {
-    "id": "ac_terror_suspense_quota_150",
-    "category": "anatomia_cinema",
-    "categories": [
-      "anatomia_cinema"
-    ],
-    "tier": "gold",
-    "title": "Anatomia do Cinema: Mestre do Medo e da Tensão",
-    "description": "Conquistar 75 filmes de Terror e 75 filmes de Suspense (150 filmes).",
-    "icon": "🩸",
-    "target_type": "genre_quotas",
-    "target_value": 150,
-    "target_metadata": {
-      "quotas": [
-        {
-          "genre": "Terror",
-          "count": 75
-        },
-        {
-          "genre": "Suspense",
-          "count": 75
-        }
-      ]
-    },
-    "sort_order": 233
-  },
-  {
-    "id": "ac_acao_aventura_quota_150",
-    "category": "anatomia_cinema",
-    "categories": [
-      "anatomia_cinema"
-    ],
-    "tier": "gold",
-    "title": "Anatomia do Cinema: Viciado em Adrenalina",
-    "description": "Conquistar 75 filmes de Ação e 75 filmes de Aventura (150 filmes).",
-    "icon": "🏎️",
-    "target_type": "genre_quotas",
-    "target_value": 150,
-    "target_metadata": {
-      "quotas": [
-        {
-          "genre": "Ação",
-          "count": 75
-        },
-        {
-          "genre": "Aventura",
-          "count": 75
-        }
-      ]
-    },
-    "sort_order": 234
-  },
-  {
-    "id": "ac_comedia_100",
-    "category": "anatomia_cinema",
-    "categories": [
-      "anatomia_cinema"
-    ],
-    "tier": "gold",
-    "title": "Anatomia do Cinema: Rir É o Melhor Remédio",
-    "description": "Conquistar 100 filmes do gênero Comédia (100 filmes).",
-    "icon": "😂",
-    "target_type": "genre_count",
-    "target_value": 100,
-    "target_metadata": {
-      "genre": "Comédia"
-    },
-    "sort_order": 235
+    "sort_order": 187
   },
   {
     "id": "ac_doc_bio_hist_quota_75",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
     ],
     "tier": "gold",
     "title": "Anatomia do Cinema: Professor de História e Atualidades",
-    "description": "Conquistar 25 filmes de Documentário, 25 de Biografia e 25 de História (75 filmes).",
+    "description": "Conquistar 10 filmes de Documentário, 10 de Biografia e 10 de História (30 filmes).",
     "icon": "🏛️",
     "target_type": "genre_quotas",
-    "target_value": 75,
+    "target_value": 30,
     "target_metadata": {
       "quotas": [
         {
           "genre": "Documentário",
-          "count": 25
+          "count": 10
         },
         {
           "genre": "Biografia",
-          "count": 25
+          "count": 10
         },
         {
           "genre": "História",
-          "count": 25
+          "count": 10
         }
       ]
     },
-    "sort_order": 236
+    "legacy_ids": [
+      "ac_doc_bio_hist_quota_75"
+    ],
+    "sort_order": 188
   },
   {
     "id": "ac_crise_5_generos_5",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -4528,27 +6985,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "minGenresPerMovie": 5
     },
-    "sort_order": 237
-  },
-  {
-    "id": "ac_onivoro_21_x_5",
-    "category": "anatomia_cinema",
-    "categories": [
-      "anatomia_cinema"
+    "legacy_ids": [
+      "ac_crise_5_generos_5"
     ],
-    "tier": "mythic",
-    "title": "Anatomia do Cinema: Onívoro Cinematográfico",
-    "description": "Conquistar pelo menos 5 filmes em CADA UM dos 21 gêneros oficiais (21 gêneros com 5 filmes cada).",
-    "icon": "🌐",
-    "target_type": "genre_all_21_coverage",
-    "target_value": 21,
-    "target_metadata": {
-      "minPerGenre": 5
-    },
-    "sort_order": 238
+    "sort_order": 189
   },
   {
     "id": "ac_locadora_15_generos_25",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -4563,10 +7007,14 @@ export const TROPHY_DEFINITIONS = [
       "minPerGenre": 25,
       "requiredDistinctGenres": 15
     },
-    "sort_order": 239
+    "legacy_ids": [
+      "ac_locadora_15_generos_25"
+    ],
+    "sort_order": 190
   },
   {
     "id": "ac_trindade_drama_comedia_terror_440",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -4593,10 +7041,14 @@ export const TROPHY_DEFINITIONS = [
         }
       ]
     },
-    "sort_order": 240
+    "legacy_ids": [
+      "ac_trindade_drama_comedia_terror_440"
+    ],
+    "sort_order": 191
   },
   {
     "id": "ac_enciclopedia_combos_50",
+    "kind": "unique",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
@@ -4610,17 +7062,21 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "minGenresPerMovie": 3
     },
-    "sort_order": 241
+    "legacy_ids": [
+      "ac_enciclopedia_combos_50"
+    ],
+    "sort_order": 192
   },
   {
     "id": "ac_platinum_master",
+    "kind": "platinum",
     "category": "anatomia_cinema",
     "categories": [
       "anatomia_cinema"
     ],
     "tier": "platinum",
     "title": "Anatomia do Cinema: O Mestre Supremo dos Gêneros",
-    "description": "Conquistar TODOS os troféus da categoria Anatomia do Cinema (desbloqueio automático dinâmico ao atingir 100% dos outros 86 troféus desta categoria, incluindo multicategoria).",
+    "description": "Conquistar 100% dos troféus e ranks da categoria Anatomia do Cinema (incluindo multicategoria).",
     "icon": "🏆",
     "target_type": "platinum_dynamic",
     "target_value": 86,
@@ -4628,10 +7084,612 @@ export const TROPHY_DEFINITIONS = [
       "category": "anatomia_cinema",
       "categoryScope": "anatomia_cinema"
     },
-    "sort_order": 242
+    "legacy_ids": [
+      "ac_platinum_master"
+    ],
+    "sort_order": 193
+  },
+  {
+    "id": "cross_uk_comedia_10",
+    "kind": "unique",
+    "category": "anatomia_cinema",
+    "categories": [
+      "volta_ao_mundo",
+      "anatomia_cinema"
+    ],
+    "tier": "silver",
+    "title": "Anatomia do Cinema: Humor Britânico Refinado",
+    "description": "Conquistar 10 filmes do gênero Comédia produzidos no Reino Unido (10 filmes).",
+    "icon": "🇬🇧",
+    "target_type": "country_genre",
+    "target_value": 10,
+    "target_metadata": {
+      "countryCode": "gb",
+      "countryName": "Reino Unido",
+      "genre": "Comédia"
+    },
+    "legacy_ids": [
+      "cross_uk_comedia_10"
+    ],
+    "sort_order": 194
+  },
+  {
+    "id": "cross_brasil_musica_5",
+    "kind": "unique",
+    "category": "anatomia_cinema",
+    "categories": [
+      "volta_ao_mundo",
+      "anatomia_cinema"
+    ],
+    "tier": "silver",
+    "title": "Anatomia do Cinema: Samba, Carnaval e Melodia",
+    "description": "Conquistar 5 filmes do gênero Música produzidos no Brasil (5 filmes).",
+    "icon": "🇧🇷",
+    "target_type": "country_genre",
+    "target_value": 5,
+    "target_metadata": {
+      "countryCode": "br",
+      "countryName": "Brasil",
+      "genre": "Música"
+    },
+    "legacy_ids": [
+      "cross_brasil_musica_5"
+    ],
+    "sort_order": 195
+  },
+  {
+    "id": "cross_animacao_antropo_10",
+    "kind": "unique",
+    "category": "anatomia_cinema",
+    "categories": [
+      "dna_cinefilo",
+      "anatomia_cinema"
+    ],
+    "tier": "epic",
+    "title": "Anatomia do Cinema: Furry Oficial da Animação!",
+    "description": "Conquistar 10 filmes que tenham o gênero Animação e a tag Animais antropomorficos ao mesmo tempo (10 filmes).",
+    "icon": "🐾",
+    "target_type": "genre_tag_and",
+    "target_value": 10,
+    "target_metadata": {
+      "genre": "Animação",
+      "tag": "Animais antropomorficos"
+    },
+    "legacy_ids": [
+      "cross_animacao_antropo_10"
+    ],
+    "sort_order": 196
+  },
+  {
+    "id": "triple_brasil_crime_real_5",
+    "kind": "unique",
+    "category": "anatomia_cinema",
+    "categories": [
+      "volta_ao_mundo",
+      "dna_cinefilo",
+      "anatomia_cinema"
+    ],
+    "tier": "epic",
+    "title": "Anatomia do Cinema: Investigação Criminal Brasileira (Combo Triplo)",
+    "description": "Conquistar 5 filmes do Brasil com o gênero Crime ou Policial e a tag Crime real ou Fatos Reais (5 filmes).",
+    "icon": "🇧🇷",
+    "target_type": "triple_combo_brasil",
+    "target_value": 5,
+    "target_metadata": {
+      "countryCode": "br",
+      "countryName": "Brasil",
+      "anyOfGenres": [
+        "Crime",
+        "Policial"
+      ],
+      "anyOfTags": [
+        "Crime real",
+        "Fatos Reais"
+      ]
+    },
+    "legacy_ids": [
+      "triple_brasil_crime_real_5"
+    ],
+    "sort_order": 197
+  },
+  {
+    "id": "triple_europa_terror_demonio_5",
+    "kind": "unique",
+    "category": "anatomia_cinema",
+    "categories": [
+      "volta_ao_mundo",
+      "dna_cinefilo",
+      "anatomia_cinema"
+    ],
+    "tier": "epic",
+    "title": "Anatomia do Cinema: Exorcismo no Velho Continente (Combo Triplo)",
+    "description": "Conquistar 5 filmes europeus do gênero Terror com a tag Demônio ou Religião (5 filmes).",
+    "icon": "🏰",
+    "target_type": "triple_combo_europa",
+    "target_value": 5,
+    "target_metadata": {
+      "continent": "Europa",
+      "genre": "Terror",
+      "anyOfTags": [
+        "Demônio",
+        "Religião"
+      ]
+    },
+    "legacy_ids": [
+      "triple_europa_terror_demonio_5"
+    ],
+    "sort_order": 198
+  },
+  {
+    "id": "multi_ac_rc_curta_youtube_5",
+    "kind": "unique",
+    "category": "anatomia_cinema",
+    "categories": [
+      "anatomia_cinema",
+      "ritual_cinefilo"
+    ],
+    "tier": "bronze",
+    "title": "Curta-Metragem Direto do YouTube!",
+    "description": "Conquistar 5 filmes do gênero Curta assistidos no YouTube (5 filmes).",
+    "icon": "▶️",
+    "target_type": "multi_ritual_rule",
+    "target_value": 5,
+    "target_metadata": {
+      "ruleKey": "curta_youtube_5"
+    },
+    "legacy_ids": [
+      "multi_ac_rc_curta_youtube_5"
+    ],
+    "sort_order": 199
+  },
+  {
+    "id": "multi_ac_rc_terror_anos_80_10",
+    "kind": "unique",
+    "category": "anatomia_cinema",
+    "categories": [
+      "anatomia_cinema",
+      "ritual_cinefilo"
+    ],
+    "tier": "silver",
+    "title": "Rebobine a Fita VHS! (Terror Oitentista)",
+    "description": "Conquistar 10 filmes do gênero Terror lançados na década de 1980 (1980 a 1989) (10 filmes).",
+    "icon": "📼",
+    "target_type": "multi_ritual_rule",
+    "target_value": 10,
+    "target_metadata": {
+      "ruleKey": "terror_anos_80_10"
+    },
+    "legacy_ids": [
+      "multi_ac_rc_terror_anos_80_10"
+    ],
+    "sort_order": 200
+  },
+  {
+    "id": "multi_ac_rc_pirata_romance_30",
+    "kind": "unique",
+    "category": "anatomia_cinema",
+    "categories": [
+      "anatomia_cinema",
+      "ritual_cinefilo"
+    ],
+    "tier": "epic",
+    "title": "Os Piratas Também Amam! (Coração de Corsário)",
+    "description": "Conquistar 30 filmes do gênero Romance assistidos em My Family Cine, YouTube ou Internet somados (30 filmes).",
+    "icon": "🏴‍☠️",
+    "target_type": "multi_ritual_rule",
+    "target_value": 30,
+    "target_metadata": {
+      "ruleKey": "pirata_romance_30"
+    },
+    "legacy_ids": [
+      "multi_ac_rc_pirata_romance_30"
+    ],
+    "sort_order": 201
+  },
+  {
+    "id": "tc_konami_code_acao_aventura_1980s_30",
+    "kind": "unique",
+    "category": "anatomia_cinema",
+    "categories": [
+      "anatomia_cinema",
+      "ritual_cinefilo"
+    ],
+    "tier": "gold",
+    "title": "Konami Code: 30 Vidas no Cineclube!",
+    "description": "Conquistar 30 filmes dos gêneros Ação ou Aventura lançados na década de 1980 (entre 1980 e 1989) (30 filmes).",
+    "icon": "🎮",
+    "target_type": "genres_or_decade_range_count",
+    "target_value": 30,
+    "target_metadata": {
+      "genres": [
+        "Ação",
+        "Aventura"
+      ],
+      "minYear": 1980,
+      "maxYear": 1989
+    },
+    "legacy_ids": [
+      "tc_konami_code_acao_aventura_1980s_30"
+    ],
+    "sort_order": 202
+  },
+  {
+    "id": "tc_rush_b_acao_max_90_min",
+    "kind": "unique",
+    "category": "anatomia_cinema",
+    "categories": [
+      "anatomia_cinema",
+      "ritual_cinefilo"
+    ],
+    "tier": "silver",
+    "title": "\"Rush B, Não Para!\" (Modo Tático do CS)",
+    "description": "Conquistar 10 filmes do gênero Ação com duração máxima de até 90 minutos (10 filmes).",
+    "icon": "💣",
+    "target_type": "genre_max_runtime_count",
+    "target_value": 10,
+    "target_metadata": {
+      "genre": "Ação",
+      "maxRuntime": 90
+    },
+    "legacy_ids": [
+      "tc_rush_b_acao_max_90_min"
+    ],
+    "sort_order": 203
+  },
+  {
+    "id": "tc_ray_tracing_bomba_2021_ficcao_acao_reviews_500k",
+    "kind": "unique",
+    "category": "anatomia_cinema",
+    "categories": [
+      "anatomia_cinema",
+      "ritual_cinefilo",
+      "tribunal_critica"
+    ],
+    "tier": "silver",
+    "title": "\"Nem o Ray Tracing Salva Essa Bomba!\"",
+    "description": "Conquistar 3 filmes lançados a partir do ano de 2021 do gênero Ficção Científica ou Ação que tenham mais de 500.000 Global Reviews e Minha Nota abaixo de 5.000 (3 filmes).",
+    "icon": "💥",
+    "target_type": "bomba_ray_tracing_count",
+    "target_value": 3,
+    "target_metadata": {
+      "genres": [
+        "Ficção Científica",
+        "Ação"
+      ],
+      "minYear": 2021,
+      "minGlobalReviews": 500000,
+      "maxRating": 5000
+    },
+    "legacy_ids": [
+      "tc_ray_tracing_bomba_2021_ficcao_acao_reviews_500k"
+    ],
+    "sort_order": 204
+  },
+  {
+    "id": "dl_rank_terror_outubro",
+    "kind": "rank",
+    "category": "data_limite",
+    "categories": [
+      "data_limite",
+      "anatomia_cinema"
+    ],
+    "tier": "mythic",
+    "title": "Data Limite: Mês das Bruxas Completo (31 Dias de Terror!)",
+    "description": "Assistir filmes de Terror no mês de Outubro.",
+    "icon": "🕯️",
+    "target_type": "genre_month",
+    "target_value": 31,
+    "target_metadata": {
+      "genre": "Terror",
+      "month": 10
+    },
+    "ranks": [
+      {
+        "id": "dl_rank_terror_outubro__bronze",
+        "tier": "bronze",
+        "target_value": 5,
+        "title": "Esquenta do Halloween (5 Filmes)",
+        "description": "Assistir filmes de Terror no mês de Outubro. (Rank Bronze: meta 5).",
+        "legacy_id": "dl_terror_outubro_13"
+      },
+      {
+        "id": "dl_rank_terror_outubro__silver",
+        "tier": "silver",
+        "target_value": 10,
+        "title": "Noite de Terror em Outubro (10 Filmes)",
+        "description": "Assistir filmes de Terror no mês de Outubro. (Rank Prata: meta 10).",
+        "legacy_id": "dl_terror_outubro_13"
+      },
+      {
+        "id": "dl_rank_terror_outubro__epic",
+        "tier": "epic",
+        "target_value": 15,
+        "title": "Jason Ficaria Orgulhoso! (15 Filmes)",
+        "description": "Assistir filmes de Terror no mês de Outubro. (Rank Épico: meta 15).",
+        "legacy_id": "dl_terror_outubro_13"
+      },
+      {
+        "id": "dl_rank_terror_outubro__gold",
+        "tier": "gold",
+        "target_value": 22,
+        "title": "Quase Um Susto Por Noite (22 Filmes)",
+        "description": "Assistir filmes de Terror no mês de Outubro. (Rank Ouro: meta 22).",
+        "legacy_id": "dl_terror_outubro_31"
+      },
+      {
+        "id": "dl_rank_terror_outubro__mythic",
+        "tier": "mythic",
+        "target_value": 31,
+        "title": "Mês das Bruxas Completo (31 Dias de Terror!)",
+        "description": "Assistir filmes de Terror no mês de Outubro. (Rank Mítico: meta 31).",
+        "legacy_id": "dl_terror_outubro_31"
+      }
+    ],
+    "legacy_ids": [
+      "dl_terror_outubro_13",
+      "dl_terror_outubro_13",
+      "dl_terror_outubro_13",
+      "dl_terror_outubro_31",
+      "dl_terror_outubro_31"
+    ],
+    "sort_order": 205
+  },
+  {
+    "id": "dl_rank_todos_12_meses",
+    "kind": "rank",
+    "category": "data_limite",
+    "categories": [
+      "data_limite"
+    ],
+    "tier": "mythic",
+    "title": "Data Limite: Cinéfilo Sem Férias (Janeiro a Dezembro)",
+    "description": "Assistir filmes em CADA UM dos 12 meses do ano (de 1 a 15 filmes por mês).",
+    "icon": "📆",
+    "target_type": "all_12_months_coverage",
+    "target_value": 15,
+    "target_metadata": {
+      "minPerMonth": 1
+    },
+    "ranks": [
+      {
+        "id": "dl_rank_todos_12_meses__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Cinéfilo de Janeiro a Dezembro (1 por mês)",
+        "description": "Assistir filmes em CADA UM dos 12 meses do ano (de 1 a 15 filmes por mês). (Rank Bronze: meta 1).",
+        "legacy_id": "dl_todos_12_meses_1"
+      },
+      {
+        "id": "dl_rank_todos_12_meses__silver",
+        "tier": "silver",
+        "target_value": 3,
+        "title": "Ritmo Constante o Ano Todo (3 por mês)",
+        "description": "Assistir filmes em CADA UM dos 12 meses do ano (de 1 a 15 filmes por mês). (Rank Prata: meta 3).",
+        "legacy_id": "dl_todos_12_meses_1"
+      },
+      {
+        "id": "dl_rank_todos_12_meses__epic",
+        "tier": "epic",
+        "target_value": 6,
+        "title": "Meia Dúzia Todo Mês (6 por mês)",
+        "description": "Assistir filmes em CADA UM dos 12 meses do ano (de 1 a 15 filmes por mês). (Rank Épico: meta 6).",
+        "legacy_id": "dl_todos_12_meses_1"
+      },
+      {
+        "id": "dl_rank_todos_12_meses__gold",
+        "tier": "gold",
+        "target_value": 10,
+        "title": "Dezena Garantida no Calendário (10 por mês)",
+        "description": "Assistir filmes em CADA UM dos 12 meses do ano (de 1 a 15 filmes por mês). (Rank Ouro: meta 10).",
+        "legacy_id": "dl_todos_12_meses_15"
+      },
+      {
+        "id": "dl_rank_todos_12_meses__mythic",
+        "tier": "mythic",
+        "target_value": 15,
+        "title": "Sem Férias para o Controle Remoto (15 por mês)",
+        "description": "Assistir filmes em CADA UM dos 12 meses do ano (de 1 a 15 filmes por mês). (Rank Mítico: meta 15).",
+        "legacy_id": "dl_todos_12_meses_15"
+      }
+    ],
+    "legacy_ids": [
+      "dl_todos_12_meses_1",
+      "dl_todos_12_meses_1",
+      "dl_todos_12_meses_1",
+      "dl_todos_12_meses_15",
+      "dl_todos_12_meses_15"
+    ],
+    "sort_order": 206
+  },
+  {
+    "id": "dl_rank_fevereiro",
+    "kind": "rank",
+    "category": "data_limite",
+    "categories": [
+      "data_limite"
+    ],
+    "tier": "mythic",
+    "title": "Data Limite: Carnaval no Sofá!",
+    "description": "Assistir filmes no mês de Fevereiro.",
+    "icon": "🎭",
+    "target_type": "month_movie_count",
+    "target_value": 20,
+    "target_metadata": {
+      "month": 2
+    },
+    "ranks": [
+      {
+        "id": "dl_rank_fevereiro__bronze",
+        "tier": "bronze",
+        "target_value": 2,
+        "title": "Data Limite: Carnaval no Sofá! • Rank Bronze",
+        "description": "Assistir filmes no mês de Fevereiro. (Rank Bronze: meta 2).",
+        "legacy_id": "dl_fevereiro_geral_15"
+      },
+      {
+        "id": "dl_rank_fevereiro__silver",
+        "tier": "silver",
+        "target_value": 5,
+        "title": "Data Limite: Carnaval no Sofá! • Rank Prata",
+        "description": "Assistir filmes no mês de Fevereiro. (Rank Prata: meta 5)."
+      },
+      {
+        "id": "dl_rank_fevereiro__epic",
+        "tier": "epic",
+        "target_value": 10,
+        "title": "Data Limite: Carnaval no Sofá! • Rank Épico",
+        "description": "Assistir filmes no mês de Fevereiro. (Rank Épico: meta 10)."
+      },
+      {
+        "id": "dl_rank_fevereiro__gold",
+        "tier": "gold",
+        "target_value": 15,
+        "title": "Data Limite: Carnaval no Sofá! • Rank Ouro",
+        "description": "Assistir filmes no mês de Fevereiro. (Rank Ouro: meta 15)."
+      },
+      {
+        "id": "dl_rank_fevereiro__mythic",
+        "tier": "mythic",
+        "target_value": 20,
+        "title": "Data Limite: Carnaval no Sofá! • Rank Mítico",
+        "description": "Assistir filmes no mês de Fevereiro. (Rank Mítico: meta 20)."
+      }
+    ],
+    "legacy_ids": [
+      "dl_fevereiro_geral_15"
+    ],
+    "sort_order": 207
+  },
+  {
+    "id": "dl_rank_pride_junho",
+    "kind": "rank",
+    "category": "data_limite",
+    "categories": [
+      "data_limite",
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Data Limite: Mês do Orgulho (Pride Month)",
+    "description": "Assistir filmes com tag Personagem LGBT no mês de Junho.",
+    "icon": "🏳️‍🌈",
+    "target_type": "tag_month",
+    "target_value": 10,
+    "target_metadata": {
+      "tag": "Personagem LGBT",
+      "month": 6
+    },
+    "ranks": [
+      {
+        "id": "dl_rank_pride_junho__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Data Limite: Mês do Orgulho (Pride Month) • Rank Bronze",
+        "description": "Assistir filmes com tag Personagem LGBT no mês de Junho. (Rank Bronze: meta 1).",
+        "legacy_id": "dl_pride_lgbt_junho_10"
+      },
+      {
+        "id": "dl_rank_pride_junho__silver",
+        "tier": "silver",
+        "target_value": 3,
+        "title": "Data Limite: Mês do Orgulho (Pride Month) • Rank Prata",
+        "description": "Assistir filmes com tag Personagem LGBT no mês de Junho. (Rank Prata: meta 3)."
+      },
+      {
+        "id": "dl_rank_pride_junho__epic",
+        "tier": "epic",
+        "target_value": 5,
+        "title": "Data Limite: Mês do Orgulho (Pride Month) • Rank Épico",
+        "description": "Assistir filmes com tag Personagem LGBT no mês de Junho. (Rank Épico: meta 5)."
+      },
+      {
+        "id": "dl_rank_pride_junho__gold",
+        "tier": "gold",
+        "target_value": 8,
+        "title": "Data Limite: Mês do Orgulho (Pride Month) • Rank Ouro",
+        "description": "Assistir filmes com tag Personagem LGBT no mês de Junho. (Rank Ouro: meta 8)."
+      },
+      {
+        "id": "dl_rank_pride_junho__mythic",
+        "tier": "mythic",
+        "target_value": 10,
+        "title": "Data Limite: Mês do Orgulho (Pride Month) • Rank Mítico",
+        "description": "Assistir filmes com tag Personagem LGBT no mês de Junho. (Rank Mítico: meta 10)."
+      }
+    ],
+    "legacy_ids": [
+      "dl_pride_lgbt_junho_10"
+    ],
+    "sort_order": 208
+  },
+  {
+    "id": "dl_rank_pride_sem_fronteiras",
+    "kind": "rank",
+    "category": "data_limite",
+    "categories": [
+      "data_limite",
+      "volta_ao_mundo",
+      "dna_cinefilo",
+      "anatomia_cinema"
+    ],
+    "tier": "mythic",
+    "title": "Data Limite: Orgulho Sem Fronteiras em Junho",
+    "description": "Filmes fora dos EUA e fora do Brasil + Drama ou Romance + tag Personagem LGBT + vistos em Junho.",
+    "icon": "🌈",
+    "target_type": "quad_pride_sem_fronteiras",
+    "target_value": 10,
+    "target_metadata": {
+      "excludeCountryCodes": [
+        "us",
+        "br"
+      ],
+      "isQuad": true
+    },
+    "ranks": [
+      {
+        "id": "dl_rank_pride_sem_fronteiras__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Data Limite: Orgulho Sem Fronteiras em Junho • Rank Bronze",
+        "description": "Filmes fora dos EUA e fora do Brasil + Drama ou Romance + tag Personagem LGBT + vistos em Junho. (Rank Bronze: meta 1).",
+        "legacy_id": "quad_pride_sem_fronteiras_5"
+      },
+      {
+        "id": "dl_rank_pride_sem_fronteiras__silver",
+        "tier": "silver",
+        "target_value": 3,
+        "title": "Data Limite: Orgulho Sem Fronteiras em Junho • Rank Prata",
+        "description": "Filmes fora dos EUA e fora do Brasil + Drama ou Romance + tag Personagem LGBT + vistos em Junho. (Rank Prata: meta 3)."
+      },
+      {
+        "id": "dl_rank_pride_sem_fronteiras__epic",
+        "tier": "epic",
+        "target_value": 5,
+        "title": "Data Limite: Orgulho Sem Fronteiras em Junho • Rank Épico",
+        "description": "Filmes fora dos EUA e fora do Brasil + Drama ou Romance + tag Personagem LGBT + vistos em Junho. (Rank Épico: meta 5)."
+      },
+      {
+        "id": "dl_rank_pride_sem_fronteiras__gold",
+        "tier": "gold",
+        "target_value": 8,
+        "title": "Data Limite: Orgulho Sem Fronteiras em Junho • Rank Ouro",
+        "description": "Filmes fora dos EUA e fora do Brasil + Drama ou Romance + tag Personagem LGBT + vistos em Junho. (Rank Ouro: meta 8)."
+      },
+      {
+        "id": "dl_rank_pride_sem_fronteiras__mythic",
+        "tier": "mythic",
+        "target_value": 10,
+        "title": "Data Limite: Orgulho Sem Fronteiras em Junho • Rank Mítico",
+        "description": "Filmes fora dos EUA e fora do Brasil + Drama ou Romance + tag Personagem LGBT + vistos em Junho. (Rank Mítico: meta 10)."
+      }
+    ],
+    "legacy_ids": [
+      "quad_pride_sem_fronteiras_5"
+    ],
+    "sort_order": 209
   },
   {
     "id": "dl_natal_fora_epoca_3",
+    "kind": "unique",
     "category": "data_limite",
     "categories": [
       "dna_cinefilo",
@@ -4659,10 +7717,14 @@ export const TROPHY_DEFINITIONS = [
         11
       ]
     },
-    "sort_order": 243
+    "legacy_ids": [
+      "dl_natal_fora_epoca_3"
+    ],
+    "sort_order": 210
   },
   {
     "id": "dl_drama_novembro_10",
+    "kind": "unique",
     "category": "data_limite",
     "categories": [
       "anatomia_cinema",
@@ -4678,10 +7740,14 @@ export const TROPHY_DEFINITIONS = [
       "genre": "Drama",
       "month": 11
     },
-    "sort_order": 244
+    "legacy_ids": [
+      "dl_drama_novembro_10"
+    ],
+    "sort_order": 211
   },
   {
     "id": "dl_escola_fev_ago_5",
+    "kind": "unique",
     "category": "data_limite",
     "categories": [
       "dna_cinefilo",
@@ -4700,46 +7766,14 @@ export const TROPHY_DEFINITIONS = [
         8
       ]
     },
-    "sort_order": 245
-  },
-  {
-    "id": "dl_fevereiro_geral_15",
-    "category": "data_limite",
-    "categories": [
-      "data_limite"
+    "legacy_ids": [
+      "dl_escola_fev_ago_5"
     ],
-    "tier": "bronze",
-    "title": "Data Limite: Carnaval no Sofá!",
-    "description": "Conquistar 15 filmes assistidos no mês de Fevereiro (15 filmes).",
-    "icon": "🎭",
-    "target_type": "month_movie_count",
-    "target_value": 15,
-    "target_metadata": {
-      "month": 2
-    },
-    "sort_order": 246
-  },
-  {
-    "id": "dna_animais_antropo_10",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo"
-    ],
-    "tier": "silver",
-    "title": "DNA Cinéfilo: É um Digimon ou Pokémon?",
-    "description": "Conquistar 10 filmes com a tag Animais antropomorficos (10 filmes).",
-    "icon": "🦊",
-    "target_type": "tag_movie_count",
-    "target_value": 10,
-    "target_metadata": {
-      "tags": [
-        "Animais antropomorficos"
-      ]
-    },
-    "sort_order": 247
+    "sort_order": 212
   },
   {
     "id": "dl_natal_dezembro_10",
+    "kind": "unique",
     "category": "data_limite",
     "categories": [
       "dna_cinefilo",
@@ -4755,10 +7789,14 @@ export const TROPHY_DEFINITIONS = [
       "tag": "Natal",
       "month": 12
     },
-    "sort_order": 248
+    "legacy_ids": [
+      "dl_natal_dezembro_10"
+    ],
+    "sort_order": 213
   },
   {
     "id": "dl_romance_junho_10",
+    "kind": "unique",
     "category": "data_limite",
     "categories": [
       "anatomia_cinema",
@@ -4774,10 +7812,14 @@ export const TROPHY_DEFINITIONS = [
       "genre": "Romance",
       "month": 6
     },
-    "sort_order": 249
+    "legacy_ids": [
+      "dl_romance_junho_10"
+    ],
+    "sort_order": 214
   },
   {
     "id": "dl_romance_fevereiro_10",
+    "kind": "unique",
     "category": "data_limite",
     "categories": [
       "anatomia_cinema",
@@ -4793,10 +7835,14 @@ export const TROPHY_DEFINITIONS = [
       "genre": "Romance",
       "month": 2
     },
-    "sort_order": 250
+    "legacy_ids": [
+      "dl_romance_fevereiro_10"
+    ],
+    "sort_order": 215
   },
   {
     "id": "dl_animacao_familia_julho_10",
+    "kind": "unique",
     "category": "data_limite",
     "categories": [
       "anatomia_cinema",
@@ -4815,10 +7861,14 @@ export const TROPHY_DEFINITIONS = [
       ],
       "month": 7
     },
-    "sort_order": 251
+    "legacy_ids": [
+      "dl_animacao_familia_julho_10"
+    ],
+    "sort_order": 216
   },
   {
     "id": "dl_repetido_viagem_janeiro_5",
+    "kind": "unique",
     "category": "data_limite",
     "categories": [
       "dna_cinefilo",
@@ -4837,371 +7887,14 @@ export const TROPHY_DEFINITIONS = [
       ],
       "month": 1
     },
-    "sort_order": 252
-  },
-  {
-    "id": "dl_todos_12_meses_1",
-    "category": "data_limite",
-    "categories": [
-      "data_limite"
+    "legacy_ids": [
+      "dl_repetido_viagem_janeiro_5"
     ],
-    "tier": "silver",
-    "title": "Data Limite: Cinéfilo de Janeiro a Dezembro",
-    "description": "Conquistar pelo menos 1 filme assistido em cada um dos 12 meses do ano (12 meses).",
-    "icon": "📆",
-    "target_type": "all_12_months_coverage",
-    "target_value": 12,
-    "target_metadata": {
-      "minPerMonth": 1
-    },
-    "sort_order": 253
-  },
-  {
-    "id": "cross_india_musica_romance_5",
-    "category": "anatomia_cinema",
-    "categories": [
-      "volta_ao_mundo",
-      "anatomia_cinema"
-    ],
-    "tier": "silver",
-    "title": "Anatomia do Cinema: Bollywood em Estado Puro!",
-    "description": "Conquistar 5 filmes da Índia que tenham os gêneros Música ou Romance (5 filmes).",
-    "icon": "🇮🇳",
-    "target_type": "country_genres_or",
-    "target_value": 5,
-    "target_metadata": {
-      "countryCode": "in",
-      "countryName": "Índia",
-      "genres": [
-        "Música",
-        "Romance"
-      ]
-    },
-    "sort_order": 254
-  },
-  {
-    "id": "cross_korea_drama_romance_10",
-    "category": "anatomia_cinema",
-    "categories": [
-      "volta_ao_mundo",
-      "anatomia_cinema"
-    ],
-    "tier": "silver",
-    "title": "Anatomia do Cinema: K-Drama de Respeito",
-    "description": "Conquistar 10 filmes da Coreia do Sul que tenham os gêneros Drama e Romance ao mesmo tempo (10 filmes).",
-    "icon": "🇰🇷",
-    "target_type": "country_genres_and",
-    "target_value": 10,
-    "target_metadata": {
-      "countryCode": "kr",
-      "countryName": "Coreia do Sul",
-      "genres": [
-        "Drama",
-        "Romance"
-      ]
-    },
-    "sort_order": 255
-  },
-  {
-    "id": "cross_uk_comedia_10",
-    "category": "anatomia_cinema",
-    "categories": [
-      "volta_ao_mundo",
-      "anatomia_cinema"
-    ],
-    "tier": "silver",
-    "title": "Anatomia do Cinema: Humor Britânico Refinado",
-    "description": "Conquistar 10 filmes do gênero Comédia produzidos no Reino Unido (10 filmes).",
-    "icon": "🇬🇧",
-    "target_type": "country_genre",
-    "target_value": 10,
-    "target_metadata": {
-      "countryCode": "gb",
-      "countryName": "Reino Unido",
-      "genre": "Comédia"
-    },
-    "sort_order": 256
-  },
-  {
-    "id": "cross_brasil_musica_5",
-    "category": "anatomia_cinema",
-    "categories": [
-      "volta_ao_mundo",
-      "anatomia_cinema"
-    ],
-    "tier": "silver",
-    "title": "Anatomia do Cinema: Samba, Carnaval e Melodia",
-    "description": "Conquistar 5 filmes do gênero Música produzidos no Brasil (5 filmes).",
-    "icon": "🇧🇷",
-    "target_type": "country_genre",
-    "target_value": 5,
-    "target_metadata": {
-      "countryCode": "br",
-      "countryName": "Brasil",
-      "genre": "Música"
-    },
-    "sort_order": 257
-  },
-  {
-    "id": "dl_terror_outubro_13",
-    "category": "data_limite",
-    "categories": [
-      "anatomia_cinema",
-      "data_limite"
-    ],
-    "tier": "epic",
-    "title": "Data Limite: Jason Ficaria Orgulhoso!",
-    "description": "Conquistar 13 filmes do gênero Terror assistidos no mês de Outubro (13 filmes).",
-    "icon": "🔪",
-    "target_type": "genre_month",
-    "target_value": 13,
-    "target_metadata": {
-      "genre": "Terror",
-      "month": 10
-    },
-    "sort_order": 258
-  },
-  {
-    "id": "cross_romenia_terror_5",
-    "category": "anatomia_cinema",
-    "categories": [
-      "volta_ao_mundo",
-      "anatomia_cinema"
-    ],
-    "tier": "epic",
-    "title": "Volta ao Mundo: Transilvânia É o Seu Reino!",
-    "description": "Conquistar 5 filmes do gênero Terror produzidos na Romênia (5 filmes).",
-    "icon": "🇷🇴",
-    "target_type": "country_genre",
-    "target_value": 5,
-    "target_metadata": {
-      "countryCode": "ro",
-      "countryName": "Romênia",
-      "genre": "Terror"
-    },
-    "sort_order": 259
-  },
-  {
-    "id": "cross_italia_faroeste_5",
-    "category": "anatomia_cinema",
-    "categories": [
-      "volta_ao_mundo",
-      "anatomia_cinema"
-    ],
-    "tier": "epic",
-    "title": "Volta ao Mundo: Spaghetti Western Legítimo",
-    "description": "Conquistar 5 filmes do gênero Faroeste produzidos na Itália (5 filmes).",
-    "icon": "🇮🇹",
-    "target_type": "country_genre",
-    "target_value": 5,
-    "target_metadata": {
-      "countryCode": "it",
-      "countryName": "Itália",
-      "genre": "Faroeste"
-    },
-    "sort_order": 260
-  },
-  {
-    "id": "dl_pride_lgbt_junho_10",
-    "category": "data_limite",
-    "categories": [
-      "dna_cinefilo",
-      "data_limite"
-    ],
-    "tier": "epic",
-    "title": "Data Limite: Mês do Orgulho (Pride Month)",
-    "description": "Conquistar 10 filmes com a tag Personagem LGBT assistidos no mês de Junho (10 filmes).",
-    "icon": "🏳️‍🌈",
-    "target_type": "tag_month",
-    "target_value": 10,
-    "target_metadata": {
-      "tag": "Personagem LGBT",
-      "month": 6
-    },
-    "sort_order": 261
-  },
-  {
-    "id": "cross_animacao_antropo_10",
-    "category": "anatomia_cinema",
-    "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema"
-    ],
-    "tier": "epic",
-    "title": "Anatomia do Cinema: Furry Oficial da Animação!",
-    "description": "Conquistar 10 filmes que tenham o gênero Animação e a tag Animais antropomorficos ao mesmo tempo (10 filmes).",
-    "icon": "🐾",
-    "target_type": "genre_tag_and",
-    "target_value": 10,
-    "target_metadata": {
-      "genre": "Animação",
-      "tag": "Animais antropomorficos"
-    },
-    "sort_order": 262
-  },
-  {
-    "id": "triple_japan_anime_scifi_5",
-    "category": "anatomia_cinema",
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo",
-      "anatomia_cinema"
-    ],
-    "tier": "epic",
-    "title": "Anatomia do Cinema: Akira & Cyberpunk (Combo Triplo)",
-    "description": "Conquistar 5 filmes do Japão com os gêneros Animação e Ficção Científica e a tag Baseado em Anime ou Dystopia (5 filmes).",
-    "icon": "🏍️",
-    "target_type": "triple_combo_japan",
-    "target_value": 5,
-    "target_metadata": {
-      "countryCode": "jp",
-      "countryName": "Japão",
-      "genres": [
-        "Animação",
-        "Ficção Científica"
-      ],
-      "anyOfTags": [
-        "Baseado em Anime",
-        "Dystopia"
-      ]
-    },
-    "sort_order": 263
-  },
-  {
-    "id": "triple_brasil_crime_real_5",
-    "category": "anatomia_cinema",
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo",
-      "anatomia_cinema"
-    ],
-    "tier": "epic",
-    "title": "Anatomia do Cinema: Investigação Criminal Brasileira (Combo Triplo)",
-    "description": "Conquistar 5 filmes do Brasil com o gênero Crime ou Policial e a tag Crime real ou Fatos Reais (5 filmes).",
-    "icon": "🇧🇷",
-    "target_type": "triple_combo_brasil",
-    "target_value": 5,
-    "target_metadata": {
-      "countryCode": "br",
-      "countryName": "Brasil",
-      "anyOfGenres": [
-        "Crime",
-        "Policial"
-      ],
-      "anyOfTags": [
-        "Crime real",
-        "Fatos Reais"
-      ]
-    },
-    "sort_order": 264
-  },
-  {
-    "id": "triple_europa_terror_demonio_5",
-    "category": "anatomia_cinema",
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo",
-      "anatomia_cinema"
-    ],
-    "tier": "epic",
-    "title": "Anatomia do Cinema: Exorcismo no Velho Continente (Combo Triplo)",
-    "description": "Conquistar 5 filmes europeus do gênero Terror com a tag Demônio ou Religião (5 filmes).",
-    "icon": "🏰",
-    "target_type": "triple_combo_europa",
-    "target_value": 5,
-    "target_metadata": {
-      "continent": "Europa",
-      "genre": "Terror",
-      "anyOfTags": [
-        "Demônio",
-        "Religião"
-      ]
-    },
-    "sort_order": 265
-  },
-  {
-    "id": "cross_doc_crime_fatos_5",
-    "category": "anatomia_cinema",
-    "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema"
-    ],
-    "tier": "epic",
-    "title": "Anatomia do Cinema: Documentário de Arrepiar os Cabelos",
-    "description": "Conquistar 5 filmes do gênero Documentário com a tag Crime real, Sequestro ou Fatos Reais (5 filmes).",
-    "icon": "🕵️",
-    "target_type": "genre_tag_or",
-    "target_value": 5,
-    "target_metadata": {
-      "genre": "Documentário",
-      "anyOfTags": [
-        "Crime real",
-        "Sequestro",
-        "Fatos Reais"
-      ]
-    },
-    "sort_order": 266
-  },
-  {
-    "id": "dl_terror_outubro_31",
-    "category": "data_limite",
-    "categories": [
-      "anatomia_cinema",
-      "data_limite"
-    ],
-    "tier": "gold",
-    "title": "Data Limite: Mês das Bruxas Completo (31 Dias de Terror!)",
-    "description": "Conquistar 31 filmes do gênero Terror assistidos no mês de Outubro (31 filmes).",
-    "icon": "🕯️",
-    "target_type": "genre_month",
-    "target_value": 31,
-    "target_metadata": {
-      "genre": "Terror",
-      "month": 10
-    },
-    "sort_order": 267
-  },
-  {
-    "id": "dl_todos_12_meses_15",
-    "category": "data_limite",
-    "categories": [
-      "data_limite"
-    ],
-    "tier": "gold",
-    "title": "Data Limite: Sem Férias para o Controle Remoto",
-    "description": "Conquistar pelo menos 15 filmes em cada um dos 12 meses do ano (12 meses com 15 filmes cada).",
-    "icon": "🗓️",
-    "target_type": "all_12_months_coverage",
-    "target_value": 12,
-    "target_metadata": {
-      "minPerMonth": 15
-    },
-    "sort_order": 268
-  },
-  {
-    "id": "triple_romenia_dracula_3",
-    "category": "volta_ao_mundo",
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo",
-      "anatomia_cinema"
-    ],
-    "tier": "gold",
-    "title": "Volta ao Mundo: Conde Drácula em Pessoa! (Combo Triplo)",
-    "description": "Conquistar 3 filmes da Romênia do gênero Terror com a tag Vampiro (3 filmes).",
-    "icon": "🧛‍♂️",
-    "target_type": "triple_combo_romenia_dracula",
-    "target_value": 3,
-    "target_metadata": {
-      "countryCode": "ro",
-      "countryName": "Romênia",
-      "genre": "Terror",
-      "tag": "Vampiro"
-    },
-    "sort_order": 269
+    "sort_order": 217
   },
   {
     "id": "quad_natal_classico_5",
+    "kind": "unique",
     "category": "data_limite",
     "categories": [
       "volta_ao_mundo",
@@ -5228,66 +7921,14 @@ export const TROPHY_DEFINITIONS = [
       "tag": "Natal",
       "month": 12
     },
-    "sort_order": 270
-  },
-  {
-    "id": "quad_pride_sem_fronteiras_5",
-    "category": "data_limite",
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "data_limite"
+    "legacy_ids": [
+      "quad_natal_classico_5"
     ],
-    "tier": "gold",
-    "title": "Data Limite: Orgulho Sem Fronteiras em Junho (Crossover 4 Categorias!)",
-    "description": "Conquistar 5 filmes fora dos EUA + Gênero Drama ou Romance + Tag Personagem LGBT + Assistidos no mês de Junho (5 filmes).",
-    "icon": "🌈",
-    "target_type": "quad_pride_sem_fronteiras",
-    "target_value": 5,
-    "target_metadata": {
-      "excludeCountryCode": "us",
-      "anyOfGenres": [
-        "Drama",
-        "Romance"
-      ],
-      "tag": "Personagem LGBT",
-      "month": 6
-    },
-    "sort_order": 271
-  },
-  {
-    "id": "quad_halloween_eua_10",
-    "category": "data_limite",
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "data_limite"
-    ],
-    "tier": "mythic",
-    "title": "Data Limite: Halloween Clássico Americano (Crossover 4 Categorias!)",
-    "description": "Conquistar 10 filmes dos Estados Unidos + Gênero Terror + Tag (Gore, Fantasma, Demônio, Bruxo, Zumbi ou SK) + Assistidos no mês de Outubro (10 filmes).",
-    "icon": "🎃",
-    "target_type": "quad_halloween_eua",
-    "target_value": 10,
-    "target_metadata": {
-      "countryCode": "us",
-      "genre": "Terror",
-      "anyOfTags": [
-        "Gore",
-        "Fantasma",
-        "Demônio",
-        "Bruxo",
-        "Zumbi",
-        "SK"
-      ],
-      "month": 10
-    },
-    "sort_order": 272
+    "sort_order": 218
   },
   {
     "id": "quad_outubro_macabro_mundo_10",
+    "kind": "unique",
     "category": "data_limite",
     "categories": [
       "volta_ao_mundo",
@@ -5317,10 +7958,14 @@ export const TROPHY_DEFINITIONS = [
       ],
       "month": 10
     },
-    "sort_order": 273
+    "legacy_ids": [
+      "quad_outubro_macabro_mundo_10"
+    ],
+    "sort_order": 219
   },
   {
     "id": "quad_natal_macabro_3",
+    "kind": "unique",
     "category": "data_limite",
     "categories": [
       "volta_ao_mundo",
@@ -5342,27 +7987,781 @@ export const TROPHY_DEFINITIONS = [
       "tag": "Natal",
       "month": 12
     },
-    "sort_order": 274
+    "legacy_ids": [
+      "quad_natal_macabro_3"
+    ],
+    "sort_order": 220
   },
   {
-    "id": "mafia_oscar_winner_1",
+    "id": "mafia_rank_oscar_winner",
+    "kind": "rank",
     "category": "mafia_hollywood",
     "categories": [
       "mafia_hollywood"
     ],
-    "tier": "bronze",
-    "title": "A Máfia de Hollywood: O Oscar Vai Para... Meu Catálogo!",
-    "description": "Conquistar 1 filme Ganhador do Oscar (pelo menos 1 vitória no Oscar) (1 filme).",
+    "tier": "mythic",
+    "title": "A Máfia de Hollywood: Tapete Vermelho de Gala (Oscar)",
+    "description": "Assistir filmes ganhadores de pelo menos 1 Oscar.",
     "icon": "🏆",
     "target_type": "hollywood_oscar_winner_count",
-    "target_value": 1,
+    "target_value": 50,
     "target_metadata": {
       "minWins": 1
     },
-    "sort_order": 401
+    "ranks": [
+      {
+        "id": "mafia_rank_oscar_winner__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "O Oscar Vai Para... Meu Catálogo!",
+        "description": "Assistir filmes ganhadores de pelo menos 1 Oscar. (Rank Bronze: meta 1).",
+        "legacy_id": "mafia_oscar_winner_1"
+      },
+      {
+        "id": "mafia_rank_oscar_winner__silver",
+        "tier": "silver",
+        "target_value": 10,
+        "title": "Convidado da Academia (10 Estatuetas)",
+        "description": "Assistir filmes ganhadores de pelo menos 1 Oscar. (Rank Prata: meta 10).",
+        "legacy_id": "mafia_oscar_winner_15"
+      },
+      {
+        "id": "mafia_rank_oscar_winner__epic",
+        "tier": "epic",
+        "target_value": 20,
+        "title": "Tapete Vermelho de Gala (20 Estatuetas)",
+        "description": "Assistir filmes ganhadores de pelo menos 1 Oscar. (Rank Épico: meta 20)."
+      },
+      {
+        "id": "mafia_rank_oscar_winner__gold",
+        "tier": "gold",
+        "target_value": 35,
+        "title": "Votante de Honra do Oscar (35 Estatuetas)",
+        "description": "Assistir filmes ganhadores de pelo menos 1 Oscar. (Rank Ouro: meta 35)."
+      },
+      {
+        "id": "mafia_rank_oscar_winner__mythic",
+        "tier": "mythic",
+        "target_value": 50,
+        "title": "Sócio Vitalício da Estatueta Dourada (50 Filmes)",
+        "description": "Assistir filmes ganhadores de pelo menos 1 Oscar. (Rank Mítico: meta 50)."
+      }
+    ],
+    "legacy_ids": [
+      "mafia_oscar_winner_1",
+      "mafia_oscar_winner_15"
+    ],
+    "sort_order": 221
+  },
+  {
+    "id": "mafia_rank_sony",
+    "kind": "rank",
+    "category": "mafia_hollywood",
+    "categories": [
+      "mafia_hollywood"
+    ],
+    "tier": "mythic",
+    "title": "A Máfia de Hollywood: Império Sony Pictures",
+    "description": "Filmes do estúdio/distribuidora Sony Pictures / Columbia / TriStar.",
+    "icon": "🎮",
+    "target_type": "hollywood_distributor_studio_count",
+    "target_value": 60,
+    "target_metadata": {
+      "company": "Sony Pictures",
+      "patterns": [
+        "sony",
+        "columbia pictures",
+        "tri-star",
+        "tristar"
+      ]
+    },
+    "ranks": [
+      {
+        "id": "mafia_rank_sony__bronze",
+        "tier": "bronze",
+        "target_value": 10,
+        "title": "Pensei que a Sony Só Fazia Música e PlayStation!",
+        "description": "Filmes do estúdio/distribuidora Sony Pictures / Columbia / TriStar. (Rank Bronze: meta 10).",
+        "legacy_id": "mafia_dist_sony_10"
+      },
+      {
+        "id": "mafia_rank_sony__silver",
+        "tier": "silver",
+        "target_value": 20,
+        "title": "Mais Filmes que Exclusivos de PS5",
+        "description": "Filmes do estúdio/distribuidora Sony Pictures / Columbia / TriStar. (Rank Prata: meta 20).",
+        "legacy_id": "mafia_dist_sony_30"
+      },
+      {
+        "id": "mafia_rank_sony__epic",
+        "tier": "epic",
+        "target_value": 35,
+        "title": "Acionista da Columbia Pictures",
+        "description": "Filmes do estúdio/distribuidora Sony Pictures / Columbia / TriStar. (Rank Épico: meta 35).",
+        "legacy_id": "mafia_dist_sony_50"
+      },
+      {
+        "id": "mafia_rank_sony__gold",
+        "tier": "gold",
+        "target_value": 48,
+        "title": "Diretoria Executiva da Sony",
+        "description": "Filmes do estúdio/distribuidora Sony Pictures / Columbia / TriStar. (Rank Ouro: meta 48)."
+      },
+      {
+        "id": "mafia_rank_sony__mythic",
+        "tier": "mythic",
+        "target_value": 60,
+        "title": "Monopólio da Sony Pictures (60 Filmes)",
+        "description": "Filmes do estúdio/distribuidora Sony Pictures / Columbia / TriStar. (Rank Mítico: meta 60)."
+      }
+    ],
+    "legacy_ids": [
+      "mafia_dist_sony_10",
+      "mafia_dist_sony_30",
+      "mafia_dist_sony_50"
+    ],
+    "sort_order": 222
+  },
+  {
+    "id": "mafia_rank_warner",
+    "kind": "rank",
+    "category": "mafia_hollywood",
+    "categories": [
+      "mafia_hollywood"
+    ],
+    "tier": "mythic",
+    "title": "A Máfia de Hollywood: Torre da Warner Bros.",
+    "description": "Filmes do estúdio/distribuidora Warner Bros.",
+    "icon": "🛡️",
+    "target_type": "hollywood_distributor_studio_count",
+    "target_value": 60,
+    "target_metadata": {
+      "company": "Warner Bros.",
+      "patterns": [
+        "warner"
+      ]
+    },
+    "ranks": [
+      {
+        "id": "mafia_rank_warner__bronze",
+        "tier": "bronze",
+        "target_value": 10,
+        "title": "Como Assim Não Foi Cancelado pelo CEO?!",
+        "description": "Filmes do estúdio/distribuidora Warner Bros. (Rank Bronze: meta 10).",
+        "legacy_id": "mafia_studio_warner_15"
+      },
+      {
+        "id": "mafia_rank_warner__silver",
+        "tier": "silver",
+        "target_value": 20,
+        "title": "Tem de Tudo Aqui: Do Herói ao Terror!",
+        "description": "Filmes do estúdio/distribuidora Warner Bros. (Rank Prata: meta 20).",
+        "legacy_id": "mafia_studio_warner_30"
+      },
+      {
+        "id": "mafia_rank_warner__epic",
+        "tier": "epic",
+        "target_value": 35,
+        "title": "Passe Livre nos Estúdios de Burbank",
+        "description": "Filmes do estúdio/distribuidora Warner Bros. (Rank Épico: meta 35)."
+      },
+      {
+        "id": "mafia_rank_warner__gold",
+        "tier": "gold",
+        "target_value": 48,
+        "title": "Chefe de Produção da Warner",
+        "description": "Filmes do estúdio/distribuidora Warner Bros. (Rank Ouro: meta 48)."
+      },
+      {
+        "id": "mafia_rank_warner__mythic",
+        "tier": "mythic",
+        "target_value": 60,
+        "title": "Dono da Caixa d’Água da Warner (60 Filmes)",
+        "description": "Filmes do estúdio/distribuidora Warner Bros. (Rank Mítico: meta 60)."
+      }
+    ],
+    "legacy_ids": [
+      "mafia_studio_warner_15",
+      "mafia_studio_warner_30"
+    ],
+    "sort_order": 223
+  },
+  {
+    "id": "mafia_rank_a24",
+    "kind": "rank",
+    "category": "mafia_hollywood",
+    "categories": [
+      "mafia_hollywood"
+    ],
+    "tier": "mythic",
+    "title": "A Máfia de Hollywood: O Surpreendente Selo A24",
+    "description": "Filmes da distribuidora/estúdio A24.",
+    "icon": "💎",
+    "target_type": "hollywood_distributor_studio_count",
+    "target_value": 30,
+    "target_metadata": {
+      "company": "A24",
+      "patterns": [
+        "a24"
+      ]
+    },
+    "ranks": [
+      {
+        "id": "mafia_rank_a24__bronze",
+        "tier": "bronze",
+        "target_value": 3,
+        "title": "A Máfia de Hollywood: O Surpreendente Selo A24 • Rank Bronze",
+        "description": "Filmes da distribuidora/estúdio A24. (Rank Bronze: meta 3).",
+        "legacy_id": "mafia_dist_a24_10"
+      },
+      {
+        "id": "mafia_rank_a24__silver",
+        "tier": "silver",
+        "target_value": 8,
+        "title": "A Máfia de Hollywood: O Surpreendente Selo A24 • Rank Prata",
+        "description": "Filmes da distribuidora/estúdio A24. (Rank Prata: meta 8).",
+        "legacy_id": "mafia_dist_a24_30"
+      },
+      {
+        "id": "mafia_rank_a24__epic",
+        "tier": "epic",
+        "target_value": 15,
+        "title": "A Máfia de Hollywood: O Surpreendente Selo A24 • Rank Épico",
+        "description": "Filmes da distribuidora/estúdio A24. (Rank Épico: meta 15)."
+      },
+      {
+        "id": "mafia_rank_a24__gold",
+        "tier": "gold",
+        "target_value": 22,
+        "title": "A Máfia de Hollywood: O Surpreendente Selo A24 • Rank Ouro",
+        "description": "Filmes da distribuidora/estúdio A24. (Rank Ouro: meta 22)."
+      },
+      {
+        "id": "mafia_rank_a24__mythic",
+        "tier": "mythic",
+        "target_value": 30,
+        "title": "A Máfia de Hollywood: O Surpreendente Selo A24 • Rank Mítico",
+        "description": "Filmes da distribuidora/estúdio A24. (Rank Mítico: meta 30)."
+      }
+    ],
+    "legacy_ids": [
+      "mafia_dist_a24_10",
+      "mafia_dist_a24_30"
+    ],
+    "sort_order": 224
+  },
+  {
+    "id": "mafia_rank_unique_directors",
+    "kind": "rank",
+    "category": "mafia_hollywood",
+    "categories": [
+      "mafia_hollywood"
+    ],
+    "tier": "mythic",
+    "title": "A Máfia de Hollywood: Panteão dos Diretores Únicos",
+    "description": "Diretores distintos com 3 ou mais filmes conquistados no catálogo.",
+    "icon": "🎬",
+    "target_type": "hollywood_unique_directors_quota",
+    "target_value": 20,
+    "target_metadata": {
+      "minFilmsPerDirector": 3
+    },
+    "ranks": [
+      {
+        "id": "mafia_rank_unique_directors__bronze",
+        "tier": "bronze",
+        "target_value": 3,
+        "title": "A Máfia de Hollywood: Panteão dos Diretores Únicos • Rank Bronze",
+        "description": "Diretores distintos com 3 ou mais filmes conquistados no catálogo. (Rank Bronze: meta 3).",
+        "legacy_id": "mafia_unique_directors_3_films_10"
+      },
+      {
+        "id": "mafia_rank_unique_directors__silver",
+        "tier": "silver",
+        "target_value": 6,
+        "title": "A Máfia de Hollywood: Panteão dos Diretores Únicos • Rank Prata",
+        "description": "Diretores distintos com 3 ou mais filmes conquistados no catálogo. (Rank Prata: meta 6).",
+        "legacy_id": "mafia_unique_directors_4_films_15"
+      },
+      {
+        "id": "mafia_rank_unique_directors__epic",
+        "tier": "epic",
+        "target_value": 10,
+        "title": "A Máfia de Hollywood: Panteão dos Diretores Únicos • Rank Épico",
+        "description": "Diretores distintos com 3 ou mais filmes conquistados no catálogo. (Rank Épico: meta 10)."
+      },
+      {
+        "id": "mafia_rank_unique_directors__gold",
+        "tier": "gold",
+        "target_value": 15,
+        "title": "A Máfia de Hollywood: Panteão dos Diretores Únicos • Rank Ouro",
+        "description": "Diretores distintos com 3 ou mais filmes conquistados no catálogo. (Rank Ouro: meta 15)."
+      },
+      {
+        "id": "mafia_rank_unique_directors__mythic",
+        "tier": "mythic",
+        "target_value": 20,
+        "title": "A Máfia de Hollywood: Panteão dos Diretores Únicos • Rank Mítico",
+        "description": "Diretores distintos com 3 ou mais filmes conquistados no catálogo. (Rank Mítico: meta 20)."
+      }
+    ],
+    "legacy_ids": [
+      "mafia_unique_directors_3_films_10",
+      "mafia_unique_directors_4_films_15"
+    ],
+    "sort_order": 225
+  },
+  {
+    "id": "mafia_rank_disney_pixar",
+    "kind": "rank",
+    "category": "mafia_hollywood",
+    "categories": [
+      "mafia_hollywood"
+    ],
+    "tier": "mythic",
+    "title": "A Máfia de Hollywood: Só Tem Filme Fofo (Disney & Pixar)",
+    "description": "Filmes do estúdio/distribuidora Disney / Pixar.",
+    "icon": "🏰",
+    "target_type": "hollywood_distributor_studio_count",
+    "target_value": 20,
+    "target_metadata": {
+      "company": "Disney / Pixar",
+      "patterns": [
+        "disney",
+        "walt disney",
+        "pixar",
+        "buena vista"
+      ]
+    },
+    "ranks": [
+      {
+        "id": "mafia_rank_disney_pixar__bronze",
+        "tier": "bronze",
+        "target_value": 2,
+        "title": "A Máfia de Hollywood: Só Tem Filme Fofo (Disney & Pixar) • Rank Bronze",
+        "description": "Filmes do estúdio/distribuidora Disney / Pixar. (Rank Bronze: meta 2).",
+        "legacy_id": "mafia_studio_disney_pixar_10"
+      },
+      {
+        "id": "mafia_rank_disney_pixar__silver",
+        "tier": "silver",
+        "target_value": 5,
+        "title": "A Máfia de Hollywood: Só Tem Filme Fofo (Disney & Pixar) • Rank Prata",
+        "description": "Filmes do estúdio/distribuidora Disney / Pixar. (Rank Prata: meta 5)."
+      },
+      {
+        "id": "mafia_rank_disney_pixar__epic",
+        "tier": "epic",
+        "target_value": 10,
+        "title": "A Máfia de Hollywood: Só Tem Filme Fofo (Disney & Pixar) • Rank Épico",
+        "description": "Filmes do estúdio/distribuidora Disney / Pixar. (Rank Épico: meta 10)."
+      },
+      {
+        "id": "mafia_rank_disney_pixar__gold",
+        "tier": "gold",
+        "target_value": 15,
+        "title": "A Máfia de Hollywood: Só Tem Filme Fofo (Disney & Pixar) • Rank Ouro",
+        "description": "Filmes do estúdio/distribuidora Disney / Pixar. (Rank Ouro: meta 15)."
+      },
+      {
+        "id": "mafia_rank_disney_pixar__mythic",
+        "tier": "mythic",
+        "target_value": 20,
+        "title": "A Máfia de Hollywood: Só Tem Filme Fofo (Disney & Pixar) • Rank Mítico",
+        "description": "Filmes do estúdio/distribuidora Disney / Pixar. (Rank Mítico: meta 20)."
+      }
+    ],
+    "legacy_ids": [
+      "mafia_studio_disney_pixar_10"
+    ],
+    "sort_order": 226
+  },
+  {
+    "id": "mafia_rank_downtown_globo",
+    "kind": "rank",
+    "category": "mafia_hollywood",
+    "categories": [
+      "mafia_hollywood"
+    ],
+    "tier": "mythic",
+    "title": "A Máfia de Hollywood: Orgulho da Indústria Nacional!",
+    "description": "Filmes somados da Downtown Filmes ou Globo Filmes.",
+    "icon": "🇧🇷",
+    "target_type": "hollywood_distributor_studio_count",
+    "target_value": 10,
+    "target_metadata": {
+      "company": "Downtown / Globo Filmes",
+      "patterns": [
+        "downtown filmes",
+        "globo filmes"
+      ]
+    },
+    "ranks": [
+      {
+        "id": "mafia_rank_downtown_globo__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "A Máfia de Hollywood: Orgulho da Indústria Nacional! • Rank Bronze",
+        "description": "Filmes somados da Downtown Filmes ou Globo Filmes. (Rank Bronze: meta 1).",
+        "legacy_id": "mafia_studio_br_downtown_globo_10"
+      },
+      {
+        "id": "mafia_rank_downtown_globo__silver",
+        "tier": "silver",
+        "target_value": 3,
+        "title": "A Máfia de Hollywood: Orgulho da Indústria Nacional! • Rank Prata",
+        "description": "Filmes somados da Downtown Filmes ou Globo Filmes. (Rank Prata: meta 3)."
+      },
+      {
+        "id": "mafia_rank_downtown_globo__epic",
+        "tier": "epic",
+        "target_value": 5,
+        "title": "A Máfia de Hollywood: Orgulho da Indústria Nacional! • Rank Épico",
+        "description": "Filmes somados da Downtown Filmes ou Globo Filmes. (Rank Épico: meta 5)."
+      },
+      {
+        "id": "mafia_rank_downtown_globo__gold",
+        "tier": "gold",
+        "target_value": 8,
+        "title": "A Máfia de Hollywood: Orgulho da Indústria Nacional! • Rank Ouro",
+        "description": "Filmes somados da Downtown Filmes ou Globo Filmes. (Rank Ouro: meta 8)."
+      },
+      {
+        "id": "mafia_rank_downtown_globo__mythic",
+        "tier": "mythic",
+        "target_value": 10,
+        "title": "A Máfia de Hollywood: Orgulho da Indústria Nacional! • Rank Mítico",
+        "description": "Filmes somados da Downtown Filmes ou Globo Filmes. (Rank Mítico: meta 10)."
+      }
+    ],
+    "legacy_ids": [
+      "mafia_studio_br_downtown_globo_10"
+    ],
+    "sort_order": 227
+  },
+  {
+    "id": "mafia_rank_twisted_pictures",
+    "kind": "rank",
+    "category": "mafia_hollywood",
+    "categories": [
+      "mafia_hollywood"
+    ],
+    "tier": "mythic",
+    "title": "A Máfia de Hollywood: Game Over! (Twisted Pictures)",
+    "description": "Filmes do estúdio Twisted Pictures.",
+    "icon": "🩸",
+    "target_type": "hollywood_studio_count",
+    "target_value": 15,
+    "target_metadata": {
+      "studio": "Twisted Pictures",
+      "patterns": [
+        "twisted pictures"
+      ]
+    },
+    "ranks": [
+      {
+        "id": "mafia_rank_twisted_pictures__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "A Máfia de Hollywood: Game Over! (Twisted Pictures) • Rank Bronze",
+        "description": "Filmes do estúdio Twisted Pictures. (Rank Bronze: meta 1).",
+        "legacy_id": "mafia_studio_twisted_pictures_10"
+      },
+      {
+        "id": "mafia_rank_twisted_pictures__silver",
+        "tier": "silver",
+        "target_value": 3,
+        "title": "A Máfia de Hollywood: Game Over! (Twisted Pictures) • Rank Prata",
+        "description": "Filmes do estúdio Twisted Pictures. (Rank Prata: meta 3)."
+      },
+      {
+        "id": "mafia_rank_twisted_pictures__epic",
+        "tier": "epic",
+        "target_value": 6,
+        "title": "A Máfia de Hollywood: Game Over! (Twisted Pictures) • Rank Épico",
+        "description": "Filmes do estúdio Twisted Pictures. (Rank Épico: meta 6)."
+      },
+      {
+        "id": "mafia_rank_twisted_pictures__gold",
+        "tier": "gold",
+        "target_value": 10,
+        "title": "A Máfia de Hollywood: Game Over! (Twisted Pictures) • Rank Ouro",
+        "description": "Filmes do estúdio Twisted Pictures. (Rank Ouro: meta 10)."
+      },
+      {
+        "id": "mafia_rank_twisted_pictures__mythic",
+        "tier": "mythic",
+        "target_value": 15,
+        "title": "A Máfia de Hollywood: Game Over! (Twisted Pictures) • Rank Mítico",
+        "description": "Filmes do estúdio Twisted Pictures. (Rank Mítico: meta 15)."
+      }
+    ],
+    "legacy_ids": [
+      "mafia_studio_twisted_pictures_10"
+    ],
+    "sort_order": 228
+  },
+  {
+    "id": "mafia_rank_oscar_streaming",
+    "kind": "rank",
+    "category": "mafia_hollywood",
+    "categories": [
+      "mafia_hollywood",
+      "ritual_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Noite de Gala do Oscar no Sofá de Casa",
+    "description": "Ganhadores do Oscar assistidos em streamings oficiais.",
+    "icon": "🛋️",
+    "target_type": "multi_ritual_rule",
+    "target_value": 30,
+    "target_metadata": {
+      "ruleKey": "oscar_winner_streaming_oficial_20"
+    },
+    "ranks": [
+      {
+        "id": "mafia_rank_oscar_streaming__bronze",
+        "tier": "bronze",
+        "target_value": 3,
+        "title": "Noite de Gala do Oscar no Sofá de Casa • Rank Bronze",
+        "description": "Ganhadores do Oscar assistidos em streamings oficiais. (Rank Bronze: meta 3).",
+        "legacy_id": "multi_mh_rc_oscar_streaming_oficial_20"
+      },
+      {
+        "id": "mafia_rank_oscar_streaming__silver",
+        "tier": "silver",
+        "target_value": 8,
+        "title": "Noite de Gala do Oscar no Sofá de Casa • Rank Prata",
+        "description": "Ganhadores do Oscar assistidos em streamings oficiais. (Rank Prata: meta 8)."
+      },
+      {
+        "id": "mafia_rank_oscar_streaming__epic",
+        "tier": "epic",
+        "target_value": 15,
+        "title": "Noite de Gala do Oscar no Sofá de Casa • Rank Épico",
+        "description": "Ganhadores do Oscar assistidos em streamings oficiais. (Rank Épico: meta 15)."
+      },
+      {
+        "id": "mafia_rank_oscar_streaming__gold",
+        "tier": "gold",
+        "target_value": 22,
+        "title": "Noite de Gala do Oscar no Sofá de Casa • Rank Ouro",
+        "description": "Ganhadores do Oscar assistidos em streamings oficiais. (Rank Ouro: meta 22)."
+      },
+      {
+        "id": "mafia_rank_oscar_streaming__mythic",
+        "tier": "mythic",
+        "target_value": 30,
+        "title": "Noite de Gala do Oscar no Sofá de Casa • Rank Mítico",
+        "description": "Ganhadores do Oscar assistidos em streamings oficiais. (Rank Mítico: meta 30)."
+      }
+    ],
+    "legacy_ids": [
+      "multi_mh_rc_oscar_streaming_oficial_20"
+    ],
+    "sort_order": 229
+  },
+  {
+    "id": "mafia_rank_netflix",
+    "kind": "rank",
+    "category": "mafia_hollywood",
+    "categories": [
+      "mafia_hollywood"
+    ],
+    "tier": "mythic",
+    "title": "A Máfia de Hollywood: TUDUM! O Império Original Netflix",
+    "description": "Filmes produzidos ou distribuídos pela Netflix.",
+    "icon": "🔴",
+    "target_type": "hollywood_distributor_studio_count",
+    "target_value": 100,
+    "target_metadata": {
+      "company": "Netflix",
+      "patterns": [
+        "netflix"
+      ]
+    },
+    "ranks": [
+      {
+        "id": "mafia_rank_netflix__bronze",
+        "tier": "bronze",
+        "target_value": 10,
+        "title": "TUDUM! Caiu Direto no Sofá",
+        "description": "Filmes produzidos ou distribuídos pela Netflix. (Rank Bronze: meta 10).",
+        "legacy_id": "mafia_dist_netflix_15"
+      },
+      {
+        "id": "mafia_rank_netflix__silver",
+        "tier": "silver",
+        "target_value": 25,
+        "title": "Sócio do Catálogo Vermelho",
+        "description": "Filmes produzidos ou distribuídos pela Netflix. (Rank Prata: meta 25)."
+      },
+      {
+        "id": "mafia_rank_netflix__epic",
+        "tier": "epic",
+        "target_value": 50,
+        "title": "Maratona Sem Fim da Netflix",
+        "description": "Filmes produzidos ou distribuídos pela Netflix. (Rank Épico: meta 50)."
+      },
+      {
+        "id": "mafia_rank_netflix__gold",
+        "tier": "gold",
+        "target_value": 75,
+        "title": "Acionista Majoritário do TUDUM",
+        "description": "Filmes produzidos ou distribuídos pela Netflix. (Rank Ouro: meta 75)."
+      },
+      {
+        "id": "mafia_rank_netflix__mythic",
+        "tier": "mythic",
+        "target_value": 100,
+        "title": "Dono do Algoritmo da Netflix (100 Filmes)",
+        "description": "Filmes produzidos ou distribuídos pela Netflix. (Rank Mítico: meta 100)."
+      }
+    ],
+    "legacy_ids": [
+      "mafia_dist_netflix_15"
+    ],
+    "sort_order": 230
+  },
+  {
+    "id": "mafia_rank_oscar_azarao",
+    "kind": "rank",
+    "category": "mafia_hollywood",
+    "categories": [
+      "mafia_hollywood"
+    ],
+    "tier": "mythic",
+    "title": "A Máfia de Hollywood: Morreu na Praia (Azarões do Oscar)",
+    "description": "Filmes indicados ao Oscar que não venceram nenhuma estatueta.",
+    "icon": "👏",
+    "target_type": "hollywood_oscar_nominated_unwon_count",
+    "target_value": 30,
+    "target_metadata": {},
+    "ranks": [
+      {
+        "id": "mafia_rank_oscar_azarao__bronze",
+        "tier": "bronze",
+        "target_value": 3,
+        "title": "A Máfia de Hollywood: Morreu na Praia (Azarões do Oscar) • Rank Bronze",
+        "description": "Filmes indicados ao Oscar que não venceram nenhuma estatueta. (Rank Bronze: meta 3).",
+        "legacy_id": "mafia_oscar_nominated_unwon_15"
+      },
+      {
+        "id": "mafia_rank_oscar_azarao__silver",
+        "tier": "silver",
+        "target_value": 8,
+        "title": "A Máfia de Hollywood: Morreu na Praia (Azarões do Oscar) • Rank Prata",
+        "description": "Filmes indicados ao Oscar que não venceram nenhuma estatueta. (Rank Prata: meta 8)."
+      },
+      {
+        "id": "mafia_rank_oscar_azarao__epic",
+        "tier": "epic",
+        "target_value": 15,
+        "title": "A Máfia de Hollywood: Morreu na Praia (Azarões do Oscar) • Rank Épico",
+        "description": "Filmes indicados ao Oscar que não venceram nenhuma estatueta. (Rank Épico: meta 15)."
+      },
+      {
+        "id": "mafia_rank_oscar_azarao__gold",
+        "tier": "gold",
+        "target_value": 22,
+        "title": "A Máfia de Hollywood: Morreu na Praia (Azarões do Oscar) • Rank Ouro",
+        "description": "Filmes indicados ao Oscar que não venceram nenhuma estatueta. (Rank Ouro: meta 22)."
+      },
+      {
+        "id": "mafia_rank_oscar_azarao__mythic",
+        "tier": "mythic",
+        "target_value": 30,
+        "title": "A Máfia de Hollywood: Morreu na Praia (Azarões do Oscar) • Rank Mítico",
+        "description": "Filmes indicados ao Oscar que não venceram nenhuma estatueta. (Rank Mítico: meta 30)."
+      }
+    ],
+    "legacy_ids": [
+      "mafia_oscar_nominated_unwon_15"
+    ],
+    "sort_order": 231
+  },
+  {
+    "id": "mafia_rank_animacao_oscar",
+    "kind": "rank",
+    "category": "mafia_hollywood",
+    "categories": [
+      "mafia_hollywood",
+      "anatomia_cinema"
+    ],
+    "tier": "mythic",
+    "title": "A Máfia de Hollywood: Traço de Ouro (Animações com Oscar)",
+    "description": "Filmes do gênero Animação ganhadores de pelo menos 1 Oscar.",
+    "icon": "🎨",
+    "target_type": "hybrid_genre_oscar_winner",
+    "target_value": 10,
+    "target_metadata": {
+      "genre": "Animação",
+      "minWins": 1
+    },
+    "ranks": [
+      {
+        "id": "mafia_rank_animacao_oscar__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Rabisco Premiado (1 Animação)",
+        "description": "Filmes do gênero Animação ganhadores de pelo menos 1 Oscar. (Rank Bronze: meta 1)."
+      },
+      {
+        "id": "mafia_rank_animacao_oscar__silver",
+        "tier": "silver",
+        "target_value": 3,
+        "title": "Pódio dos Desenhos (3 Animações)",
+        "description": "Filmes do gênero Animação ganhadores de pelo menos 1 Oscar. (Rank Prata: meta 3)."
+      },
+      {
+        "id": "mafia_rank_animacao_oscar__epic",
+        "tier": "epic",
+        "target_value": 5,
+        "title": "Estúdio de Ouro Animado (5 Animações)",
+        "description": "Filmes do gênero Animação ganhadores de pelo menos 1 Oscar. (Rank Épico: meta 5)."
+      },
+      {
+        "id": "mafia_rank_animacao_oscar__gold",
+        "tier": "gold",
+        "target_value": 8,
+        "title": "Lenda da Animação na Academia (8 Animações)",
+        "description": "Filmes do gênero Animação ganhadores de pelo menos 1 Oscar. (Rank Ouro: meta 8)."
+      },
+      {
+        "id": "mafia_rank_animacao_oscar__mythic",
+        "tier": "mythic",
+        "target_value": 10,
+        "title": "Olimpo da Animação com Oscar (10 Animações)",
+        "description": "Filmes do gênero Animação ganhadores de pelo menos 1 Oscar. (Rank Mítico: meta 10)."
+      }
+    ],
+    "legacy_ids": [],
+    "sort_order": 232
+  },
+  {
+    "id": "ss_dicionario_az_26",
+    "kind": "unique",
+    "category": "mafia_hollywood",
+    "categories": [
+      "mafia_hollywood"
+    ],
+    "tier": "mythic",
+    "title": "A Máfia de Hollywood: O Dicionário Completo de A a Z!",
+    "description": "Conquistar pelo menos 1 filme que inicie com CADA UMA das 26 letras do alfabeto, de A até Z (26 letras no checklist).",
+    "icon": "🔤",
+    "target_type": "alphabet_az_coverage",
+    "target_value": 26,
+    "target_metadata": {
+      "targetLetters": 26
+    },
+    "legacy_ids": [
+      "ss_dicionario_az_26"
+    ],
+    "sort_order": 233
   },
   {
     "id": "mafia_oscar_3_3",
+    "kind": "unique",
     "category": "mafia_hollywood",
     "categories": [
       "mafia_hollywood"
@@ -5377,10 +8776,14 @@ export const TROPHY_DEFINITIONS = [
       "nominations": 3,
       "wins": 3
     },
-    "sort_order": 402
+    "legacy_ids": [
+      "mafia_oscar_3_3"
+    ],
+    "sort_order": 234
   },
   {
     "id": "mafia_oscar_noms_10",
+    "kind": "unique",
     "category": "mafia_hollywood",
     "categories": [
       "mafia_hollywood"
@@ -5394,137 +8797,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "minNominations": 10
     },
-    "sort_order": 403
-  },
-  {
-    "id": "mafia_writer_fil_braz",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
+    "legacy_ids": [
+      "mafia_oscar_noms_10"
     ],
-    "tier": "bronze",
-    "title": "A Máfia de Hollywood: Rindo em Português: A Caneta da Comédia Nacional!",
-    "description": "Conquistar 3 filmes do roteirista Fil Braz (3 filmes).",
-    "icon": "✍️",
-    "target_type": "hollywood_writer_count",
-    "target_value": 3,
-    "target_metadata": {
-      "writer": "Fil Braz",
-      "patterns": [
-        "fil braz"
-      ]
-    },
-    "sort_order": 405
-  },
-  {
-    "id": "mafia_dist_sony_10",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "bronze",
-    "title": "A Máfia de Hollywood: Pensei que a Sony Só Fazia Música e PlayStation!",
-    "description": "Conquistar 10 filmes da distribuidora Sony Pictures (10 filmes).",
-    "icon": "🎮",
-    "target_type": "hollywood_distributor_studio_count",
-    "target_value": 10,
-    "target_metadata": {
-      "company": "Sony Pictures",
-      "patterns": [
-        "sony",
-        "columbia pictures",
-        "tri-star",
-        "tristar"
-      ]
-    },
-    "sort_order": 406
-  },
-  {
-    "id": "mafia_writer_bob_kane_5",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "silver",
-    "title": "A Máfia de Hollywood: Roubou os Créditos do Bill Finger e Foi Parar na Minha Lista!",
-    "description": "Conquistar 5 filmes creditados ao roteirista Bob Kane (5 filmes).",
-    "icon": "🦇",
-    "target_type": "hollywood_writer_count",
-    "target_value": 5,
-    "target_metadata": {
-      "writer": "Bob Kane",
-      "patterns": [
-        "bob kane"
-      ]
-    },
-    "sort_order": 417
-  },
-  {
-    "id": "mafia_writer_gary_dauberman_5",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "silver",
-    "title": "A Máfia de Hollywood: Se Tem Boneca Demoníaca ou Palhaço Assassino, Foi Ele Quem Escreveu!",
-    "description": "Conquistar 5 filmes do roteirista Gary Dauberman (5 filmes).",
-    "icon": "🪆",
-    "target_type": "hollywood_writer_count",
-    "target_value": 5,
-    "target_metadata": {
-      "writer": "Gary Dauberman",
-      "patterns": [
-        "gary dauberman"
-      ]
-    },
-    "sort_order": 421
-  },
-  {
-    "id": "mafia_studio_disney_pixar_10",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "silver",
-    "title": "A Máfia de Hollywood: Só Tem Filme Fofo (Mas Faz Marmanjo Chorar nos Primeiros 10 Minutos!)",
-    "description": "Conquistar 10 filmes do estúdio Disney / Pixar (10 filmes).",
-    "icon": "🏰",
-    "target_type": "hollywood_distributor_studio_count",
-    "target_value": 10,
-    "target_metadata": {
-      "company": "Disney / Pixar",
-      "patterns": [
-        "disney",
-        "walt disney",
-        "pixar",
-        "buena vista"
-      ]
-    },
-    "sort_order": 426
-  },
-  {
-    "id": "mafia_studio_br_downtown_globo_10",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "silver",
-    "title": "A Máfia de Hollywood: Orgulho da Indústria Nacional! (Você Já Viu Essa Vinheta no Cinema)",
-    "description": "Conquistar 10 filmes somados dos estúdios Downtown Filmes ou Globo Filmes (10 filmes).",
-    "icon": "🇧🇷",
-    "target_type": "hollywood_distributor_studio_count",
-    "target_value": 10,
-    "target_metadata": {
-      "company": "Downtown / Globo Filmes",
-      "patterns": [
-        "downtown filmes",
-        "globo filmes"
-      ]
-    },
-    "sort_order": 427
+    "sort_order": 235
   },
   {
     "id": "mafia_studio_new_line_10",
+    "kind": "unique",
     "category": "mafia_hollywood",
     "categories": [
       "mafia_hollywood"
@@ -5542,73 +8822,14 @@ export const TROPHY_DEFINITIONS = [
         "new line"
       ]
     },
-    "sort_order": 428
-  },
-  {
-    "id": "mafia_studio_warner_15",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
+    "legacy_ids": [
+      "mafia_studio_new_line_10"
     ],
-    "tier": "silver",
-    "title": "A Máfia de Hollywood: Como Assim Esse Filme Não Foi Cancelado pelo CEO?!",
-    "description": "Conquistar 15 filmes do estúdio Warner Bros. (15 filmes).",
-    "icon": "🛡️",
-    "target_type": "hollywood_distributor_studio_count",
-    "target_value": 15,
-    "target_metadata": {
-      "company": "Warner Bros.",
-      "patterns": [
-        "warner"
-      ]
-    },
-    "sort_order": 429
-  },
-  {
-    "id": "mafia_dist_a24_10",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "silver",
-    "title": "A Máfia de Hollywood: O Surpreendente Selo A24",
-    "description": "Conquistar 10 filmes da distribuidora A24 (10 filmes).",
-    "icon": "💎",
-    "target_type": "hollywood_distributor_studio_count",
-    "target_value": 10,
-    "target_metadata": {
-      "company": "A24",
-      "patterns": [
-        "a24"
-      ]
-    },
-    "sort_order": 430
-  },
-  {
-    "id": "mafia_dist_sony_30",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "silver",
-    "title": "A Máfia de Hollywood: Eu Tenho Mais Filmes que Jogos Exclusivos de PS5!",
-    "description": "Conquistar 30 filmes da distribuidora Sony Pictures (30 filmes).",
-    "icon": "🕹️",
-    "target_type": "hollywood_distributor_studio_count",
-    "target_value": 30,
-    "target_metadata": {
-      "company": "Sony Pictures",
-      "patterns": [
-        "sony",
-        "columbia pictures",
-        "tri-star",
-        "tristar"
-      ]
-    },
-    "sort_order": 431
+    "sort_order": 236
   },
   {
     "id": "mafia_studio_arad_8",
+    "kind": "unique",
     "category": "mafia_hollywood",
     "categories": [
       "mafia_hollywood"
@@ -5626,10 +8847,14 @@ export const TROPHY_DEFINITIONS = [
         "arad"
       ]
     },
-    "sort_order": 432
+    "legacy_ids": [
+      "mafia_studio_arad_8"
+    ],
+    "sort_order": 237
   },
   {
     "id": "mafia_studio_constantin_8",
+    "kind": "unique",
     "category": "mafia_hollywood",
     "categories": [
       "mafia_hollywood"
@@ -5647,30 +8872,14 @@ export const TROPHY_DEFINITIONS = [
         "constantin"
       ]
     },
-    "sort_order": 433
-  },
-  {
-    "id": "mafia_dist_netflix_15",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
+    "legacy_ids": [
+      "mafia_studio_constantin_8"
     ],
-    "tier": "silver",
-    "title": "A Máfia de Hollywood: TUDUM! Nem Passou na Bilheteria e Já Caiu no Sofá",
-    "description": "Conquistar 15 filmes distribuídos pela Netflix (15 filmes).",
-    "icon": "🔴",
-    "target_type": "hollywood_distributor_studio_count",
-    "target_value": 15,
-    "target_metadata": {
-      "company": "Netflix",
-      "patterns": [
-        "netflix"
-      ]
-    },
-    "sort_order": 434
+    "sort_order": 238
   },
   {
     "id": "mafia_studio_dc_15",
+    "kind": "unique",
     "category": "mafia_hollywood",
     "categories": [
       "mafia_hollywood"
@@ -5689,24 +8898,14 @@ export const TROPHY_DEFINITIONS = [
       ],
       "tag": "DC"
     },
-    "sort_order": 435
-  },
-  {
-    "id": "mafia_oscar_nominated_unwon_15",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
+    "legacy_ids": [
+      "mafia_studio_dc_15"
     ],
-    "tier": "silver",
-    "title": "A Máfia de Hollywood: Morreu na Praia, Mas Ganhou Aplauso de Pé!",
-    "description": "Conquistar 15 filmes Indicados ao Oscar que não venceram nenhuma estatueta (15 filmes).",
-    "icon": "👏",
-    "target_type": "hollywood_oscar_nominated_unwon_count",
-    "target_value": 15,
-    "sort_order": 436
+    "sort_order": 239
   },
   {
     "id": "mafia_oscar_wins_8",
+    "kind": "unique",
     "category": "mafia_hollywood",
     "categories": [
       "mafia_hollywood"
@@ -5720,30 +8919,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "minWins": 8
     },
-    "sort_order": 437
-  },
-  {
-    "id": "mafia_studio_twisted_pictures_10",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
+    "legacy_ids": [
+      "mafia_oscar_wins_8"
     ],
-    "tier": "epic",
-    "title": "A Máfia de Hollywood: Game Over! (O Estúdio que Vive de Armadilha e Sangue)",
-    "description": "Conquistar 10 filmes do estúdio Twisted Pictures (10 filmes).",
-    "icon": "🩸",
-    "target_type": "hollywood_studio_count",
-    "target_value": 10,
-    "target_metadata": {
-      "studio": "Twisted Pictures",
-      "patterns": [
-        "twisted pictures"
-      ]
-    },
-    "sort_order": 440
+    "sort_order": 240
   },
   {
     "id": "mafia_studio_fox_20",
+    "kind": "unique",
     "category": "mafia_hollywood",
     "categories": [
       "mafia_hollywood"
@@ -5761,10 +8944,14 @@ export const TROPHY_DEFINITIONS = [
         "twentieth century"
       ]
     },
-    "sort_order": 441
+    "legacy_ids": [
+      "mafia_studio_fox_20"
+    ],
+    "sort_order": 241
   },
   {
     "id": "mafia_studio_blumhouse_20",
+    "kind": "unique",
     "category": "mafia_hollywood",
     "categories": [
       "mafia_hollywood"
@@ -5781,10 +8968,14 @@ export const TROPHY_DEFINITIONS = [
         "blumhouse"
       ]
     },
-    "sort_order": 442
+    "legacy_ids": [
+      "mafia_studio_blumhouse_20"
+    ],
+    "sort_order": 242
   },
   {
     "id": "mafia_dist_lionsgate_20",
+    "kind": "unique",
     "category": "mafia_hollywood",
     "categories": [
       "mafia_hollywood"
@@ -5801,10 +8992,14 @@ export const TROPHY_DEFINITIONS = [
         "lionsgate"
       ]
     },
-    "sort_order": 443
+    "legacy_ids": [
+      "mafia_dist_lionsgate_20"
+    ],
+    "sort_order": 243
   },
   {
     "id": "mafia_dist_paris_diamond_20",
+    "kind": "unique",
     "category": "mafia_hollywood",
     "categories": [
       "mafia_hollywood"
@@ -5822,10 +9017,14 @@ export const TROPHY_DEFINITIONS = [
         "diamond films"
       ]
     },
-    "sort_order": 444
+    "legacy_ids": [
+      "mafia_dist_paris_diamond_20"
+    ],
+    "sort_order": 244
   },
   {
     "id": "mafia_dist_paramount_uip_25",
+    "kind": "unique",
     "category": "mafia_hollywood",
     "categories": [
       "mafia_hollywood"
@@ -5844,10 +9043,14 @@ export const TROPHY_DEFINITIONS = [
         "uip"
       ]
     },
-    "sort_order": 445
+    "legacy_ids": [
+      "mafia_dist_paramount_uip_25"
+    ],
+    "sort_order": 245
   },
   {
     "id": "mafia_writer_director_same_15",
+    "kind": "unique",
     "category": "mafia_hollywood",
     "categories": [
       "mafia_hollywood"
@@ -5858,27 +9061,15 @@ export const TROPHY_DEFINITIONS = [
     "icon": "🎭",
     "target_type": "hollywood_same_director_writer_count",
     "target_value": 15,
-    "sort_order": 446
-  },
-  {
-    "id": "mafia_oscar_winner_15",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
+    "target_metadata": {},
+    "legacy_ids": [
+      "mafia_writer_director_same_15"
     ],
-    "tier": "epic",
-    "title": "A Máfia de Hollywood: Tapete Vermelho de Gala",
-    "description": "Conquistar 15 filmes Ganhadores do Oscar (15 filmes).",
-    "icon": "🌟",
-    "target_type": "hollywood_oscar_winner_count",
-    "target_value": 15,
-    "target_metadata": {
-      "minWins": 1
-    },
-    "sort_order": 449
+    "sort_order": 246
   },
   {
     "id": "mafia_oscar_5_noms_0_wins_3",
+    "kind": "unique",
     "category": "mafia_hollywood",
     "categories": [
       "mafia_hollywood"
@@ -5889,10 +9080,15 @@ export const TROPHY_DEFINITIONS = [
     "icon": "💔",
     "target_type": "hollywood_oscar_5_noms_unwon_count",
     "target_value": 3,
-    "sort_order": 450
+    "target_metadata": {},
+    "legacy_ids": [
+      "mafia_oscar_5_noms_0_wins_3"
+    ],
+    "sort_order": 247
   },
   {
     "id": "mafia_oscar_5_5",
+    "kind": "unique",
     "category": "mafia_hollywood",
     "categories": [
       "mafia_hollywood"
@@ -5903,109 +9099,15 @@ export const TROPHY_DEFINITIONS = [
     "icon": "🖐️",
     "target_type": "hollywood_oscar_5_noms_5_wins_count",
     "target_value": 5,
-    "sort_order": 451
-  },
-  {
-    "id": "mafia_studio_warner_30",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
+    "target_metadata": {},
+    "legacy_ids": [
+      "mafia_oscar_5_5"
     ],
-    "tier": "gold",
-    "title": "A Máfia de Hollywood: Tem de Tudo Aqui: Do Super-Herói até o Terror!",
-    "description": "Conquistar 30 filmes do estúdio Warner Bros. (30 filmes).",
-    "icon": "🏰",
-    "target_type": "hollywood_distributor_studio_count",
-    "target_value": 30,
-    "target_metadata": {
-      "company": "Warner Bros.",
-      "patterns": [
-        "warner"
-      ]
-    },
-    "sort_order": 453
-  },
-  {
-    "id": "mafia_dist_a24_30",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "gold",
-    "title": "A Máfia de Hollywood: Pode Vir Qualquer Coisa! (De Bode Falante a Pedra no Multiverso)",
-    "description": "Conquistar 30 filmes da distribuidora A24 (30 filmes).",
-    "icon": "🐐",
-    "target_type": "hollywood_distributor_studio_count",
-    "target_value": 30,
-    "target_metadata": {
-      "company": "A24",
-      "patterns": [
-        "a24"
-      ]
-    },
-    "sort_order": 454
-  },
-  {
-    "id": "mafia_modern_horror_architects_20",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "gold",
-    "title": "A Máfia de Hollywood: Os Arquitetos do Pesadelo Moderno",
-    "description": "Conquistar 20 filmes somados entre os diretores James Wan, M. Night Shyamalan, Mike Flanagan, Jordan Peele, Andy Muschietti, Darren Lynn Bousman, Lee Cronin, John R. Leonetti e Ciarán Foy (20 filmes).",
-    "icon": "🏛️",
-    "target_type": "hollywood_director_pool_count",
-    "target_value": 20,
-    "target_metadata": {
-      "poolDirectors": [
-        "James Wan",
-        "M. Night Shyamalan",
-        "Mike Flanagan",
-        "Jordan Peele",
-        "Andy Muschietti",
-        "Darren Lynn Bousman",
-        "Lee Cronin",
-        "John R. Leonetti",
-        "Ciarán Foy"
-      ],
-      "patterns": [
-        "james wan",
-        "m. night shyamalan",
-        "shyamalan",
-        "mike flanagan",
-        "jordan peele",
-        "andy muschietti",
-        "darren lynn bousman",
-        "darren bousman",
-        "lee cronin",
-        "john r. leonetti",
-        "john leonetti",
-        "ciaran foy"
-      ]
-    },
-    "sort_order": 455
-  },
-  {
-    "id": "mafia_unique_directors_3_films_10",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "gold",
-    "title": "A Máfia de Hollywood: Conselho Supremo de Diretores",
-    "description": "Ter pelo menos 10 diretores diferentes com 3 ou mais filmes conquistados no catálogo (10 diretores).",
-    "icon": "🎬",
-    "target_type": "hollywood_unique_directors_quota",
-    "target_value": 10,
-    "target_metadata": {
-      "minFilmsPerDirector": 3,
-      "requiredDirectorsCount": 10
-    },
-    "sort_order": 456
+    "sort_order": 248
   },
   {
     "id": "mafia_unique_writers_3_films_10",
+    "kind": "unique",
     "category": "mafia_hollywood",
     "categories": [
       "mafia_hollywood"
@@ -6020,10 +9122,14 @@ export const TROPHY_DEFINITIONS = [
       "minFilmsPerWriter": 3,
       "requiredWritersCount": 10
     },
-    "sort_order": 457
+    "legacy_ids": [
+      "mafia_unique_writers_3_films_10"
+    ],
+    "sort_order": 249
   },
   {
     "id": "mafia_oscar_officer_90",
+    "kind": "unique",
     "category": "mafia_hollywood",
     "categories": [
       "mafia_hollywood"
@@ -6038,33 +9144,14 @@ export const TROPHY_DEFINITIONS = [
       "requiredWinners": 30,
       "requiredNominees": 60
     },
-    "sort_order": 458
-  },
-  {
-    "id": "mafia_dist_sony_50",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
+    "legacy_ids": [
+      "mafia_oscar_officer_90"
     ],
-    "tier": "mythic",
-    "title": "A Máfia de Hollywood: Ok, Talvez Eu Não Tenha Tanto Jogo Exclusivo da Sony Assim!",
-    "description": "Conquistar 50 filmes da distribuidora Sony Pictures (50 filmes).",
-    "icon": "💿",
-    "target_type": "hollywood_distributor_studio_count",
-    "target_value": 50,
-    "target_metadata": {
-      "company": "Sony Pictures",
-      "patterns": [
-        "sony",
-        "columbia pictures",
-        "tri-star",
-        "tristar"
-      ]
-    },
-    "sort_order": 459
+    "sort_order": 250
   },
   {
     "id": "mafia_conglomerates_monopoly_150",
+    "kind": "unique",
     "category": "mafia_hollywood",
     "categories": [
       "mafia_hollywood"
@@ -6091,10 +9178,14 @@ export const TROPHY_DEFINITIONS = [
         "universal"
       ]
     },
-    "sort_order": 460
+    "legacy_ids": [
+      "mafia_conglomerates_monopoly_150"
+    ],
+    "sort_order": 251
   },
   {
     "id": "mafia_oscar_lifetime_member",
+    "kind": "unique",
     "category": "mafia_hollywood",
     "categories": [
       "mafia_hollywood"
@@ -6109,35 +9200,21 @@ export const TROPHY_DEFINITIONS = [
       "targetWins": 50,
       "targetNominations": 120
     },
-    "sort_order": 461
-  },
-  {
-    "id": "mafia_unique_directors_4_films_15",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
+    "legacy_ids": [
+      "mafia_oscar_lifetime_member"
     ],
-    "tier": "mythic",
-    "title": "A Máfia de Hollywood: Panteão dos Autores",
-    "description": "Ter pelo menos 15 diretores diferentes com 4 ou mais filmes conquistados no catálogo (15 diretores).",
-    "icon": "👑",
-    "target_type": "hollywood_unique_directors_quota",
-    "target_value": 15,
-    "target_metadata": {
-      "minFilmsPerDirector": 4,
-      "requiredDirectorsCount": 15
-    },
-    "sort_order": 462
+    "sort_order": 252
   },
   {
     "id": "mafia_godfather_plat",
+    "kind": "platinum",
     "category": "mafia_hollywood",
     "categories": [
       "mafia_hollywood"
     ],
     "tier": "platinum",
     "title": "A Máfia de Hollywood: O Poderoso Chefão dos Estúdios",
-    "description": "Conquistar TODOS os troféus da categoria A Máfia de Hollywood (desbloqueio automático dinâmico ao atingir 100% dos outros 82 troféus desta categoria, incluindo multicategoria).",
+    "description": "Conquistar 100% dos troféus e ranks da categoria A Máfia de Hollywood (incluindo multicategoria).",
     "icon": "🏆",
     "target_type": "platinum_dynamic",
     "target_value": 82,
@@ -6145,756 +9222,396 @@ export const TROPHY_DEFINITIONS = [
       "category": "mafia_hollywood",
       "categoryScope": "mafia_hollywood"
     },
-    "sort_order": 463
+    "legacy_ids": [
+      "mafia_godfather_plat"
+    ],
+    "sort_order": 253
   },
   {
-    "id": "multi_bay_december_1",
-    "category": "multi",
+    "id": "multi_mh_tc_a24_conceitual",
+    "kind": "unique",
+    "category": "mafia_hollywood",
     "categories": [
-      "data_limite",
-      "mafia_hollywood"
+      "mafia_hollywood",
+      "tribunal_critica"
     ],
     "tier": "bronze",
-    "title": "Fogos de Artifício ou Explosões do Michael Bay?!",
-    "description": "Conquistar 1 filme do diretor Michael Bay assistido no mês de Dezembro (1 filme).",
-    "icon": "💥",
-    "target_type": "hybrid_director_month",
+    "title": "Explica, Explica! (Conceitual Demais até pra Mim)",
+    "description": "Conquistar 1 filme da distribuidora A24 com Minha Nota abaixo de 6.000 (1 filme).",
+    "icon": "🎨",
+    "target_type": "multi_ritual_rule",
     "target_value": 1,
     "target_metadata": {
-      "directorPatterns": [
-        "michael bay"
-      ],
-      "month": 12,
-      "isHybrid": true
+      "ruleKey": "a24_ur_lt_6000"
     },
-    "sort_order": 501
+    "legacy_ids": [
+      "multi_mh_tc_a24_conceitual"
+    ],
+    "sort_order": 254
   },
   {
-    "id": "multi_brazil_oscar_1",
-    "category": "multi",
+    "id": "multi_mh_rc_sony_midia_fisica_10",
+    "kind": "unique",
+    "category": "mafia_hollywood",
     "categories": [
-      "volta_ao_mundo",
-      "mafia_hollywood"
+      "mafia_hollywood",
+      "ritual_cinefilo"
     ],
-    "tier": "bronze",
-    "title": "É do Brasil!! Finalmente Conseguimos!!",
-    "description": "Conquistar 1 filme do Brasil que ganhou pelo menos 1 Oscar (1 filme).",
-    "icon": "🇧🇷",
-    "target_type": "hybrid_country_oscar_winner",
-    "target_value": 1,
-    "target_metadata": {
-      "countryCode": "br",
-      "minWins": 1,
-      "isHybrid": true
-    },
-    "sort_order": 502
-  },
-  {
-    "id": "multi_horror_oscar_1",
-    "category": "multi",
-    "categories": [
-      "anatomia_cinema",
-      "mafia_hollywood"
-    ],
-    "tier": "bronze",
-    "title": "Terror com Ouro! (Até a Academia Teve Medo)",
-    "description": "Conquistar 1 filme do gênero Terror que ganhou pelo menos 1 Oscar (1 filme).",
-    "icon": "😱",
-    "target_type": "hybrid_genre_oscar_winner",
-    "target_value": 1,
-    "target_metadata": {
-      "genre": "Terror",
-      "minWins": 1,
-      "isHybrid": true
-    },
-    "sort_order": 503
-  },
-  {
-    "id": "multi_blumhouse_october_3",
-    "category": "multi",
-    "categories": [
-      "data_limite",
-      "anatomia_cinema",
-      "mafia_hollywood"
-    ],
-    "tier": "bronze",
-    "title": "Susto de Baixo Orçamento na Noite de Halloween!",
-    "description": "Conquistar 3 filmes do gênero Terror produzidos pela Blumhouse Productions assistidos no mês de Outubro (3 filmes).",
-    "icon": "🎃",
-    "target_type": "hybrid_genre_studio_month",
-    "target_value": 3,
-    "target_metadata": {
-      "genre": "Terror",
-      "studioPatterns": [
-        "blumhouse"
-      ],
-      "month": 10,
-      "isHybrid": true
-    },
-    "sort_order": 504
-  },
-  {
-    "id": "vm_petroleum_countries_4",
-    "category": "volta_ao_mundo",
-    "categories": [
-      "volta_ao_mundo"
-    ],
-    "tier": "silver",
-    "title": "Volta ao Mundo: Aqui Não Tem Petróleo!! (Só Democracia Forçada)",
-    "description": "Conquistar no Desafio dos 195 (país de origem único): Iraque, Irã, Venezuela e Síria (4 países).",
-    "icon": "🛢️",
-    "target_type": "world_countries_checklist",
-    "target_value": 4,
-    "target_metadata": {
-      "countries": [
-        {
-          "code": "iq",
-          "name": "Iraque"
-        },
-        {
-          "code": "ir",
-          "name": "Irã"
-        },
-        {
-          "code": "ve",
-          "name": "Venezuela"
-        },
-        {
-          "code": "sy",
-          "name": "Síria"
-        }
-      ]
-    },
-    "sort_order": 505
-  },
-  {
-    "id": "multi_non_us_oscar_5",
-    "category": "multi",
-    "categories": [
-      "volta_ao_mundo",
-      "mafia_hollywood"
-    ],
-    "tier": "silver",
-    "title": "Os Outros Países Também Querem Brincar!",
-    "description": "Conquistar 5 filmes que ganharam Oscar e NÃO foram produzidos nos Estados Unidos (5 filmes).",
-    "icon": "🌐",
-    "target_type": "hybrid_non_us_oscar_winner",
-    "target_value": 5,
-    "target_metadata": {
-      "excludeCountryCode": "us",
-      "minWins": 1,
-      "isHybrid": true
-    },
-    "sort_order": 506
-  },
-  {
-    "id": "multi_romance_lgbt_10",
-    "category": "multi",
-    "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema"
-    ],
-    "tier": "silver",
-    "title": "Corações Jovens!",
-    "description": "Conquistar 10 filmes do gênero Romance com a tag Personagem LGBT (10 filmes).",
-    "icon": "🏳️‍🌈",
-    "target_type": "hybrid_genre_tag",
+    "tier": "epic",
+    "title": "Colecionador Físico da Sony (Do Blu-ray pro PS5!)",
+    "description": "Conquistar 10 filmes da distribuidora Sony Pictures assistidos em mídia física (Blu-ray ou DVD) (10 filmes).",
+    "icon": "🎮",
+    "target_type": "multi_ritual_rule",
     "target_value": 10,
     "target_metadata": {
-      "genre": "Romance",
-      "tag": "Personagem LGBT",
-      "isHybrid": true
+      "ruleKey": "sony_midia_fisica_10"
     },
-    "sort_order": 507
+    "legacy_ids": [
+      "multi_mh_rc_sony_midia_fisica_10"
+    ],
+    "sort_order": 255
   },
   {
-    "id": "multi_short_oscar_5",
-    "category": "multi",
+    "id": "mh_roberto_gomez_bolanos",
+    "kind": "unique",
+    "category": "mafia_hollywood",
     "categories": [
-      "anatomia_cinema",
       "mafia_hollywood"
     ],
     "tier": "silver",
-    "title": "Tão Rápido que Já Pegou o Ouro!",
-    "description": "Conquistar 5 filmes do gênero Curta que ganharam pelo menos 1 Oscar (5 filmes).",
-    "icon": "⏱️",
-    "target_type": "hybrid_genre_oscar_winner",
-    "target_value": 5,
+    "title": "A Máfia de Hollywood: Isso, Isso, Isso! (Tá em Acapulco Tomando Coco)",
+    "description": "Conquistar 1 filme que tenha Roberto Gómez Bolaños creditado em Direção, Roteiro ou Produção (1 filme).",
+    "icon": "🥪",
+    "target_type": "hollywood_director_or_writer_count",
+    "target_value": 1,
     "target_metadata": {
-      "genre": "Curta",
-      "minWins": 1,
-      "isHybrid": true
+      "person": "Roberto Gómez Bolaños",
+      "patterns": [
+        "roberto gomez bolanos",
+        "roberto gómez bolaños",
+        "chespirito"
+      ],
+      "checkProducers": true
     },
-    "sort_order": 508
+    "legacy_ids": [
+      "mh_roberto_gomez_bolanos"
+    ],
+    "sort_order": 256
   },
   {
-    "id": "multi_hitchcock_suspense_5",
-    "category": "multi",
+    "id": "tc_rank_imdb_80",
+    "kind": "rank",
+    "category": "tribunal_critica",
     "categories": [
-      "anatomia_cinema",
-      "mafia_hollywood"
+      "tribunal_critica"
     ],
-    "tier": "silver",
-    "title": "O Mestre do Suspense (Cuidado no Chuveiro e com os Pássaros!)",
-    "description": "Conquistar 5 filmes do diretor Alfred Hitchcock que sejam do gênero Suspense ou Mistério (5 filmes).",
-    "icon": "🔪",
-    "target_type": "hybrid_director_genres",
-    "target_value": 5,
+    "tier": "mythic",
+    "title": "Tribunal da Crítica: O Panteão dos 8.0 no IMDb",
+    "description": "Filmes com nota IMDb válida >= 8.0.",
+    "icon": "⭐",
+    "target_type": "critic_tribunal_rule",
+    "target_value": 50,
     "target_metadata": {
-      "directorPatterns": [
-        "alfred hitchcock",
-        "hitchcock"
-      ],
-      "anyOfGenres": [
-        "Suspense",
-        "Mistério"
-      ],
-      "isHybrid": true
+      "ruleKey": "imdb_gte_80"
     },
-    "sort_order": 509
+    "ranks": [
+      {
+        "id": "tc_rank_imdb_80__bronze",
+        "tier": "bronze",
+        "target_value": 5,
+        "title": "Voz das Massas (5 Filmes)",
+        "description": "Filmes com nota IMDb válida >= 8.0. (Rank Bronze: meta 5).",
+        "legacy_id": "tc_voz_das_massas_3"
+      },
+      {
+        "id": "tc_rank_imdb_80__silver",
+        "tier": "silver",
+        "target_value": 12,
+        "title": "This is Cinema! (12 Filmes)",
+        "description": "Filmes com nota IMDb válida >= 8.0. (Rank Prata: meta 12).",
+        "legacy_id": "tc_this_is_cinema_10"
+      },
+      {
+        "id": "tc_rank_imdb_80__epic",
+        "tier": "epic",
+        "target_value": 25,
+        "title": "O Panteão dos 8.0 (25 Filmes)",
+        "description": "Filmes com nota IMDb válida >= 8.0. (Rank Épico: meta 25).",
+        "legacy_id": "tc_panteao_dos_8_25"
+      },
+      {
+        "id": "tc_rank_imdb_80__gold",
+        "tier": "gold",
+        "target_value": 38,
+        "title": "Selo Ouro do Público (38 Filmes)",
+        "description": "Filmes com nota IMDb válida >= 8.0. (Rank Ouro: meta 38)."
+      },
+      {
+        "id": "tc_rank_imdb_80__mythic",
+        "tier": "mythic",
+        "target_value": 50,
+        "title": "Cânone Supremo do IMDb (50 Filmes)",
+        "description": "Filmes com nota IMDb válida >= 8.0. (Rank Mítico: meta 50)."
+      }
+    ],
+    "legacy_ids": [
+      "tc_voz_das_massas_3",
+      "tc_this_is_cinema_10",
+      "tc_panteao_dos_8_25"
+    ],
+    "sort_order": 257
   },
   {
-    "id": "multi_warren_invocaversus_5",
-    "category": "multi",
+    "id": "tc_rank_1m_reviews",
+    "kind": "rank",
+    "category": "tribunal_critica",
     "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "mafia_hollywood"
+      "tribunal_critica"
     ],
-    "tier": "silver",
-    "title": "O Multiverso da Loucura dos Warren!",
-    "description": "Conquistar 5 filmes do gênero Terror com a tag \"invocaversus\" onde James Wan seja diretor ou roteirista (ou estúdio New Line Cinema) (5 filmes).",
-    "icon": "🕯️",
-    "target_type": "hybrid_warren_invocaversus",
-    "target_value": 5,
+    "tier": "mythic",
+    "title": "Tribunal da Crítica: A Voz das Multidões (1M+ Reviews)",
+    "description": "Filmes com >= 1.000.000 Global Reviews.",
+    "icon": "🌍",
+    "target_type": "critic_tribunal_rule",
+    "target_value": 30,
     "target_metadata": {
-      "genre": "Terror",
-      "tag": "invocaversus",
-      "personPatterns": [
-        "james wan"
-      ],
-      "studioPatterns": [
-        "new line cinema",
-        "new line"
-      ],
-      "isHybrid": true
+      "ruleKey": "gr_gte_1m"
     },
-    "sort_order": 510
+    "ranks": [
+      {
+        "id": "tc_rank_1m_reviews__bronze",
+        "tier": "bronze",
+        "target_value": 3,
+        "title": "Fenômeno de Bilheteria Global",
+        "description": "Filmes com >= 1.000.000 Global Reviews. (Rank Bronze: meta 3).",
+        "legacy_id": "tc_fenomeno_bilheteria_3"
+      },
+      {
+        "id": "tc_rank_1m_reviews__silver",
+        "tier": "silver",
+        "target_value": 8,
+        "title": "Só Eu que Não Tinha Visto?!",
+        "description": "Filmes com >= 1.000.000 Global Reviews. (Rank Prata: meta 8).",
+        "legacy_id": "tc_so_eu_nao_tinha_visto_15"
+      },
+      {
+        "id": "tc_rank_1m_reviews__epic",
+        "tier": "epic",
+        "target_value": 15,
+        "title": "A Bolha de Hollywood",
+        "description": "Filmes com >= 1.000.000 Global Reviews. (Rank Épico: meta 15).",
+        "legacy_id": "tc_bolha_de_hollywood_30"
+      },
+      {
+        "id": "tc_rank_1m_reviews__gold",
+        "tier": "gold",
+        "target_value": 22,
+        "title": "Arrasa-Quarteirão Mundial",
+        "description": "Filmes com >= 1.000.000 Global Reviews. (Rank Ouro: meta 22).",
+        "legacy_id": "tc_voz_das_multidoes_50"
+      },
+      {
+        "id": "tc_rank_1m_reviews__mythic",
+        "tier": "mythic",
+        "target_value": 30,
+        "title": "A Voz das Multidões (30 Filmes)",
+        "description": "Filmes com >= 1.000.000 Global Reviews. (Rank Mítico: meta 30)."
+      }
+    ],
+    "legacy_ids": [
+      "tc_fenomeno_bilheteria_3",
+      "tc_so_eu_nao_tinha_visto_15",
+      "tc_bolha_de_hollywood_30",
+      "tc_voz_das_multidoes_50"
+    ],
+    "sort_order": 258
   },
   {
-    "id": "multi_pixar_cry_5",
-    "category": "multi",
+    "id": "tc_rank_only_mc_na",
+    "kind": "rank",
+    "category": "tribunal_critica",
     "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "mafia_hollywood"
+      "tribunal_critica"
     ],
-    "tier": "silver",
-    "title": "Fábrica de Chorar da Pixar!",
-    "description": "Conquistar 5 filmes do gênero Animação do estúdio Disney / Pixar com a tag Emocionante ou Animais antropomorficos (5 filmes).",
-    "icon": "🎈",
-    "target_type": "hybrid_pixar_emotional_animals",
-    "target_value": 5,
+    "tier": "mythic",
+    "title": "Tribunal da Crítica: Eu Declino! (Só Metacritic N/A)",
+    "description": "Filmes onde apenas o Metacritic está N/A (com Rotten Tomatoes válido).",
+    "icon": "📂",
+    "target_type": "critic_tribunal_rule",
+    "target_value": 30,
     "target_metadata": {
-      "genre": "Animação",
-      "companyPatterns": [
-        "disney",
-        "pixar",
-        "walt disney",
-        "buena vista"
-      ],
-      "anyOfTags": [
-        "Emocionante",
-        "Animais antropomorficos"
-      ],
-      "isHybrid": true
+      "ruleKey": "only_mc_na"
     },
-    "sort_order": 511
+    "ranks": [
+      {
+        "id": "tc_rank_only_mc_na__bronze",
+        "tier": "bronze",
+        "target_value": 3,
+        "title": "Tribunal da Crítica: Eu Declino! (Só Metacritic N/A) • Rank Bronze",
+        "description": "Filmes onde apenas o Metacritic está N/A (com Rotten Tomatoes válido). (Rank Bronze: meta 3).",
+        "legacy_id": "tc_evidencia_nao_encontrada_10"
+      },
+      {
+        "id": "tc_rank_only_mc_na__silver",
+        "tier": "silver",
+        "target_value": 8,
+        "title": "Tribunal da Crítica: Eu Declino! (Só Metacritic N/A) • Rank Prata",
+        "description": "Filmes onde apenas o Metacritic está N/A (com Rotten Tomatoes válido). (Rank Prata: meta 8).",
+        "legacy_id": "tc_eu_declino_20"
+      },
+      {
+        "id": "tc_rank_only_mc_na__epic",
+        "tier": "epic",
+        "target_value": 15,
+        "title": "Tribunal da Crítica: Eu Declino! (Só Metacritic N/A) • Rank Épico",
+        "description": "Filmes onde apenas o Metacritic está N/A (com Rotten Tomatoes válido). (Rank Épico: meta 15)."
+      },
+      {
+        "id": "tc_rank_only_mc_na__gold",
+        "tier": "gold",
+        "target_value": 22,
+        "title": "Tribunal da Crítica: Eu Declino! (Só Metacritic N/A) • Rank Ouro",
+        "description": "Filmes onde apenas o Metacritic está N/A (com Rotten Tomatoes válido). (Rank Ouro: meta 22)."
+      },
+      {
+        "id": "tc_rank_only_mc_na__mythic",
+        "tier": "mythic",
+        "target_value": 30,
+        "title": "Tribunal da Crítica: Eu Declino! (Só Metacritic N/A) • Rank Mítico",
+        "description": "Filmes onde apenas o Metacritic está N/A (com Rotten Tomatoes válido). (Rank Mítico: meta 30)."
+      }
+    ],
+    "legacy_ids": [
+      "tc_evidencia_nao_encontrada_10",
+      "tc_eu_declino_20"
+    ],
+    "sort_order": 259
   },
   {
-    "id": "multi_gore_twisted_lionsgate_5",
-    "category": "multi",
+    "id": "tc_rank_both_mc_rt_na",
+    "kind": "rank",
+    "category": "tribunal_critica",
     "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "mafia_hollywood"
+      "tribunal_critica"
     ],
-    "tier": "silver",
-    "title": "Sangue, Armadilhas e Gore Assinados pelo Mestre!",
-    "description": "Conquistar 5 filmes do gênero Terror com a tag Gore do estúdio Twisted Pictures (ou Lionsgate) (5 filmes).",
-    "icon": "⚙️",
-    "target_type": "hybrid_gore_twisted_lionsgate",
-    "target_value": 5,
+    "tier": "mythic",
+    "title": "Tribunal da Crítica: Fantasma no Catálogo (MC e RT N/A)",
+    "description": "Filmes onde tanto o Metacritic quanto o Rotten Tomatoes estão N/A.",
+    "icon": "👻",
+    "target_type": "critic_tribunal_rule",
+    "target_value": 60,
     "target_metadata": {
-      "genre": "Terror",
-      "tag": "Gore",
-      "companyPatterns": [
-        "twisted pictures",
-        "lionsgate"
-      ],
-      "isHybrid": true
+      "ruleKey": "both_mc_rt_na"
     },
-    "sort_order": 512
+    "ranks": [
+      {
+        "id": "tc_rank_both_mc_rt_na__bronze",
+        "tier": "bronze",
+        "target_value": 5,
+        "title": "Tribunal da Crítica: Fantasma no Catálogo (MC e RT N/A) • Rank Bronze",
+        "description": "Filmes onde tanto o Metacritic quanto o Rotten Tomatoes estão N/A. (Rank Bronze: meta 5).",
+        "legacy_id": "tc_filme_realmente_existe_30"
+      },
+      {
+        "id": "tc_rank_both_mc_rt_na__silver",
+        "tier": "silver",
+        "target_value": 15,
+        "title": "Tribunal da Crítica: Fantasma no Catálogo (MC e RT N/A) • Rank Prata",
+        "description": "Filmes onde tanto o Metacritic quanto o Rotten Tomatoes estão N/A. (Rank Prata: meta 15).",
+        "legacy_id": "tc_fantasma_no_catalogo_50"
+      },
+      {
+        "id": "tc_rank_both_mc_rt_na__epic",
+        "tier": "epic",
+        "target_value": 30,
+        "title": "Tribunal da Crítica: Fantasma no Catálogo (MC e RT N/A) • Rank Épico",
+        "description": "Filmes onde tanto o Metacritic quanto o Rotten Tomatoes estão N/A. (Rank Épico: meta 30)."
+      },
+      {
+        "id": "tc_rank_both_mc_rt_na__gold",
+        "tier": "gold",
+        "target_value": 45,
+        "title": "Tribunal da Crítica: Fantasma no Catálogo (MC e RT N/A) • Rank Ouro",
+        "description": "Filmes onde tanto o Metacritic quanto o Rotten Tomatoes estão N/A. (Rank Ouro: meta 45)."
+      },
+      {
+        "id": "tc_rank_both_mc_rt_na__mythic",
+        "tier": "mythic",
+        "target_value": 60,
+        "title": "Tribunal da Crítica: Fantasma no Catálogo (MC e RT N/A) • Rank Mítico",
+        "description": "Filmes onde tanto o Metacritic quanto o Rotten Tomatoes estão N/A. (Rank Mítico: meta 60)."
+      }
+    ],
+    "legacy_ids": [
+      "tc_filme_realmente_existe_30",
+      "tc_fantasma_no_catalogo_50"
+    ],
+    "sort_order": 260
   },
   {
-    "id": "multi_brazil_comedy_producers_8",
-    "category": "multi",
+    "id": "tc_rank_minha_nota_95",
+    "kind": "rank",
+    "category": "tribunal_critica",
     "categories": [
-      "volta_ao_mundo",
-      "anatomia_cinema",
-      "mafia_hollywood"
+      "tribunal_critica"
     ],
-    "tier": "silver",
-    "title": "Rir Pra Não Chorar no Cinema Brasileiro!",
-    "description": "Conquistar 8 filmes do Brasil do gênero Comédia produzidos pela Downtown Filmes, Globo Filmes ou Paris Filmes (8 filmes).",
-    "icon": "😂",
-    "target_type": "hybrid_brazil_comedy_producers",
-    "target_value": 8,
-    "target_metadata": {
-      "countryCode": "br",
-      "genre": "Comédia",
-      "companyPatterns": [
-        "downtown filmes",
-        "globo filmes",
-        "paris filmes"
-      ],
-      "isHybrid": true
-    },
-    "sort_order": 513
-  },
-  {
-    "id": "multi_disney_july_dec_5",
-    "category": "multi",
-    "categories": [
-      "data_limite",
-      "anatomia_cinema",
-      "mafia_hollywood"
-    ],
-    "tier": "silver",
-    "title": "Férias Escolares com o Mickey!",
-    "description": "Conquistar 5 filmes de Animação ou Família da Disney / Pixar assistidos em Julho ou Dezembro (5 filmes).",
-    "icon": "🏖️",
-    "target_type": "hybrid_disney_vacation_july_dec",
-    "target_value": 5,
-    "target_metadata": {
-      "anyOfGenres": [
-        "Animação",
-        "Família"
-      ],
-      "companyPatterns": [
-        "disney",
-        "pixar",
-        "walt disney",
-        "buena vista"
-      ],
-      "months": [
-        7,
-        12
-      ],
-      "isHybrid": true
-    },
-    "sort_order": 514
-  },
-  {
-    "id": "multi_hitchcock_bw_3",
-    "category": "multi",
-    "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "mafia_hollywood"
-    ],
-    "tier": "silver",
-    "title": "Clássico em Preto e Branco do Mestre Hitchcock!",
-    "description": "Conquistar 3 filmes do diretor Alfred Hitchcock com a tag Preto e branco (3 filmes).",
-    "icon": "📼",
-    "target_type": "hybrid_hitchcock_black_white",
-    "target_value": 3,
-    "target_metadata": {
-      "directorPatterns": [
-        "alfred hitchcock",
-        "hitchcock"
-      ],
-      "tag": "Preto e branco",
-      "isHybrid": true
-    },
-    "sort_order": 515
-  },
-  {
-    "id": "multi_non_us_oscar_15",
-    "category": "multi",
-    "categories": [
-      "volta_ao_mundo",
-      "mafia_hollywood"
-    ],
-    "tier": "epic",
-    "title": "Essa Estatueta Não Fala Inglês!",
-    "description": "Conquistar 15 filmes que ganharam Oscar e NÃO foram produzidos nos Estados Unidos (15 filmes).",
-    "icon": "🗽",
-    "target_type": "hybrid_non_us_oscar_winner",
-    "target_value": 15,
-    "target_metadata": {
-      "excludeCountryCode": "us",
-      "minWins": 1,
-      "isHybrid": true
-    },
-    "sort_order": 516
-  },
-  {
-    "id": "multi_romance_school_20",
-    "category": "multi",
-    "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema"
-    ],
-    "tier": "epic",
-    "title": "Amor nos Corredores (Suspiros na Sala de Aula)",
-    "description": "Conquistar 20 filmes do gênero Romance com a tag Colegio/Escola (20 filmes).",
-    "icon": "🏫",
-    "target_type": "hybrid_genre_tag",
+    "tier": "mythic",
+    "title": "Tribunal da Crítica: Inesquecíveis! (Minha Nota 9.500+)",
+    "description": "Filmes com Minha Nota >= 9.500.",
+    "icon": "🌟",
+    "target_type": "critic_tribunal_rule",
     "target_value": 20,
     "target_metadata": {
-      "genre": "Romance",
-      "tag": "Colegio/Escola",
-      "isHybrid": true
+      "ruleKey": "ur_gte_9500"
     },
-    "sort_order": 517
-  },
-  {
-    "id": "multi_disney_fox_horror_5",
-    "category": "multi",
-    "categories": [
-      "anatomia_cinema",
-      "mafia_hollywood"
+    "ranks": [
+      {
+        "id": "tc_rank_minha_nota_95__bronze",
+        "tier": "bronze",
+        "target_value": 2,
+        "title": "Tribunal da Crítica: Inesquecíveis! (Minha Nota 9.500+) • Rank Bronze",
+        "description": "Filmes com Minha Nota >= 9.500. (Rank Bronze: meta 2).",
+        "legacy_id": "tc_inesqueciveis_10"
+      },
+      {
+        "id": "tc_rank_minha_nota_95__silver",
+        "tier": "silver",
+        "target_value": 5,
+        "title": "Tribunal da Crítica: Inesquecíveis! (Minha Nota 9.500+) • Rank Prata",
+        "description": "Filmes com Minha Nota >= 9.500. (Rank Prata: meta 5).",
+        "legacy_id": "tc_amo_fundo_coracao_20"
+      },
+      {
+        "id": "tc_rank_minha_nota_95__epic",
+        "tier": "epic",
+        "target_value": 10,
+        "title": "Tribunal da Crítica: Inesquecíveis! (Minha Nota 9.500+) • Rank Épico",
+        "description": "Filmes com Minha Nota >= 9.500. (Rank Épico: meta 10)."
+      },
+      {
+        "id": "tc_rank_minha_nota_95__gold",
+        "tier": "gold",
+        "target_value": 15,
+        "title": "Tribunal da Crítica: Inesquecíveis! (Minha Nota 9.500+) • Rank Ouro",
+        "description": "Filmes com Minha Nota >= 9.500. (Rank Ouro: meta 15)."
+      },
+      {
+        "id": "tc_rank_minha_nota_95__mythic",
+        "tier": "mythic",
+        "target_value": 20,
+        "title": "Tribunal da Crítica: Inesquecíveis! (Minha Nota 9.500+) • Rank Mítico",
+        "description": "Filmes com Minha Nota >= 9.500. (Rank Mítico: meta 20)."
+      }
     ],
-    "tier": "epic",
-    "title": "Eles Fazem Terror?! (O Lado Sombrio do Castelo da Disney)",
-    "description": "Conquistar 5 filmes do gênero Terror com distribuição ou estúdio Disney / Pixar, Buena Vista International ou 20th Century Fox (5 filmes).",
-    "icon": "🏰",
-    "target_type": "hybrid_disney_fox_horror",
-    "target_value": 5,
-    "target_metadata": {
-      "genre": "Terror",
-      "companyPatterns": [
-        "disney",
-        "pixar",
-        "walt disney",
-        "buena vista",
-        "20th century fox",
-        "20th century studios",
-        "twentieth century"
-      ],
-      "isHybrid": true
-    },
-    "sort_order": 518
-  },
-  {
-    "id": "multi_a24_horror_tags_8",
-    "category": "multi",
-    "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "mafia_hollywood"
+    "legacy_ids": [
+      "tc_inesqueciveis_10",
+      "tc_amo_fundo_coracao_20"
     ],
-    "tier": "epic",
-    "title": "Terror Cult Cabeça que Só a A24 Explica!",
-    "description": "Conquistar 8 filmes da distribuidora A24 do gênero Terror ou Suspense que tenham a tag Bruxo, Demônio, Gore ou Trágico (8 filmes).",
-    "icon": "🐐",
-    "target_type": "hybrid_a24_horror_tags",
-    "target_value": 8,
-    "target_metadata": {
-      "companyPatterns": [
-        "a24"
-      ],
-      "anyOfGenres": [
-        "Terror",
-        "Suspense"
-      ],
-      "anyOfTags": [
-        "Bruxo",
-        "Demônio",
-        "Gore",
-        "Trágico"
-      ],
-      "isHybrid": true
-    },
-    "sort_order": 519
-  },
-  {
-    "id": "multi_top250_oscar_15",
-    "category": "multi",
-    "categories": [
-      "dna_cinefilo",
-      "mafia_hollywood"
-    ],
-    "tier": "epic",
-    "title": "Tapete Vermelho do IMDb (Aprovado pelo Público e pela Academia!)",
-    "description": "Conquistar 15 filmes que tenham a tag TOP250 e sejam Ganhadores do Oscar ao mesmo tempo (15 filmes).",
-    "icon": "🌟",
-    "target_type": "hybrid_top250_oscar_winner",
-    "target_value": 15,
-    "target_metadata": {
-      "tag": "TOP250",
-      "minWins": 1,
-      "isHybrid": true
-    },
-    "sort_order": 520
-  },
-  {
-    "id": "multi_sk_oscar_5",
-    "category": "multi",
-    "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "mafia_hollywood"
-    ],
-    "tier": "epic",
-    "title": "Stephen King no Tapete Vermelho!",
-    "description": "Conquistar 5 filmes com a tag SK (Stephen King) que foram Indicados ou Ganhadores do Oscar (5 filmes).",
-    "icon": "🤡",
-    "target_type": "hybrid_sk_oscar",
-    "target_value": 5,
-    "target_metadata": {
-      "tag": "SK",
-      "minNominationsOrWins": 1,
-      "isHybrid": true
-    },
-    "sort_order": 521
-  },
-  {
-    "id": "multi_zombie_constantin_pwsa_5",
-    "category": "multi",
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo",
-      "mafia_hollywood"
-    ],
-    "tier": "epic",
-    "title": "Apocalipse Zumbi Patrocinado pela Alemanha e pela Milla!",
-    "description": "Conquistar 5 filmes com a tag Zumbi e Baseado em jogo produzidos pela Constantin Film ou dirigidos/escritos por Paul W.S. Anderson (5 filmes).",
-    "icon": "🧟",
-    "target_type": "hybrid_zombie_game_constantin_pwsa",
-    "target_value": 5,
-    "target_metadata": {
-      "tags": [
-        "Zumbi",
-        "Baseado em jogo"
-      ],
-      "companyPatterns": [
-        "constantin film",
-        "constantin"
-      ],
-      "personPatterns": [
-        "paul w.s. anderson",
-        "paul ws anderson",
-        "paul w. s. anderson",
-        "paul w s anderson"
-      ],
-      "isHybrid": true
-    },
-    "sort_order": 522
-  },
-  {
-    "id": "multi_drama_oscar_summer_10",
-    "category": "multi",
-    "categories": [
-      "data_limite",
-      "anatomia_cinema",
-      "mafia_hollywood"
-    ],
-    "tier": "epic",
-    "title": "Temporada do Oscar (Maratona de Verão da Academia)",
-    "description": "Conquistar 10 filmes do gênero Drama ou Biografia que sejam Indicados ou Ganhadores do Oscar assistidos nos meses de Janeiro, Fevereiro ou Março (10 filmes).",
-    "icon": "☀️",
-    "target_type": "hybrid_drama_oscar_jan_feb_mar",
-    "target_value": 10,
-    "target_metadata": {
-      "anyOfGenres": [
-        "Drama",
-        "Biografia"
-      ],
-      "months": [
-        1,
-        2,
-        3
-      ],
-      "minNominationsOrWins": 1,
-      "isHybrid": true
-    },
-    "sort_order": 523
-  },
-  {
-    "id": "multi_shyamalan_twist_5",
-    "category": "multi",
-    "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "mafia_hollywood"
-    ],
-    "tier": "epic",
-    "title": "Plot Twist Duplo do Shyamalan!",
-    "description": "Conquistar 5 filmes do diretor M. Night Shyamalan do gênero Suspense ou Mistério com a tag Final Epico ou Super Poder (5 filmes).",
-    "icon": "🌀",
-    "target_type": "hybrid_shyamalan_twist",
-    "target_value": 5,
-    "target_metadata": {
-      "directorPatterns": [
-        "m. night shyamalan",
-        "shyamalan"
-      ],
-      "anyOfGenres": [
-        "Suspense",
-        "Mistério"
-      ],
-      "anyOfTags": [
-        "Final Epico",
-        "Super Poder"
-      ],
-      "isHybrid": true
-    },
-    "sort_order": 524
-  },
-  {
-    "id": "multi_non_us_oscar_30",
-    "category": "multi",
-    "categories": [
-      "volta_ao_mundo",
-      "mafia_hollywood"
-    ],
-    "tier": "gold",
-    "title": "Esse Ouro Eles Não Vão Roubar!",
-    "description": "Conquistar 30 filmes que ganharam Oscar e NÃO foram produzidos nos Estados Unidos (30 filmes).",
-    "icon": "🏺",
-    "target_type": "hybrid_non_us_oscar_winner",
-    "target_value": 30,
-    "target_metadata": {
-      "excludeCountryCode": "us",
-      "minWins": 1,
-      "isHybrid": true
-    },
-    "sort_order": 525
-  },
-  {
-    "id": "multi_dc_warner_vs_marvel_disney_30",
-    "category": "multi",
-    "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "mafia_hollywood"
-    ],
-    "tier": "gold",
-    "title": "A Guerra Fria dos Bilhões (Warner vs. Disney nos Quadrinhos!)",
-    "description": "Conquistar 15 filmes de Ação/Aventura com a tag DC na Warner Bros. e 15 filmes de Ação/Aventura com a tag Marvel na Disney/Buena Vista/Sony (30 filmes).",
-    "icon": "⚡",
-    "target_type": "hybrid_warner_dc_vs_disney_marvel",
-    "target_value": 30,
-    "target_metadata": {
-      "isHybrid": true
-    },
-    "sort_order": 526
-  },
-  {
-    "id": "multi_drama_bio_hist_oscar_winner_25",
-    "category": "multi",
-    "categories": [
-      "anatomia_cinema",
-      "mafia_hollywood"
-    ],
-    "tier": "gold",
-    "title": "Chuva de Estatuetas em Noite de Drama!",
-    "description": "Conquistar 25 filmes do gênero Drama, Biografia ou História que sejam Ganhadores do Oscar (25 filmes).",
-    "icon": "🎭",
-    "target_type": "hybrid_drama_bio_hist_oscar_winner",
-    "target_value": 25,
-    "target_metadata": {
-      "anyOfGenres": [
-        "Drama",
-        "Biografia",
-        "História"
-      ],
-      "minWins": 1,
-      "isHybrid": true
-    },
-    "sort_order": 527
-  },
-  {
-    "id": "multi_halloween_masters_10",
-    "category": "multi",
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "data_limite",
-      "mafia_hollywood"
-    ],
-    "tier": "gold",
-    "title": "Noite das Bruxas com os Mestres do Terror (Crossover 4 Categorias!)",
-    "description": "Conquistar 10 filmes do gênero Terror + Tag Sobrenatural (Fantasma, Demônio, Gore, Vampiro ou Zumbi) + Estúdio/Distribuidora (Blumhouse, A24, New Line ou Lionsgate) + Assistidos em Outubro (10 filmes).",
-    "icon": "🧙‍♀️",
-    "target_type": "hybrid_halloween_masters",
-    "target_value": 10,
-    "target_metadata": {
-      "genre": "Terror",
-      "anyOfTags": [
-        "Fantasma",
-        "Demônio",
-        "Gore",
-        "Vampiro",
-        "Zumbi"
-      ],
-      "companyPatterns": [
-        "blumhouse",
-        "a24",
-        "new line",
-        "lionsgate"
-      ],
-      "month": 10,
-      "isHybrid": true
-    },
-    "sort_order": 528
-  },
-  {
-    "id": "multi_seven_deadly_sins_49",
-    "category": "multi",
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "mafia_hollywood"
-    ],
-    "tier": "mythic",
-    "title": "Os 7 Pecados Capitais do Cinema (7x7 = 49 Marcos!)",
-    "description": "Cumprir todos os 7 Pecados Capitais do catálogo (49 filmes/marcos no checklist): Luxúria, Orgulho, Inveja, Ira, Preguiça, Avareza e Gula.",
-    "icon": "🍎",
-    "target_type": "hybrid_seven_deadly_sins",
-    "target_value": 49,
-    "target_metadata": {
-      "isHybrid": true
-    },
-    "sort_order": 529
-  },
-  {
-    "id": "multi_supreme_5_categories_15",
-    "category": "multi",
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "data_limite",
-      "mafia_hollywood"
-    ],
-    "tier": "mythic",
-    "title": "O Grande Cruzamento do Cinema Mundial (Supremo 5 Categorias!)",
-    "description": "Conquistar 15 filmes que combinem simultaneamente: País fora dos EUA + Pelo menos 2 Gêneros Oficiais + Pelo menos 1 Tag Pessoal + Indicado ou Ganhador do Oscar + Data/Mês registrado (15 filmes).",
-    "icon": "🌌",
-    "target_type": "hybrid_supreme_5_categories",
-    "target_value": 15,
-    "target_metadata": {
-      "isHybrid": true
-    },
-    "sort_order": 530
+    "sort_order": 261
   },
   {
     "id": "tc_primeira_sentenca_1",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -6908,10 +9625,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "ur_gte_9000"
     },
-    "sort_order": 531
+    "legacy_ids": [
+      "tc_primeira_sentenca_1"
+    ],
+    "sort_order": 262
   },
   {
     "id": "tc_pena_maxima_1",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -6925,10 +9646,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "ur_lte_3000"
     },
-    "sort_order": 532
+    "legacy_ids": [
+      "tc_pena_maxima_1"
+    ],
+    "sort_order": 263
   },
   {
     "id": "tc_tomate_fresco_3",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -6942,44 +9667,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "rt_gte_90"
     },
-    "sort_order": 533
-  },
-  {
-    "id": "tc_voz_das_massas_3",
-    "category": "tribunal_critica",
-    "categories": [
-      "tribunal_critica"
+    "legacy_ids": [
+      "tc_tomate_fresco_3"
     ],
-    "tier": "bronze",
-    "title": "Tribunal da Crítica: Voz das Massas (Aprovado pelo IMDb)",
-    "description": "Conquistar 3 filmes com IMDb válido e igual ou superior a 8.0 (3 filmes).",
-    "icon": "⭐",
-    "target_type": "critic_tribunal_rule",
-    "target_value": 3,
-    "target_metadata": {
-      "ruleKey": "imdb_gte_80"
-    },
-    "sort_order": 534
-  },
-  {
-    "id": "tc_fenomeno_bilheteria_3",
-    "category": "tribunal_critica",
-    "categories": [
-      "tribunal_critica"
-    ],
-    "tier": "bronze",
-    "title": "Tribunal da Crítica: Fenômeno de Bilheteria Global",
-    "description": "Conquistar 3 filmes com Global Reviews igual ou superior a 1.000.000 (3 filmes).",
-    "icon": "🌍",
-    "target_type": "critic_tribunal_rule",
-    "target_value": 3,
-    "target_metadata": {
-      "ruleKey": "gr_gte_1m"
-    },
-    "sort_order": 535
+    "sort_order": 264
   },
   {
     "id": "tc_garimpeiro_primeira_viagem_1",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -6993,10 +9688,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "gr_lt_5k"
     },
-    "sort_order": 536
+    "legacy_ids": [
+      "tc_garimpeiro_primeira_viagem_1"
+    ],
+    "sort_order": 265
   },
   {
     "id": "tc_sem_tomates_10",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7010,61 +9709,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "only_rt_na"
     },
-    "sort_order": 537
-  },
-  {
-    "id": "tc_evidencia_nao_encontrada_10",
-    "category": "tribunal_critica",
-    "categories": [
-      "tribunal_critica"
+    "legacy_ids": [
+      "tc_sem_tomates_10"
     ],
-    "tier": "bronze",
-    "title": "Tribunal da Crítica: Evidência Não Encontrada (Metacritic em Branco)",
-    "description": "Conquistar 10 filmes onde APENAS o Metacritic está N/A (enquanto o Rotten Tomatoes possui nota válida) (10 filmes).",
-    "icon": "📂",
-    "target_type": "critic_tribunal_rule",
-    "target_value": 10,
-    "target_metadata": {
-      "ruleKey": "only_mc_na"
-    },
-    "sort_order": 538
-  },
-  {
-    "id": "tc_this_is_cinema_10",
-    "category": "tribunal_critica",
-    "categories": [
-      "tribunal_critica"
-    ],
-    "tier": "silver",
-    "title": "Tribunal da Crítica: This is Cinema! (Selo IMDb de Qualidade)",
-    "description": "Conquistar 10 filmes com IMDb válido e igual ou superior a 8.0 (10 filmes).",
-    "icon": "🎥",
-    "target_type": "critic_tribunal_rule",
-    "target_value": 10,
-    "target_metadata": {
-      "ruleKey": "imdb_gte_80"
-    },
-    "sort_order": 539
-  },
-  {
-    "id": "tc_so_eu_nao_tinha_visto_15",
-    "category": "tribunal_critica",
-    "categories": [
-      "tribunal_critica"
-    ],
-    "tier": "silver",
-    "title": "Tribunal da Crítica: Só Eu que Não Tinha Visto?!",
-    "description": "Conquistar 15 filmes com Global Reviews igual ou superior a 1.000.000 (15 filmes).",
-    "icon": "🍿",
-    "target_type": "critic_tribunal_rule",
-    "target_value": 15,
-    "target_metadata": {
-      "ruleKey": "gr_gte_1m"
-    },
-    "sort_order": 540
+    "sort_order": 266
   },
   {
     "id": "tc_filme_ruim_muito_publico_5",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7078,10 +9730,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "gr_gt_1m_imdb_lt_70"
     },
-    "sort_order": 541
+    "legacy_ids": [
+      "tc_filme_ruim_muito_publico_5"
+    ],
+    "sort_order": 267
   },
   {
     "id": "tc_apenas_eu_diretor_atores_10",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7095,10 +9751,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "gr_lt_1k"
     },
-    "sort_order": 542
+    "legacy_ids": [
+      "tc_apenas_eu_diretor_atores_10"
+    ],
+    "sort_order": 268
   },
   {
     "id": "tc_valeu_a_pena_garimpar_5",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7112,10 +9772,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "gr_lt_10k_ur_gte_8000"
     },
-    "sort_order": 543
+    "legacy_ids": [
+      "tc_valeu_a_pena_garimpar_5"
+    ],
+    "sort_order": 269
   },
   {
     "id": "tc_tomate_podre_vale_ouro_5",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7129,10 +9793,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "rt_lt_40_ur_gte_7500"
     },
-    "sort_order": 544
+    "legacy_ids": [
+      "tc_tomate_podre_vale_ouro_5"
+    ],
+    "sort_order": 270
   },
   {
     "id": "tc_hipocrisia_critica_chata_5",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7146,10 +9814,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "mc_gte_80_ur_lte_6000"
     },
-    "sort_order": 545
+    "legacy_ids": [
+      "tc_hipocrisia_critica_chata_5"
+    ],
+    "sort_order": 271
   },
   {
     "id": "tc_precisao_farmaceutico_15",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7163,44 +9835,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "ur_pharmacist_decimals"
     },
-    "sort_order": 546
-  },
-  {
-    "id": "tc_eu_declino_20",
-    "category": "tribunal_critica",
-    "categories": [
-      "tribunal_critica"
+    "legacy_ids": [
+      "tc_precisao_farmaceutico_15"
     ],
-    "tier": "silver",
-    "title": "Tribunal da Crítica: Eu Declino!",
-    "description": "Conquistar 20 filmes onde APENAS o Metacritic está N/A (com Rotten Tomatoes preenchido) (20 filmes).",
-    "icon": "🙅",
-    "target_type": "critic_tribunal_rule",
-    "target_value": 20,
-    "target_metadata": {
-      "ruleKey": "only_mc_na"
-    },
-    "sort_order": 547
-  },
-  {
-    "id": "tc_filme_realmente_existe_30",
-    "category": "tribunal_critica",
-    "categories": [
-      "tribunal_critica"
-    ],
-    "tier": "silver",
-    "title": "Tribunal da Crítica: Esse Filme Realmente Existe?",
-    "description": "Conquistar 30 filmes onde TANTO o Metacritic QUANTO o Rotten Tomatoes estão como N/A (30 filmes).",
-    "icon": "👻",
-    "target_type": "critic_tribunal_rule",
-    "target_value": 30,
-    "target_metadata": {
-      "ruleKey": "both_mc_rt_na"
-    },
-    "sort_order": 548
+    "sort_order": 272
   },
   {
     "id": "tc_clube_dos_80_25",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7214,10 +9856,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "rt_80_to_89"
     },
-    "sort_order": 549
+    "legacy_ids": [
+      "tc_clube_dos_80_25"
+    ],
+    "sort_order": 273
   },
   {
     "id": "tc_copo_meio_cheio_15",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7231,10 +9877,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "ur_6000_to_7000"
     },
-    "sort_order": 550
+    "legacy_ids": [
+      "tc_copo_meio_cheio_15"
+    ],
+    "sort_order": 274
   },
   {
     "id": "tc_julgamento_popular_20",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7248,10 +9898,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "gr_500k_to_1m"
     },
-    "sort_order": 551
+    "legacy_ids": [
+      "tc_julgamento_popular_20"
+    ],
+    "sort_order": 275
   },
   {
     "id": "tc_apelacao_negada_10",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7265,27 +9919,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "imdb_lt_65_mc_gt_70"
     },
-    "sort_order": 552
-  },
-  {
-    "id": "tc_inesqueciveis_10",
-    "category": "tribunal_critica",
-    "categories": [
-      "tribunal_critica"
+    "legacy_ids": [
+      "tc_apelacao_negada_10"
     ],
-    "tier": "epic",
-    "title": "Tribunal da Crítica: Inesquecíveis! (A Prateleira Mais Alta)",
-    "description": "Conquistar 10 filmes com Minha Nota igual ou superior a 9.500 (10 filmes).",
-    "icon": "🌟",
-    "target_type": "critic_tribunal_rule",
-    "target_value": 10,
-    "target_metadata": {
-      "ruleKey": "ur_gte_9500"
-    },
-    "sort_order": 553
+    "sort_order": 276
   },
   {
     "id": "tc_fundo_da_internet_5",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7299,10 +9940,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "gr_lt_100"
     },
-    "sort_order": 554
+    "legacy_ids": [
+      "tc_fundo_da_internet_5"
+    ],
+    "sort_order": 277
   },
   {
     "id": "tc_eu_gostei_importa_10",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7316,10 +9961,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "ur_gte_9000_imdb_lt_60"
     },
-    "sort_order": 555
+    "legacy_ids": [
+      "tc_eu_gostei_importa_10"
+    ],
+    "sort_order": 278
   },
   {
     "id": "tc_desculpe_senhor_juiz_5",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7333,10 +9982,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "four_scores_spread_40"
     },
-    "sort_order": 556
+    "legacy_ids": [
+      "tc_desculpe_senhor_juiz_5"
+    ],
+    "sort_order": 279
   },
   {
     "id": "tc_reu_culpado_3_a_1_15",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7350,27 +10003,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "ur_gt_8000_imdb_lt_60_mc_lt_50_rt_lt_50"
     },
-    "sort_order": 557
-  },
-  {
-    "id": "tc_fantasma_no_catalogo_50",
-    "category": "tribunal_critica",
-    "categories": [
-      "tribunal_critica"
+    "legacy_ids": [
+      "tc_reu_culpado_3_a_1_15"
     ],
-    "tier": "epic",
-    "title": "Tribunal da Crítica: Fantasma no Catálogo (Lenda Urbana Completa)",
-    "description": "Conquistar 50 filmes onde TANTO o Metacritic QUANTO o Rotten Tomatoes estão como N/A (50 filmes).",
-    "icon": "🕵️",
-    "target_type": "critic_tribunal_rule",
-    "target_value": 50,
-    "target_metadata": {
-      "ruleKey": "both_mc_rt_na"
-    },
-    "sort_order": 558
+    "sort_order": 280
   },
   {
     "id": "tc_100_aprovacao_3",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7384,10 +10024,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "rt_eq_100"
     },
-    "sort_order": 559
+    "legacy_ids": [
+      "tc_100_aprovacao_3"
+    ],
+    "sort_order": 281
   },
   {
     "id": "tc_metacritica_sem_alma_10",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7401,10 +10045,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "mc_gte_90"
     },
-    "sort_order": 560
+    "legacy_ids": [
+      "tc_metacritica_sem_alma_10"
+    ],
+    "sort_order": 282
   },
   {
     "id": "tc_bomba_atomica_submarina_3",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7418,27 +10066,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "ur_lte_2000_imdb_lt_50"
     },
-    "sort_order": 561
-  },
-  {
-    "id": "tc_bolha_de_hollywood_30",
-    "category": "tribunal_critica",
-    "categories": [
-      "tribunal_critica"
+    "legacy_ids": [
+      "tc_bomba_atomica_submarina_3"
     ],
-    "tier": "epic",
-    "title": "Tribunal da Crítica: A Bolha de Hollywood",
-    "description": "Conquistar 30 filmes com Global Reviews igual ou superior a 1.000.000 (30 filmes).",
-    "icon": "🫧",
-    "target_type": "critic_tribunal_rule",
-    "target_value": 30,
-    "target_metadata": {
-      "ruleKey": "gr_gte_1m"
-    },
-    "sort_order": 562
+    "sort_order": 283
   },
   {
     "id": "tc_nem_minha_mae_conhece_10",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7452,44 +10087,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "gr_100_to_500"
     },
-    "sort_order": 563
-  },
-  {
-    "id": "tc_panteao_dos_8_25",
-    "category": "tribunal_critica",
-    "categories": [
-      "tribunal_critica"
+    "legacy_ids": [
+      "tc_nem_minha_mae_conhece_10"
     ],
-    "tier": "epic",
-    "title": "Tribunal da Crítica: O Panteão dos 8.0",
-    "description": "Conquistar 25 filmes com IMDb válido e igual ou superior a 8.0 (25 filmes).",
-    "icon": "🏆",
-    "target_type": "critic_tribunal_rule",
-    "target_value": 25,
-    "target_metadata": {
-      "ruleKey": "imdb_gte_80"
-    },
-    "sort_order": 564
-  },
-  {
-    "id": "tc_amo_fundo_coracao_20",
-    "category": "tribunal_critica",
-    "categories": [
-      "tribunal_critica"
-    ],
-    "tier": "gold",
-    "title": "Tribunal da Crítica: Amo do Fundo do Meu Coração!",
-    "description": "Conquistar 20 filmes com Minha Nota igual ou superior a 9.500 (20 filmes).",
-    "icon": "❤️‍🔥",
-    "target_type": "critic_tribunal_rule",
-    "target_value": 20,
-    "target_metadata": {
-      "ruleKey": "ur_gte_9500"
-    },
-    "sort_order": 565
+    "sort_order": 284
   },
   {
     "id": "tc_melhor_filme_vai_para_5",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7503,10 +10108,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "ur_gte_9700"
     },
-    "sort_order": 566
+    "legacy_ids": [
+      "tc_melhor_filme_vai_para_5"
+    ],
+    "sort_order": 285
   },
   {
     "id": "tc_amados_por_todos_10",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7520,10 +10129,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "ur_90_imdb_80_rt_90_mc_90"
     },
-    "sort_order": 567
+    "legacy_ids": [
+      "tc_amados_por_todos_10"
+    ],
+    "sort_order": 286
   },
   {
     "id": "tc_regua_mais_fina_50",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7537,10 +10150,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "ur_gte_8500"
     },
-    "sort_order": 568
+    "legacy_ids": [
+      "tc_regua_mais_fina_50"
+    ],
+    "sort_order": 287
   },
   {
     "id": "tc_inimigo_criticos_intelectuais_10",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7554,10 +10171,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "red_critic_lt_45_ur_gte_8500"
     },
-    "sort_order": 569
+    "legacy_ids": [
+      "tc_inimigo_criticos_intelectuais_10"
+    ],
+    "sort_order": 288
   },
   {
     "id": "tc_grande_jurado_massas_40",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7571,10 +10192,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "imdb_gte_80_rt_gte_85"
     },
-    "sort_order": 570
+    "legacy_ids": [
+      "tc_grande_jurado_massas_40"
+    ],
+    "sort_order": 289
   },
   {
     "id": "tc_arquivo_obscuro_sonhos_15",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7588,10 +10213,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "gr_lt_5k_ur_gte_8500"
     },
-    "sort_order": 571
+    "legacy_ids": [
+      "tc_arquivo_obscuro_sonhos_15"
+    ],
+    "sort_order": 290
   },
   {
     "id": "tc_desacato_autoridade_10",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7605,27 +10234,35 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "imdb_lt_50_ur_gte_7500"
     },
-    "sort_order": 572
+    "legacy_ids": [
+      "tc_desacato_autoridade_10"
+    ],
+    "sort_order": 291
   },
   {
     "id": "tc_checkpoint_777_7",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
     ],
     "tier": "mythic",
     "title": "Tribunal da Crítica: Checkpoint 777 (O Número da Sorte do Tribunal)",
-    "description": "Conquistar 7 filmes onde TODAS as métricas estão no intervalo do 7: Minha Nota entre 7.000 e 7.999, IMDb entre 7.0 e 7.9, Rotten Tomatoes entre 70% e 79%, Metacritic entre 70 e 79 e Global Reviews entre 700.000 e 799.999 (7 filmes).",
+    "description": "Conquistar 3 filmes onde TODAS as 4 notas estejam no intervalo do 7: Minha Nota (7.000–7.999), IMDb (7.0–7.9), Rotten Tomatoes (70%–79%) e Metacritic (70–79).",
     "icon": "🎰",
     "target_type": "critic_tribunal_rule",
-    "target_value": 7,
+    "target_value": 3,
     "target_metadata": {
       "ruleKey": "checkpoint_777"
     },
-    "sort_order": 573
+    "legacy_ids": [
+      "tc_checkpoint_777_7"
+    ],
+    "sort_order": 292
   },
   {
     "id": "tc_olimpo_9800_3",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7639,10 +10276,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "ur_gte_9750"
     },
-    "sort_order": 574
+    "legacy_ids": [
+      "tc_olimpo_9800_3"
+    ],
+    "sort_order": 293
   },
   {
     "id": "tc_unanimidade_absoluta_20",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7656,10 +10297,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "ur_90_imdb_80_rt_88_mc_85"
     },
-    "sort_order": 575
+    "legacy_ids": [
+      "tc_unanimidade_absoluta_20"
+    ],
+    "sort_order": 294
   },
   {
     "id": "tc_arqueologo_supremo_10",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
@@ -7673,32 +10318,18 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "gr_lt_100k_ur_gte_8000"
     },
-    "sort_order": 576
-  },
-  {
-    "id": "tc_voz_das_multidoes_50",
-    "category": "tribunal_critica",
-    "categories": [
-      "tribunal_critica"
+    "legacy_ids": [
+      "tc_arqueologo_supremo_10"
     ],
-    "tier": "mythic",
-    "title": "Tribunal da Crítica: A Voz das Multidões",
-    "description": "Conquistar 50 filmes com Global Reviews igual ou superior a 1.000.000 (50 filmes).",
-    "icon": "📢",
-    "target_type": "critic_tribunal_rule",
-    "target_value": 50,
-    "target_metadata": {
-      "ruleKey": "gr_gte_1m"
-    },
-    "sort_order": 577
+    "sort_order": 295
   },
   {
     "id": "tc_hybrid_vergonha_franca_1",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
-      "volta_ao_mundo",
-      "mafia_hollywood",
-      "tribunal_critica"
+      "tribunal_critica",
+      "volta_ao_mundo"
     ],
     "tier": "bronze",
     "title": "Tribunal da Crítica: Você É a Vergonha da Profissão! (Jacquin Decepcionado)",
@@ -7710,10 +10341,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "fr_ur_lt_5000",
       "isHybrid": true
     },
-    "sort_order": 578
+    "legacy_ids": [
+      "tc_hybrid_vergonha_franca_1"
+    ],
+    "sort_order": 296
   },
   {
     "id": "tc_hybrid_no_more_mutants_1",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "dna_cinefilo",
@@ -7729,10 +10364,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "xmen_ur_lt_7000",
       "isHybrid": true
     },
-    "sort_order": 579
+    "legacy_ids": [
+      "tc_hybrid_no_more_mutants_1"
+    ],
+    "sort_order": 297
   },
   {
     "id": "tc_hybrid_papai_noel_bom_3",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "dna_cinefilo",
@@ -7748,10 +10387,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "natal_ur_gt_7000",
       "isHybrid": true
     },
-    "sort_order": 580
+    "legacy_ids": [
+      "tc_hybrid_papai_noel_bom_3"
+    ],
+    "sort_order": 298
   },
   {
     "id": "tc_hybrid_game_over_orgulho_3",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "dna_cinefilo",
@@ -7767,10 +10410,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "game_rt_lt_50_ur_gte_7000",
       "isHybrid": true
     },
-    "sort_order": 581
+    "legacy_ids": [
+      "tc_hybrid_game_over_orgulho_3"
+    ],
+    "sort_order": 299
   },
   {
     "id": "tc_hybrid_rir_coisa_seria_5",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "anatomia_cinema",
@@ -7786,10 +10433,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "comedia_ur_gte_8500",
       "isHybrid": true
     },
-    "sort_order": 582
+    "legacy_ids": [
+      "tc_hybrid_rir_coisa_seria_5"
+    ],
+    "sort_order": 300
   },
   {
     "id": "tc_hybrid_sexta_13_baixo_orcamento_2",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "anatomia_cinema",
@@ -7806,10 +10457,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "terror_imdb_lt_55_outubro",
       "isHybrid": true
     },
-    "sort_order": 583
+    "legacy_ids": [
+      "tc_hybrid_sexta_13_baixo_orcamento_2"
+    ],
+    "sort_order": 301
   },
   {
     "id": "tc_hybrid_tribunal_estrangeiro_5",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "volta_ao_mundo",
@@ -7825,10 +10480,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "non_us_gr_gt_1m",
       "isHybrid": true
     },
-    "sort_order": 584
+    "legacy_ids": [
+      "tc_hybrid_tribunal_estrangeiro_5"
+    ],
+    "sort_order": 302
   },
   {
     "id": "tc_hybrid_brasil_mundo_5",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "volta_ao_mundo",
@@ -7844,10 +10503,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "br_gr_gt_100k",
       "isHybrid": true
     },
-    "sort_order": 585
+    "legacy_ids": [
+      "tc_hybrid_brasil_mundo_5"
+    ],
+    "sort_order": 303
   },
   {
     "id": "tc_hybrid_gravado_meu_bairro_5",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "volta_ao_mundo",
@@ -7863,10 +10526,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "br_gr_lt_1k",
       "isHybrid": true
     },
-    "sort_order": 586
+    "legacy_ids": [
+      "tc_hybrid_gravado_meu_bairro_5"
+    ],
+    "sort_order": 304
   },
   {
     "id": "tc_hybrid_a24_acima_8_5",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "mafia_hollywood",
@@ -7882,10 +10549,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "a24_ur_gt_8000",
       "isHybrid": true
     },
-    "sort_order": 587
+    "legacy_ids": [
+      "tc_hybrid_a24_acima_8_5"
+    ],
+    "sort_order": 305
   },
   {
     "id": "tc_hybrid_oscar_baixo_reviews_5",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "mafia_hollywood",
@@ -7901,10 +10572,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "oscar_winner_gr_lt_300k",
       "isHybrid": true
     },
-    "sort_order": 588
+    "legacy_ids": [
+      "tc_hybrid_oscar_baixo_reviews_5"
+    ],
+    "sort_order": 306
   },
   {
     "id": "tc_hybrid_agosto_ouro_15",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "data_limite",
@@ -7920,10 +10595,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "agosto_ur_gt_7000",
       "isHybrid": true
     },
-    "sort_order": 589
+    "legacy_ids": [
+      "tc_hybrid_agosto_ouro_15"
+    ],
+    "sort_order": 307
   },
   {
     "id": "tc_hybrid_gore_rt_90_3",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "dna_cinefilo",
@@ -7939,15 +10618,18 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "gore_rt_gt_90",
       "isHybrid": true
     },
-    "sort_order": 590
+    "legacy_ids": [
+      "tc_hybrid_gore_rt_90_3"
+    ],
+    "sort_order": 308
   },
   {
     "id": "tc_hybrid_musica_nota_9_3",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
-      "anatomia_cinema",
-      "mafia_hollywood",
-      "tribunal_critica"
+      "tribunal_critica",
+      "anatomia_cinema"
     ],
     "tier": "silver",
     "title": "Tribunal da Crítica: Dance Como um Campeão! (Nota Máxima no Ritmo)",
@@ -7959,10 +10641,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "musica_ur_gt_9000",
       "isHybrid": true
     },
-    "sort_order": 591
+    "legacy_ids": [
+      "tc_hybrid_musica_nota_9_3"
+    ],
+    "sort_order": 309
   },
   {
     "id": "tc_hybrid_paradoxo_shyamalan_2",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "mafia_hollywood",
@@ -7978,10 +10664,14 @@ export const TROPHY_DEFINITIONS = [
       "director": "M. Night Shyamalan",
       "isHybrid": true
     },
-    "sort_order": 592
+    "legacy_ids": [
+      "tc_hybrid_paradoxo_shyamalan_2"
+    ],
+    "sort_order": 310
   },
   {
     "id": "tc_hybrid_marvel_dc_acima_85_10",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "dna_cinefilo",
@@ -7997,10 +10687,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "marvel_dc_ur_gt_8500",
       "isHybrid": true
     },
-    "sort_order": 593
+    "legacy_ids": [
+      "tc_hybrid_marvel_dc_acima_85_10"
+    ],
+    "sort_order": 311
   },
   {
     "id": "tc_hybrid_stephen_king_juiz_5",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "dna_cinefilo",
@@ -8016,10 +10710,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "sk_ur_gte_8000",
       "isHybrid": true
     },
-    "sort_order": 594
+    "legacy_ids": [
+      "tc_hybrid_stephen_king_juiz_5"
+    ],
+    "sort_order": 312
   },
   {
     "id": "tc_hybrid_juiz_juri_carrasco_5",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "mafia_hollywood",
@@ -8035,10 +10733,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "oscar_acclaimed_ur_lte_6000",
       "isHybrid": true
     },
-    "sort_order": 595
+    "legacy_ids": [
+      "tc_hybrid_juiz_juri_carrasco_5"
+    ],
+    "sort_order": 313
   },
   {
     "id": "tc_hybrid_medo_bom_terror_20",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "anatomia_cinema",
@@ -8054,10 +10756,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "terror_ur_gt_8000",
       "isHybrid": true
     },
-    "sort_order": 596
+    "legacy_ids": [
+      "tc_hybrid_medo_bom_terror_20"
+    ],
+    "sort_order": 314
   },
   {
     "id": "tc_hybrid_chorei_certeza_15",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "dna_cinefilo",
@@ -8073,10 +10779,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "emocionante_abuso_familiar_ur_gt_8000",
       "isHybrid": true
     },
-    "sort_order": 597
+    "legacy_ids": [
+      "tc_hybrid_chorei_certeza_15"
+    ],
+    "sort_order": 315
   },
   {
     "id": "tc_hybrid_brazil_devastated_3",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "volta_ao_mundo",
@@ -8093,10 +10803,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "br_drama_ur_gt_9000",
       "isHybrid": true
     },
-    "sort_order": 598
+    "legacy_ids": [
+      "tc_hybrid_brazil_devastated_3"
+    ],
+    "sort_order": 316
   },
   {
     "id": "tc_hybrid_nerd_canto_oscar_20",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "mafia_hollywood",
@@ -8112,10 +10826,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "oscar_winner_gr_lt_500k",
       "isHybrid": true
     },
-    "sort_order": 599
+    "legacy_ids": [
+      "tc_hybrid_nerd_canto_oscar_20"
+    ],
+    "sort_order": 317
   },
   {
     "id": "tc_hybrid_final_epico_nota_9_15",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "dna_cinefilo",
@@ -8131,10 +10849,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "final_epico_ur_gt_9000",
       "isHybrid": true
     },
-    "sort_order": 600
+    "legacy_ids": [
+      "tc_hybrid_final_epico_nota_9_15"
+    ],
+    "sort_order": 318
   },
   {
     "id": "tc_hybrid_animacao_aula_adulto_10",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "anatomia_cinema",
@@ -8150,30 +10872,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "animacao_ur_gt_8500_rt_gt_90",
       "isHybrid": true
     },
-    "sort_order": 601
-  },
-  {
-    "id": "tc_hybrid_fatos_reais_superam_ficcao_8",
-    "category": "tribunal_critica",
-    "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "tribunal_critica"
+    "legacy_ids": [
+      "tc_hybrid_animacao_aula_adulto_10"
     ],
-    "tier": "epic",
-    "title": "Tribunal da Crítica: Fatos Reais que Superam a Ficção!",
-    "description": "Conquistar 8 filmes do gênero Biografia, História ou Documentário com a tag Fatos Reais e Minha Nota acima de 8.500 (8 filmes).",
-    "icon": "📜",
-    "target_type": "critic_tribunal_rule",
-    "target_value": 8,
-    "target_metadata": {
-      "ruleKey": "fatos_reais_bio_hist_doc_ur_gt_8500",
-      "isHybrid": true
-    },
-    "sort_order": 602
+    "sort_order": 319
   },
   {
     "id": "tc_hybrid_gema_escondida_mapa_10",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "volta_ao_mundo",
@@ -8189,10 +10895,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "non_us_non_br_gr_lt_50k_ur_gt_8000",
       "isHybrid": true
     },
-    "sort_order": 603
+    "legacy_ids": [
+      "tc_hybrid_gema_escondida_mapa_10"
+    ],
+    "sort_order": 320
   },
   {
     "id": "tc_hybrid_blumhouse_terror_suspense_5",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "anatomia_cinema",
@@ -8209,10 +10919,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "blumhouse_terror_suspense_ur_gt_8000",
       "isHybrid": true
     },
-    "sort_order": 604
+    "legacy_ids": [
+      "tc_hybrid_blumhouse_terror_suspense_5"
+    ],
+    "sort_order": 321
   },
   {
     "id": "tc_hybrid_dezembro_gala_10",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "data_limite",
@@ -8228,10 +10942,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "dezembro_ur_gte_8500",
       "isHybrid": true
     },
-    "sort_order": 605
+    "legacy_ids": [
+      "tc_hybrid_dezembro_gala_10"
+    ],
+    "sort_order": 322
   },
   {
     "id": "tc_hybrid_desmascarando_top250_3",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "dna_cinefilo",
@@ -8239,18 +10957,22 @@ export const TROPHY_DEFINITIONS = [
     ],
     "tier": "gold",
     "title": "Tribunal da Crítica: Nem Todo Top 250 Me Engana! (Desmascarando o IMDb)",
-    "description": "Conquistar 3 filmes com a tag TOP250 aos quais você deu Minha Nota abaixo de 7.500 (3 filmes).",
+    "description": "Conquistar 1 filme com a tag TOP250 ao qual você deu Minha Nota abaixo de 7.500.",
     "icon": "🎭",
     "target_type": "critic_tribunal_rule",
-    "target_value": 3,
+    "target_value": 1,
     "target_metadata": {
       "ruleKey": "top250_ur_lt_7500",
       "isHybrid": true
     },
-    "sort_order": 606
+    "legacy_ids": [
+      "tc_hybrid_desmascarando_top250_3"
+    ],
+    "sort_order": 323
   },
   {
     "id": "tc_hybrid_oasis_deserto_terror_10",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "anatomia_cinema",
@@ -8266,10 +10988,14 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "terror_imdb_lt_65_ur_gt_8000",
       "isHybrid": true
     },
-    "sort_order": 607
+    "legacy_ids": [
+      "tc_hybrid_oasis_deserto_terror_10"
+    ],
+    "sort_order": 324
   },
   {
     "id": "tc_hybrid_obras_primas_15_paises_15",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "volta_ao_mundo",
@@ -8285,19 +11011,23 @@ export const TROPHY_DEFINITIONS = [
       "minRating": 8.5,
       "isHybrid": true
     },
-    "sort_order": 608
+    "legacy_ids": [
+      "tc_hybrid_obras_primas_15_paises_15"
+    ],
+    "sort_order": 325
   },
   {
     "id": "tc_hybrid_orgulho_aclamado_lgbt_10",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
+      "tribunal_critica",
       "dna_cinefilo",
-      "anatomia_cinema",
-      "tribunal_critica"
+      "anatomia_cinema"
     ],
     "tier": "gold",
     "title": "Tribunal da Crítica: Orgulho Aclamado pela Crítica e pelo Meu Coração",
-    "description": "Conquistar 10 filmes do gênero Drama ou Romance com a tag Personagem LGBT que tenham Minha Nota acima de 8.500 e Rotten Tomatoes acima de 80% (10 filmes).",
+    "description": "Conquistar 10 filmes do gênero Drama ou Romance com a tag Personagem LGBT e Minha Nota acima de 8.500.",
     "icon": "🌈",
     "target_type": "critic_tribunal_rule",
     "target_value": 10,
@@ -8305,18 +11035,22 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "lgbt_drama_romance_ur_gt_8500_rt_gt_80",
       "isHybrid": true
     },
-    "sort_order": 609
+    "legacy_ids": [
+      "tc_hybrid_orgulho_aclamado_lgbt_10"
+    ],
+    "sort_order": 326
   },
   {
     "id": "tc_hybrid_elite_mafia_oscar_15",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
       "mafia_hollywood",
       "tribunal_critica"
     ],
     "tier": "gold",
-    "title": "Tribunal da Crítica: A Elite da Máfia (Diretores Favoritos no Topo)",
-    "description": "Conquistar 15 filmes Ganhadores do Oscar que receberam Minha Nota igual ou superior a 9.000 (15 filmes).",
+    "title": "Tribunal da Crítica: A Elite da Academia (Favoritos do Oscar!)",
+    "description": "Conquistar 15 filmes Ganhadores do Oscar que receberam Minha Nota igual ou superior a 9.000.",
     "icon": "🎩",
     "target_type": "critic_tribunal_rule",
     "target_value": 15,
@@ -8324,43 +11058,23 @@ export const TROPHY_DEFINITIONS = [
       "ruleKey": "oscar_winner_ur_gte_9000",
       "isHybrid": true
     },
-    "sort_order": 610
-  },
-  {
-    "id": "tc_hybrid_santissima_trindade_6_cats_5",
-    "category": "tribunal_critica",
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "data_limite",
-      "mafia_hollywood",
-      "tribunal_critica"
+    "legacy_ids": [
+      "tc_hybrid_elite_mafia_oscar_15"
     ],
-    "tier": "mythic",
-    "title": "Tribunal da Crítica: A Santíssima Trindade do Catálogo (6 Categorias num Só Troféu!)",
-    "description": "Conquistar 5 filmes lendários que cumpram simultaneamente: Minha Nota >= 9.000 + IMDb >= 8.0, Indicado ou Ganhador do Oscar, Tag TOP250 ou Final Epico, pelo menos 2 gêneros oficiais e País + Mês registrados (5 filmes).",
-    "icon": "🔱",
-    "target_type": "critic_tribunal_rule",
-    "target_value": 5,
-    "target_metadata": {
-      "ruleKey": "santissima_trindade_6_cats",
-      "isHybrid": true
-    },
-    "sort_order": 611
+    "sort_order": 327
   },
   {
     "id": "tc_hybrid_curador_joias_raras_15",
+    "kind": "unique",
     "category": "tribunal_critica",
     "categories": [
+      "tribunal_critica",
       "volta_ao_mundo",
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "tribunal_critica"
+      "dna_cinefilo"
     ],
     "tier": "mythic",
     "title": "Tribunal da Crítica: Curador Mundial de Joias Raras",
-    "description": "Conquistar 15 filmes com menos de 50.000 Global Reviews que tenham Minha Nota >= 8.500, pelo menos 1 Tag Pessoal e cubram pelo menos 8 países diferentes no Desafio dos 195 (país de origem único) (15 filmes).",
+    "description": "Conquistar 15 filmes raros (< 50.000 Global Reviews e Minha Nota >= 8.500), com uma tag distinta para cada filme e cobrindo 8+ países únicos no Desafio dos 195.",
     "icon": "💎",
     "target_type": "hybrid_curador_joias_raras",
     "target_value": 15,
@@ -8370,17 +11084,21 @@ export const TROPHY_DEFINITIONS = [
       "minCountries": 8,
       "isHybrid": true
     },
-    "sort_order": 612
+    "legacy_ids": [
+      "tc_hybrid_curador_joias_raras_15"
+    ],
+    "sort_order": 328
   },
   {
     "id": "tc_suprema_corte_plat",
+    "kind": "platinum",
     "category": "tribunal_critica",
     "categories": [
       "tribunal_critica"
     ],
     "tier": "platinum",
     "title": "Tribunal da Crítica: A Suprema Corte do Cinema",
-    "description": "Conquistar TODOS os troféus da categoria Tribunal da Crítica (desbloqueio automático dinâmico ao atingir 100% dos outros 82 troféus desta categoria).",
+    "description": "Conquistar 100% dos troféus e ranks da categoria Tribunal da Crítica (incluindo multicategoria).",
     "icon": "🏆",
     "target_type": "platinum_dynamic",
     "target_value": 82,
@@ -8388,44 +11106,822 @@ export const TROPHY_DEFINITIONS = [
       "category": "tribunal_critica",
       "categoryScope": "tribunal_critica"
     },
-    "sort_order": 613
+    "legacy_ids": [
+      "tc_suprema_corte_plat"
+    ],
+    "sort_order": 329
   },
   {
-    "id": "rc_bronze_cinema_15",
+    "id": "tc_achou_errado_rt_lt40_ur_gte80_5",
+    "kind": "unique",
+    "category": "tribunal_critica",
+    "categories": [
+      "tribunal_critica"
+    ],
+    "tier": "silver",
+    "title": "Achou Errado, Otário! (Doutor em Transporte Alternativo)",
+    "description": "Conquistar 5 filmes onde o Rotten Tomatoes esteja cadastrado/válido abaixo de 40%, mas a Minha Nota pessoal seja maior ou igual a 8.000 (5 filmes).",
+    "icon": "🚐",
+    "target_type": "rt_lt_ur_gte_count",
+    "target_value": 5,
+    "target_metadata": {
+      "maxRt": 40,
+      "minRating": 8000
+    },
+    "legacy_ids": [
+      "tc_achou_errado_rt_lt40_ur_gte80_5"
+    ],
+    "sort_order": 330
+  },
+  {
+    "id": "tc_666_sessao_do_capeta",
+    "kind": "unique",
+    "category": "tribunal_critica",
+    "categories": [
+      "tribunal_critica"
+    ],
+    "tier": "epic",
+    "title": "666: Sessão do Capeta (A Besta Mediana do Purgatório)",
+    "description": "Conquistar 6 filmes onde pelo menos 3 notas distintas (entre Rotten Tomatoes, Metacritic, IMDb e Minha Nota) estejam na faixa do \"6\" (60% a 69% ou 6.0 a 6.9) (6 filmes).",
+    "icon": "🤘",
+    "target_type": "multi_critic_range_count",
+    "target_value": 6,
+    "target_metadata": {
+      "digit": 6,
+      "minDistinctMetrics": 3
+    },
+    "legacy_ids": [
+      "tc_666_sessao_do_capeta"
+    ],
+    "sort_order": 331
+  },
+  {
+    "id": "tc_333_o_meio_besta",
+    "kind": "unique",
+    "category": "tribunal_critica",
+    "categories": [
+      "tribunal_critica"
+    ],
+    "tier": "silver",
+    "title": "333: O Meio-Besta (Nem o Diabo Quis Completo)",
+    "description": "Conquistar 3 filmes onde pelo menos 3 notas distintas (entre Rotten Tomatoes, Metacritic, IMDb e Minha Nota) estejam na faixa do \"3\" (30% a 39% ou 3.0 a 3.9) (3 filmes).",
+    "icon": "🐐",
+    "target_type": "multi_critic_range_count",
+    "target_value": 3,
+    "target_metadata": {
+      "digit": 3,
+      "minDistinctMetrics": 3
+    },
+    "legacy_ids": [
+      "tc_333_o_meio_besta"
+    ],
+    "sort_order": 332
+  },
+  {
+    "id": "rc_rank_cinema",
+    "kind": "rank",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
     ],
-    "tier": "bronze",
-    "title": "O Ritual do Cinéfilo: Saindo de Casa!",
-    "description": "Conquistar 15 filmes assistidos no Cinema (15 filmes).",
+    "tier": "mythic",
+    "title": "O Ritual do Cinéfilo: VIP do Balcão de Pipoca (Cinema)",
+    "description": "Filmes assistidos no Cinema.",
     "icon": "🎟️",
     "target_type": "ritual_cinefilo_rule",
-    "target_value": 15,
+    "target_value": 60,
     "target_metadata": {
       "ruleKey": "cinema_count"
     },
-    "sort_order": 614
+    "ranks": [
+      {
+        "id": "rc_rank_cinema__bronze",
+        "tier": "bronze",
+        "target_value": 5,
+        "title": "Saindo de Casa!",
+        "description": "Filmes assistidos no Cinema. (Rank Bronze: meta 5).",
+        "legacy_id": "rc_bronze_cinema_15"
+      },
+      {
+        "id": "rc_rank_cinema__silver",
+        "tier": "silver",
+        "target_value": 15,
+        "title": "Não Vão Pegar Meu Celular!!",
+        "description": "Filmes assistidos no Cinema. (Rank Prata: meta 15).",
+        "legacy_id": "rc_silver_cinema_30"
+      },
+      {
+        "id": "rc_rank_cinema__epic",
+        "tier": "epic",
+        "target_value": 30,
+        "title": "Sócio de Carteirinha da Sala Escura",
+        "description": "Filmes assistidos no Cinema. (Rank Épico: meta 30).",
+        "legacy_id": "rc_epic_cinema_50"
+      },
+      {
+        "id": "rc_rank_cinema__gold",
+        "tier": "gold",
+        "target_value": 45,
+        "title": "Poltrona Cativa no IMAX",
+        "description": "Filmes assistidos no Cinema. (Rank Ouro: meta 45).",
+        "legacy_id": "rc_gold_cinema_75"
+      },
+      {
+        "id": "rc_rank_cinema__mythic",
+        "tier": "mythic",
+        "target_value": 60,
+        "title": "VIP do Balcão de Pipoca (60 Sessões)",
+        "description": "Filmes assistidos no Cinema. (Rank Mítico: meta 60)."
+      }
+    ],
+    "legacy_ids": [
+      "rc_bronze_cinema_15",
+      "rc_silver_cinema_30",
+      "rc_epic_cinema_50",
+      "rc_gold_cinema_75"
+    ],
+    "sort_order": 333
   },
   {
-    "id": "rc_bronze_original_5",
+    "id": "rc_rank_audio_original",
+    "kind": "rank",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
     ],
-    "tier": "bronze",
-    "title": "O Ritual do Cinéfilo: Me Sinto Tendo 3 Anos (Cadê a Tradução?!)",
-    "description": "Conquistar 5 filmes assistidos no idioma Original (5 filmes).",
+    "tier": "mythic",
+    "title": "O Ritual do Cinéfilo: Mestre do Idioma Nativo (Original)",
+    "description": "Filmes assistidos no idioma Original.",
     "icon": "👶",
     "target_type": "ritual_cinefilo_rule",
-    "target_value": 5,
+    "target_value": 30,
     "target_metadata": {
       "ruleKey": "audio_original_count"
     },
-    "sort_order": 615
+    "ranks": [
+      {
+        "id": "rc_rank_audio_original__bronze",
+        "tier": "bronze",
+        "target_value": 3,
+        "title": "O Ritual do Cinéfilo: Mestre do Idioma Nativo (Original) • Rank Bronze",
+        "description": "Filmes assistidos no idioma Original. (Rank Bronze: meta 3).",
+        "legacy_id": "rc_bronze_original_5"
+      },
+      {
+        "id": "rc_rank_audio_original__silver",
+        "tier": "silver",
+        "target_value": 8,
+        "title": "O Ritual do Cinéfilo: Mestre do Idioma Nativo (Original) • Rank Prata",
+        "description": "Filmes assistidos no idioma Original. (Rank Prata: meta 8).",
+        "legacy_id": "rc_silver_original_15"
+      },
+      {
+        "id": "rc_rank_audio_original__epic",
+        "tier": "epic",
+        "target_value": 15,
+        "title": "O Ritual do Cinéfilo: Mestre do Idioma Nativo (Original) • Rank Épico",
+        "description": "Filmes assistidos no idioma Original. (Rank Épico: meta 15).",
+        "legacy_id": "rc_epic_original_30"
+      },
+      {
+        "id": "rc_rank_audio_original__gold",
+        "tier": "gold",
+        "target_value": 22,
+        "title": "O Ritual do Cinéfilo: Mestre do Idioma Nativo (Original) • Rank Ouro",
+        "description": "Filmes assistidos no idioma Original. (Rank Ouro: meta 22)."
+      },
+      {
+        "id": "rc_rank_audio_original__mythic",
+        "tier": "mythic",
+        "target_value": 30,
+        "title": "O Ritual do Cinéfilo: Mestre do Idioma Nativo (Original) • Rank Mítico",
+        "description": "Filmes assistidos no idioma Original. (Rank Mítico: meta 30)."
+      }
+    ],
+    "legacy_ids": [
+      "rc_bronze_original_5",
+      "rc_silver_original_15",
+      "rc_epic_original_30"
+    ],
+    "sort_order": 334
+  },
+  {
+    "id": "rc_rank_midia_fisica",
+    "kind": "rank",
+    "category": "ritual_cinefilo",
+    "categories": [
+      "ritual_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "O Ritual do Cinéfilo: Curador de Estante (Mídia Física Vive!)",
+    "description": "Filmes assistidos em Blu-ray ou DVD.",
+    "icon": "💿",
+    "target_type": "ritual_cinefilo_rule",
+    "target_value": 60,
+    "target_metadata": {
+      "ruleKey": "physical_media_count"
+    },
+    "ranks": [
+      {
+        "id": "rc_rank_midia_fisica__bronze",
+        "tier": "bronze",
+        "target_value": 5,
+        "title": "O Ritual do Cinéfilo: Curador de Estante (Mídia Física Vive!) • Rank Bronze",
+        "description": "Filmes assistidos em Blu-ray ou DVD. (Rank Bronze: meta 5).",
+        "legacy_id": "rc_bronze_midia_fisica_10"
+      },
+      {
+        "id": "rc_rank_midia_fisica__silver",
+        "tier": "silver",
+        "target_value": 15,
+        "title": "O Ritual do Cinéfilo: Curador de Estante (Mídia Física Vive!) • Rank Prata",
+        "description": "Filmes assistidos em Blu-ray ou DVD. (Rank Prata: meta 15).",
+        "legacy_id": "rc_silver_midia_fisica_35"
+      },
+      {
+        "id": "rc_rank_midia_fisica__epic",
+        "tier": "epic",
+        "target_value": 30,
+        "title": "O Ritual do Cinéfilo: Curador de Estante (Mídia Física Vive!) • Rank Épico",
+        "description": "Filmes assistidos em Blu-ray ou DVD. (Rank Épico: meta 30).",
+        "legacy_id": "rc_epic_midia_fisica_60"
+      },
+      {
+        "id": "rc_rank_midia_fisica__gold",
+        "tier": "gold",
+        "target_value": 45,
+        "title": "O Ritual do Cinéfilo: Curador de Estante (Mídia Física Vive!) • Rank Ouro",
+        "description": "Filmes assistidos em Blu-ray ou DVD. (Rank Ouro: meta 45)."
+      },
+      {
+        "id": "rc_rank_midia_fisica__mythic",
+        "tier": "mythic",
+        "target_value": 60,
+        "title": "O Ritual do Cinéfilo: Curador de Estante (Mídia Física Vive!) • Rank Mítico",
+        "description": "Filmes assistidos em Blu-ray ou DVD. (Rank Mítico: meta 60)."
+      }
+    ],
+    "legacy_ids": [
+      "rc_bronze_midia_fisica_10",
+      "rc_silver_midia_fisica_35",
+      "rc_epic_midia_fisica_60"
+    ],
+    "sort_order": 335
+  },
+  {
+    "id": "rc_rank_youtube",
+    "kind": "rank",
+    "category": "ritual_cinefilo",
+    "categories": [
+      "ritual_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "O Ritual do Cinéfilo: O YouTube Passa Filme Inteiro?!",
+    "description": "Filmes assistidos no YouTube.",
+    "icon": "▶️",
+    "target_type": "ritual_cinefilo_rule",
+    "target_value": 30,
+    "target_metadata": {
+      "ruleKey": "youtube_count"
+    },
+    "ranks": [
+      {
+        "id": "rc_rank_youtube__bronze",
+        "tier": "bronze",
+        "target_value": 3,
+        "title": "O Ritual do Cinéfilo: O YouTube Passa Filme Inteiro?! • Rank Bronze",
+        "description": "Filmes assistidos no YouTube. (Rank Bronze: meta 3).",
+        "legacy_id": "rc_bronze_youtube_10"
+      },
+      {
+        "id": "rc_rank_youtube__silver",
+        "tier": "silver",
+        "target_value": 8,
+        "title": "O Ritual do Cinéfilo: O YouTube Passa Filme Inteiro?! • Rank Prata",
+        "description": "Filmes assistidos no YouTube. (Rank Prata: meta 8).",
+        "legacy_id": "rc_silver_youtube_25"
+      },
+      {
+        "id": "rc_rank_youtube__epic",
+        "tier": "epic",
+        "target_value": 15,
+        "title": "O Ritual do Cinéfilo: O YouTube Passa Filme Inteiro?! • Rank Épico",
+        "description": "Filmes assistidos no YouTube. (Rank Épico: meta 15)."
+      },
+      {
+        "id": "rc_rank_youtube__gold",
+        "tier": "gold",
+        "target_value": 22,
+        "title": "O Ritual do Cinéfilo: O YouTube Passa Filme Inteiro?! • Rank Ouro",
+        "description": "Filmes assistidos no YouTube. (Rank Ouro: meta 22)."
+      },
+      {
+        "id": "rc_rank_youtube__mythic",
+        "tier": "mythic",
+        "target_value": 30,
+        "title": "O Ritual do Cinéfilo: O YouTube Passa Filme Inteiro?! • Rank Mítico",
+        "description": "Filmes assistidos no YouTube. (Rank Mítico: meta 30)."
+      }
+    ],
+    "legacy_ids": [
+      "rc_bronze_youtube_10",
+      "rc_silver_youtube_25"
+    ],
+    "sort_order": 336
+  },
+  {
+    "id": "rc_rank_dublado",
+    "kind": "rank",
+    "category": "ritual_cinefilo",
+    "categories": [
+      "ritual_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "O Ritual do Cinéfilo: Versão Brasileira: Herbert Richers!",
+    "description": "Filmes assistidos com áudio Dublado.",
+    "icon": "🎙️",
+    "target_type": "ritual_cinefilo_rule",
+    "target_value": 250,
+    "target_metadata": {
+      "ruleKey": "audio_dublado_count"
+    },
+    "ranks": [
+      {
+        "id": "rc_rank_dublado__bronze",
+        "tier": "bronze",
+        "target_value": 25,
+        "title": "O Ritual do Cinéfilo: Versão Brasileira: Herbert Richers! • Rank Bronze",
+        "description": "Filmes assistidos com áudio Dublado. (Rank Bronze: meta 25).",
+        "legacy_id": "rc_bronze_dublado_50"
+      },
+      {
+        "id": "rc_rank_dublado__silver",
+        "tier": "silver",
+        "target_value": 75,
+        "title": "O Ritual do Cinéfilo: Versão Brasileira: Herbert Richers! • Rank Prata",
+        "description": "Filmes assistidos com áudio Dublado. (Rank Prata: meta 75).",
+        "legacy_id": "rc_silver_dublado_150"
+      },
+      {
+        "id": "rc_rank_dublado__epic",
+        "tier": "epic",
+        "target_value": 125,
+        "title": "O Ritual do Cinéfilo: Versão Brasileira: Herbert Richers! • Rank Épico",
+        "description": "Filmes assistidos com áudio Dublado. (Rank Épico: meta 125).",
+        "legacy_id": "rc_epic_dublado_300"
+      },
+      {
+        "id": "rc_rank_dublado__gold",
+        "tier": "gold",
+        "target_value": 185,
+        "title": "O Ritual do Cinéfilo: Versão Brasileira: Herbert Richers! • Rank Ouro",
+        "description": "Filmes assistidos com áudio Dublado. (Rank Ouro: meta 185)."
+      },
+      {
+        "id": "rc_rank_dublado__mythic",
+        "tier": "mythic",
+        "target_value": 250,
+        "title": "O Ritual do Cinéfilo: Versão Brasileira: Herbert Richers! • Rank Mítico",
+        "description": "Filmes assistidos com áudio Dublado. (Rank Mítico: meta 250)."
+      }
+    ],
+    "legacy_ids": [
+      "rc_bronze_dublado_50",
+      "rc_silver_dublado_150",
+      "rc_epic_dublado_300"
+    ],
+    "sort_order": 337
+  },
+  {
+    "id": "rc_rank_legendado",
+    "kind": "rank",
+    "category": "ritual_cinefilo",
+    "categories": [
+      "ritual_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "O Ritual do Cinéfilo: Leitor Ninja (Legendado)",
+    "description": "Filmes assistidos com áudio Legendado.",
+    "icon": "📖",
+    "target_type": "ritual_cinefilo_rule",
+    "target_value": 150,
+    "target_metadata": {
+      "ruleKey": "audio_legendado_count"
+    },
+    "ranks": [
+      {
+        "id": "rc_rank_legendado__bronze",
+        "tier": "bronze",
+        "target_value": 15,
+        "title": "O Ritual do Cinéfilo: Leitor Ninja (Legendado) • Rank Bronze",
+        "description": "Filmes assistidos com áudio Legendado. (Rank Bronze: meta 15).",
+        "legacy_id": "rc_bronze_legendado_30"
+      },
+      {
+        "id": "rc_rank_legendado__silver",
+        "tier": "silver",
+        "target_value": 40,
+        "title": "O Ritual do Cinéfilo: Leitor Ninja (Legendado) • Rank Prata",
+        "description": "Filmes assistidos com áudio Legendado. (Rank Prata: meta 40).",
+        "legacy_id": "rc_silver_legendado_90"
+      },
+      {
+        "id": "rc_rank_legendado__epic",
+        "tier": "epic",
+        "target_value": 75,
+        "title": "O Ritual do Cinéfilo: Leitor Ninja (Legendado) • Rank Épico",
+        "description": "Filmes assistidos com áudio Legendado. (Rank Épico: meta 75).",
+        "legacy_id": "rc_epic_legendado_150"
+      },
+      {
+        "id": "rc_rank_legendado__gold",
+        "tier": "gold",
+        "target_value": 110,
+        "title": "O Ritual do Cinéfilo: Leitor Ninja (Legendado) • Rank Ouro",
+        "description": "Filmes assistidos com áudio Legendado. (Rank Ouro: meta 110)."
+      },
+      {
+        "id": "rc_rank_legendado__mythic",
+        "tier": "mythic",
+        "target_value": 150,
+        "title": "O Ritual do Cinéfilo: Leitor Ninja (Legendado) • Rank Mítico",
+        "description": "Filmes assistidos com áudio Legendado. (Rank Mítico: meta 150)."
+      }
+    ],
+    "legacy_ids": [
+      "rc_bronze_legendado_30",
+      "rc_silver_legendado_90",
+      "rc_epic_legendado_150"
+    ],
+    "sort_order": 338
+  },
+  {
+    "id": "rc_rank_lancamento_mesmo_ano",
+    "kind": "rank",
+    "category": "ritual_cinefilo",
+    "categories": [
+      "ritual_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "O Ritual do Cinéfilo: Acabou de Sair do Forno!",
+    "description": "Filmes onde o Ano de Lançamento e o Ano Visto são iguais.",
+    "icon": "🆕",
+    "target_type": "ritual_cinefilo_rule",
+    "target_value": 50,
+    "target_metadata": {
+      "ruleKey": "same_year_seen_release"
+    },
+    "ranks": [
+      {
+        "id": "rc_rank_lancamento_mesmo_ano__bronze",
+        "tier": "bronze",
+        "target_value": 5,
+        "title": "O Ritual do Cinéfilo: Acabou de Sair do Forno! • Rank Bronze",
+        "description": "Filmes onde o Ano de Lançamento e o Ano Visto são iguais. (Rank Bronze: meta 5).",
+        "legacy_id": "rc_bronze_lancamento_mesmo_ano_10"
+      },
+      {
+        "id": "rc_rank_lancamento_mesmo_ano__silver",
+        "tier": "silver",
+        "target_value": 12,
+        "title": "O Ritual do Cinéfilo: Acabou de Sair do Forno! • Rank Prata",
+        "description": "Filmes onde o Ano de Lançamento e o Ano Visto são iguais. (Rank Prata: meta 12).",
+        "legacy_id": "rc_silver_lancamento_mesmo_ano_30"
+      },
+      {
+        "id": "rc_rank_lancamento_mesmo_ano__epic",
+        "tier": "epic",
+        "target_value": 25,
+        "title": "O Ritual do Cinéfilo: Acabou de Sair do Forno! • Rank Épico",
+        "description": "Filmes onde o Ano de Lançamento e o Ano Visto são iguais. (Rank Épico: meta 25).",
+        "legacy_id": "rc_epic_lancamento_mesmo_ano_60"
+      },
+      {
+        "id": "rc_rank_lancamento_mesmo_ano__gold",
+        "tier": "gold",
+        "target_value": 38,
+        "title": "O Ritual do Cinéfilo: Acabou de Sair do Forno! • Rank Ouro",
+        "description": "Filmes onde o Ano de Lançamento e o Ano Visto são iguais. (Rank Ouro: meta 38)."
+      },
+      {
+        "id": "rc_rank_lancamento_mesmo_ano__mythic",
+        "tier": "mythic",
+        "target_value": 50,
+        "title": "O Ritual do Cinéfilo: Acabou de Sair do Forno! • Rank Mítico",
+        "description": "Filmes onde o Ano de Lançamento e o Ano Visto são iguais. (Rank Mítico: meta 50)."
+      }
+    ],
+    "legacy_ids": [
+      "rc_bronze_lancamento_mesmo_ano_10",
+      "rc_silver_lancamento_mesmo_ano_30",
+      "rc_epic_lancamento_mesmo_ano_60"
+    ],
+    "sort_order": 339
+  },
+  {
+    "id": "rc_rank_duracao_gt_180",
+    "kind": "rank",
+    "category": "ritual_cinefilo",
+    "categories": [
+      "ritual_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "O Ritual do Cinéfilo: Haja Bexiga! (+3 Horas)",
+    "description": "Filmes com mais de 180 minutos de duração.",
+    "icon": "⏳",
+    "target_type": "ritual_cinefilo_rule",
+    "target_value": 20,
+    "target_metadata": {
+      "ruleKey": "runtime_gt_180"
+    },
+    "ranks": [
+      {
+        "id": "rc_rank_duracao_gt_180__bronze",
+        "tier": "bronze",
+        "target_value": 2,
+        "title": "O Ritual do Cinéfilo: Haja Bexiga! (+3 Horas) • Rank Bronze",
+        "description": "Filmes com mais de 180 minutos de duração. (Rank Bronze: meta 2).",
+        "legacy_id": "rc_silver_duracao_gt_180_3"
+      },
+      {
+        "id": "rc_rank_duracao_gt_180__silver",
+        "tier": "silver",
+        "target_value": 5,
+        "title": "O Ritual do Cinéfilo: Haja Bexiga! (+3 Horas) • Rank Prata",
+        "description": "Filmes com mais de 180 minutos de duração. (Rank Prata: meta 5).",
+        "legacy_id": "rc_epic_duracao_gt_180_10"
+      },
+      {
+        "id": "rc_rank_duracao_gt_180__epic",
+        "tier": "epic",
+        "target_value": 10,
+        "title": "O Ritual do Cinéfilo: Haja Bexiga! (+3 Horas) • Rank Épico",
+        "description": "Filmes com mais de 180 minutos de duração. (Rank Épico: meta 10)."
+      },
+      {
+        "id": "rc_rank_duracao_gt_180__gold",
+        "tier": "gold",
+        "target_value": 15,
+        "title": "O Ritual do Cinéfilo: Haja Bexiga! (+3 Horas) • Rank Ouro",
+        "description": "Filmes com mais de 180 minutos de duração. (Rank Ouro: meta 15)."
+      },
+      {
+        "id": "rc_rank_duracao_gt_180__mythic",
+        "tier": "mythic",
+        "target_value": 20,
+        "title": "O Ritual do Cinéfilo: Haja Bexiga! (+3 Horas) • Rank Mítico",
+        "description": "Filmes com mais de 180 minutos de duração. (Rank Mítico: meta 20)."
+      }
+    ],
+    "legacy_ids": [
+      "rc_silver_duracao_gt_180_3",
+      "rc_epic_duracao_gt_180_10"
+    ],
+    "sort_order": 340
+  },
+  {
+    "id": "rc_rank_streaming_livre",
+    "kind": "rank",
+    "category": "ritual_cinefilo",
+    "categories": [
+      "ritual_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "O Ritual do Cinéfilo: A Frota Negra do Streaming Livre",
+    "description": "Filmes assistidos na Internet ou My Family Cine.",
+    "icon": "🏴‍☠️",
+    "target_type": "ritual_cinefilo_rule",
+    "target_value": 200,
+    "target_metadata": {
+      "ruleKey": "internet_or_mfc_count"
+    },
+    "ranks": [
+      {
+        "id": "rc_rank_streaming_livre__bronze",
+        "tier": "bronze",
+        "target_value": 20,
+        "title": "O Ritual do Cinéfilo: A Frota Negra do Streaming Livre • Rank Bronze",
+        "description": "Filmes assistidos na Internet ou My Family Cine. (Rank Bronze: meta 20).",
+        "legacy_id": "rc_epic_pirata_jack_sparrow_50"
+      },
+      {
+        "id": "rc_rank_streaming_livre__silver",
+        "tier": "silver",
+        "target_value": 50,
+        "title": "O Ritual do Cinéfilo: A Frota Negra do Streaming Livre • Rank Prata",
+        "description": "Filmes assistidos na Internet ou My Family Cine. (Rank Prata: meta 50).",
+        "legacy_id": "rc_gold_streaming_livre_100"
+      },
+      {
+        "id": "rc_rank_streaming_livre__epic",
+        "tier": "epic",
+        "target_value": 100,
+        "title": "O Ritual do Cinéfilo: A Frota Negra do Streaming Livre • Rank Épico",
+        "description": "Filmes assistidos na Internet ou My Family Cine. (Rank Épico: meta 100)."
+      },
+      {
+        "id": "rc_rank_streaming_livre__gold",
+        "tier": "gold",
+        "target_value": 150,
+        "title": "O Ritual do Cinéfilo: A Frota Negra do Streaming Livre • Rank Ouro",
+        "description": "Filmes assistidos na Internet ou My Family Cine. (Rank Ouro: meta 150)."
+      },
+      {
+        "id": "rc_rank_streaming_livre__mythic",
+        "tier": "mythic",
+        "target_value": 200,
+        "title": "O Ritual do Cinéfilo: A Frota Negra do Streaming Livre • Rank Mítico",
+        "description": "Filmes assistidos na Internet ou My Family Cine. (Rank Mítico: meta 200)."
+      }
+    ],
+    "legacy_ids": [
+      "rc_epic_pirata_jack_sparrow_50",
+      "rc_gold_streaming_livre_100"
+    ],
+    "sort_order": 341
+  },
+  {
+    "id": "rc_rank_minutos_totais",
+    "kind": "rank",
+    "category": "ritual_cinefilo",
+    "categories": [
+      "ritual_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "O Ritual do Cinéfilo: Maratonista Interminável (1.000 Horas)",
+    "description": "Acumular minutos assistidos no catálogo (teto de 60.000 minutos / 1.000 horas).",
+    "icon": "⌛",
+    "target_type": "ritual_total_minutos",
+    "target_value": 60000,
+    "target_metadata": {
+      "targetMinutes": 30000
+    },
+    "ranks": [
+      {
+        "id": "rc_rank_minutos_totais__bronze",
+        "tier": "bronze",
+        "target_value": 5000,
+        "title": "O Ritual do Cinéfilo: Maratonista Interminável (1.000 Horas) • Rank Bronze",
+        "description": "Acumular minutos assistidos no catálogo (teto de 60.000 minutos / 1.000 horas). (Rank Bronze: meta 5.000).",
+        "legacy_id": "rc_gold_minutos_totais_30k"
+      },
+      {
+        "id": "rc_rank_minutos_totais__silver",
+        "tier": "silver",
+        "target_value": 15000,
+        "title": "O Ritual do Cinéfilo: Maratonista Interminável (1.000 Horas) • Rank Prata",
+        "description": "Acumular minutos assistidos no catálogo (teto de 60.000 minutos / 1.000 horas). (Rank Prata: meta 15.000).",
+        "legacy_id": "rc_mythic_maratonista_60k"
+      },
+      {
+        "id": "rc_rank_minutos_totais__epic",
+        "tier": "epic",
+        "target_value": 30000,
+        "title": "O Ritual do Cinéfilo: Maratonista Interminável (1.000 Horas) • Rank Épico",
+        "description": "Acumular minutos assistidos no catálogo (teto de 60.000 minutos / 1.000 horas). (Rank Épico: meta 30.000)."
+      },
+      {
+        "id": "rc_rank_minutos_totais__gold",
+        "tier": "gold",
+        "target_value": 45000,
+        "title": "O Ritual do Cinéfilo: Maratonista Interminável (1.000 Horas) • Rank Ouro",
+        "description": "Acumular minutos assistidos no catálogo (teto de 60.000 minutos / 1.000 horas). (Rank Ouro: meta 45.000)."
+      },
+      {
+        "id": "rc_rank_minutos_totais__mythic",
+        "tier": "mythic",
+        "target_value": 60000,
+        "title": "O Ritual do Cinéfilo: Maratonista Interminável (1.000 Horas) • Rank Mítico",
+        "description": "Acumular minutos assistidos no catálogo (teto de 60.000 minutos / 1.000 horas). (Rank Mítico: meta 60.000)."
+      }
+    ],
+    "legacy_ids": [
+      "rc_gold_minutos_totais_30k",
+      "rc_mythic_maratonista_60k"
+    ],
+    "sort_order": 342
+  },
+  {
+    "id": "rc_rank_duracao_lte_60",
+    "kind": "rank",
+    "category": "ritual_cinefilo",
+    "categories": [
+      "ritual_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "O Ritual do Cinéfilo: Dá pra Ver no Meu Almoço (<= 60 min)",
+    "description": "Filmes com 60 minutos ou menos de duração.",
+    "icon": "🥪",
+    "target_type": "ritual_cinefilo_rule",
+    "target_value": 30,
+    "target_metadata": {
+      "ruleKey": "runtime_lte_60"
+    },
+    "ranks": [
+      {
+        "id": "rc_rank_duracao_lte_60__bronze",
+        "tier": "bronze",
+        "target_value": 3,
+        "title": "O Ritual do Cinéfilo: Dá pra Ver no Meu Almoço (<= 60 min) • Rank Bronze",
+        "description": "Filmes com 60 minutos ou menos de duração. (Rank Bronze: meta 3).",
+        "legacy_id": "rc_silver_duracao_lte_60_20"
+      },
+      {
+        "id": "rc_rank_duracao_lte_60__silver",
+        "tier": "silver",
+        "target_value": 8,
+        "title": "O Ritual do Cinéfilo: Dá pra Ver no Meu Almoço (<= 60 min) • Rank Prata",
+        "description": "Filmes com 60 minutos ou menos de duração. (Rank Prata: meta 8)."
+      },
+      {
+        "id": "rc_rank_duracao_lte_60__epic",
+        "tier": "epic",
+        "target_value": 15,
+        "title": "O Ritual do Cinéfilo: Dá pra Ver no Meu Almoço (<= 60 min) • Rank Épico",
+        "description": "Filmes com 60 minutos ou menos de duração. (Rank Épico: meta 15)."
+      },
+      {
+        "id": "rc_rank_duracao_lte_60__gold",
+        "tier": "gold",
+        "target_value": 22,
+        "title": "O Ritual do Cinéfilo: Dá pra Ver no Meu Almoço (<= 60 min) • Rank Ouro",
+        "description": "Filmes com 60 minutos ou menos de duração. (Rank Ouro: meta 22)."
+      },
+      {
+        "id": "rc_rank_duracao_lte_60__mythic",
+        "tier": "mythic",
+        "target_value": 30,
+        "title": "O Ritual do Cinéfilo: Dá pra Ver no Meu Almoço (<= 60 min) • Rank Mítico",
+        "description": "Filmes com 60 minutos ou menos de duração. (Rank Mítico: meta 30)."
+      }
+    ],
+    "legacy_ids": [
+      "rc_silver_duracao_lte_60_20"
+    ],
+    "sort_order": 343
+  },
+  {
+    "id": "rc_rank_streaming_livre_mesmo_ano",
+    "kind": "rank",
+    "category": "ritual_cinefilo",
+    "categories": [
+      "ritual_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "O Ritual do Cinéfilo: Pesquei um Peixe Novinho!",
+    "description": "Filmes assistidos no ano de lançamento via My Family Cine, Internet ou YouTube.",
+    "icon": "🎣",
+    "target_type": "ritual_cinefilo_rule",
+    "target_value": 30,
+    "target_metadata": {
+      "ruleKey": "free_streaming_same_year"
+    },
+    "ranks": [
+      {
+        "id": "rc_rank_streaming_livre_mesmo_ano__bronze",
+        "tier": "bronze",
+        "target_value": 3,
+        "title": "O Ritual do Cinéfilo: Pesquei um Peixe Novinho! • Rank Bronze",
+        "description": "Filmes assistidos no ano de lançamento via My Family Cine, Internet ou YouTube. (Rank Bronze: meta 3).",
+        "legacy_id": "rc_silver_streaming_livre_mesmo_ano_20"
+      },
+      {
+        "id": "rc_rank_streaming_livre_mesmo_ano__silver",
+        "tier": "silver",
+        "target_value": 8,
+        "title": "O Ritual do Cinéfilo: Pesquei um Peixe Novinho! • Rank Prata",
+        "description": "Filmes assistidos no ano de lançamento via My Family Cine, Internet ou YouTube. (Rank Prata: meta 8)."
+      },
+      {
+        "id": "rc_rank_streaming_livre_mesmo_ano__epic",
+        "tier": "epic",
+        "target_value": 15,
+        "title": "O Ritual do Cinéfilo: Pesquei um Peixe Novinho! • Rank Épico",
+        "description": "Filmes assistidos no ano de lançamento via My Family Cine, Internet ou YouTube. (Rank Épico: meta 15)."
+      },
+      {
+        "id": "rc_rank_streaming_livre_mesmo_ano__gold",
+        "tier": "gold",
+        "target_value": 22,
+        "title": "O Ritual do Cinéfilo: Pesquei um Peixe Novinho! • Rank Ouro",
+        "description": "Filmes assistidos no ano de lançamento via My Family Cine, Internet ou YouTube. (Rank Ouro: meta 22)."
+      },
+      {
+        "id": "rc_rank_streaming_livre_mesmo_ano__mythic",
+        "tier": "mythic",
+        "target_value": 30,
+        "title": "O Ritual do Cinéfilo: Pesquei um Peixe Novinho! • Rank Mítico",
+        "description": "Filmes assistidos no ano de lançamento via My Family Cine, Internet ou YouTube. (Rank Mítico: meta 30)."
+      }
+    ],
+    "legacy_ids": [
+      "rc_silver_streaming_livre_mesmo_ano_20"
+    ],
+    "sort_order": 344
   },
   {
     "id": "rc_bronze_curta_15min_10",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -8439,10 +11935,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "runtime_lte_15"
     },
-    "sort_order": 616
+    "legacy_ids": [
+      "rc_bronze_curta_15min_10"
+    ],
+    "sort_order": 345
   },
   {
     "id": "rc_bronze_exato_120min_5",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -8456,27 +11956,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "runtime_eq_120"
     },
-    "sort_order": 617
-  },
-  {
-    "id": "rc_bronze_midia_fisica_10",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
+    "legacy_ids": [
+      "rc_bronze_exato_120min_5"
     ],
-    "tier": "bronze",
-    "title": "O Ritual do Cinéfilo: Tenho Mais Jogos em Mídia Física do que Isso!",
-    "description": "Conquistar 10 filmes assistidos em Blu-ray ou DVD (10 filmes).",
-    "icon": "💿",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 10,
-    "target_metadata": {
-      "ruleKey": "physical_media_count"
-    },
-    "sort_order": 618
+    "sort_order": 346
   },
   {
     "id": "rc_bronze_youtube_legendado_5",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -8490,27 +11977,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "youtube_subtitled_count"
     },
-    "sort_order": 619
-  },
-  {
-    "id": "rc_bronze_youtube_10",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
+    "legacy_ids": [
+      "rc_bronze_youtube_legendado_5"
     ],
-    "tier": "bronze",
-    "title": "O Ritual do Cinéfilo: O YouTube Passa Filme Inteiro?!",
-    "description": "Conquistar 10 filmes assistidos no YouTube (10 filmes).",
-    "icon": "▶️",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 10,
-    "target_metadata": {
-      "ruleKey": "youtube_count"
-    },
-    "sort_order": 620
+    "sort_order": 347
   },
   {
     "id": "rc_bronze_cinema_legendado_3",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -8524,44 +11998,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "cinema_legendado_count"
     },
-    "sort_order": 621
-  },
-  {
-    "id": "rc_bronze_dublado_50",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
+    "legacy_ids": [
+      "rc_bronze_cinema_legendado_3"
     ],
-    "tier": "bronze",
-    "title": "O Ritual do Cinéfilo: Versão Brasileira: Herbert Richers!",
-    "description": "Conquistar 50 filmes com áudio Dublado (50 filmes).",
-    "icon": "🎙️",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 50,
-    "target_metadata": {
-      "ruleKey": "audio_dublado_count"
-    },
-    "sort_order": 622
-  },
-  {
-    "id": "rc_bronze_legendado_30",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
-    ],
-    "tier": "bronze",
-    "title": "O Ritual do Cinéfilo: Treinando a Leitura Dinâmica",
-    "description": "Conquistar 30 filmes com áudio Legendado (30 filmes).",
-    "icon": "📖",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 30,
-    "target_metadata": {
-      "ruleKey": "audio_legendado_count"
-    },
-    "sort_order": 623
+    "sort_order": 348
   },
   {
     "id": "rc_bronze_ano_1994_5",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -8575,10 +12019,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "year_eq_1994"
     },
-    "sort_order": 624
+    "legacy_ids": [
+      "rc_bronze_ano_1994_5"
+    ],
+    "sort_order": 349
   },
   {
     "id": "rc_bronze_ano_2012_3",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -8592,27 +12040,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "year_eq_2012"
     },
-    "sort_order": 625
-  },
-  {
-    "id": "rc_bronze_lancamento_mesmo_ano_10",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
+    "legacy_ids": [
+      "rc_bronze_ano_2012_3"
     ],
-    "tier": "bronze",
-    "title": "O Ritual do Cinéfilo: No Dia do Lançamento (Ou Pelo Menos no Ano)",
-    "description": "Conquistar 10 filmes onde o Ano de Lançamento e o Ano Visto são iguais (10 filmes).",
-    "icon": "🆕",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 10,
-    "target_metadata": {
-      "ruleKey": "same_year_seen_release"
-    },
-    "sort_order": 626
+    "sort_order": 350
   },
   {
     "id": "rc_bronze_anos_1920_1940_3",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -8626,10 +12061,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "year_between_1920_1940"
     },
-    "sort_order": 627
+    "legacy_ids": [
+      "rc_bronze_anos_1920_1940_3"
+    ],
+    "sort_order": 351
   },
   {
     "id": "rc_bronze_prime_video_mesmo_ano_10",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -8643,61 +12082,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "prime_video_same_year"
     },
-    "sort_order": 628
-  },
-  {
-    "id": "rc_silver_cinema_30",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
+    "legacy_ids": [
+      "rc_bronze_prime_video_mesmo_ano_10"
     ],
-    "tier": "silver",
-    "title": "O Ritual do Cinéfilo: Não Vão Pegar Meu Celular!! ...Pegaram Meu Celular :(",
-    "description": "Conquistar 30 filmes assistidos no Cinema (30 filmes).",
-    "icon": "📱",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 30,
-    "target_metadata": {
-      "ruleKey": "cinema_count"
-    },
-    "sort_order": 629
-  },
-  {
-    "id": "rc_silver_original_15",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
-    ],
-    "tier": "silver",
-    "title": "O Ritual do Cinéfilo: Sorria e Acene, Rapazes! Sorria e Acene...",
-    "description": "Conquistar 15 filmes no idioma Original (15 filmes).",
-    "icon": "🐧",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 15,
-    "target_metadata": {
-      "ruleKey": "audio_original_count"
-    },
-    "sort_order": 630
-  },
-  {
-    "id": "rc_silver_duracao_lte_60_20",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
-    ],
-    "tier": "silver",
-    "title": "O Ritual do Cinéfilo: Dá pra Ver no Meu Almoço (Ou Quase)",
-    "description": "Conquistar 20 filmes com 60 minutos ou menos de duração (20 filmes).",
-    "icon": "🥪",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 20,
-    "target_metadata": {
-      "ruleKey": "runtime_lte_60"
-    },
-    "sort_order": 631
+    "sort_order": 352
   },
   {
     "id": "rc_silver_duracao_gt_150_10",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -8711,61 +12103,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "runtime_gt_150"
     },
-    "sort_order": 632
-  },
-  {
-    "id": "rc_silver_duracao_gt_180_3",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
+    "legacy_ids": [
+      "rc_silver_duracao_gt_150_10"
     ],
-    "tier": "silver",
-    "title": "O Ritual do Cinéfilo: Eram Duas Horas?! Mentira, Já São Três!",
-    "description": "Conquistar 3 filmes com mais de 180 minutos de duração (3 filmes).",
-    "icon": "⏳",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 3,
-    "target_metadata": {
-      "ruleKey": "runtime_gt_180"
-    },
-    "sort_order": 633
-  },
-  {
-    "id": "rc_silver_midia_fisica_35",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
-    ],
-    "tier": "silver",
-    "title": "O Ritual do Cinéfilo: Eu Tenho Quase o Mesmo Número de Jogos Físicos!",
-    "description": "Conquistar 35 filmes assistidos em Blu-ray ou DVD (35 filmes).",
-    "icon": "🎮",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 35,
-    "target_metadata": {
-      "ruleKey": "physical_media_count"
-    },
-    "sort_order": 634
-  },
-  {
-    "id": "rc_silver_youtube_25",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
-    ],
-    "tier": "silver",
-    "title": "O Ritual do Cinéfilo: As Propagandas São um Saco! (Cadê o AdBlock?!)",
-    "description": "Conquistar 25 filmes assistidos no YouTube (25 filmes).",
-    "icon": "🛑",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 25,
-    "target_metadata": {
-      "ruleKey": "youtube_count"
-    },
-    "sort_order": 635
+    "sort_order": 353
   },
   {
     "id": "rc_silver_cinema_gt_150min_5",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -8779,27 +12124,35 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "cinema_gt_150min"
     },
-    "sort_order": 636
+    "legacy_ids": [
+      "rc_silver_cinema_gt_150min_5"
+    ],
+    "sort_order": 354
   },
   {
     "id": "rc_silver_hbo_max_30",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
     ],
     "tier": "silver",
     "title": "O Ritual do Cinéfilo: Qual Era o Nome Mesmo? HBO, HBO Max ou Só Max?!",
-    "description": "Conquistar 30 filmes assistidos na HBO Max (30 filmes).",
+    "description": "Conquistar 30 filmes assistidos na Max / HBO Max (30 filmes).",
     "icon": "💜",
     "target_type": "ritual_cinefilo_rule",
     "target_value": 30,
     "target_metadata": {
       "ruleKey": "hbo_max_count"
     },
-    "sort_order": 637
+    "legacy_ids": [
+      "rc_silver_hbo_max_30"
+    ],
+    "sort_order": 355
   },
   {
     "id": "rc_silver_netflix_50",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -8813,10 +12166,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "netflix_count"
     },
-    "sort_order": 638
+    "legacy_ids": [
+      "rc_silver_netflix_50"
+    ],
+    "sort_order": 356
   },
   {
     "id": "rc_silver_internet_25",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -8830,78 +12187,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "internet_count"
     },
-    "sort_order": 639
-  },
-  {
-    "id": "rc_silver_dublado_150",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
+    "legacy_ids": [
+      "rc_silver_internet_25"
     ],
-    "tier": "silver",
-    "title": "O Ritual do Cinéfilo: Cineasta da Sessão da Tarde",
-    "description": "Conquistar 150 filmes com áudio Dublado (150 filmes).",
-    "icon": "📺",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 150,
-    "target_metadata": {
-      "ruleKey": "audio_dublado_count"
-    },
-    "sort_order": 640
-  },
-  {
-    "id": "rc_silver_legendado_90",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
-    ],
-    "tier": "silver",
-    "title": "O Ritual do Cinéfilo: Olhos Rápidos de Águia",
-    "description": "Conquistar 90 filmes com áudio Legendado (90 filmes).",
-    "icon": "🦅",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 90,
-    "target_metadata": {
-      "ruleKey": "audio_legendado_count"
-    },
-    "sort_order": 641
-  },
-  {
-    "id": "rc_silver_lancamento_mesmo_ano_30",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
-    ],
-    "tier": "silver",
-    "title": "O Ritual do Cinéfilo: Lançamento!",
-    "description": "Conquistar 30 filmes onde o Ano de Lançamento e o Ano Visto são iguais (30 filmes).",
-    "icon": "🚀",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 30,
-    "target_metadata": {
-      "ruleKey": "same_year_seen_release"
-    },
-    "sort_order": 642
-  },
-  {
-    "id": "rc_silver_streaming_livre_mesmo_ano_20",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
-    ],
-    "tier": "silver",
-    "title": "O Ritual do Cinéfilo: Pesquei um Peixe Novinho (Ou Quase)!",
-    "description": "Conquistar 20 filmes onde o Ano de Lançamento e o Ano Visto são iguais assistidos no My Family Cine, Internet ou YouTube (20 filmes).",
-    "icon": "🎣",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 20,
-    "target_metadata": {
-      "ruleKey": "free_streaming_same_year"
-    },
-    "sort_order": 643
+    "sort_order": 357
   },
   {
     "id": "rc_silver_esperar_streaming_30",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -8915,10 +12208,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "seen_after_release_year"
     },
-    "sort_order": 644
+    "legacy_ids": [
+      "rc_silver_esperar_streaming_30"
+    ],
+    "sort_order": 358
   },
   {
     "id": "rc_silver_antes_1994_30",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -8932,10 +12229,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "year_lt_1994"
     },
-    "sort_order": 645
+    "legacy_ids": [
+      "rc_silver_antes_1994_30"
+    ],
+    "sort_order": 359
   },
   {
     "id": "rc_silver_antes_1958_10",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -8949,10 +12250,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "year_lt_1958"
     },
-    "sort_order": 646
+    "legacy_ids": [
+      "rc_silver_antes_1958_10"
+    ],
+    "sort_order": 360
   },
   {
     "id": "rc_silver_bug_milenio_10",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -8966,10 +12271,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "year_1999_or_2000"
     },
-    "sort_order": 647
+    "legacy_ids": [
+      "rc_silver_bug_milenio_10"
+    ],
+    "sort_order": 361
   },
   {
     "id": "rc_silver_decada_2010_30",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -8983,186 +12292,35 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "year_between_2010_2020"
     },
-    "sort_order": 648
-  },
-  {
-    "id": "rc_silver_pentacampeonato_5",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
+    "legacy_ids": [
+      "rc_silver_decada_2010_30"
     ],
-    "tier": "silver",
-    "title": "O Ritual do Cinéfilo: O Pentacampeonato no Cinema!",
-    "description": "Conquistar 1 filme lançado em cada ano em que o Brasil foi campeão da Copa do Mundo: 1958, 1962, 1970, 1994 e 2002 (5 anos / 5 filmes no checklist).",
-    "icon": "⭐",
-    "target_type": "ritual_pentacampeonato",
-    "target_value": 5,
-    "target_metadata": {
-      "years": [
-        1958,
-        1962,
-        1970,
-        1994,
-        2002
-      ]
-    },
-    "sort_order": 649
-  },
-  {
-    "id": "rc_epic_cinema_50",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
-    ],
-    "tier": "epic",
-    "title": "O Ritual do Cinéfilo: Será Que um Dia Eu Consigo?! (Sócio Carteirinha)",
-    "description": "Conquistar 50 filmes assistidos no Cinema (50 filmes).",
-    "icon": "💳",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 50,
-    "target_metadata": {
-      "ruleKey": "cinema_count"
-    },
-    "sort_order": 650
-  },
-  {
-    "id": "rc_epic_midia_fisica_60",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
-    ],
-    "tier": "epic",
-    "title": "O Ritual do Cinéfilo: Ok, Agora Eu Definitivamente Não Tenho Tantos Jogos Assim!",
-    "description": "Conquistar 60 filmes assistidos em Blu-ray ou DVD (60 filmes).",
-    "icon": "📀",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 60,
-    "target_metadata": {
-      "ruleKey": "physical_media_count"
-    },
-    "sort_order": 651
-  },
-  {
-    "id": "rc_epic_pirata_jack_sparrow_50",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
-    ],
-    "tier": "epic",
-    "title": "O Ritual do Cinéfilo: Capitão Jack Sparrow: \"Lembrem-se Deste Dia...\"",
-    "description": "Conquistar 50 filmes assistidos na Internet ou My Family Cine (50 filmes).",
-    "icon": "🏴‍☠️",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 50,
-    "target_metadata": {
-      "ruleKey": "internet_or_mfc_count"
-    },
-    "sort_order": 652
+    "sort_order": 362
   },
   {
     "id": "rc_epic_combo_streamings_oficiais_150",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
     ],
     "tier": "epic",
     "title": "O Ritual do Cinéfilo: Cinema em Casa (O Combo das Assinaturas)",
-    "description": "Conquistar 150 filmes somados nas plataformas oficiais de streaming (Apple TV+, Disney+, HBO Max, Netflix, Prime Video e Star+) (150 filmes).",
+    "description": "Conquistar 150 filmes somados nas plataformas oficiais (Apple TV+, Disney+, Star+, Max / HBO Max, Netflix e Prime Video).",
     "icon": "🍿",
     "target_type": "ritual_cinefilo_rule",
     "target_value": 150,
     "target_metadata": {
       "ruleKey": "official_streaming_count"
     },
-    "sort_order": 653
-  },
-  {
-    "id": "rc_epic_dublado_300",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
+    "legacy_ids": [
+      "rc_epic_combo_streamings_oficiais_150"
     ],
-    "tier": "epic",
-    "title": "O Ritual do Cinéfilo: A Glória Máxima da Dublagem Brasileira!",
-    "description": "Conquistar 300 filmes com áudio Dublado (300 filmes).",
-    "icon": "🇧🇷",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 300,
-    "target_metadata": {
-      "ruleKey": "audio_dublado_count"
-    },
-    "sort_order": 654
-  },
-  {
-    "id": "rc_epic_legendado_150",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
-    ],
-    "tier": "epic",
-    "title": "O Ritual do Cinéfilo: Leitor Ninja: 200 Palavras por Minuto",
-    "description": "Conquistar 150 filmes com áudio Legendado (150 filmes).",
-    "icon": "🥷",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 150,
-    "target_metadata": {
-      "ruleKey": "audio_legendado_count"
-    },
-    "sort_order": 655
-  },
-  {
-    "id": "rc_epic_duracao_gt_180_10",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
-    ],
-    "tier": "epic",
-    "title": "O Ritual do Cinéfilo: Haja Bexiga! (Maratona de Gigantes)",
-    "description": "Conquistar 10 filmes com mais de 180 minutos de duração (10 filmes).",
-    "icon": "🚰",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 10,
-    "target_metadata": {
-      "ruleKey": "runtime_gt_180"
-    },
-    "sort_order": 656
-  },
-  {
-    "id": "rc_epic_original_30",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
-    ],
-    "tier": "epic",
-    "title": "O Ritual do Cinéfilo: Poliglota de Ouvido Apurado",
-    "description": "Conquistar 30 filmes no idioma Original (30 filmes).",
-    "icon": "🎧",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 30,
-    "target_metadata": {
-      "ruleKey": "audio_original_count"
-    },
-    "sort_order": 657
-  },
-  {
-    "id": "rc_epic_lancamento_mesmo_ano_60",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
-    ],
-    "tier": "epic",
-    "title": "O Ritual do Cinéfilo: Acabou de Sair do Forno!",
-    "description": "Conquistar 60 filmes onde o Ano de Lançamento e o Ano Visto são iguais (60 filmes).",
-    "icon": "🔥",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 60,
-    "target_metadata": {
-      "ruleKey": "same_year_seen_release"
-    },
-    "sort_order": 658
+    "sort_order": 363
   },
   {
     "id": "rc_epic_capsula_tempo_30anos_15",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -9176,28 +12334,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "time_capsule_30_years"
     },
-    "sort_order": 659
-  },
-  {
-    "id": "rc_epic_ditadura_21",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
+    "legacy_ids": [
+      "rc_epic_capsula_tempo_30anos_15"
     ],
-    "tier": "epic",
-    "title": "O Ritual do Cinéfilo: Durante a Ditadura (21 Anos de Chumbo)",
-    "description": "Conquistar pelo menos 1 filme lançado em CADA UM dos 21 anos do regime militar brasileiro: de 1964 até 1985 (21 anos / 21 filmes no checklist).",
-    "icon": "🎖️",
-    "target_type": "ritual_ditadura",
-    "target_value": 21,
-    "target_metadata": {
-      "startYear": 1964,
-      "endYear": 1985
-    },
-    "sort_order": 660
+    "sort_order": 364
   },
   {
     "id": "rc_epic_nomade_telas_8",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -9212,95 +12356,14 @@ export const TROPHY_DEFINITIONS = [
       "minMoviesPerPlatform": 3,
       "targetPlatforms": 8
     },
-    "sort_order": 661
-  },
-  {
-    "id": "rc_gold_cinema_75",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
+    "legacy_ids": [
+      "rc_epic_nomade_telas_8"
     ],
-    "tier": "gold",
-    "title": "O Ritual do Cinéfilo: VIP do Balcão de Pipoca",
-    "description": "Conquistar 75 filmes assistidos no Cinema (75 filmes).",
-    "icon": "🍿",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 75,
-    "target_metadata": {
-      "ruleKey": "cinema_count"
-    },
-    "sort_order": 662
-  },
-  {
-    "id": "rc_gold_midia_fisica_100",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
-    ],
-    "tier": "gold",
-    "title": "O Ritual do Cinéfilo: Curador de Estante (Mídia Física Vive!)",
-    "description": "Conquistar 100 filmes assistidos em Blu-ray ou DVD (100 filmes).",
-    "icon": "🏛️",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 100,
-    "target_metadata": {
-      "ruleKey": "physical_media_count"
-    },
-    "sort_order": 663
-  },
-  {
-    "id": "rc_gold_streaming_livre_100",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
-    ],
-    "tier": "gold",
-    "title": "O Ritual do Cinéfilo: A Frota Negra do Streaming Livre",
-    "description": "Conquistar 100 filmes assistidos via Internet ou My Family Cine (100 filmes).",
-    "icon": "⚓",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 100,
-    "target_metadata": {
-      "ruleKey": "internet_or_mfc_count"
-    },
-    "sort_order": 664
-  },
-  {
-    "id": "rc_gold_minutos_totais_30k",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
-    ],
-    "tier": "gold",
-    "title": "O Ritual do Cinéfilo: O Senhor do Tempo Cinematográfico",
-    "description": "Acumular mais de 30.000 minutos (500 horas) assistidos no catálogo (30.000 minutos).",
-    "icon": "⌛",
-    "target_type": "ritual_total_minutos",
-    "target_value": 30000,
-    "target_metadata": {
-      "targetMinutes": 30000
-    },
-    "sort_order": 665
-  },
-  {
-    "id": "rc_gold_original_50",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
-    ],
-    "tier": "gold",
-    "title": "O Ritual do Cinéfilo: Mestre do Idioma Nativo",
-    "description": "Conquistar 50 filmes no idioma Original (50 filmes).",
-    "icon": "🌐",
-    "target_type": "ritual_cinefilo_rule",
-    "target_value": 50,
-    "target_metadata": {
-      "ruleKey": "audio_original_count"
-    },
-    "sort_order": 666
+    "sort_order": 365
   },
   {
     "id": "rc_gold_petista_dinamico",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -9330,71 +12393,21 @@ export const TROPHY_DEFINITIONS = [
       ],
       "recentStartYear": 2023
     },
-    "sort_order": 667
-  },
-  {
-    "id": "rc_mythic_projecao_classica_200",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
+    "legacy_ids": [
+      "rc_gold_petista_dinamico"
     ],
-    "tier": "mythic",
-    "title": "O Ritual do Cinéfilo: A Lenda da Projeção Clássica",
-    "description": "Conquistar 100 filmes no Cinema E 100 filmes em Blu-ray ou DVD (200 filmes).",
-    "icon": "📽️",
-    "target_type": "ritual_projecao_classica",
-    "target_value": 200,
-    "target_metadata": {
-      "cinemaTarget": 100,
-      "physicalTarget": 100
-    },
-    "sort_order": 668
-  },
-  {
-    "id": "rc_mythic_enciclopedia_acustica_500",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
-    ],
-    "tier": "mythic",
-    "title": "O Ritual do Cinéfilo: Enciclopédia Acústica (Audiófilo Supremo)",
-    "description": "Conquistar 300 filmes Dublados, 150 Legendados e 50 no idioma Original (500 marcos de áudio).",
-    "icon": "🎛️",
-    "target_type": "ritual_enciclopedia_acustica",
-    "target_value": 500,
-    "target_metadata": {
-      "dubladoTarget": 300,
-      "legendadoTarget": 150,
-      "originalTarget": 50
-    },
-    "sort_order": 669
-  },
-  {
-    "id": "rc_mythic_maratonista_60k",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
-    ],
-    "tier": "mythic",
-    "title": "O Ritual do Cinéfilo: Maratonista Interminável",
-    "description": "Acumular mais de 60.000 minutos (1.000 horas líquidas) de filmes assistidos no catálogo (60.000 minutos).",
-    "icon": "🌌",
-    "target_type": "ritual_total_minutos",
-    "target_value": 60000,
-    "target_metadata": {
-      "targetMinutes": 60000
-    },
-    "sort_order": 670
+    "sort_order": 366
   },
   {
     "id": "rc_plat_mestre_cabine",
+    "kind": "platinum",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
     ],
     "tier": "platinum",
     "title": "O Ritual do Cinéfilo: O Mestre da Cabine de Projeção",
-    "description": "Conquistar TODOS os troféus da categoria O Ritual do Cinéfilo (desbloqueio automático dinâmico ao atingir 100% dos outros 57 troféus desta categoria).",
+    "description": "Conquistar 100% dos troféus e ranks da categoria O Ritual do Cinéfilo (incluindo multicategoria).",
     "icon": "🏆",
     "target_type": "platinum_dynamic",
     "target_value": 57,
@@ -9402,30 +12415,14 @@ export const TROPHY_DEFINITIONS = [
       "category": "ritual_cinefilo",
       "categoryScope": "ritual_cinefilo"
     },
-    "sort_order": 671
-  },
-  {
-    "id": "vm_duas_coreias",
-    "category": "volta_ao_mundo",
-    "categories": [
-      "volta_ao_mundo"
+    "legacy_ids": [
+      "rc_plat_mestre_cabine"
     ],
-    "tier": "silver",
-    "title": "Volta ao Mundo: As Duas Coreias (Acordo de Paz na Tela)",
-    "description": "Conquistar no Desafio dos 195 (país de origem único): Coreia do Sul e Coreia do Norte (2 países).",
-    "icon": "🕊️",
-    "target_type": "country_list",
-    "target_value": 2,
-    "target_metadata": {
-      "countryCodes": [
-        "kr",
-        "kp"
-      ]
-    },
-    "sort_order": 674
+    "sort_order": 367
   },
   {
     "id": "rc_ano_2001_11",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -9439,10 +12436,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "year_eq_2001"
     },
-    "sort_order": 675
+    "legacy_ids": [
+      "rc_ano_2001_11"
+    ],
+    "sort_order": 368
   },
   {
     "id": "rc_segunda_guerra_5",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -9456,10 +12457,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "year_between_1939_1945"
     },
-    "sort_order": 676
+    "legacy_ids": [
+      "rc_segunda_guerra_5"
+    ],
+    "sort_order": 369
   },
   {
     "id": "rc_todos_anos_vida_34",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo"
@@ -9474,28 +12479,14 @@ export const TROPHY_DEFINITIONS = [
       "startYear": 1994,
       "endYear": 2027
     },
-    "sort_order": 677
-  },
-  {
-    "id": "rc_seculo_cinema_97",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo"
+    "legacy_ids": [
+      "rc_todos_anos_vida_34"
     ],
-    "tier": "mythic",
-    "title": "O Ritual do Cinéfilo: Um por Ano! O Século do Cinema (1931 a 2027)",
-    "description": "Conquistar pelo menos 1 filme gravado/lançado em CADA UM dos 97 anos entre 1931 e 2027 (97 anos no checklist).",
-    "icon": "⌛",
-    "target_type": "ritual_anos_checklist",
-    "target_value": 97,
-    "target_metadata": {
-      "startYear": 1931,
-      "endYear": 2027
-    },
-    "sort_order": 678
+    "sort_order": 370
   },
   {
     "id": "multi_rc_tc_pele_ii",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo",
@@ -9510,28 +12501,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "cinema_ur_lt_7000"
     },
-    "sort_order": 679
-  },
-  {
-    "id": "multi_mh_tc_a24_conceitual",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood",
-      "tribunal_critica"
+    "legacy_ids": [
+      "multi_rc_tc_pele_ii"
     ],
-    "tier": "bronze",
-    "title": "Explica, Explica! (Conceitual Demais até pra Mim)",
-    "description": "Conquistar 1 filme da distribuidora A24 com Minha Nota abaixo de 6.000 (1 filme).",
-    "icon": "🎨",
-    "target_type": "multi_ritual_rule",
-    "target_value": 1,
-    "target_metadata": {
-      "ruleKey": "a24_ur_lt_6000"
-    },
-    "sort_order": 680
+    "sort_order": 371
   },
   {
     "id": "multi_rc_dl_nascimento_ago94",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo",
@@ -9546,119 +12523,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "year_1994_seen_august"
     },
-    "sort_order": 681
-  },
-  {
-    "id": "multi_vm_rc_senna_1994",
-    "category": "volta_ao_mundo",
-    "categories": [
-      "volta_ao_mundo",
-      "ritual_cinefilo"
+    "legacy_ids": [
+      "multi_rc_dl_nascimento_ago94"
     ],
-    "tier": "bronze",
-    "title": "Ayrton Senna: Descanse em Paz (Legado de 1994)",
-    "description": "Conquistar 1 filme gravado/lançado em 1994 produzido no Brasil (1 filme).",
-    "icon": "🏎️",
-    "target_type": "multi_ritual_rule",
-    "target_value": 1,
-    "target_metadata": {
-      "ruleKey": "brazil_year_1994"
-    },
-    "sort_order": 682
-  },
-  {
-    "id": "multi_vm_rc_copa_brasil_1950_2014",
-    "category": "volta_ao_mundo",
-    "categories": [
-      "volta_ao_mundo",
-      "ritual_cinefilo"
-    ],
-    "tier": "bronze",
-    "title": "Copa no Brasil! (Do Maracanazo ao 7x1)",
-    "description": "Conquistar 1 filme do Brasil lançado em 1950 e 1 filme do Brasil lançado em 2014 (2 filmes).",
-    "icon": "🏟️",
-    "target_type": "multi_ritual_rule",
-    "target_value": 2,
-    "target_metadata": {
-      "ruleKey": "brazil_copa_1950_2014"
-    },
-    "sort_order": 683
-  },
-  {
-    "id": "multi_ac_rc_animacao_dublada_15",
-    "category": "anatomia_cinema",
-    "categories": [
-      "anatomia_cinema",
-      "ritual_cinefilo"
-    ],
-    "tier": "bronze",
-    "title": "Dublagem de Ouro nos Desenhos!",
-    "description": "Conquistar 15 filmes do gênero Animação assistidos com áudio Dublado (15 filmes).",
-    "icon": "🎙️",
-    "target_type": "multi_ritual_rule",
-    "target_value": 15,
-    "target_metadata": {
-      "ruleKey": "animacao_dublada_15"
-    },
-    "sort_order": 684
-  },
-  {
-    "id": "multi_ac_dl_rc_terror_outubro_5",
-    "category": "anatomia_cinema",
-    "categories": [
-      "anatomia_cinema",
-      "data_limite",
-      "ritual_cinefilo"
-    ],
-    "tier": "bronze",
-    "title": "Sessão da Meia-Noite em Outubro",
-    "description": "Conquistar 5 filmes do gênero Terror assistidos no Cinema ou na Internet durante o mês de Outubro (5 filmes).",
-    "icon": "🎃",
-    "target_type": "multi_ritual_rule",
-    "target_value": 5,
-    "target_metadata": {
-      "ruleKey": "terror_cinema_internet_outubro_5"
-    },
-    "sort_order": 685
-  },
-  {
-    "id": "multi_ac_rc_curta_youtube_5",
-    "category": "anatomia_cinema",
-    "categories": [
-      "anatomia_cinema",
-      "ritual_cinefilo"
-    ],
-    "tier": "bronze",
-    "title": "Curta-Metragem Direto do YouTube!",
-    "description": "Conquistar 5 filmes do gênero Curta assistidos no YouTube (5 filmes).",
-    "icon": "▶️",
-    "target_type": "multi_ritual_rule",
-    "target_value": 5,
-    "target_metadata": {
-      "ruleKey": "curta_youtube_5"
-    },
-    "sort_order": 686
-  },
-  {
-    "id": "multi_vm_rc_brasil_cinema_5",
-    "category": "volta_ao_mundo",
-    "categories": [
-      "volta_ao_mundo",
-      "ritual_cinefilo"
-    ],
-    "tier": "silver",
-    "title": "Prestigiando o Cinema Nacional na Telona!",
-    "description": "Conquistar 5 filmes do Brasil assistidos no Cinema (5 filmes).",
-    "icon": "🇧🇷",
-    "target_type": "multi_ritual_rule",
-    "target_value": 5,
-    "target_metadata": {
-      "ruleKey": "brasil_cinema_5"
-    },
-    "sort_order": 687
+    "sort_order": 372
   },
   {
     "id": "multi_rc_tc_cinema_nota_gt8_10",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo",
@@ -9673,10 +12545,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "cinema_ur_gt_8000_10"
     },
-    "sort_order": 688
+    "legacy_ids": [
+      "multi_rc_tc_cinema_nota_gt8_10"
+    ],
+    "sort_order": 373
   },
   {
     "id": "multi_rc_dl_ferias_cinema_10",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo",
@@ -9691,101 +12567,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "cinema_ferias_julho_dez_10"
     },
-    "sort_order": 689
-  },
-  {
-    "id": "multi_vm_ac_biografia_fora_eua_br_5",
-    "category": "volta_ao_mundo",
-    "categories": [
-      "volta_ao_mundo",
-      "anatomia_cinema"
+    "legacy_ids": [
+      "multi_rc_dl_ferias_cinema_10"
     ],
-    "tier": "silver",
-    "title": "Sobre Outros Países (Vidas Além do Eixo EUA-Brasil)",
-    "description": "Conquistar 5 filmes do gênero Biografia que NÃO foram filmados nos Estados Unidos nem no Brasil (5 filmes).",
-    "icon": "📜",
-    "target_type": "multi_ritual_rule",
-    "target_value": 5,
-    "target_metadata": {
-      "ruleKey": "biografia_non_us_non_br_5"
-    },
-    "sort_order": 690
-  },
-  {
-    "id": "multi_vm_dna_ac_japao_sem_animes_5",
-    "category": "volta_ao_mundo",
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo",
-      "anatomia_cinema"
-    ],
-    "tier": "silver",
-    "title": "Cadê os Animes?! (O Outro Lado do Japão)",
-    "description": "Conquistar 5 filmes do Japão que NÃO possuam as tags Baseado em Anime ou Baseado em jogo e NÃO pertençam aos gêneros Terror ou Animação (5 filmes).",
-    "icon": "🗾",
-    "target_type": "multi_ritual_rule",
-    "target_value": 5,
-    "target_metadata": {
-      "ruleKey": "japao_sem_animes_games_terror_5"
-    },
-    "sort_order": 691
-  },
-  {
-    "id": "multi_dna_rc_pirata_lgbt_15",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "ritual_cinefilo"
-    ],
-    "tier": "silver",
-    "title": "A Bandeira Desse Pirata É Diferente! (Arco-Íris nos Sete Mares)",
-    "description": "Conquistar 15 filmes com a tag Personagem LGBT assistidos em My Family Cine, YouTube ou Internet somados (15 filmes).",
-    "icon": "🏳️‍🌈",
-    "target_type": "multi_ritual_rule",
-    "target_value": 15,
-    "target_metadata": {
-      "ruleKey": "pirata_tag_lgbt_15"
-    },
-    "sort_order": 692
-  },
-  {
-    "id": "multi_dna_rc_pirata_crime_real_15",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "ritual_cinefilo"
-    ],
-    "tier": "silver",
-    "title": "Essa Caveira Significa Perigo! PE-RI-GO! Ouviram Bem?! PE-RI-GO!",
-    "description": "Conquistar 15 filmes com a tag Crime real assistidos em My Family Cine, Internet ou YouTube somados (15 filmes).",
-    "icon": "☠️",
-    "target_type": "multi_ritual_rule",
-    "target_value": 15,
-    "target_metadata": {
-      "ruleKey": "pirata_tag_crime_real_15"
-    },
-    "sort_order": 693
-  },
-  {
-    "id": "multi_vm_rc_original_fora_br_eua_5",
-    "category": "volta_ao_mundo",
-    "categories": [
-      "volta_ao_mundo",
-      "ritual_cinefilo"
-    ],
-    "tier": "silver",
-    "title": "Poliglota pelo Mundo (Sem Dublador e Sem Legenda Gringa)",
-    "description": "Conquistar 5 filmes no idioma Original produzidos fora do Brasil e fora dos Estados Unidos (5 filmes).",
-    "icon": "🗣️",
-    "target_type": "multi_ritual_rule",
-    "target_value": 5,
-    "target_metadata": {
-      "ruleKey": "audio_original_non_us_non_br_5"
-    },
-    "sort_order": 694
+    "sort_order": 374
   },
   {
     "id": "multi_rc_tc_midia_fisica_nota_gt8_15",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo",
@@ -9800,192 +12589,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "midia_fisica_ur_gt_8000_15"
     },
-    "sort_order": 695
-  },
-  {
-    "id": "multi_ac_rc_guerra_historia_gt150_5",
-    "category": "anatomia_cinema",
-    "categories": [
-      "anatomia_cinema",
-      "ritual_cinefilo"
+    "legacy_ids": [
+      "multi_rc_tc_midia_fisica_nota_gt8_15"
     ],
-    "tier": "silver",
-    "title": "O Dia Mais Longo (Trincheiras de 2 Horas e Meia)",
-    "description": "Conquistar 5 filmes do gênero Guerra ou História que tenham mais de 150 minutos de duração (5 filmes).",
-    "icon": "🎖️",
-    "target_type": "multi_ritual_rule",
-    "target_value": 5,
-    "target_metadata": {
-      "ruleKey": "guerra_historia_gt_150_5"
-    },
-    "sort_order": 696
-  },
-  {
-    "id": "multi_dna_rc_antigo_pb_mudo_3",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "ritual_cinefilo"
-    ],
-    "tier": "silver",
-    "title": "Mudo e em Preto e Branco como nos Anos 20!",
-    "description": "Conquistar 3 filmes lançados antes de 1960 que possuam as tags Preto e branco ou Mudo (3 filmes).",
-    "icon": "🎬",
-    "target_type": "multi_ritual_rule",
-    "target_value": 3,
-    "target_metadata": {
-      "ruleKey": "pre_1960_pb_mudo_3"
-    },
-    "sort_order": 697
-  },
-  {
-    "id": "multi_rc_tc_blockbuster_estreia_cinema_15",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo",
-      "tribunal_critica"
-    ],
-    "tier": "silver",
-    "title": "Blockbuster de Estreia no Escurinho do Cinema!",
-    "description": "Conquistar 15 filmes vistos no Cinema no mesmo ano em que foram lançados (Ano Lançamento == Ano Visto) e que tenham mais de 500.000 Global Reviews (15 filmes).",
-    "icon": "🍿",
-    "target_type": "multi_ritual_rule",
-    "target_value": 15,
-    "target_metadata": {
-      "ruleKey": "blockbuster_estreia_cinema_15"
-    },
-    "sort_order": 698
-  },
-  {
-    "id": "multi_ac_rc_terror_anos_80_10",
-    "category": "anatomia_cinema",
-    "categories": [
-      "anatomia_cinema",
-      "ritual_cinefilo"
-    ],
-    "tier": "silver",
-    "title": "Rebobine a Fita VHS! (Terror Oitentista)",
-    "description": "Conquistar 10 filmes do gênero Terror lançados na década de 1980 (1980 a 1989) (10 filmes).",
-    "icon": "📼",
-    "target_type": "multi_ritual_rule",
-    "target_value": 10,
-    "target_metadata": {
-      "ruleKey": "terror_anos_80_10"
-    },
-    "sort_order": 699
-  },
-  {
-    "id": "multi_ac_rc_pirata_romance_30",
-    "category": "anatomia_cinema",
-    "categories": [
-      "anatomia_cinema",
-      "ritual_cinefilo"
-    ],
-    "tier": "epic",
-    "title": "Os Piratas Também Amam! (Coração de Corsário)",
-    "description": "Conquistar 30 filmes do gênero Romance assistidos em My Family Cine, YouTube ou Internet somados (30 filmes).",
-    "icon": "🏴‍☠️",
-    "target_type": "multi_ritual_rule",
-    "target_value": 30,
-    "target_metadata": {
-      "ruleKey": "pirata_romance_30"
-    },
-    "sort_order": 700
-  },
-  {
-    "id": "multi_ac_dna_terror_sem_gore_30",
-    "category": "anatomia_cinema",
-    "categories": [
-      "anatomia_cinema",
-      "dna_cinefilo"
-    ],
-    "tier": "epic",
-    "title": "Ué, Cadê o Sangue?! Temos que Fazer o Código ABACABB!",
-    "description": "Conquistar 30 filmes do gênero Terror que NÃO possuem a tag Gore (30 filmes).",
-    "icon": "👻",
-    "target_type": "multi_ritual_rule",
-    "target_value": 30,
-    "target_metadata": {
-      "ruleKey": "terror_sem_gore_30"
-    },
-    "sort_order": 701
-  },
-  {
-    "id": "multi_dna_rc_netflix_gore_30",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "ritual_cinefilo"
-    ],
-    "tier": "epic",
-    "title": "Vermelho para Combinar com a Logo (TUDUM Sangrento!)",
-    "description": "Conquistar 30 filmes com a tag Gore assistidos na Netflix (30 filmes).",
-    "icon": "🩸",
-    "target_type": "multi_ritual_rule",
-    "target_value": 30,
-    "target_metadata": {
-      "ruleKey": "netflix_gore_30"
-    },
-    "sort_order": 702
-  },
-  {
-    "id": "multi_vm_dna_rc_cesio_137",
-    "category": "volta_ao_mundo",
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo",
-      "ritual_cinefilo"
-    ],
-    "tier": "epic",
-    "title": "Brilho Azul no Escuro: Protocolo Césio-137 (Goiânia, 1987)",
-    "description": "Cumprir os 3 marcos de referência ao acidente radiológico de 1987 (7 itens no checklist): 3 filmes lançados em 1987, 1 filme com duração de 136 a 138 minutos e 3 filmes do Brasil com tag Trágico ou Fatos Reais (7 filmes).",
-    "icon": "☢️",
-    "target_type": "multi_ritual_rule",
-    "target_value": 7,
-    "target_metadata": {
-      "ruleKey": "cesio_137_combo_7"
-    },
-    "sort_order": 703
-  },
-  {
-    "id": "multi_dna_ac_rc_minecraft_stack_64",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "ritual_cinefilo"
-    ],
-    "tier": "epic",
-    "title": "Um Stack Completo de 64 Blocos! (Crafting Table do Minecraft)",
-    "description": "Juntar um Stack completo de 64 filmes somando elementos do Minecraft: tags Baseado em jogo, Zumbi, Bruxo ou Animais antropomorficos combinadas com gênero Aventura ou Fantasia (64 filmes).",
-    "icon": "🧱",
-    "target_type": "multi_ritual_rule",
-    "target_value": 64,
-    "target_metadata": {
-      "ruleKey": "minecraft_stack_64"
-    },
-    "sort_order": 704
-  },
-  {
-    "id": "multi_dna_rc_marvel_dc_cinema_20",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "ritual_cinefilo"
-    ],
-    "tier": "epic",
-    "title": "Maratona Marvel & DC na Poltrona do Cinema!",
-    "description": "Conquistar 20 filmes com a tag Marvel ou DC assistidos diretamente no Cinema (20 filmes).",
-    "icon": "🦸",
-    "target_type": "multi_ritual_rule",
-    "target_value": 20,
-    "target_metadata": {
-      "ruleKey": "marvel_dc_cinema_20"
-    },
-    "sort_order": 705
+    "sort_order": 375
   },
   {
     "id": "multi_rc_tc_pirata_indie_hidden_gem_10",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo",
@@ -10000,28 +12611,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "pirata_hidden_gem_10"
     },
-    "sort_order": 706
-  },
-  {
-    "id": "multi_mh_rc_oscar_streaming_oficial_20",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood",
-      "ritual_cinefilo"
+    "legacy_ids": [
+      "multi_rc_tc_pirata_indie_hidden_gem_10"
     ],
-    "tier": "epic",
-    "title": "Noite de Gala do Oscar no Sofá de Casa",
-    "description": "Conquistar 20 filmes Ganhadores do Oscar assistidos em plataformas de streaming oficiais (Netflix, HBO Max, Prime Video, Disney+, Star+ ou Apple TV+) (20 filmes).",
-    "icon": "🛋️",
-    "target_type": "multi_ritual_rule",
-    "target_value": 20,
-    "target_metadata": {
-      "ruleKey": "oscar_winner_streaming_oficial_20"
-    },
-    "sort_order": 707
+    "sort_order": 376
   },
   {
     "id": "multi_rc_tc_gt180_nota_gt9_5",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo",
@@ -10036,46 +12633,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "gt_180_min_ur_gt_9000_5"
     },
-    "sort_order": 708
-  },
-  {
-    "id": "multi_mh_rc_sony_midia_fisica_10",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood",
-      "ritual_cinefilo"
+    "legacy_ids": [
+      "multi_rc_tc_gt180_nota_gt9_5"
     ],
-    "tier": "epic",
-    "title": "Colecionador Físico da Sony (Do Blu-ray pro PS5!)",
-    "description": "Conquistar 10 filmes da distribuidora Sony Pictures assistidos em mídia física (Blu-ray ou DVD) (10 filmes).",
-    "icon": "🎮",
-    "target_type": "multi_ritual_rule",
-    "target_value": 10,
-    "target_metadata": {
-      "ruleKey": "sony_midia_fisica_10"
-    },
-    "sort_order": 709
-  },
-  {
-    "id": "multi_vm_rc_pirata_30_paises",
-    "category": "volta_ao_mundo",
-    "categories": [
-      "volta_ao_mundo",
-      "ritual_cinefilo"
-    ],
-    "tier": "gold",
-    "title": "Cidadão dos Sete Mares (Pirataria Internacional Sem Fronteiras)",
-    "description": "Conquistar 30 países diferentes no Desafio dos 195 (país de origem único) com filmes assistidos via Internet, My Family Cine ou YouTube (30 países).",
-    "icon": "🗺️",
-    "target_type": "multi_ritual_rule",
-    "target_value": 30,
-    "target_metadata": {
-      "ruleKey": "pirata_30_paises"
-    },
-    "sort_order": 710
+    "sort_order": 377
   },
   {
     "id": "multi_rc_tc_reliquia_museu_pre1980_15",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo",
@@ -10090,128 +12655,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "pre_1980_ur_gt_8000_imdb_gte_80_15"
     },
-    "sort_order": 711
-  },
-  {
-    "id": "multi_mh_rc_oscar_ano_lancamento_15",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood",
-      "ritual_cinefilo"
+    "legacy_ids": [
+      "multi_rc_tc_reliquia_museu_pre1980_15"
     ],
-    "tier": "gold",
-    "title": "Tapete Vermelho em Tempo Real (Visto no Ano da Estatueta!)",
-    "description": "Conquistar 15 filmes Indicados ou Ganhadores do Oscar onde o Ano Visto é igual ao Ano de Lançamento (ou Ano de Lançamento + 1, época da cerimônia) (15 filmes).",
-    "icon": "🌟",
-    "target_type": "multi_ritual_rule",
-    "target_value": 15,
-    "target_metadata": {
-      "ruleKey": "oscar_ano_lancamento_ou_mais_um_15"
-    },
-    "sort_order": 712
-  },
-  {
-    "id": "multi_rc_ac_dublagem_classica_80_90_30",
-    "category": "ritual_cinefilo",
-    "categories": [
-      "ritual_cinefilo",
-      "anatomia_cinema"
-    ],
-    "tier": "gold",
-    "title": "Dublagem Clássica de Sessão da Tarde (Anos 80 e 90)",
-    "description": "Conquistar 30 filmes de Ação, Aventura ou Comédia lançados entre 1980 e 1999 assistidos com áudio Dublado (30 filmes).",
-    "icon": "📺",
-    "target_type": "multi_ritual_rule",
-    "target_value": 30,
-    "target_metadata": {
-      "ruleKey": "dublagem_classica_80_90_30"
-    },
-    "sort_order": 713
-  },
-  {
-    "id": "multi_exodia_7_categorias_5",
-    "category": "volta_ao_mundo",
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "data_limite",
-      "mafia_hollywood",
-      "tribunal_critica",
-      "ritual_cinefilo"
-    ],
-    "tier": "mythic",
-    "title": "O Grande Alinhamento das 7 Categorias! (Exodia do Cine Catalog)",
-    "description": "Conquistar 5 filmes que cumpram simultaneamente: fora do eixo EUA/Brasil, visto em Janeiro ou Dezembro, 2+ tags, 2+ gêneros, indicado ou vencedor do Oscar, Minha Nota >= 9.000, duração > 120 min e visto no Cinema ou Mídia Física (5 filmes).",
-    "icon": "🔮",
-    "target_type": "multi_ritual_rule",
-    "target_value": 5,
-    "target_metadata": {
-      "ruleKey": "exodia_7_categorias_5"
-    },
-    "sort_order": 714
-  },
-  {
-    "id": "multi_viajante_imortal_9_decadas_18",
-    "category": "volta_ao_mundo",
-    "categories": [
-      "volta_ao_mundo",
-      "ritual_cinefilo",
-      "tribunal_critica"
-    ],
-    "tier": "mythic",
-    "title": "Viajante Imortal das Décadas (90 Anos de Cinema Aclamado)",
-    "description": "Conquistar pelo menos 2 filmes com Minha Nota >= 8.000 em cada uma das 9 décadas entre 1940s e 2020s, somando pelo menos 10 países diferentes no Desafio dos 195 (país de origem único) (18 filmes no checklist).",
-    "icon": "🧭",
-    "target_type": "multi_ritual_rule",
-    "target_value": 18,
-    "target_metadata": {
-      "ruleKey": "viajante_9_decadas_18"
-    },
-    "sort_order": 715
-  },
-  {
-    "id": "dna_animais_gore_1",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo"
-    ],
-    "tier": "bronze",
-    "title": "DNA Cinéfilo: Tá Pegando Fogo, Bicho! (Churrasco no Bosque)",
-    "description": "Conquistar 1 filme que possua as tags Animais antropomorficos e Gore ao mesmo tempo (1 filme).",
-    "icon": "🔥",
-    "target_type": "tag_double_and",
-    "target_value": 1,
-    "target_metadata": {
-      "tags": [
-        "Animais antropomorficos",
-        "Gore"
-      ]
-    },
-    "sort_order": 716
-  },
-  {
-    "id": "dna_caso_evandro_crime_final_epico_7",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo"
-    ],
-    "tier": "epic",
-    "title": "DNA Cinéfilo: O Caso Evandro (Verdades e Finais Chocantes)",
-    "description": "Conquistar 7 filmes que possuam as tags Crime real e Final Epico ao mesmo tempo (7 filmes).",
-    "icon": "🔍",
-    "target_type": "tag_double_and",
-    "target_value": 7,
-    "target_metadata": {
-      "tags": [
-        "Crime real",
-        "Final Epico"
-      ]
-    },
-    "sort_order": 717
+    "sort_order": 378
   },
   {
     "id": "multi_rc_tc_celso_russomanno_30",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo",
@@ -10226,2916 +12677,14 @@ export const TROPHY_DEFINITIONS = [
     "target_metadata": {
       "ruleKey": "celso_russomanno_streaming_ur_lt_6000_30"
     },
-    "sort_order": 718
-  },
-  {
-    "id": "ss_silvio_santos",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
+    "legacy_ids": [
+      "multi_rc_tc_celso_russomanno_30"
     ],
-    "tier": "bronze",
-    "title": "Sessão Secreta: É o Silvio Santos? Quase!",
-    "description": "Conquistar pelo menos 3 dos 4 filmes sobre lendas de auditório da TV brasileira (Meta: 3 de 4 filmes).",
-    "icon": "📺",
-    "target_type": "secret_session_curated",
-    "target_value": 3,
-    "target_metadata": {
-      "curatedCount": 4,
-      "minTarget": 3,
-      "movies": [
-        {
-          "name": "Silvio (2024)",
-          "patterns": [
-            "silvio"
-          ],
-          "exclude": [
-            "silvio santos vem ai",
-            "silvio santos vem aí"
-          ],
-          "year": 2024
-        },
-        {
-          "name": "Silvio Santos Vem Aí (2025)",
-          "patterns": [
-            "silvio santos vem ai",
-            "silvio santos vem aí"
-          ],
-          "year": 2025
-        },
-        {
-          "name": "Bingo: O Rei das Manhãs (2017)",
-          "patterns": [
-            "bingo o rei das manhas",
-            "bingo o rei das manhãs",
-            "bingo"
-          ],
-          "year": 2017
-        },
-        {
-          "name": "Chacrinha: O Velho Guerreiro (2018)",
-          "patterns": [
-            "chacrinha o velho guerreiro",
-            "chacrinha"
-          ],
-          "year": 2018
-        }
-      ]
-    },
-    "sort_order": 719
-  },
-  {
-    "id": "ss_designer_do_cartaz",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
-    ],
-    "tier": "bronze",
-    "title": "Sessão Secreta: O Filme Até Pode Ser Bom, Mas Demitam o Designer do Cartaz!",
-    "description": "Conquistar pelo menos 5 dos 8 filmes famosos por pôsteres desastrosos (Meta: 5 de 8 filmes).",
-    "icon": "🖼️",
-    "target_type": "secret_session_curated",
-    "target_value": 5,
-    "target_metadata": {
-      "curatedCount": 8,
-      "minTarget": 5,
-      "movies": [
-        {
-          "name": "X-Men: Primeira Classe (2011)",
-          "patterns": [
-            "x-men primeira classe",
-            "x men primeira classe",
-            "first class"
-          ],
-          "year": 2011
-        },
-        {
-          "name": "Homem-Aranha: De Volta ao Lar (2017)",
-          "patterns": [
-            "de volta ao lar",
-            "homecoming",
-            "spider-man homecoming"
-          ],
-          "year": 2017
-        },
-        {
-          "name": "A Saga Crepúsculo: Amanhecer - Parte 2 (2012)",
-          "patterns": [
-            "amanhecer parte 2",
-            "breaking dawn part 2",
-            "amanhecer - parte 2"
-          ],
-          "year": 2012
-        },
-        {
-          "name": "Ladrões (Takers, 2010)",
-          "patterns": [
-            "ladroes",
-            "ladrões",
-            "takers"
-          ],
-          "year": 2010
-        },
-        {
-          "name": "O Escorpião Rei (2002)",
-          "patterns": [
-            "escorpiao rei",
-            "escorpião rei",
-            "scorpion king",
-            "the scorpion king"
-          ],
-          "year": 2002
-        },
-        {
-          "name": "Chef (2014)",
-          "patterns": [
-            "chef"
-          ],
-          "year": 2014
-        },
-        {
-          "name": "Vingadores: Guerra Infinita (2018)",
-          "patterns": [
-            "guerra infinita",
-            "infinity war"
-          ],
-          "year": 2018
-        },
-        {
-          "name": "Matrix Resurrections (2021)",
-          "patterns": [
-            "matrix resurrections",
-            "resurrections"
-          ],
-          "year": 2021
-        }
-      ]
-    },
-    "sort_order": 720
-  },
-  {
-    "id": "ss_show_do_milhao",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
-    ],
-    "tier": "silver",
-    "title": "Sessão Secreta: É o Show do Milhão?!",
-    "description": "Conquistar pelo menos 6 de 8 filmes focados em programas de TV, gameshows e reality shows mortais (Meta: 6 de 8 filmes).",
-    "icon": "💰",
-    "target_type": "secret_session_curated",
-    "target_value": 6,
-    "target_metadata": {
-      "curatedCount": 8,
-      "minTarget": 6,
-      "movies": [
-        {
-          "name": "Quem Quer Ser um Milionário? (2008)",
-          "patterns": [
-            "quem quer ser um milionario",
-            "quem quer ser um milionário",
-            "slumdog millionaire"
-          ],
-          "year": 2008
-        },
-        {
-          "name": "O Show de Truman (1998)",
-          "patterns": [
-            "show de truman",
-            "the truman show"
-          ],
-          "year": 1998
-        },
-        {
-          "name": "Jogos Vorazes (2012)",
-          "patterns": [
-            "jogos vorazes",
-            "the hunger games",
-            "hunger games"
-          ],
-          "year": 2012,
-          "exclude": [
-            "em chamas",
-            "catching fire",
-            "esperança",
-            "mockingjay",
-            "cantiga",
-            "ballad of songbirds"
-          ]
-        },
-        {
-          "name": "Nerve: Um Jogo Sem Regras (2016)",
-          "patterns": [
-            "nerve"
-          ],
-          "year": 2016
-        },
-        {
-          "name": "O Sobrevivente (1987)",
-          "patterns": [
-            "o sobrevivente",
-            "the running man",
-            "running man"
-          ],
-          "year": 1987
-        },
-        {
-          "name": "Battle Royale (2000)",
-          "patterns": [
-            "battle royale"
-          ],
-          "year": 2000
-        },
-        {
-          "name": "Quiz Show: A Verdade da Trapaça (1994)",
-          "patterns": [
-            "quiz show"
-          ],
-          "year": 1994
-        },
-        {
-          "name": "O Preço da Fama (15 Minutes, 2001)",
-          "patterns": [
-            "o preco da fama",
-            "o preço da fama",
-            "15 minutes"
-          ],
-          "year": 2001
-        }
-      ]
-    },
-    "sort_order": 721
-  },
-  {
-    "id": "ss_o_mundo_acabou",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
-    ],
-    "tier": "silver",
-    "title": "Sessão Secreta: O Mundo Acabou?!",
-    "description": "Conquistar pelo menos 6 de 10 filmes de catástrofe global e fim dos tempos (Meta: 6 de 10 filmes).",
-    "icon": "🌋",
-    "target_type": "secret_session_curated",
-    "target_value": 6,
-    "target_metadata": {
-      "curatedCount": 10,
-      "minTarget": 6,
-      "movies": [
-        {
-          "name": "2012 (2009)",
-          "patterns": [
-            "2012"
-          ],
-          "year": 2009
-        },
-        {
-          "name": "O Dia Depois de Amanhã (2004)",
-          "patterns": [
-            "o dia depois de amanha",
-            "o dia depois de amanhã",
-            "the day after tomorrow"
-          ],
-          "year": 2004
-        },
-        {
-          "name": "Não Olhe para Cima (2021)",
-          "patterns": [
-            "nao olhe para cima",
-            "não olhe para cima",
-            "don't look up",
-            "dont look up"
-          ],
-          "year": 2021
-        },
-        {
-          "name": "Armageddon (1998)",
-          "patterns": [
-            "armageddon"
-          ],
-          "year": 1998
-        },
-        {
-          "name": "Impacto Profundo (1998)",
-          "patterns": [
-            "impacto profundo",
-            "deep impact"
-          ],
-          "year": 1998
-        },
-        {
-          "name": "Terremoto: A Falha de San Andreas (2015)",
-          "patterns": [
-            "san andreas",
-            "a falha de san andreas",
-            "terremoto a falha de san andreas"
-          ],
-          "year": 2015
-        },
-        {
-          "name": "Presságio (2009)",
-          "patterns": [
-            "pressagio",
-            "presságio",
-            "knowing"
-          ],
-          "year": 2009
-        },
-        {
-          "name": "Fim dos Tempos (2008)",
-          "patterns": [
-            "fim dos tempos",
-            "the happening"
-          ],
-          "year": 2008
-        },
-        {
-          "name": "Destruição Final: O Último Refúgio (2020)",
-          "patterns": [
-            "destruicao final",
-            "destruição final",
-            "greenland"
-          ],
-          "year": 2020
-        },
-        {
-          "name": "Guerra Mundial Z (2013)",
-          "patterns": [
-            "guerra mundial z",
-            "world war z"
-          ],
-          "year": 2013
-        }
-      ]
-    },
-    "sort_order": 722
-  },
-  {
-    "id": "ss_nazare_tedesco",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
-    ],
-    "tier": "silver",
-    "title": "Sessão Secreta: É a Nazaré Tedesco?!",
-    "description": "Conquistar pelo menos 5 de 8 filmes sobre sequestro ou rapto de crianças (Meta: 5 de 8 filmes).",
-    "icon": "🚼",
-    "target_type": "secret_session_curated",
-    "target_value": 5,
-    "target_metadata": {
-      "curatedCount": 8,
-      "minTarget": 5,
-      "movies": [
-        {
-          "name": "A Troca (2008)",
-          "patterns": [
-            "a troca",
-            "changeling"
-          ],
-          "year": 2008
-        },
-        {
-          "name": "Os Suspeitos (Prisoners, 2013)",
-          "patterns": [
-            "os suspeitos",
-            "prisoners"
-          ],
-          "year": 2013
-        },
-        {
-          "name": "O Telefone Preto (2021)",
-          "patterns": [
-            "o telefone preto",
-            "the black phone",
-            "telefone preto"
-          ],
-          "year": 2021
-        },
-        {
-          "name": "O Quarto de Jack (2015)",
-          "patterns": [
-            "o quarto de jack",
-            "room"
-          ],
-          "year": 2015
-        },
-        {
-          "name": "Chamas da Vingança (2004)",
-          "patterns": [
-            "chamas da vinganca",
-            "chamas da vingança",
-            "man on fire"
-          ],
-          "year": 2004
-        },
-        {
-          "name": "Medo da Verdade (2007)",
-          "patterns": [
-            "medo da verdade",
-            "gone baby gone"
-          ],
-          "year": 2007
-        },
-        {
-          "name": "O Preço de um Resgate (1996)",
-          "patterns": [
-            "o preco de um resgate",
-            "o preço de um resgate",
-            "ransom"
-          ],
-          "year": 1996
-        },
-        {
-          "name": "Resgate (Extraction, 2020)",
-          "patterns": [
-            "resgate",
-            "extraction"
-          ],
-          "year": 2020,
-          "exclude": [
-            "resgate 2",
-            "extraction 2"
-          ]
-        }
-      ]
-    },
-    "sort_order": 723
-  },
-  {
-    "id": "ss_atuacoes_mirins",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
-    ],
-    "tier": "silver",
-    "title": "Sessão Secreta: Gente Grande em Corpo de Criança",
-    "description": "Conquistar pelo menos 6 de 10 filmes com atuações mirins lendárias (Meta: 6 de 10 filmes).",
-    "icon": "🧸",
-    "target_type": "secret_session_curated",
-    "target_value": 6,
-    "target_metadata": {
-      "curatedCount": 10,
-      "minTarget": 6,
-      "movies": [
-        {
-          "name": "O Sexto Sentido (1999)",
-          "patterns": [
-            "sexto sentido",
-            "the sixth sense"
-          ],
-          "year": 1999
-        },
-        {
-          "name": "O Quarto de Jack (2015)",
-          "patterns": [
-            "o quarto de jack",
-            "room"
-          ],
-          "year": 2015
-        },
-        {
-          "name": "Logan (2017)",
-          "patterns": [
-            "logan"
-          ],
-          "year": 2017
-        },
-        {
-          "name": "O Profissional (Léon, 1994)",
-          "patterns": [
-            "o profissional",
-            "leon the professional",
-            "leon: the professional",
-            "leon"
-          ],
-          "year": 1994
-        },
-        {
-          "name": "Entrevista com o Vampiro (1994)",
-          "patterns": [
-            "entrevista com o vampiro",
-            "interview with the vampire"
-          ],
-          "year": 1994
-        },
-        {
-          "name": "Central do Brasil (1998)",
-          "patterns": [
-            "central do brasil",
-            "central station"
-          ],
-          "year": 1998
-        },
-        {
-          "name": "Pequena Miss Sunshine (2006)",
-          "patterns": [
-            "pequena miss sunshine",
-            "little miss sunshine"
-          ],
-          "year": 2006
-        },
-        {
-          "name": "Projeto Flórida (2017)",
-          "patterns": [
-            "projeto florida",
-            "projeto flórida",
-            "the florida project"
-          ],
-          "year": 2017
-        },
-        {
-          "name": "A Vida É Bela (1997)",
-          "patterns": [
-            "a vida e bela",
-            "a vida é bela",
-            "life is beautiful",
-            "la vita e bella"
-          ],
-          "year": 1997
-        },
-        {
-          "name": "E.T.: O Extraterrestre (1982)",
-          "patterns": [
-            "e.t.",
-            "et o extraterrestre",
-            "e.t. the extra-terrestrial",
-            "o extraterrestre"
-          ],
-          "year": 1982
-        }
-      ]
-    },
-    "sort_order": 724
-  },
-  {
-    "id": "ss_remakes_disney",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
-    ],
-    "tier": "silver",
-    "title": "Sessão Secreta: Acabou a Criatividade no Castelo?",
-    "description": "Conquistar pelo menos 7 de 10 remakes em live-action da Disney (Meta: 7 de 10 filmes).",
-    "icon": "🏰",
-    "target_type": "secret_session_curated",
-    "target_value": 7,
-    "target_metadata": {
-      "curatedCount": 10,
-      "minTarget": 7,
-      "movies": [
-        {
-          "name": "Aladdin (2019)",
-          "patterns": [
-            "aladdin"
-          ],
-          "year": 2019
-        },
-        {
-          "name": "Mulan (2020)",
-          "patterns": [
-            "mulan"
-          ],
-          "year": 2020
-        },
-        {
-          "name": "O Rei Leão (2019)",
-          "patterns": [
-            "o rei leao",
-            "o rei leão",
-            "the lion king"
-          ],
-          "year": 2019
-        },
-        {
-          "name": "A Bela e a Fera (2017)",
-          "patterns": [
-            "a bela e a fera",
-            "beauty and the beast"
-          ],
-          "year": 2017
-        },
-        {
-          "name": "A Pequena Sereia (2023)",
-          "patterns": [
-            "a pequena sereia",
-            "the little mermaid"
-          ],
-          "year": 2023
-        },
-        {
-          "name": "Cruella (2021)",
-          "patterns": [
-            "cruella"
-          ],
-          "year": 2021
-        },
-        {
-          "name": "Cinderela (2015)",
-          "patterns": [
-            "cinderela",
-            "cinderella"
-          ],
-          "year": 2015
-        },
-        {
-          "name": "Dumbo (2019)",
-          "patterns": [
-            "dumbo"
-          ],
-          "year": 2019
-        },
-        {
-          "name": "Pinóquio (2022)",
-          "patterns": [
-            "pinoquio",
-            "pinóquio",
-            "pinocchio"
-          ],
-          "year": 2022
-        },
-        {
-          "name": "Branca de Neve (2025)",
-          "patterns": [
-            "branca de neve",
-            "snow white"
-          ],
-          "year": 2025
-        }
-      ]
-    },
-    "sort_order": 725
-  },
-  {
-    "id": "ss_pesadelo_cozinha",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
-    ],
-    "tier": "silver",
-    "title": "Sessão Secreta: Pesadelo na Cozinha!",
-    "description": "Conquistar pelo menos 4 de 6 filmes passados no caos da gastronomia (Meta: 4 de 6 filmes).",
-    "icon": "🍳",
-    "target_type": "secret_session_curated",
-    "target_value": 4,
-    "target_metadata": {
-      "curatedCount": 6,
-      "minTarget": 4,
-      "movies": [
-        {
-          "name": "O Menu (2022)",
-          "patterns": [
-            "o menu",
-            "the menu"
-          ],
-          "year": 2022
-        },
-        {
-          "name": "Ratatouille (2007)",
-          "patterns": [
-            "ratatouille"
-          ],
-          "year": 2007
-        },
-        {
-          "name": "O Ponto de Ebulição (2021)",
-          "patterns": [
-            "o ponto de ebulicao",
-            "o ponto de ebulição",
-            "boiling point"
-          ],
-          "year": 2021
-        },
-        {
-          "name": "Pegando Fogo (2015)",
-          "patterns": [
-            "pegando fogo",
-            "burnt"
-          ],
-          "year": 2015
-        },
-        {
-          "name": "Chef (2014)",
-          "patterns": [
-            "chef"
-          ],
-          "year": 2014
-        },
-        {
-          "name": "Sem Reservas (2007)",
-          "patterns": [
-            "sem reservas",
-            "no reservations"
-          ],
-          "year": 2007
-        }
-      ]
-    },
-    "sort_order": 726
-  },
-  {
-    "id": "ss_dia_da_marmota",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
-    ],
-    "tier": "silver",
-    "title": "Sessão Secreta: O Dia da Marmota: Acordei no Mesmo Dia de Novo!",
-    "description": "Conquistar pelo menos 4 de 6 filmes com dinâmica de loop temporal (Meta: 4 de 6 filmes).",
-    "icon": "⏰",
-    "target_type": "secret_session_curated",
-    "target_value": 4,
-    "target_metadata": {
-      "curatedCount": 6,
-      "minTarget": 4,
-      "movies": [
-        {
-          "name": "Feitiço do Tempo (1993)",
-          "patterns": [
-            "feitico do tempo",
-            "feitiço do tempo",
-            "groundhog day"
-          ],
-          "year": 1993
-        },
-        {
-          "name": "No Limite do Amanhã (2014)",
-          "patterns": [
-            "no limite do amanha",
-            "no limite do amanhã",
-            "edge of tomorrow",
-            "live die repeat"
-          ],
-          "year": 2014
-        },
-        {
-          "name": "A Morte Te Dá Parabéns (2017)",
-          "patterns": [
-            "a morte te da parabens",
-            "a morte te dá parabéns",
-            "happy death day"
-          ],
-          "year": 2017
-        },
-        {
-          "name": "Palm Springs (2020)",
-          "patterns": [
-            "palm springs"
-          ],
-          "year": 2020
-        },
-        {
-          "name": "Contra o Tempo (2011)",
-          "patterns": [
-            "contra o tempo",
-            "source code"
-          ],
-          "year": 2011
-        },
-        {
-          "name": "Triângulo do Medo (2009)",
-          "patterns": [
-            "triangulo do medo",
-            "triângulo do medo",
-            "triangle"
-          ],
-          "year": 2009
-        }
-      ]
-    },
-    "sort_order": 727
-  },
-  {
-    "id": "ss_coracoes_jovens_ii",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
-    ],
-    "tier": "epic",
-    "title": "Sessão Secreta: Corações Jovens II",
-    "description": "Conquistar pelo menos 6 de 8 filmes de drama e descoberta LGBTQIA+ na juventude (Meta: 6 de 8 filmes).",
-    "icon": "🏳️‍🌈",
-    "target_type": "secret_session_curated",
-    "target_value": 6,
-    "target_metadata": {
-      "curatedCount": 8,
-      "minTarget": 6,
-      "movies": [
-        {
-          "name": "Close (2022)",
-          "patterns": [
-            "close"
-          ],
-          "year": 2022
-        },
-        {
-          "name": "Jovens Corações (2024)",
-          "patterns": [
-            "jovens coracoes",
-            "jovens corações",
-            "young hearts"
-          ],
-          "year": 2024
-        },
-        {
-          "name": "Heartstone (2016)",
-          "patterns": [
-            "heartstone",
-            "hjartasteinn"
-          ],
-          "year": 2016
-        },
-        {
-          "name": "Hoje Eu Quero Voltar Sozinho (2014)",
-          "patterns": [
-            "hoje eu quero voltar sozinho",
-            "the way he looks"
-          ],
-          "year": 2014
-        },
-        {
-          "name": "Com Amor, Simon (2018)",
-          "patterns": [
-            "com amor simon",
-            "com amor, simon",
-            "love simon",
-            "love, simon"
-          ],
-          "year": 2018
-        },
-        {
-          "name": "Moonlight: Sob a Luz do Luar (2016)",
-          "patterns": [
-            "moonlight"
-          ],
-          "year": 2016
-        },
-        {
-          "name": "Me Chame Pelo Seu Nome (2017)",
-          "patterns": [
-            "me chame pelo seu nome",
-            "call me by your name"
-          ],
-          "year": 2017
-        },
-        {
-          "name": "Verão de 85 (2020)",
-          "patterns": [
-            "verao de 85",
-            "verão de 85",
-            "ete 85",
-            "été 85",
-            "summer of 85"
-          ],
-          "year": 2020
-        }
-      ]
-    },
-    "sort_order": 728
-  },
-  {
-    "id": "ss_plot_twist_chocante",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
-    ],
-    "tier": "epic",
-    "title": "Sessão Secreta: Como Assim?! (Eu Tive que Pausar Depois Desse Plot Twist!)",
-    "description": "Conquistar pelo menos 9 de 12 filmes aclamados por reviravoltas chocantes (Meta: 9 de 12 filmes).",
-    "icon": "🤯",
-    "target_type": "secret_session_curated",
-    "target_value": 9,
-    "target_metadata": {
-      "curatedCount": 12,
-      "minTarget": 9,
-      "movies": [
-        {
-          "name": "O Sexto Sentido (1999)",
-          "patterns": [
-            "sexto sentido",
-            "the sixth sense"
-          ],
-          "year": 1999
-        },
-        {
-          "name": "Os Outros (2001)",
-          "patterns": [
-            "os outros",
-            "the others"
-          ],
-          "year": 2001
-        },
-        {
-          "name": "Ilha do Medo (2010)",
-          "patterns": [
-            "ilha do medo",
-            "shutter island"
-          ],
-          "year": 2010
-        },
-        {
-          "name": "Clube da Luta (1999)",
-          "patterns": [
-            "clube da luta",
-            "fight club"
-          ],
-          "year": 1999
-        },
-        {
-          "name": "Garota Exemplar (2014)",
-          "patterns": [
-            "garota exemplar",
-            "gone girl"
-          ],
-          "year": 2014
-        },
-        {
-          "name": "Seven: Os Sete Crimes Capitais (1995)",
-          "patterns": [
-            "seven",
-            "se7en",
-            "os sete crimes capitais"
-          ],
-          "year": 1995
-        },
-        {
-          "name": "Oldboy (2003)",
-          "patterns": [
-            "oldboy"
-          ],
-          "year": 2003
-        },
-        {
-          "name": "O Nevoeiro (2007)",
-          "patterns": [
-            "o nevoeiro",
-            "the mist"
-          ],
-          "year": 2007
-        },
-        {
-          "name": "Jogos Mortais (2004)",
-          "patterns": [
-            "jogos mortais",
-            "saw"
-          ],
-          "year": 2004,
-          "exclude": [
-            "jogos mortais 2",
-            "saw ii",
-            "saw 2"
-          ]
-        },
-        {
-          "name": "A Órfã (2009)",
-          "patterns": [
-            "a orfa",
-            "a órfã",
-            "orphan"
-          ],
-          "year": 2009,
-          "exclude": [
-            "primeira morte",
-            "first kill"
-          ]
-        },
-        {
-          "name": "Corra! (2017)",
-          "patterns": [
-            "corra",
-            "get out"
-          ],
-          "year": 2017
-        },
-        {
-          "name": "Os Suspeitos (1995)",
-          "patterns": [
-            "os suspeitos",
-            "the usual suspects",
-            "usual suspects"
-          ],
-          "year": 1995
-        }
-      ]
-    },
-    "sort_order": 729
-  },
-  {
-    "id": "ss_heroi_nao_vilao",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
-    ],
-    "tier": "epic",
-    "title": "Sessão Secreta: Herói? Não, Vilão!",
-    "description": "Conquistar pelo menos 5 de 8 filmes que subvertem a figura do super-herói (Meta: 5 de 8 filmes).",
-    "icon": "🦹",
-    "target_type": "secret_session_curated",
-    "target_value": 5,
-    "target_metadata": {
-      "curatedCount": 8,
-      "minTarget": 5,
-      "movies": [
-        {
-          "name": "Brightburn: Filho das Trevas (2019)",
-          "patterns": [
-            "brightburn",
-            "filho das trevas"
-          ],
-          "year": 2019
-        },
-        {
-          "name": "Injustice (2021)",
-          "patterns": [
-            "injustice",
-            "injustica",
-            "injustiça"
-          ],
-          "year": 2021
-        },
-        {
-          "name": "Poder Sem Limites (2012)",
-          "patterns": [
-            "poder sem limites",
-            "chronicle"
-          ],
-          "year": 2012
-        },
-        {
-          "name": "Watchmen: O Filme (2009)",
-          "patterns": [
-            "watchmen"
-          ],
-          "year": 2009
-        },
-        {
-          "name": "Superman: Entre a Foice e o Martelo (2020)",
-          "patterns": [
-            "entre a foice e o martelo",
-            "red son",
-            "superman: red son"
-          ],
-          "year": 2020
-        },
-        {
-          "name": "Liga da Justiça: Deuses e Monstros (2015)",
-          "patterns": [
-            "deuses e monstros",
-            "gods and monsters"
-          ],
-          "year": 2015
-        },
-        {
-          "name": "Megamente (2010)",
-          "patterns": [
-            "megamente",
-            "megamind"
-          ],
-          "year": 2010
-        },
-        {
-          "name": "O Esquadrão Suicida (2021)",
-          "patterns": [
-            "o esquadrao suicida",
-            "o esquadrão suicida",
-            "the suicide squad"
-          ],
-          "year": 2021
-        }
-      ]
-    },
-    "sort_order": 730
-  },
-  {
-    "id": "ss_veja_de_novo_pares",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
-    ],
-    "tier": "epic",
-    "title": "Sessão Secreta: Veja de Novo! (Ambas as Versões Obrigatórias)",
-    "description": "Conquistar pelo menos 3 pares completos assistindo TANTO a versão original/cinema QUANTO o corte do diretor/estendido (Meta: 3 pares completos).",
-    "icon": "🔄",
-    "target_type": "secret_session_pairs",
-    "target_value": 3,
-    "target_metadata": {
-      "minTarget": 3,
-      "totalPairs": 5,
-      "pairs": [
-        {
-          "name": "Par 1: Liga da Justiça (Cinema 2017 & Snyder Cut 2021)",
-          "partA": {
-            "name": "Liga da Justiça (Cinema, 2017)",
-            "patterns": [
-              "liga da justica",
-              "liga da justiça",
-              "justice league"
-            ],
-            "year": 2017,
-            "exclude": [
-              "zack snyder",
-              "snyder cut",
-              "jovens titas",
-              "jovens titãs",
-              "teen titans",
-              "lego",
-              "flashpoint",
-              "deuses e monstros",
-              "dark",
-              "sombria"
-            ]
-          },
-          "partB": {
-            "name": "Liga da Justiça de Zack Snyder (2021)",
-            "patterns": [
-              "liga da justica",
-              "liga da justiça",
-              "justice league"
-            ],
-            "requireAdditionalPatterns": [
-              "zack snyder",
-              "snyder cut"
-            ],
-            "year": 2021
-          }
-        },
-        {
-          "name": "Par 2: Batman vs Superman (Cinema & Edição Definitiva)",
-          "partA": {
-            "name": "Batman vs Superman (Cinema, 2016)",
-            "patterns": [
-              "batman vs superman",
-              "batman v superman"
-            ],
-            "year": 2016,
-            "exclude": [
-              "edicao definitiva",
-              "edição definitiva",
-              "ultimate edition",
-              "estendida",
-              "extended"
-            ]
-          },
-          "partB": {
-            "name": "Batman vs Superman (Edição Definitiva)",
-            "patterns": [
-              "batman vs superman",
-              "batman v superman"
-            ],
-            "requireAdditionalPatterns": [
-              "edicao definitiva",
-              "edição definitiva",
-              "ultimate edition",
-              "estendida",
-              "extended"
-            ]
-          }
-        },
-        {
-          "name": "Par 3: Doutor Sono (Cinema & Corte do Diretor)",
-          "partA": {
-            "name": "Doutor Sono (Cinema, 2019)",
-            "patterns": [
-              "doutor sono",
-              "doctor sleep"
-            ],
-            "year": 2019,
-            "exclude": [
-              "corte do diretor",
-              "director's cut",
-              "directors cut",
-              "estendida",
-              "extended"
-            ]
-          },
-          "partB": {
-            "name": "Doutor Sono (Corte do Diretor)",
-            "patterns": [
-              "doutor sono",
-              "doctor sleep"
-            ],
-            "requireAdditionalPatterns": [
-              "corte do diretor",
-              "director's cut",
-              "directors cut",
-              "estendida",
-              "extended"
-            ]
-          }
-        },
-        {
-          "name": "Par 4: Blade Runner (Cinema 1982 & Final Cut)",
-          "partA": {
-            "name": "Blade Runner (Cinema, 1982)",
-            "patterns": [
-              "blade runner"
-            ],
-            "year": 1982,
-            "exclude": [
-              "final cut",
-              "corte final",
-              "director's cut",
-              "directors cut",
-              "corte do diretor"
-            ]
-          },
-          "partB": {
-            "name": "Blade Runner (Final Cut / Corte do Diretor)",
-            "patterns": [
-              "blade runner"
-            ],
-            "requireAdditionalPatterns": [
-              "final cut",
-              "corte final",
-              "director's cut",
-              "directors cut",
-              "corte do diretor"
-            ]
-          }
-        },
-        {
-          "name": "Par 5: Donnie Darko (Cinema 2001 & Director's Cut)",
-          "partA": {
-            "name": "Donnie Darko (Cinema, 2001)",
-            "patterns": [
-              "donnie darko"
-            ],
-            "year": 2001,
-            "exclude": [
-              "director's cut",
-              "directors cut",
-              "corte do diretor",
-              "estendida",
-              "extended"
-            ]
-          },
-          "partB": {
-            "name": "Donnie Darko (Director's Cut)",
-            "patterns": [
-              "donnie darko"
-            ],
-            "requireAdditionalPatterns": [
-              "director's cut",
-              "directors cut",
-              "corte do diretor",
-              "estendida",
-              "extended"
-            ]
-          }
-        }
-      ]
-    },
-    "sort_order": 731
-  },
-  {
-    "id": "ss_claustrofobia_pura",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
-    ],
-    "tier": "epic",
-    "title": "Sessão Secreta: Claustrofobia Pura: Não Saio Daqui Nem Morto!",
-    "description": "Conquistar pelo menos 5 de 8 filmes passados em um único cômodo ou espaço confinado (Meta: 5 de 8 filmes).",
-    "icon": "📦",
-    "target_type": "secret_session_curated",
-    "target_value": 5,
-    "target_metadata": {
-      "curatedCount": 8,
-      "minTarget": 5,
-      "movies": [
-        {
-          "name": "12 Homens e uma Sentença (1957)",
-          "patterns": [
-            "12 homens e uma sentenca",
-            "12 homens e uma sentença",
-            "12 angry men"
-          ],
-          "year": 1957
-        },
-        {
-          "name": "Por um Fio (2002)",
-          "patterns": [
-            "por um fio",
-            "phone booth"
-          ],
-          "year": 2002
-        },
-        {
-          "name": "Enterrado Vivo (2010)",
-          "patterns": [
-            "enterrado vivo",
-            "buried"
-          ],
-          "year": 2010
-        },
-        {
-          "name": "O Quarto do Pânico (2002)",
-          "patterns": [
-            "quarto do panico",
-            "quarto do pânico",
-            "panic room"
-          ],
-          "year": 2002
-        },
-        {
-          "name": "O Culpado (2018 / 2021)",
-          "patterns": [
-            "o culpado",
-            "the guilty",
-            "den skyldige"
-          ]
-        },
-        {
-          "name": "Janela Indiscreta (1954)",
-          "patterns": [
-            "janela indiscreta",
-            "rear window"
-          ],
-          "year": 1954
-        },
-        {
-          "name": "A Corda (1948)",
-          "patterns": [
-            "a corda",
-            "rope"
-          ],
-          "year": 1948
-        },
-        {
-          "name": "Locke (2013)",
-          "patterns": [
-            "locke"
-          ],
-          "year": 2013
-        }
-      ]
-    },
-    "sort_order": 732
-  },
-  {
-    "id": "ss_whodunit_poirot",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
-    ],
-    "tier": "epic",
-    "title": "Sessão Secreta: Quem Matou?! (Detetive Poirot Mandou Lembranças)",
-    "description": "Conquistar pelo menos 6 de 8 filmes do clássico estilo Whodunit (Meta: 6 de 8 filmes).",
-    "icon": "🕵️",
-    "target_type": "secret_session_curated",
-    "target_value": 6,
-    "target_metadata": {
-      "curatedCount": 8,
-      "minTarget": 6,
-      "movies": [
-        {
-          "name": "Entre Facas e Segredos (2019)",
-          "patterns": [
-            "entre facas e segredos",
-            "knives out"
-          ],
-          "year": 2019
-        },
-        {
-          "name": "Glass Onion: Um Mistério Knives Out (2022)",
-          "patterns": [
-            "glass onion"
-          ],
-          "year": 2022
-        },
-        {
-          "name": "Assassinato no Expresso do Oriente (2017)",
-          "patterns": [
-            "assassinato no expresso do oriente",
-            "murder on the orient express"
-          ],
-          "year": 2017
-        },
-        {
-          "name": "Morte no Nilo (2022)",
-          "patterns": [
-            "morte no nilo",
-            "death on the nile"
-          ],
-          "year": 2022
-        },
-        {
-          "name": "Os 8 Odiados (2015)",
-          "patterns": [
-            "os 8 odiados",
-            "os oito odiados",
-            "the hateful eight"
-          ],
-          "year": 2015
-        },
-        {
-          "name": "Os Sete Suspeitos (1985)",
-          "patterns": [
-            "os sete suspeitos",
-            "clue"
-          ],
-          "year": 1985
-        },
-        {
-          "name": "Veja Como Eles Dançam (2022)",
-          "patterns": [
-            "veja como eles dancam",
-            "veja como eles dançam",
-            "see how they run"
-          ],
-          "year": 2022
-        },
-        {
-          "name": "A Noite das Bruxas (2023)",
-          "patterns": [
-            "a noite das bruxas",
-            "a haunting in venice"
-          ],
-          "year": 2023
-        }
-      ]
-    },
-    "sort_order": 733
-  },
-  {
-    "id": "ss_filme_virou_serie",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
-    ],
-    "tier": "gold",
-    "title": "Sessão Secreta: O Filme É Melhor? (Das Telonas para as Telinhas)",
-    "description": "Conquistar pelo menos 6 de 10 filmes que deram origem a séries famosas de TV ou spin-offs (Meta: 6 de 10 filmes).",
-    "icon": "📺",
-    "target_type": "secret_session_curated",
-    "target_value": 6,
-    "target_metadata": {
-      "curatedCount": 10,
-      "minTarget": 6,
-      "movies": [
-        {
-          "name": "O Que Fazemos nas Sombras (2014)",
-          "patterns": [
-            "o que fazemos nas sombras",
-            "what we do in the shadows"
-          ],
-          "year": 2014
-        },
-        {
-          "name": "Fargo (1996)",
-          "patterns": [
-            "fargo"
-          ],
-          "year": 1996
-        },
-        {
-          "name": "Psicose (1960)",
-          "patterns": [
-            "psicose",
-            "psycho"
-          ],
-          "year": 1960
-        },
-        {
-          "name": "Karatê Kid: A Hora da Verdade (1984)",
-          "patterns": [
-            "karate kid",
-            "karatê kid",
-            "the karate kid"
-          ],
-          "year": 1984
-        },
-        {
-          "name": "Expresso do Amanhã (2013)",
-          "patterns": [
-            "expresso do amanha",
-            "expresso do amanhã",
-            "snowpiercer"
-          ],
-          "year": 2013
-        },
-        {
-          "name": "Westworld: Onde Ninguém Tem Alma (1973)",
-          "patterns": [
-            "westworld"
-          ],
-          "year": 1973
-        },
-        {
-          "name": "Pânico (1996)",
-          "patterns": [
-            "panico",
-            "pânico",
-            "scream"
-          ],
-          "year": 1996,
-          "exclude": [
-            "pânico 2",
-            "pânico 3",
-            "pânico 4",
-            "pânico 5",
-            "pânico 6",
-            "scream 2",
-            "scream 3",
-            "scream 4",
-            "scream 5",
-            "scream 6"
-          ]
-        },
-        {
-          "name": "Brinquedo Assassino (1988)",
-          "patterns": [
-            "brinquedo assassino",
-            "child's play",
-            "childs play"
-          ],
-          "year": 1988,
-          "exclude": [
-            "brinquedo assassino 2",
-            "brinquedo assassino 3",
-            "child's play 2",
-            "child's play 3"
-          ]
-        },
-        {
-          "name": "Sem Limites (2011)",
-          "patterns": [
-            "sem limites",
-            "limitless"
-          ],
-          "year": 2011
-        },
-        {
-          "name": "Duna (2021)",
-          "patterns": [
-            "duna",
-            "dune"
-          ],
-          "year": 2021,
-          "exclude": [
-            "parte dois",
-            "part two",
-            "duna 2",
-            "dune 2"
-          ]
-        }
-      ]
-    },
-    "sort_order": 734
-  },
-  {
-    "id": "ss_infancia_guerra_dor",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
-    ],
-    "tier": "gold",
-    "title": "Sessão Secreta: Estou Chocado! (Infância Roubada na Guerra e na Dor)",
-    "description": "Conquistar pelo menos 6 de 10 filmes densos sobre crianças em contextos de guerra ou tragédia extrema (Meta: 6 de 10 filmes).",
-    "icon": "💔",
-    "target_type": "secret_session_curated",
-    "target_value": 6,
-    "target_metadata": {
-      "curatedCount": 10,
-      "minTarget": 6,
-      "movies": [
-        {
-          "name": "A Infância de Ivan (1962)",
-          "patterns": [
-            "a infancia de ivan",
-            "a infância de ivan",
-            "ivan's childhood",
-            "ivans childhood"
-          ],
-          "year": 1962
-        },
-        {
-          "name": "Vá e Veja (1985)",
-          "patterns": [
-            "va e veja",
-            "vá e veja",
-            "come and see",
-            "idi i smotri"
-          ],
-          "year": 1985
-        },
-        {
-          "name": "Beasts of No Nation (2015)",
-          "patterns": [
-            "beasts of no nation"
-          ],
-          "year": 2015
-        },
-        {
-          "name": "Close (2022)",
-          "patterns": [
-            "close"
-          ],
-          "year": 2022
-        },
-        {
-          "name": "Túmulo dos Vagalumes (1988)",
-          "patterns": [
-            "tumulo dos vagalumes",
-            "túmulo dos vagalumes",
-            "grave of the fireflies",
-            "hotaru no haka"
-          ],
-          "year": 1988
-        },
-        {
-          "name": "O Menino do Pijama Listrado (2008)",
-          "patterns": [
-            "o menino do pijama listrado",
-            "the boy in the striped pajamas"
-          ],
-          "year": 2008
-        },
-        {
-          "name": "Cafarnaum (2018)",
-          "patterns": [
-            "cafarnaum",
-            "capernaum",
-            "capharnaum"
-          ],
-          "year": 2018
-        },
-        {
-          "name": "Jojo Rabbit (2019)",
-          "patterns": [
-            "jojo rabbit"
-          ],
-          "year": 2019
-        },
-        {
-          "name": "Império do Sol (1987)",
-          "patterns": [
-            "imperio do sol",
-            "império do sol",
-            "empire of the sun"
-          ],
-          "year": 1987
-        },
-        {
-          "name": "Cidade de Deus (2002)",
-          "patterns": [
-            "cidade de deus",
-            "city of god"
-          ],
-          "year": 2002
-        }
-      ]
-    },
-    "sort_order": 735
-  },
-  {
-    "id": "ss_sessao_da_tarde_classicos",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
-    ],
-    "tier": "gold",
-    "title": "Sessão Secreta: A Tarde Toda! (Uma Turma da Pesada Aprontando Altas Confusões)",
-    "description": "Conquistar pelo menos 9 de 12 clássicos absolutos da Sessão da Tarde (Meta: 9 de 12 filmes).",
-    "icon": "🍿",
-    "target_type": "secret_session_curated",
-    "target_value": 9,
-    "target_metadata": {
-      "curatedCount": 12,
-      "minTarget": 9,
-      "movies": [
-        {
-          "name": "A Lagoa Azul (1980)",
-          "patterns": [
-            "a lagoa azul",
-            "the blue lagoon"
-          ],
-          "year": 1980
-        },
-        {
-          "name": "Curtindo a Vida Adoidado (1986)",
-          "patterns": [
-            "curtindo a vida adoidado",
-            "ferris bueller's day off",
-            "ferris bueller"
-          ],
-          "year": 1986
-        },
-        {
-          "name": "Matilda (1996)",
-          "patterns": [
-            "matilda"
-          ],
-          "year": 1996
-        },
-        {
-          "name": "Esqueceram de Mim (1990)",
-          "patterns": [
-            "esqueceram de mim",
-            "home alone"
-          ],
-          "year": 1990,
-          "exclude": [
-            "esqueceram de mim 2",
-            "home alone 2"
-          ]
-        },
-        {
-          "name": "Ghost: Do Outro Lado da Vida (1990)",
-          "patterns": [
-            "ghost",
-            "do outro lado da vida"
-          ],
-          "year": 1990
-        },
-        {
-          "name": "As Branquelas (2004)",
-          "patterns": [
-            "as branquelas",
-            "white chicks"
-          ],
-          "year": 2004
-        },
-        {
-          "name": "Jumanji (1995)",
-          "patterns": [
-            "jumanji"
-          ],
-          "year": 1995,
-          "exclude": [
-            "bem-vindo a selva",
-            "proxima fase"
-          ]
-        },
-        {
-          "name": "De Volta para o Futuro (1985)",
-          "patterns": [
-            "de volta para o futuro",
-            "back to the future"
-          ],
-          "year": 1985,
-          "exclude": [
-            "parte ii",
-            "parte 2",
-            "part ii",
-            "part 2",
-            "parte iii",
-            "parte 3",
-            "part iii",
-            "part 3"
-          ]
-        },
-        {
-          "name": "Querida, Encolhi as Crianças (1989)",
-          "patterns": [
-            "querida encolhi as criancas",
-            "querida, encolhi as crianças",
-            "honey, i shrunk the kids",
-            "honey i shrunk the kids"
-          ],
-          "year": 1989
-        },
-        {
-          "name": "Karatê Kid: A Hora da Verdade (1984)",
-          "patterns": [
-            "karate kid",
-            "karatê kid",
-            "the karate kid"
-          ],
-          "year": 1984
-        },
-        {
-          "name": "Meu Primeiro Amor (1991)",
-          "patterns": [
-            "meu primeiro amor",
-            "my girl"
-          ],
-          "year": 1991
-        },
-        {
-          "name": "Os Goonies (1985)",
-          "patterns": [
-            "os goonies",
-            "the goonies",
-            "goonies"
-          ],
-          "year": 1985
-        }
-      ]
-    },
-    "sort_order": 736
-  },
-  {
-    "id": "ss_mestre_dos_golpes",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
-    ],
-    "tier": "gold",
-    "title": "Sessão Secreta: O Mestre dos Golpes: Me Engana que Eu Gosto!",
-    "description": "Conquistar pelo menos 6 de 8 filmes de trapaceiros, vigaristas e grandes golpes (Meta: 6 de 8 filmes).",
-    "icon": "🃏",
-    "target_type": "secret_session_curated",
-    "target_value": 6,
-    "target_metadata": {
-      "curatedCount": 8,
-      "minTarget": 6,
-      "movies": [
-        {
-          "name": "Prenda-me Se For Capaz (2002)",
-          "patterns": [
-            "prenda-me se for capaz",
-            "prenda me se for capaz",
-            "catch me if you can"
-          ],
-          "year": 2002
-        },
-        {
-          "name": "O Lobo de Wall Street (2013)",
-          "patterns": [
-            "o lobo de wall street",
-            "lobo de wall street",
-            "the wolf of wall street"
-          ],
-          "year": 2013
-        },
-        {
-          "name": "Onze Homens e um Segredo (2001)",
-          "patterns": [
-            "onze homens e um segredo",
-            "ocean's eleven",
-            "oceans eleven"
-          ],
-          "year": 2001
-        },
-        {
-          "name": "Truque de Mestre (2013)",
-          "patterns": [
-            "truque de mestre",
-            "now you see me"
-          ],
-          "year": 2013,
-          "exclude": [
-            "segundo ato",
-            "second act",
-            "now you see me 2"
-          ]
-        },
-        {
-          "name": "Trapaça (2013)",
-          "patterns": [
-            "trapaca",
-            "trapaça",
-            "american hustle"
-          ],
-          "year": 2013
-        },
-        {
-          "name": "Golpe de Mestre (1973)",
-          "patterns": [
-            "golpe de mestre",
-            "the sting"
-          ],
-          "year": 1973
-        },
-        {
-          "name": "Foco (2015)",
-          "patterns": [
-            "foco",
-            "focus"
-          ],
-          "year": 2015
-        },
-        {
-          "name": "Os Vigaristas (2003)",
-          "patterns": [
-            "os vigaristas",
-            "matchstick men"
-          ],
-          "year": 2003
-        }
-      ]
-    },
-    "sort_order": 737
-  },
-  {
-    "id": "ss_paranoia_total",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
-    ],
-    "tier": "gold",
-    "title": "Sessão Secreta: Paranoia Total: É Real ou Tá na Minha Cabeça?!",
-    "description": "Conquistar pelo menos 6 de 8 filmes de delírio psicológico e quebra de realidade (Meta: 6 de 8 filmes).",
-    "icon": "🌀",
-    "target_type": "secret_session_curated",
-    "target_value": 6,
-    "target_metadata": {
-      "curatedCount": 8,
-      "minTarget": 6,
-      "movies": [
-        {
-          "name": "A Origem (2010)",
-          "patterns": [
-            "a origem",
-            "inception"
-          ],
-          "year": 2010
-        },
-        {
-          "name": "Cisne Negro (2010)",
-          "patterns": [
-            "cisne negro",
-            "black swan"
-          ],
-          "year": 2010
-        },
-        {
-          "name": "Brilho Eterno de uma Mente Sem Lembranças (2004)",
-          "patterns": [
-            "brilho eterno de uma mente sem lembrancas",
-            "brilho eterno de uma mente sem lembranças",
-            "eternal sunshine of the spotless mind",
-            "brilho eterno"
-          ],
-          "year": 2004
-        },
-        {
-          "name": "O Operário (2004)",
-          "patterns": [
-            "o operario",
-            "o operário",
-            "the machinist"
-          ],
-          "year": 2004
-        },
-        {
-          "name": "Amnésia (2000)",
-          "patterns": [
-            "amnesia",
-            "amnésia",
-            "memento"
-          ],
-          "year": 2000
-        },
-        {
-          "name": "Réquiem para um Sonho (2000)",
-          "patterns": [
-            "requiem para um sonho",
-            "réquiem para um sonho",
-            "requiem for a dream"
-          ],
-          "year": 2000
-        },
-        {
-          "name": "Psicopata Americano (2000)",
-          "patterns": [
-            "psicopata americano",
-            "american psycho"
-          ],
-          "year": 2000
-        },
-        {
-          "name": "Vanilla Sky (2001)",
-          "patterns": [
-            "vanilla sky"
-          ],
-          "year": 2001
-        }
-      ]
-    },
-    "sort_order": 738
-  },
-  {
-    "id": "ss_dicionario_az_26",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
-    ],
-    "tier": "mythic",
-    "title": "Sessão Secreta: O Dicionário Completo de A a Z!",
-    "description": "Conquistar pelo menos 1 filme que inicie com CADA UMA das 26 letras do alfabeto, de A até Z (26 letras no checklist).",
-    "icon": "🔤",
-    "target_type": "alphabet_az_coverage",
-    "target_value": 26,
-    "target_metadata": {
-      "targetLetters": 26
-    },
-    "sort_order": 739
-  },
-  {
-    "id": "tc_folha_em_branco_15",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo"
-    ],
-    "tier": "bronze",
-    "title": "DNA Cinéfilo: Ué, uma Folha em Branco?!",
-    "description": "Conquistar 15 filmes cadastrados que possuam exatamente 0 tags customizadas vinculadas (15 filmes).",
-    "icon": "📄",
-    "target_type": "movie_zero_tags_count",
-    "target_value": 15,
-    "target_metadata": {
-      "tagCount": 0
-    },
-    "sort_order": 761
-  },
-  {
-    "id": "tc_em_familia_10",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo"
-    ],
-    "tier": "bronze",
-    "title": "DNA Cinéfilo: O Clã Reunido na Frente da TV!",
-    "description": "Conquistar 10 filmes cadastrados com a tag Em Família (10 filmes).",
-    "icon": "👨‍👩‍👧‍👦",
-    "target_type": "tag_movie_count",
-    "target_value": 10,
-    "target_metadata": {
-      "tags": [
-        "Em Família"
-      ]
-    },
-    "sort_order": 762
-  },
-  {
-    "id": "tc_em_familia_terror_5",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema"
-    ],
-    "tier": "bronze",
-    "title": "Susto Compartilhado (Segura no Meu Braço!)",
-    "description": "Conquistar 5 filmes do gênero Terror que possuam a tag Em Família (5 filmes).",
-    "icon": "😱",
-    "target_type": "genre_tag_and",
-    "target_value": 5,
-    "target_metadata": {
-      "genre": "Terror",
-      "tag": "Em Família"
-    },
-    "sort_order": 763
-  },
-  {
-    "id": "tc_em_familia_natal_3",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "data_limite"
-    ],
-    "tier": "bronze",
-    "title": "Ceia de Natal com Cinema e Família",
-    "description": "Conquistar 3 filmes com a tag Em Família que tenham a tag Natal OU tenham sido assistidos no mês de Dezembro (3 filmes).",
-    "icon": "🎄",
-    "target_type": "tag_and_tag_or_month",
-    "target_value": 3,
-    "target_metadata": {
-      "tag": "Em Família",
-      "orTag": "Natal",
-      "orMonth": 12
-    },
-    "sort_order": 764
-  },
-  {
-    "id": "tc_em_familia_cinema_10",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "ritual_cinefilo"
-    ],
-    "tier": "silver",
-    "title": "Pipoca Dividida (Disputa de Balde na Fileira F)",
-    "description": "Conquistar 10 filmes com a tag Em Família assistidos diretamente no Cinema (10 filmes).",
-    "icon": "🍿",
-    "target_type": "tag_platform_count",
-    "target_value": 10,
-    "target_metadata": {
-      "tag": "Em Família",
-      "platform": "Cinema"
-    },
-    "sort_order": 765
-  },
-  {
-    "id": "tc_em_familia_nota_85_10",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "tribunal_critica"
-    ],
-    "tier": "silver",
-    "title": "Todos Estavam Aplaudindo ou Fui Só Eu Mesmo?!",
-    "description": "Conquistar 10 filmes com a tag Em Família cuja Minha Nota seja maior ou igual a 8.500 (10 filmes).",
-    "icon": "👏",
-    "target_type": "tag_min_rating_count",
-    "target_value": 10,
-    "target_metadata": {
-      "tag": "Em Família",
-      "minRating": 8500
-    },
-    "sort_order": 766
-  },
-  {
-    "id": "tc_em_familia_estrangeiro_5",
-    "category": "volta_ao_mundo",
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo"
-    ],
-    "tier": "silver",
-    "title": "Melhor que Duolingo (Legenda Coletiva)",
-    "description": "Conquistar 5 filmes com a tag Em Família produzidos fora do Brasil e fora dos Estados Unidos (5 filmes).",
-    "icon": "🗣️",
-    "target_type": "tag_non_br_us_count",
-    "target_value": 5,
-    "target_metadata": {
-      "tag": "Em Família"
-    },
-    "sort_order": 767
-  },
-  {
-    "id": "tc_em_familia_agosto_5",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "data_limite"
-    ],
-    "tier": "silver",
-    "title": "Festa de Aniversário com a Galera!",
-    "description": "Conquistar 5 filmes com a tag Em Família assistidos no mês de Agosto (5 filmes).",
-    "icon": "🎂",
-    "target_type": "tag_month",
-    "target_value": 5,
-    "target_metadata": {
-      "tag": "Em Família",
-      "month": 8
-    },
-    "sort_order": 768
-  },
-  {
-    "id": "tc_em_familia_streaming_15",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "ritual_cinefilo"
-    ],
-    "tier": "silver",
-    "title": "Sessão da Tarde no Sofá de Casa",
-    "description": "Conquistar 15 filmes com a tag Em Família assistidos em plataformas de streaming oficiais (Netflix, Prime Video, HBO Max, Disney+, Star+ ou Apple TV+) (15 filmes).",
-    "icon": "🛋️",
-    "target_type": "tag_official_streaming_count",
-    "target_value": 15,
-    "target_metadata": {
-      "tag": "Em Família"
-    },
-    "sort_order": 769
-  },
-  {
-    "id": "tc_em_familia_marvel_dc_5",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo"
-    ],
-    "tier": "silver",
-    "title": "Maratona dos Heróis com a Turma",
-    "description": "Conquistar 5 filmes com a tag Em Família que também possuam a tag Marvel ou DC (5 filmes).",
-    "icon": "🦸‍♂️",
-    "target_type": "tag_and_any_of_tags",
-    "target_value": 5,
-    "target_metadata": {
-      "tag": "Em Família",
-      "orTags": [
-        "Marvel",
-        "DC"
-      ]
-    },
-    "sort_order": 770
-  },
-  {
-    "id": "tc_em_familia_emocionante_10",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema"
-    ],
-    "tier": "silver",
-    "title": "Choro Coletivo na Sala (Ninguém Escondeu a Lágrima)",
-    "description": "Conquistar 10 filmes que possuam simultaneamente a tag Em Família e a tag Emocionante (10 filmes).",
-    "icon": "😭",
-    "target_type": "tag_double_and",
-    "target_value": 10,
-    "target_metadata": {
-      "tags": [
-        "Em Família",
-        "Emocionante"
-      ]
-    },
-    "sort_order": 771
-  },
-  {
-    "id": "tc_em_familia_nota_90_5",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "tribunal_critica"
-    ],
-    "tier": "epic",
-    "title": "Debate de Cozinha Pós-Créditos (Unanimidade Máxima)",
-    "description": "Conquistar 5 filmes com a tag Em Família avaliados com Minha Nota maior ou igual a 9.000 (5 filmes).",
-    "icon": "🍽️",
-    "target_type": "tag_min_rating_count",
-    "target_value": 5,
-    "target_metadata": {
-      "tag": "Em Família",
-      "minRating": 9000
-    },
-    "sort_order": 772
-  },
-  {
-    "id": "tc_em_familia_paises_5",
-    "category": "volta_ao_mundo",
-    "categories": [
-      "volta_ao_mundo",
-      "dna_cinefilo"
-    ],
-    "tier": "epic",
-    "title": "Conexão Sem Fronteiras com a Galera",
-    "description": "Conquistar filmes com a tag Em Família cobrindo pelo menos 5 países diferentes no Desafio dos 195 (país de origem único) (5 países).",
-    "icon": "🌐",
-    "target_type": "tag_distinct_countries_count",
-    "target_value": 5,
-    "target_metadata": {
-      "tag": "Em Família"
-    },
-    "sort_order": 773
-  },
-  {
-    "id": "tc_muitas_tags_7_30",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo"
-    ],
-    "tier": "gold",
-    "title": "DNA Cinéfilo: Isso Aqui É uma Loucura Generalizada!",
-    "description": "Conquistar 30 filmes cadastrados que possuam 7 ou mais tags customizadas vinculadas no mesmo filme (30 filmes).",
-    "icon": "🌪️",
-    "target_type": "movies_min_tags_count",
-    "target_value": 30,
-    "target_metadata": {
-      "minTags": 7
-    },
-    "sort_order": 774
-  },
-  {
-    "id": "tc_em_familia_45",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo"
-    ],
-    "tier": "gold",
-    "title": "DNA Cinéfilo: Tudo É Bem Melhor com Amigos e Família!",
-    "description": "Conquistar 45 filmes cadastrados com a tag Em Família (45 filmes).",
-    "icon": "🥳",
-    "target_type": "tag_movie_count",
-    "target_value": 45,
-    "target_metadata": {
-      "tags": [
-        "Em Família"
-      ]
-    },
-    "sort_order": 775
-  },
-  {
-    "id": "tc_you_died_terror_tragico_nota_3",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "tribunal_critica"
-    ],
-    "tier": "epic",
-    "title": "YOU DIED! (Nem com Guia do Detonado)",
-    "description": "Conquistar 3 filmes que combinem simultaneamente o gênero Terror, a tag Trágico e Minha Nota estritamente maior que 8.500 (3 filmes).",
-    "icon": "💀",
-    "target_type": "terror_tragico_min_rating",
-    "target_value": 3,
-    "target_metadata": {
-      "genre": "Terror",
-      "tag": "Trágico",
-      "minRating": 8500
-    },
-    "sort_order": 779
-  },
-  {
-    "id": "tc_achou_errado_rt_lt40_ur_gte80_5",
-    "category": "tribunal_critica",
-    "categories": [
-      "tribunal_critica"
-    ],
-    "tier": "silver",
-    "title": "Achou Errado, Otário! (Doutor em Transporte Alternativo)",
-    "description": "Conquistar 5 filmes onde o Rotten Tomatoes esteja cadastrado/válido abaixo de 40%, mas a Minha Nota pessoal seja maior ou igual a 8.000 (5 filmes).",
-    "icon": "🚐",
-    "target_type": "rt_lt_ur_gte_count",
-    "target_value": 5,
-    "target_metadata": {
-      "maxRt": 40,
-      "minRating": 8000
-    },
-    "sort_order": 780
-  },
-  {
-    "id": "tc_press_f_tragico_emocionante_fisica_5",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "ritual_cinefilo"
-    ],
-    "tier": "silver",
-    "title": "Press F to Pay Respects",
-    "description": "Conquistar 5 filmes que possuam a tag pessoal Trágico OU a tag pessoal Emocionante, assistidos em mídia física (Blu-ray ou DVD) (5 filmes).",
-    "icon": "⌨️",
-    "target_type": "tags_or_physical_media_count",
-    "target_value": 5,
-    "target_metadata": {
-      "orTags": [
-        "Trágico",
-        "Emocionante"
-      ]
-    },
-    "sort_order": 781
-  },
-  {
-    "id": "tc_ah_shit_repetido_crime_acao_1990_2004_1",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "ritual_cinefilo"
-    ],
-    "tier": "bronze",
-    "title": "Ah Shit, Here We Go Again... (CJ de Volta ao Bairro)",
-    "description": "Conquistar 1 filme que possua a tag Repetido, pertença ao gênero Crime OU Ação, e tenha ano de lançamento situado entre 1990 e 2004 (1 filme).",
-    "icon": "🚲",
-    "target_type": "tag_and_genres_or_year_range",
-    "target_value": 1,
-    "target_metadata": {
-      "tag": "Repetido",
-      "orGenres": [
-        "Crime",
-        "Ação"
-      ],
-      "minYear": 1990,
-      "maxYear": 2004
-    },
-    "sort_order": 782
-  },
-  {
-    "id": "tc_triforce_do_cinema",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "ritual_cinefilo",
-      "tribunal_critica"
-    ],
-    "tier": "mythic",
-    "title": "A Triforce do Cinema (As Três Virtudes de Hyrule)",
-    "description": "Cumprir os 30 marcos do checklist das três virtudes de Hyrule (30 filmes): 10 de Ação/Guerra (>140m), 10 de Doc/Hist/Bio (Nota >= 8.0) e 10 de Terror com Demônio/Gore/Fantasma.",
-    "icon": "🔺",
-    "target_type": "hyrule_triforce_checklist",
-    "target_value": 30,
-    "target_metadata": {
-      "poderTarget": 10,
-      "sabedoriaTarget": 10,
-      "coragemTarget": 10
-    },
-    "sort_order": 783
-  },
-  {
-    "id": "tc_magia_profunda_bruxa_decadas",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "ritual_cinefilo"
-    ],
-    "tier": "mythic",
-    "title": "Não me cite a Magia Profunda, Bruxa. Eu estava lá quando ela foi escrita.",
-    "description": "Conquistar pelo menos 1 filme com a tag Bruxo em cada uma das 8 décadas entre 1960s e 2030s (1960s, 1970s, 1980s, 1990s, 2000s, 2010s, 2020s, 2030s) (8 décadas no checklist).",
-    "icon": "🧙‍♀️",
-    "target_type": "tag_decades_checklist",
-    "target_value": 8,
-    "target_metadata": {
-      "tag": "Bruxo",
-      "decades": [
-        1960,
-        1970,
-        1980,
-        1990,
-        2000,
-        2010,
-        2020,
-        2030
-      ]
-    },
-    "sort_order": 784
-  },
-  {
-    "id": "ss_gotta_go_fast",
-    "category": "sessao_secreta",
-    "categories": [
-      "sessao_secreta"
-    ],
-    "tier": "gold",
-    "title": "Sessão Secreta: Gotta Go Fast!",
-    "description": "Conquistar pelo menos 14 dos 20 filmes da lista curada de velocistas e aceleração extrema (Meta: 14 de 20 / 70%).",
-    "icon": "🦔",
-    "target_type": "secret_session_curated",
-    "target_value": 14,
-    "target_metadata": {
-      "curatedCount": 20,
-      "minTarget": 14,
-      "movies": [
-        {
-          "name": "Sonic: O Filme (2020)",
-          "patterns": [
-            "sonic: o filme",
-            "sonic o filme",
-            "sonic the hedgehog"
-          ],
-          "year": 2020,
-          "exclude": [
-            "sonic 2",
-            "sonic 3",
-            "sonic the hedgehog 2",
-            "sonic the hedgehog 3"
-          ]
-        },
-        {
-          "name": "Sonic 2: O Filme (2022)",
-          "patterns": [
-            "sonic 2",
-            "sonic the hedgehog 2"
-          ],
-          "year": 2022
-        },
-        {
-          "name": "Sonic 3: O Filme (2024)",
-          "patterns": [
-            "sonic 3",
-            "sonic the hedgehog 3"
-          ],
-          "year": 2024
-        },
-        {
-          "name": "The Flash (2023)",
-          "patterns": [
-            "the flash",
-            "flash"
-          ],
-          "year": 2023
-        },
-        {
-          "name": "X-Men: Dias de um Futuro Esquecido (2014)",
-          "patterns": [
-            "dias de um futuro esquecido",
-            "days of future past"
-          ]
-        },
-        {
-          "name": "X-Men: Apocalipse (2016)",
-          "patterns": [
-            "x-men: apocalipse",
-            "x-men apocalipse",
-            "x-men: apocalypse",
-            "x-men apocalypse"
-          ]
-        },
-        {
-          "name": "X-Men: Fênix Negra (2019)",
-          "patterns": [
-            "fênix negra",
-            "fenix negra",
-            "dark phoenix"
-          ]
-        },
-        {
-          "name": "Vingadores: Era de Ultron (2015)",
-          "patterns": [
-            "era de ultron",
-            "age of ultron"
-          ]
-        },
-        {
-          "name": "Os Incríveis (2004)",
-          "patterns": [
-            "os incríveis",
-            "os incriveis",
-            "the incredibles"
-          ],
-          "year": 2004,
-          "exclude": [
-            "os incríveis 2",
-            "os incriveis 2",
-            "the incredibles 2",
-            "incredibles 2"
-          ]
-        },
-        {
-          "name": "Os Incríveis 2 (2018)",
-          "patterns": [
-            "os incríveis 2",
-            "os incriveis 2",
-            "the incredibles 2",
-            "incredibles 2"
-          ],
-          "year": 2018
-        },
-        {
-          "name": "Eternos (2021)",
-          "patterns": [
-            "eternos",
-            "eternals"
-          ],
-          "year": 2021
-        },
-        {
-          "name": "Liga da Justiça de Zack Snyder (2021)",
-          "patterns": [
-            "liga da justiça de zack snyder",
-            "liga da justica de zack snyder",
-            "zack snyder's justice league",
-            "snyder cut"
-          ],
-          "year": 2021
-        },
-        {
-          "name": "Turbo (2013)",
-          "patterns": [
-            "turbo"
-          ],
-          "year": 2013
-        },
-        {
-          "name": "Sky High: Super Escola de Heróis (2005)",
-          "patterns": [
-            "sky high",
-            "super escola de heróis",
-            "super escola de herois"
-          ]
-        },
-        {
-          "name": "Shazam! (2019)",
-          "patterns": [
-            "shazam"
-          ],
-          "year": 2019,
-          "exclude": [
-            "fúria dos deuses",
-            "furia dos deuses",
-            "fury of the gods"
-          ]
-        },
-        {
-          "name": "Shazam! Fúria dos Deuses (2023)",
-          "patterns": [
-            "fúria dos deuses",
-            "furia dos deuses",
-            "fury of the gods"
-          ]
-        },
-        {
-          "name": "Detona Ralph (2012)",
-          "patterns": [
-            "detona ralph",
-            "wreck-it ralph"
-          ],
-          "exclude": [
-            "quebra a internet",
-            "breaks the internet",
-            "detona ralph 2"
-          ]
-        },
-        {
-          "name": "Space Jam: O Jogo do Século (1996)",
-          "patterns": [
-            "space jam: o jogo do século",
-            "space jam o jogo do seculo",
-            "space jam"
-          ],
-          "year": 1996,
-          "exclude": [
-            "um novo legado",
-            "a new legacy"
-          ]
-        },
-        {
-          "name": "Looney Tunes: De Volta à Ação (2003)",
-          "patterns": [
-            "de volta à ação",
-            "de volta a acao",
-            "back in action"
-          ]
-        },
-        {
-          "name": "Forrest Gump: O Contador de Histórias (1994)",
-          "patterns": [
-            "forrest gump"
-          ],
-          "year": 1994
-        }
-      ]
-    },
-    "sort_order": 785
-  },
-  {
-    "id": "tc_new_game_plus_repetido_nota_9",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "tribunal_critica"
-    ],
-    "tier": "gold",
-    "title": "New Game+ (A Revanche dos Veteranos)",
-    "description": "Conquistar 5 filmes cadastrados com a tag Repetido cuja Minha Nota seja maior ou igual a 9.000 (5 filmes).",
-    "icon": "🔁",
-    "target_type": "tag_min_rating_count",
-    "target_value": 5,
-    "target_metadata": {
-      "tag": "Repetido",
-      "minRating": 9000
-    },
-    "sort_order": 786
-  },
-  {
-    "id": "tc_konami_code_acao_aventura_1980s_30",
-    "category": "anatomia_cinema",
-    "categories": [
-      "anatomia_cinema",
-      "ritual_cinefilo"
-    ],
-    "tier": "gold",
-    "title": "Konami Code: 30 Vidas no Cineclube!",
-    "description": "Conquistar 30 filmes dos gêneros Ação ou Aventura lançados na década de 1980 (entre 1980 e 1989) (30 filmes).",
-    "icon": "🎮",
-    "target_type": "genres_or_decade_range_count",
-    "target_value": 30,
-    "target_metadata": {
-      "genres": [
-        "Ação",
-        "Aventura"
-      ],
-      "minYear": 1980,
-      "maxYear": 1989
-    },
-    "sort_order": 787
-  },
-  {
-    "id": "tc_666_sessao_do_capeta",
-    "category": "tribunal_critica",
-    "categories": [
-      "tribunal_critica"
-    ],
-    "tier": "epic",
-    "title": "666: Sessão do Capeta (A Besta Mediana do Purgatório)",
-    "description": "Conquistar 6 filmes onde pelo menos 3 notas distintas (entre Rotten Tomatoes, Metacritic, IMDb e Minha Nota) estejam na faixa do \"6\" (60% a 69% ou 6.0 a 6.9) (6 filmes).",
-    "icon": "🤘",
-    "target_type": "multi_critic_range_count",
-    "target_value": 6,
-    "target_metadata": {
-      "digit": 6,
-      "minDistinctMetrics": 3
-    },
-    "sort_order": 788
-  },
-  {
-    "id": "tc_climao_almoco_domingo",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema"
-    ],
-    "tier": "epic",
-    "title": "Climão no Almoço de Domingo (Chama a Christina Rocha!)",
-    "description": "Conquistar 10 filmes do gênero Drama que possuam a tag Em família combinada com a tag Abuso familiar OU Preconceito (10 filmes).",
-    "icon": "🛋️",
-    "target_type": "genre_and_tag_and_any_tag",
-    "target_value": 10,
-    "target_metadata": {
-      "genre": "Drama",
-      "requiredTag": "Em Família",
-      "orTags": [
-        "Abuso Familiar",
-        "Preconceito"
-      ]
-    },
-    "sort_order": 789
-  },
-  {
-    "id": "tc_e_morreu_terror_suspense_tragico_final_epico",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema"
-    ],
-    "tier": "epic",
-    "title": "E Morreu... (Sem Direito a Checkpoint)",
-    "description": "Conquistar 30 filmes do gênero Terror ou Suspense que possuam simultaneamente a tag Trágico e a tag Final epico (30 filmes).",
-    "icon": "💀",
-    "target_type": "genres_or_and_tags_and",
-    "target_value": 30,
-    "target_metadata": {
-      "genres": [
-        "Terror",
-        "Suspense"
-      ],
-      "requiredTags": [
-        "Trágico",
-        "Final Epico"
-      ]
-    },
-    "sort_order": 790
-  },
-  {
-    "id": "tc_333_o_meio_besta",
-    "category": "tribunal_critica",
-    "categories": [
-      "tribunal_critica"
-    ],
-    "tier": "silver",
-    "title": "333: O Meio-Besta (Nem o Diabo Quis Completo)",
-    "description": "Conquistar 3 filmes onde pelo menos 3 notas distintas (entre Rotten Tomatoes, Metacritic, IMDb e Minha Nota) estejam na faixa do \"3\" (30% a 39% ou 3.0 a 3.9) (3 filmes).",
-    "icon": "🐐",
-    "target_type": "multi_critic_range_count",
-    "target_value": 3,
-    "target_metadata": {
-      "digit": 3,
-      "minDistinctMetrics": 3
-    },
-    "sort_order": 791
-  },
-  {
-    "id": "tc_milagre_industria_baseado_jogo_nota_8",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "tribunal_critica"
-    ],
-    "tier": "silver",
-    "title": "Milagre na Indústria: Essa Adaptação Ficou Boa?!",
-    "description": "Conquistar 3 filmes com a tag Baseado em jogo onde a Minha Nota seja igual ou superior a 8.000 (3 filmes).",
-    "icon": "👾",
-    "target_type": "tag_min_rating_count",
-    "target_value": 3,
-    "target_metadata": {
-      "tag": "Baseado em jogo",
-      "minRating": 8000
-    },
-    "sort_order": 792
-  },
-  {
-    "id": "tc_cake_is_a_lie_ficcao_dystopia_viagem_nota_lt5",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "anatomia_cinema",
-      "tribunal_critica"
-    ],
-    "tier": "silver",
-    "title": "O Bolo É uma Mentira! (The Cake Is a Lie)",
-    "description": "Conquistar 3 filmes do gênero Ficção Científica com a tag Dystopia OU Viagem no tempo que tenham recebido Minha Nota abaixo de 5.000 (3 filmes).",
-    "icon": "🎂",
-    "target_type": "genre_and_tags_or_max_rating",
-    "target_value": 3,
-    "target_metadata": {
-      "genre": "Ficção Científica",
-      "orTags": [
-        "Dystopia",
-        "Viagem no Tempo"
-      ],
-      "maxRating": 5000
-    },
-    "sort_order": 793
-  },
-  {
-    "id": "tc_snake_stealth_suspense_crime",
-    "category": "anatomia_cinema",
-    "categories": [
-      "anatomia_cinema",
-      "dna_cinefilo"
-    ],
-    "tier": "silver",
-    "title": "Snake? Snake?! SNAAAAAKE!",
-    "description": "Conquistar 9 filmes do gênero Suspense ou Crime que possuam a tag Fatos reais ou Sequestro, mas SEM o gênero Ação e SEM a tag Gore (9 filmes).",
-    "icon": "📦",
-    "target_type": "stealth_suspense_crime_count",
-    "target_value": 9,
-    "target_metadata": {
-      "includeGenres": [
-        "Suspense",
-        "Crime"
-      ],
-      "includeTags": [
-        "Fatos reais",
-        "Sequestro"
-      ],
-      "excludeGenres": [
-        "Ação"
-      ],
-      "excludeTags": [
-        "Gore"
-      ]
-    },
-    "sort_order": 794
-  },
-  {
-    "id": "mh_roberto_gomez_bolanos",
-    "category": "mafia_hollywood",
-    "categories": [
-      "mafia_hollywood"
-    ],
-    "tier": "silver",
-    "title": "A Máfia de Hollywood: Isso, Isso, Isso! (Tá em Acapulco Tomando Coco)",
-    "description": "Conquistar 1 filme que tenha Roberto Gómez Bolaños creditado em Direção, Roteiro ou Produção (1 filme).",
-    "icon": "🥪",
-    "target_type": "hollywood_director_or_writer_count",
-    "target_value": 1,
-    "target_metadata": {
-      "person": "Roberto Gómez Bolaños",
-      "patterns": [
-        "roberto gomez bolanos",
-        "roberto gómez bolaños",
-        "chespirito"
-      ],
-      "checkProducers": true
-    },
-    "sort_order": 795
-  },
-  {
-    "id": "tc_rush_b_acao_max_90_min",
-    "category": "anatomia_cinema",
-    "categories": [
-      "anatomia_cinema",
-      "ritual_cinefilo"
-    ],
-    "tier": "silver",
-    "title": "\"Rush B, Não Para!\" (Modo Tático do CS)",
-    "description": "Conquistar 10 filmes do gênero Ação com duração máxima de até 90 minutos (10 filmes).",
-    "icon": "💣",
-    "target_type": "genre_max_runtime_count",
-    "target_value": 10,
-    "target_metadata": {
-      "genre": "Ação",
-      "maxRuntime": 90
-    },
-    "sort_order": 796
-  },
-  {
-    "id": "tc_e_verdade_esse_bilete_fatos_reais_nota_lt6",
-    "category": "dna_cinefilo",
-    "categories": [
-      "dna_cinefilo",
-      "tribunal_critica"
-    ],
-    "tier": "silver",
-    "title": "\"É Verdade Esse Bilete\" (Confia!)",
-    "description": "Conquistar 5 filmes com a tag Fatos reais que tenham recebido Minha Nota abaixo de 6.000 (5 filmes).",
-    "icon": "🎟️",
-    "target_type": "tag_max_rating_count",
-    "target_value": 5,
-    "target_metadata": {
-      "tag": "Fatos reais",
-      "maxRating": 6000
-    },
-    "sort_order": 797
-  },
-  {
-    "id": "tc_ray_tracing_bomba_2021_ficcao_acao_reviews_500k",
-    "category": "anatomia_cinema",
-    "categories": [
-      "anatomia_cinema",
-      "ritual_cinefilo",
-      "tribunal_critica"
-    ],
-    "tier": "silver",
-    "title": "\"Nem o Ray Tracing Salva Essa Bomba!\"",
-    "description": "Conquistar 3 filmes lançados a partir do ano de 2021 do gênero Ficção Científica ou Ação que tenham mais de 500.000 Global Reviews e Minha Nota abaixo de 5.000 (3 filmes).",
-    "icon": "💥",
-    "target_type": "bomba_ray_tracing_count",
-    "target_value": 3,
-    "target_metadata": {
-      "genres": [
-        "Ficção Científica",
-        "Ação"
-      ],
-      "minYear": 2021,
-      "minGlobalReviews": 500000,
-      "maxRating": 5000
-    },
-    "sort_order": 798
+    "sort_order": 379
   },
   {
     "id": "tc_achou_que_nao_ia_ter_cinema_fev_mar_set",
+    "kind": "unique",
     "category": "ritual_cinefilo",
     "categories": [
       "ritual_cinefilo",
@@ -13154,11 +12703,532 @@ export const TROPHY_DEFINITIONS = [
         9
       ]
     },
-    "sort_order": 799
+    "legacy_ids": [
+      "tc_achou_que_nao_ia_ter_cinema_fev_mar_set"
+    ],
+    "sort_order": 380
+  },
+  {
+    "id": "multi_rank_non_us_oscar",
+    "kind": "rank",
+    "category": "mafia_hollywood",
+    "categories": [
+      "mafia_hollywood",
+      "volta_ao_mundo"
+    ],
+    "tier": "mythic",
+    "title": "Esse Ouro Eles Não Vão Roubar! (Oscar Fora dos EUA)",
+    "description": "Filmes ganhadores do Oscar produzidos fora dos Estados Unidos.",
+    "icon": "🌐",
+    "target_type": "hybrid_non_us_oscar_winner",
+    "target_value": 30,
+    "target_metadata": {
+      "excludeCountryCode": "us",
+      "minWins": 1,
+      "isHybrid": true
+    },
+    "ranks": [
+      {
+        "id": "multi_rank_non_us_oscar__bronze",
+        "tier": "bronze",
+        "target_value": 3,
+        "title": "Esse Ouro Eles Não Vão Roubar! (Oscar Fora dos EUA) • Rank Bronze",
+        "description": "Filmes ganhadores do Oscar produzidos fora dos Estados Unidos. (Rank Bronze: meta 3).",
+        "legacy_id": "multi_non_us_oscar_5"
+      },
+      {
+        "id": "multi_rank_non_us_oscar__silver",
+        "tier": "silver",
+        "target_value": 8,
+        "title": "Esse Ouro Eles Não Vão Roubar! (Oscar Fora dos EUA) • Rank Prata",
+        "description": "Filmes ganhadores do Oscar produzidos fora dos Estados Unidos. (Rank Prata: meta 8).",
+        "legacy_id": "multi_non_us_oscar_15"
+      },
+      {
+        "id": "multi_rank_non_us_oscar__epic",
+        "tier": "epic",
+        "target_value": 15,
+        "title": "Esse Ouro Eles Não Vão Roubar! (Oscar Fora dos EUA) • Rank Épico",
+        "description": "Filmes ganhadores do Oscar produzidos fora dos Estados Unidos. (Rank Épico: meta 15).",
+        "legacy_id": "multi_non_us_oscar_30"
+      },
+      {
+        "id": "multi_rank_non_us_oscar__gold",
+        "tier": "gold",
+        "target_value": 22,
+        "title": "Esse Ouro Eles Não Vão Roubar! (Oscar Fora dos EUA) • Rank Ouro",
+        "description": "Filmes ganhadores do Oscar produzidos fora dos Estados Unidos. (Rank Ouro: meta 22)."
+      },
+      {
+        "id": "multi_rank_non_us_oscar__mythic",
+        "tier": "mythic",
+        "target_value": 30,
+        "title": "Esse Ouro Eles Não Vão Roubar! (Oscar Fora dos EUA) • Rank Mítico",
+        "description": "Filmes ganhadores do Oscar produzidos fora dos Estados Unidos. (Rank Mítico: meta 30)."
+      }
+    ],
+    "legacy_ids": [
+      "multi_non_us_oscar_5",
+      "multi_non_us_oscar_15",
+      "multi_non_us_oscar_30"
+    ],
+    "sort_order": 381
+  },
+  {
+    "id": "multi_rank_short_oscar",
+    "kind": "rank",
+    "category": "anatomia_cinema",
+    "categories": [
+      "anatomia_cinema",
+      "mafia_hollywood"
+    ],
+    "tier": "mythic",
+    "title": "Tão Rápido que Já Pegou o Ouro!",
+    "description": "Curtas-metragens ganhadores de pelo menos 1 Oscar.",
+    "icon": "⏱️",
+    "target_type": "hybrid_genre_oscar_winner",
+    "target_value": 10,
+    "target_metadata": {
+      "genre": "Curta",
+      "minWins": 1,
+      "isHybrid": true
+    },
+    "ranks": [
+      {
+        "id": "multi_rank_short_oscar__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "Tão Rápido que Já Pegou o Ouro! • Rank Bronze",
+        "description": "Curtas-metragens ganhadores de pelo menos 1 Oscar. (Rank Bronze: meta 1).",
+        "legacy_id": "multi_short_oscar_5"
+      },
+      {
+        "id": "multi_rank_short_oscar__silver",
+        "tier": "silver",
+        "target_value": 3,
+        "title": "Tão Rápido que Já Pegou o Ouro! • Rank Prata",
+        "description": "Curtas-metragens ganhadores de pelo menos 1 Oscar. (Rank Prata: meta 3)."
+      },
+      {
+        "id": "multi_rank_short_oscar__epic",
+        "tier": "epic",
+        "target_value": 5,
+        "title": "Tão Rápido que Já Pegou o Ouro! • Rank Épico",
+        "description": "Curtas-metragens ganhadores de pelo menos 1 Oscar. (Rank Épico: meta 5)."
+      },
+      {
+        "id": "multi_rank_short_oscar__gold",
+        "tier": "gold",
+        "target_value": 8,
+        "title": "Tão Rápido que Já Pegou o Ouro! • Rank Ouro",
+        "description": "Curtas-metragens ganhadores de pelo menos 1 Oscar. (Rank Ouro: meta 8)."
+      },
+      {
+        "id": "multi_rank_short_oscar__mythic",
+        "tier": "mythic",
+        "target_value": 10,
+        "title": "Tão Rápido que Já Pegou o Ouro! • Rank Mítico",
+        "description": "Curtas-metragens ganhadores de pelo menos 1 Oscar. (Rank Mítico: meta 10)."
+      }
+    ],
+    "legacy_ids": [
+      "multi_short_oscar_5"
+    ],
+    "sort_order": 382
+  },
+  {
+    "id": "multi_rank_romance_school",
+    "kind": "rank",
+    "category": "anatomia_cinema",
+    "categories": [
+      "anatomia_cinema",
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Amor nos Corredores (Suspiros na Sala de Aula)",
+    "description": "Filmes de Romance com a tag Colegio/Escola.",
+    "icon": "🏫",
+    "target_type": "hybrid_genre_tag",
+    "target_value": 35,
+    "target_metadata": {
+      "genre": "Romance",
+      "tag": "Colegio/Escola",
+      "isHybrid": true
+    },
+    "ranks": [
+      {
+        "id": "multi_rank_romance_school__bronze",
+        "tier": "bronze",
+        "target_value": 3,
+        "title": "Amor nos Corredores (Suspiros na Sala de Aula) • Rank Bronze",
+        "description": "Filmes de Romance com a tag Colegio/Escola. (Rank Bronze: meta 3).",
+        "legacy_id": "multi_romance_school_20"
+      },
+      {
+        "id": "multi_rank_romance_school__silver",
+        "tier": "silver",
+        "target_value": 10,
+        "title": "Amor nos Corredores (Suspiros na Sala de Aula) • Rank Prata",
+        "description": "Filmes de Romance com a tag Colegio/Escola. (Rank Prata: meta 10)."
+      },
+      {
+        "id": "multi_rank_romance_school__epic",
+        "tier": "epic",
+        "target_value": 18,
+        "title": "Amor nos Corredores (Suspiros na Sala de Aula) • Rank Épico",
+        "description": "Filmes de Romance com a tag Colegio/Escola. (Rank Épico: meta 18)."
+      },
+      {
+        "id": "multi_rank_romance_school__gold",
+        "tier": "gold",
+        "target_value": 26,
+        "title": "Amor nos Corredores (Suspiros na Sala de Aula) • Rank Ouro",
+        "description": "Filmes de Romance com a tag Colegio/Escola. (Rank Ouro: meta 26)."
+      },
+      {
+        "id": "multi_rank_romance_school__mythic",
+        "tier": "mythic",
+        "target_value": 35,
+        "title": "Amor nos Corredores (Suspiros na Sala de Aula) • Rank Mítico",
+        "description": "Filmes de Romance com a tag Colegio/Escola. (Rank Mítico: meta 35)."
+      }
+    ],
+    "legacy_ids": [
+      "multi_romance_school_20"
+    ],
+    "sort_order": 383
+  },
+  {
+    "id": "multi_brazil_oscar_1",
+    "kind": "unique",
+    "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo",
+      "mafia_hollywood"
+    ],
+    "tier": "bronze",
+    "title": "É do Brasil!! Finalmente Conseguimos!!",
+    "description": "Conquistar 1 filme do Brasil que ganhou pelo menos 1 Oscar (1 filme).",
+    "icon": "🇧🇷",
+    "target_type": "hybrid_country_oscar_winner",
+    "target_value": 1,
+    "target_metadata": {
+      "countryCode": "br",
+      "minWins": 1,
+      "isHybrid": true
+    },
+    "legacy_ids": [
+      "multi_brazil_oscar_1"
+    ],
+    "sort_order": 384
+  },
+  {
+    "id": "multi_horror_oscar_1",
+    "kind": "unique",
+    "category": "anatomia_cinema",
+    "categories": [
+      "anatomia_cinema",
+      "mafia_hollywood"
+    ],
+    "tier": "bronze",
+    "title": "Terror com Ouro! (Até a Academia Teve Medo)",
+    "description": "Conquistar 1 filme do gênero Terror que ganhou pelo menos 1 Oscar (1 filme).",
+    "icon": "😱",
+    "target_type": "hybrid_genre_oscar_winner",
+    "target_value": 1,
+    "target_metadata": {
+      "genre": "Terror",
+      "minWins": 1,
+      "isHybrid": true
+    },
+    "legacy_ids": [
+      "multi_horror_oscar_1"
+    ],
+    "sort_order": 385
+  },
+  {
+    "id": "multi_blumhouse_october_3",
+    "kind": "unique",
+    "category": "mafia_hollywood",
+    "categories": [
+      "data_limite",
+      "anatomia_cinema",
+      "mafia_hollywood"
+    ],
+    "tier": "bronze",
+    "title": "Susto de Baixo Orçamento na Noite de Halloween!",
+    "description": "Conquistar 3 filmes do gênero Terror produzidos pela Blumhouse Productions assistidos no mês de Outubro (3 filmes).",
+    "icon": "🎃",
+    "target_type": "hybrid_genre_studio_month",
+    "target_value": 3,
+    "target_metadata": {
+      "genre": "Terror",
+      "studioPatterns": [
+        "blumhouse"
+      ],
+      "month": 10,
+      "isHybrid": true
+    },
+    "legacy_ids": [
+      "multi_blumhouse_october_3"
+    ],
+    "sort_order": 386
+  },
+  {
+    "id": "multi_romance_lgbt_10",
+    "kind": "unique",
+    "category": "anatomia_cinema",
+    "categories": [
+      "dna_cinefilo",
+      "anatomia_cinema"
+    ],
+    "tier": "silver",
+    "title": "Corações Jovens!",
+    "description": "Conquistar 10 filmes do gênero Romance com a tag Personagem LGBT (10 filmes).",
+    "icon": "🏳️‍🌈",
+    "target_type": "hybrid_genre_tag",
+    "target_value": 10,
+    "target_metadata": {
+      "genre": "Romance",
+      "tag": "Personagem LGBT",
+      "isHybrid": true
+    },
+    "legacy_ids": [
+      "multi_romance_lgbt_10"
+    ],
+    "sort_order": 387
+  },
+  {
+    "id": "multi_pixar_cry_5",
+    "kind": "unique",
+    "category": "mafia_hollywood",
+    "categories": [
+      "dna_cinefilo",
+      "anatomia_cinema",
+      "mafia_hollywood"
+    ],
+    "tier": "silver",
+    "title": "Fábrica de Chorar da Pixar!",
+    "description": "Conquistar 5 filmes do gênero Animação do estúdio Disney / Pixar com a tag Emocionante ou Animais antropomorficos (5 filmes).",
+    "icon": "🎈",
+    "target_type": "hybrid_pixar_emotional_animals",
+    "target_value": 5,
+    "target_metadata": {
+      "genre": "Animação",
+      "companyPatterns": [
+        "disney",
+        "pixar",
+        "walt disney",
+        "buena vista"
+      ],
+      "anyOfTags": [
+        "Emocionante",
+        "Animais antropomorficos"
+      ],
+      "isHybrid": true
+    },
+    "legacy_ids": [
+      "multi_pixar_cry_5"
+    ],
+    "sort_order": 388
+  },
+  {
+    "id": "multi_gore_twisted_lionsgate_5",
+    "kind": "unique",
+    "category": "mafia_hollywood",
+    "categories": [
+      "dna_cinefilo",
+      "anatomia_cinema",
+      "mafia_hollywood"
+    ],
+    "tier": "silver",
+    "title": "Sangue, Armadilhas e Gore Assinados pelo Mestre!",
+    "description": "Conquistar 5 filmes do gênero Terror com a tag Gore do estúdio Twisted Pictures (ou Lionsgate) (5 filmes).",
+    "icon": "⚙️",
+    "target_type": "hybrid_gore_twisted_lionsgate",
+    "target_value": 5,
+    "target_metadata": {
+      "genre": "Terror",
+      "tag": "Gore",
+      "companyPatterns": [
+        "twisted pictures",
+        "lionsgate"
+      ],
+      "isHybrid": true
+    },
+    "legacy_ids": [
+      "multi_gore_twisted_lionsgate_5"
+    ],
+    "sort_order": 389
+  },
+  {
+    "id": "multi_disney_july_dec_5",
+    "kind": "unique",
+    "category": "mafia_hollywood",
+    "categories": [
+      "data_limite",
+      "anatomia_cinema",
+      "mafia_hollywood"
+    ],
+    "tier": "silver",
+    "title": "Férias Escolares com o Mickey!",
+    "description": "Conquistar 5 filmes de Animação ou Família da Disney / Pixar assistidos em Julho ou Dezembro (5 filmes).",
+    "icon": "🏖️",
+    "target_type": "hybrid_disney_vacation_july_dec",
+    "target_value": 5,
+    "target_metadata": {
+      "anyOfGenres": [
+        "Animação",
+        "Família"
+      ],
+      "companyPatterns": [
+        "disney",
+        "pixar",
+        "walt disney",
+        "buena vista"
+      ],
+      "months": [
+        7,
+        12
+      ],
+      "isHybrid": true
+    },
+    "legacy_ids": [
+      "multi_disney_july_dec_5"
+    ],
+    "sort_order": 390
+  },
+  {
+    "id": "multi_disney_fox_horror_5",
+    "kind": "unique",
+    "category": "mafia_hollywood",
+    "categories": [
+      "anatomia_cinema",
+      "mafia_hollywood"
+    ],
+    "tier": "epic",
+    "title": "Eles Fazem Terror?! (O Lado Sombrio do Castelo da Disney)",
+    "description": "Conquistar 5 filmes do gênero Terror com distribuição ou estúdio Disney / Pixar, Buena Vista International ou 20th Century Fox (5 filmes).",
+    "icon": "🏰",
+    "target_type": "hybrid_disney_fox_horror",
+    "target_value": 5,
+    "target_metadata": {
+      "genre": "Terror",
+      "companyPatterns": [
+        "disney",
+        "pixar",
+        "walt disney",
+        "buena vista",
+        "20th century fox",
+        "20th century studios",
+        "twentieth century"
+      ],
+      "isHybrid": true
+    },
+    "legacy_ids": [
+      "multi_disney_fox_horror_5"
+    ],
+    "sort_order": 391
+  },
+  {
+    "id": "multi_top250_oscar_15",
+    "kind": "unique",
+    "category": "mafia_hollywood",
+    "categories": [
+      "dna_cinefilo",
+      "mafia_hollywood"
+    ],
+    "tier": "epic",
+    "title": "Tapete Vermelho do IMDb (Aprovado pelo Público e pela Academia!)",
+    "description": "Conquistar 15 filmes que tenham a tag TOP250 e sejam Ganhadores do Oscar ao mesmo tempo (15 filmes).",
+    "icon": "🌟",
+    "target_type": "hybrid_top250_oscar_winner",
+    "target_value": 15,
+    "target_metadata": {
+      "tag": "TOP250",
+      "minWins": 1,
+      "isHybrid": true
+    },
+    "legacy_ids": [
+      "multi_top250_oscar_15"
+    ],
+    "sort_order": 392
+  },
+  {
+    "id": "multi_sk_oscar_5",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "mafia_hollywood"
+    ],
+    "tier": "epic",
+    "title": "Stephen King no Tapete Vermelho!",
+    "description": "Conquistar 3 filmes com a tag SK (Stephen King) que foram Indicados ou Ganhadores do Oscar (3 filmes).",
+    "icon": "🤡",
+    "target_type": "hybrid_sk_oscar",
+    "target_value": 3,
+    "target_metadata": {
+      "tag": "SK",
+      "minNominationsOrWins": 1,
+      "isHybrid": true
+    },
+    "legacy_ids": [
+      "multi_sk_oscar_5"
+    ],
+    "sort_order": 393
+  },
+  {
+    "id": "multi_dc_warner_vs_marvel_disney_30",
+    "kind": "unique",
+    "category": "mafia_hollywood",
+    "categories": [
+      "dna_cinefilo",
+      "anatomia_cinema",
+      "mafia_hollywood"
+    ],
+    "tier": "gold",
+    "title": "A Guerra Fria dos Bilhões (Warner vs. Disney nos Quadrinhos!)",
+    "description": "Conquistar 15 filmes de Ação/Aventura com a tag DC na Warner Bros. e 15 filmes de Ação/Aventura com a tag Marvel na Disney/Buena Vista/Sony (30 filmes).",
+    "icon": "⚡",
+    "target_type": "hybrid_warner_dc_vs_disney_marvel",
+    "target_value": 30,
+    "target_metadata": {
+      "isHybrid": true
+    },
+    "legacy_ids": [
+      "multi_dc_warner_vs_marvel_disney_30"
+    ],
+    "sort_order": 394
+  },
+  {
+    "id": "multi_seven_deadly_sins_49",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "volta_ao_mundo",
+      "dna_cinefilo",
+      "anatomia_cinema",
+      "mafia_hollywood"
+    ],
+    "tier": "mythic",
+    "title": "Os 7 Pecados Capitais do Cinema (7x7 = 49 Marcos!)",
+    "description": "Cumprir todos os 7 Pecados Capitais do catálogo (49 filmes/marcos no checklist): Luxúria, Orgulho, Inveja, Ira, Preguiça, Avareza e Gula.",
+    "icon": "🍎",
+    "target_type": "hybrid_seven_deadly_sins",
+    "target_value": 49,
+    "target_metadata": {
+      "isHybrid": true
+    },
+    "legacy_ids": [
+      "multi_seven_deadly_sins_49"
+    ],
+    "sort_order": 395
   },
   {
     "id": "multi_michael_jackson_ultimate_anthology",
-    "category": "multi",
+    "kind": "unique",
+    "category": "anatomia_cinema",
     "categories": [
       "dna_cinefilo",
       "anatomia_cinema",
@@ -13175,7 +13245,10 @@ export const TROPHY_DEFINITIONS = [
       "totalTracks": 15,
       "requiredMusicGenreCount": 15
     },
-    "sort_order": 801
+    "legacy_ids": [
+      "multi_michael_jackson_ultimate_anthology"
+    ],
+    "sort_order": 396
   }
 ];
 export const CLIENT_TROPHY_DEFINITIONS = TROPHY_DEFINITIONS;

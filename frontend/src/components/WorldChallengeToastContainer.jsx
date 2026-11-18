@@ -8,6 +8,7 @@ import {
   notifyWorldChallengeCleared,
 } from '../utils/xpSystem';
 import { resolveBackendAssetUrl } from '../utils/apiConfig';
+import { resolveValidIsoFlagCode } from '../data/countryRarityTiers';
 
 const resolvePosterUrl = resolveBackendAssetUrl;
 
@@ -55,6 +56,17 @@ const COUNTRY_RARITY_THEMES = {
     accentText: 'text-amber-300',
     pill: 'bg-amber-500/25 border-amber-400/60 text-amber-200',
     barColor: '#F59E0B',
+  },
+  relic: {
+    label: 'Relíquia',
+    icon: '⏳',
+    border: 'border-teal-400/85',
+    glow: 'shadow-[0_20px_65px_rgba(45,212,191,0.42),0_0_35px_rgba(20,184,166,0.32)]',
+    bgGrad: 'from-zinc-950/95 via-teal-950/55 to-amber-950/30',
+    beam: 'from-transparent via-teal-300 to-transparent',
+    accentText: 'text-teal-300',
+    pill: 'bg-teal-500/25 border-teal-400/60 text-teal-200',
+    barColor: '#14B8A6',
   },
   mythic: {
     label: 'Mítico',
@@ -136,28 +148,48 @@ function WorldChallengeCard({ item, onRemove }) {
         {/* Topo: Bandeira + Tags + Botão Fechar */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
-            {item.countryCode && (
-              <img
-                src={`https://flagcdn.com/w80/${String(item.countryCode).toLowerCase()}.png`}
-                alt={item.countryName}
-                className={`w-9 h-6 object-cover rounded-md border border-white/25 shadow-md transition-transform duration-500 ${
-                  stampSettled ? 'scale-100 rotate-0' : 'scale-125 -rotate-6'
-                }`}
-              />
-            )}
+            {(() => {
+              const rawFlag = resolveValidIsoFlagCode(item.flagCode, item.countryCode);
+              if (rawFlag) {
+                return (
+                  <img
+                    src={`https://flagcdn.com/w80/${rawFlag}.png`}
+                    alt={item.countryName}
+                    className={`w-9 h-6 object-cover rounded-md border border-white/25 shadow-md transition-transform duration-500 ${
+                      stampSettled ? 'scale-100 rotate-0' : 'scale-125 -rotate-6'
+                    }`}
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                );
+              }
+              return (
+                <div className="w-9 h-6 rounded-md bg-teal-950/90 border border-teal-400/50 flex items-center justify-center text-sm shadow-md shrink-0">
+                  {item.badgeIcon || (item.countryCode === 'hist_su' ? '☭' : '⏳')}
+                </div>
+              );
+            })()}
 
             <div className="flex items-center gap-1.5 flex-wrap">
               <span
                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-widest ${
                   isDethrone
                     ? 'bg-amber-500/20 border-amber-400/60 text-amber-200'
-                    : 'bg-emerald-500/15 border-emerald-400/45 text-emerald-200'
+                    : theme.key === 'relic' || item.rarity === 'relic'
+                      ? 'bg-teal-500/20 border-teal-400/50 text-teal-200'
+                      : 'bg-emerald-500/15 border-emerald-400/45 text-emerald-200'
                 }`}
               >
                 {isDethrone ? (
                   <>
                     <Swords className="w-3 h-3 text-amber-300" />
                     DUELO NO DESAFIO 195
+                  </>
+                ) : item.rarity === 'relic' ? (
+                  <>
+                    <Flag className="w-2.5 h-2.5 text-teal-300 fill-current" />
+                    RELÍQUIA DESBLOQUEADA
                   </>
                 ) : (
                   <>

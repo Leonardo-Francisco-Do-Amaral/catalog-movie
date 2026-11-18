@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Lock, Sparkles, CheckCircle2, Star, Layers, Clock, RefreshCw, Users, Heart } from 'lucide-react';
 import {
+  getRisingStarTheme,
   getThemeForTier,
   IMMORTAL_AURA_PRESETS,
   isDirectorStar,
@@ -9,12 +10,14 @@ import {
   resolveUnlocksForPct,
   resolveWalkMediaUrl,
   resolveWalkRpgRank,
-  RISING_STAR_RANK_X_TOOLTIP,
-  RISING_STAR_THEME,
 } from '../utils/walkOfFameStickers';
 
 function getRankBadgeClass(rank) {
   switch (rank) {
+    case 'X++':
+      return 'bg-gradient-to-r from-amber-400/35 via-sky-400/35 to-fuchsia-400/35 text-amber-100 border-amber-300/90 shadow-[0_0_12px_rgba(251,191,36,0.38)]';
+    case 'X+':
+      return 'bg-gradient-to-r from-indigo-500/35 via-fuchsia-500/30 to-sky-400/35 text-indigo-100 border-indigo-300/85 shadow-[0_0_12px_rgba(129,140,248,0.35)]';
     case 'X':
       return 'bg-gradient-to-r from-sky-500/35 via-indigo-500/35 to-cyan-400/35 text-sky-100 border-sky-300/85 shadow-[0_0_12px_rgba(56,189,248,0.35)]';
     case 'SS':
@@ -65,10 +68,10 @@ function RankBadge({
         } w-44 sm:w-48 z-50 rounded-xl bg-zinc-950/95 border border-sky-400/75 px-2.5 py-2 text-left shadow-2xl`}
       >
         <span className="block text-[9.5px] font-black text-sky-200 uppercase tracking-wider">
-          🌟 Estrela em Ascensão (Rank X)
+          🌟 Estrela em Ascensão (Rank {rank})
         </span>
         <span className="block text-[10px] font-medium text-zinc-200 leading-snug normal-case tracking-normal mt-0.5">
-          Diretor com até 7 filmes na carreira. Figurinha e Show de Cartazes liberam juntos aos 80%; demais seções já liberadas.
+          Diretor ≤7 filmes: 40% libera figurinha &amp; marco 40% (Rank X); 80% libera 60% &amp; 80% (Rank X+); 100% libera tudo (Rank X++).
         </span>
       </span>
     </span>
@@ -792,7 +795,7 @@ const WalkOfFameStickerCard = React.memo(function WalkOfFameStickerCard({
   const isDubladorCard = !isDirectorCard && isDubladorStar(star);
   const hasSideRails = isDirectorCard || isDubladorCard;
   const isNewEraVisionary = Boolean(star.isNewEraVisionary);
-  const unlockFloor = isDirectorCard ? (isNewEraVisionary ? 80 : 20) : 15;
+  const unlockFloor = isDirectorCard ? (isNewEraVisionary ? 40 : 20) : 15;
   const effectivePct = overridePct !== null ? overridePct : Number(star.percentage || 0);
   const unlocks =
     star.unlocks ||
@@ -807,7 +810,6 @@ const WalkOfFameStickerCard = React.memo(function WalkOfFameStickerCard({
   );
   const hasPendingOverlayUpgrade = Boolean(
     !overrideTierKey &&
-      !(isDirectorCard && isNewEraVisionary) &&
       isStuck &&
       star.hasRarityUpgradeToStick &&
       star.stuckTier
@@ -819,17 +821,21 @@ const WalkOfFameStickerCard = React.memo(function WalkOfFameStickerCard({
     : (isStuck && star.stuckTier) || star.statusTierKey || 'bronze';
 
   const upgradeTargetTheme = hasPendingOverlayUpgrade
-    ? getThemeForTier(star.statusTierKey, isDirectorCard)
+    ? isDirectorCard && isNewEraVisionary
+      ? getRisingStarTheme(star.statusTierKey)
+      : getThemeForTier(star.statusTierKey, isDirectorCard)
     : null;
   const underlayTierKey =
-    isDirectorCard && isNewEraVisionary
-      ? null
-      : overrideUnderlayTierKey || (!hasPendingOverlayUpgrade ? star.previousStuckTier : null);
-  const underlayTheme = underlayTierKey ? getThemeForTier(underlayTierKey, isDirectorCard) : null;
+    overrideUnderlayTierKey || (!hasPendingOverlayUpgrade ? star.previousStuckTier : null);
+  const underlayTheme = underlayTierKey
+    ? isDirectorCard && isNewEraVisionary
+      ? getRisingStarTheme(underlayTierKey)
+      : getThemeForTier(underlayTierKey, isDirectorCard)
+    : null;
 
   const visualTheme =
     isDirectorCard && isNewEraVisionary
-      ? RISING_STAR_THEME
+      ? getRisingStarTheme(displayedTierKey)
       : getThemeForTier(displayedTierKey, isDirectorCard);
   const extraStars = overrideExtraStars !== null ? overrideExtraStars : Number(star.extraStars || 0);
   const numLabel = `#${String(star.albumNumber).padStart(3, '0')}`;
@@ -838,7 +844,9 @@ const WalkOfFameStickerCard = React.memo(function WalkOfFameStickerCard({
   const auraPreset = unlocks.immortalUnlocked
     ? resolveEffectiveImmortalAura(star.immortalAura || 'prism', extraStars)
     : IMMORTAL_AURA_PRESETS.prism;
-  const useCustomShowcaseFrame = isDirectorCard && isNewEraVisionary;
+  const useCustomShowcaseFrame = Boolean(
+    isDirectorCard && isNewEraVisionary && !unlocks.immortalUnlocked
+  );
   const activeFrameBackground = useCustomShowcaseFrame
     ? visualTheme.frameBackground
     : unlocks.immortalUnlocked
@@ -1054,7 +1062,7 @@ const WalkOfFameStickerCard = React.memo(function WalkOfFameStickerCard({
               <strong className="text-amber-400">{missingTo15}</strong> p/ {unlockFloor}% +{' '}
               {isDirectorCard
                 ? isNewEraVisionary
-                  ? 'Liberar Figurinha'
+                  ? 'Rank X (Figurinha)'
                   : 'Take 1'
                 : 'Frase'}
             </p>
@@ -1404,7 +1412,11 @@ const WalkOfFameStickerCard = React.memo(function WalkOfFameStickerCard({
                         e.stopPropagation();
                         onSelect(star);
                       }}
-                      title="Ver Manias & DNA Autoral de Set (Take 3 • 60%+)"
+                      title={
+                        isNewEraVisionary
+                          ? 'Ver Manias & DNA Autoral de Set (Rank X+ • 80%+)'
+                          : 'Ver Manias & DNA Autoral de Set (Take 3 • 60%+)'
+                      }
                       className="px-1 py-0.5 rounded bg-cyan-400/95 hover:bg-cyan-300 text-zinc-950 font-black text-[8.5px] leading-none flex items-center gap-0.5 shadow cursor-pointer transition-transform active:scale-95"
                     >
                       <span>🎯</span>
@@ -1422,7 +1434,7 @@ const WalkOfFameStickerCard = React.memo(function WalkOfFameStickerCard({
                       }}
                       title={
                         isNewEraVisionary
-                          ? 'Abrir Show de Cartazes: Cartas Viradas, Oscar & Framboesa de Ouro (80%+)'
+                          ? 'Abrir Show de Cartazes: Cartas Viradas, Oscar & Framboesa de Ouro (Rank X++ • 100%)'
                           : 'Abrir Show de Cartazes: Cartas Viradas, Oscar & Framboesa de Ouro (Take 5 • 90%+)'
                       }
                       className="px-1 py-0.5 rounded bg-gradient-to-r from-amber-400 to-rose-400 hover:brightness-110 text-zinc-950 font-black text-[8.5px] leading-none flex items-center gap-0.5 shadow cursor-pointer transition-transform active:scale-95"

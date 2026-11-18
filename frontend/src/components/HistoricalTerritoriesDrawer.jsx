@@ -27,7 +27,7 @@ export default function HistoricalTerritoriesDrawer({
 
   const extinctNations = historicalCountries.filter((h) => !h.isSpecialTerritory);
   const specialTerritories = historicalCountries.filter((h) => h.isSpecialTerritory);
-  const conqueredExtinctCount = extinctNations.filter((h) => h.status === 'conquered').length;
+  const conqueredRelicsCount = historicalCountries.filter((h) => h.status === 'conquered').length;
 
   const renderTerritoryCard = (item) => {
     const isConquered = item.status === 'conquered' && Boolean(item.champion);
@@ -39,30 +39,30 @@ export default function HistoricalTerritoriesDrawer({
         key={item.code}
         className={`rounded-2xl border p-4 transition-all flex flex-col gap-3.5 ${
           isConquered
-            ? 'bg-gradient-to-br from-amber-950/25 via-zinc-900/80 to-zinc-950 border-amber-500/35 hover:border-amber-400/60 shadow-lg'
-            : 'bg-zinc-900/35 border-zinc-800/80 hover:border-zinc-700'
+            ? 'bg-gradient-to-br from-teal-950/30 via-zinc-900/85 to-zinc-950 border-teal-400/45 hover:border-amber-300/70 shadow-lg'
+            : 'bg-zinc-900/35 border-zinc-800/80 hover:border-teal-500/35'
         }`}
       >
         {/* Topo: Bandeira/Insígnia + Nome + Era + Status */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            {item.code === 'hist_su' ? (
-              <div className="w-11 h-8 rounded-lg bg-red-950/90 border border-amber-500/50 flex items-center justify-center text-amber-400 font-black text-xs shadow shrink-0">
-                ☭
+            {item.badgeIcon ? (
+              <div className="w-11 h-8 rounded-lg bg-teal-950/90 border border-teal-400/45 flex items-center justify-center text-teal-200 font-black text-base shadow shrink-0">
+                {item.badgeIcon}
               </div>
             ) : flagCode ? (
               <img
                 src={`https://flagcdn.com/w80/${flagCode}.png`}
                 alt={item.name}
                 className={`w-11 h-8 object-cover rounded-lg border shrink-0 ${
-                  isConquered ? 'border-amber-500/40' : 'border-zinc-700 opacity-50 grayscale'
+                  isConquered ? 'border-teal-400/50' : 'border-zinc-700 opacity-50 grayscale'
                 }`}
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                 }}
               />
             ) : (
-              <div className="w-11 h-8 rounded-lg bg-zinc-900 border border-zinc-700 flex items-center justify-center text-amber-400 shrink-0">
+              <div className="w-11 h-8 rounded-lg bg-zinc-900 border border-zinc-700 flex items-center justify-center text-teal-400 shrink-0">
                 <Landmark className="w-4 h-4" />
               </div>
             )}
@@ -72,7 +72,7 @@ export default function HistoricalTerritoriesDrawer({
                 <h4 className="text-sm font-black uppercase tracking-wide text-zinc-100 truncate">
                   {item.name}
                 </h4>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-amber-400">
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-teal-300">
                   {item.era}
                 </span>
               </div>
@@ -84,12 +84,12 @@ export default function HistoricalTerritoriesDrawer({
 
           <div className="shrink-0 flex flex-col items-end gap-1">
             {isConquered ? (
-              <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/35">
-                Relíquia Ativa
+              <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-200 border border-teal-400/45">
+                ⏳ Relíquia +225 XP
               </span>
             ) : (
               <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-500 border border-zinc-800">
-                Sem Registro
+                ⏳ Relíquia (+225 XP)
               </span>
             )}
             <span className="text-[10px] text-zinc-500 font-bold">
@@ -196,16 +196,16 @@ export default function HistoricalTerritoriesDrawer({
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-lg font-black uppercase tracking-wider text-zinc-100">
-                  Territórios Perdidos & Históricos
+                  Territórios Relíquia & Históricos
                 </h2>
-                <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/35">
-                  {conqueredExtinctCount} / {extinctNations.length} Relíquias
+                <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-200 border border-teal-400/45">
+                  ⏳ {conqueredRelicsCount} / {historicalCountries.length} Relíquias
                 </span>
               </div>
               <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                Impérios, federações e estados dissolvidos cujas obras-primas fazem parte da história
-                do cinema mundial, preservados fora da contagem oficial dos 195 países atuais da ONU
-                para não distorcer o mapa-múndi moderno.
+                Impérios extintos do século XX e polos especiais de cinema fora dos 195 assentos da
+                ONU (Hong Kong, Taiwan, Macau, Groenlândia, Ilhas Faroé, Tibete, Curdistão...). Cada
+                conquista vale <strong>+225 XP</strong> e aparece na Grade de Cartas!
               </p>
             </div>
           </div>

@@ -46,11 +46,6 @@ export const CATEGORY_BADGE_CONFIG = {
     icon: '🍿',
     bg: 'bg-yellow-950/80 text-yellow-300 border-yellow-500/40',
   },
-  sessao_secreta: {
-    label: 'SESSÃO SECRETA',
-    icon: '🕵️‍♂️',
-    bg: 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40',
-  },
   multi: {
     label: 'MULTICATEGORIA',
     icon: '🔥',
@@ -100,13 +95,20 @@ export function TrophyCardBadges({ trophy, theme, isUnlocked, unlockedDateStr })
         );
       })}
 
+      {/* Badge de Rank quando for troféu evolutivo de 5 patamares */}
+      {trophy?.kind === 'rank' && Array.isArray(trophy.ranks) && (
+        <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border bg-amber-950/60 text-amber-300 border-amber-500/40 shadow-sm">
+          🏅 Rank {trophy.unlocked_ranks_count || 0}/{trophy.ranks.length}
+        </span>
+      )}
+
       {/* 3. Status e Dia da Conquista */}
       {isUnlocked ? (
         <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/50 border border-emerald-500/30 px-2 py-0.5 rounded-md flex items-center gap-1">
           <CheckCircle2 className="w-3 h-3 text-emerald-400" />
           <span>Conquistado {unlockedDateStr ? `(${unlockedDateStr})` : ''}</span>
         </span>
-      ) : trophy?.progress_current > 0 ? (
+      ) : (trophy?.kind === 'rank' && (trophy?.unlocked_ranks_count || 0) > 0) || trophy?.progress_current > 0 ? (
         <span className="text-[10px] font-bold text-amber-400 bg-amber-950/40 border border-amber-500/30 px-2 py-0.5 rounded-md">
           Em Progresso
         </span>

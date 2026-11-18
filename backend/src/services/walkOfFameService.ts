@@ -2,6 +2,7 @@ import { query } from '../config/database';
 import { matchCuratedCandidate } from './trophyService';
 import {
   DIRECTOR_WALK_MILESTONES,
+  RISING_STAR_MILESTONES,
   WALK_ALAMEDAS,
   WALK_FILMS_PER_EXTRA_STAR,
   WALK_MILESTONES,
@@ -694,27 +695,44 @@ export function resolveWalkMilestones(
   const percentage = Math.min(100, Math.round((watchedCount / safeCeiling) * 100));
 
   if (isDirector && isNewEraVisionary) {
-    const target80 = Math.max(1, Math.round((80 / 100) * safeCeiling));
-    const unlocked80 = percentage >= 80;
-    const singleMilestone: WalkMilestoneTier & {
-      targetCount: number;
-      unlocked: boolean;
-      remainingFilms: number;
-    } = {
-      thresholdPct: 80,
-      id: 'estrela_ascensao_80',
-      label: 'Estrela em Ascensão (Rank X)',
-      tierKey: 'diamond',
-      icon: '🌟',
-      accentHex: '#38bdf8',
-      targetCount: target80,
-      unlocked: unlocked80,
-      remainingFilms: unlocked80 ? 0 : filmsNeededForPct(watchedCount, safeCeiling, 80),
-    };
+    const milestones = RISING_STAR_MILESTONES.map((m) => {
+      const unlocked = percentage >= m.thresholdPct;
+      const targetCount = Math.max(1, Math.round((m.thresholdPct / 100) * safeCeiling));
+      const remainingFilms = unlocked ? 0 : filmsNeededForPct(watchedCount, safeCeiling, m.thresholdPct);
+      return {
+        ...m,
+        targetCount,
+        unlocked,
+        remainingFilms,
+      };
+    });
+
+    const unlockedList = milestones.filter((m) => m.unlocked);
+    const currentMilestone: (WalkMilestoneTier & { targetCount?: number }) | null =
+      unlockedList.length > 0 ? unlockedList[unlockedList.length - 1] : null;
+    const nextMilestone = milestones.find((m) => !m.unlocked) || null;
+    const isDiamond = percentage >= 100;
 
     const extraFilms = Math.max(0, watchedCount - safeCeiling);
     const extraStars = Math.floor(extraFilms / WALK_FILMS_PER_EXTRA_STAR);
     const filmsToNextExtraStar = WALK_FILMS_PER_EXTRA_STAR - (extraFilms % WALK_FILMS_PER_EXTRA_STAR);
+
+    let statusLabel = 'Bloqueada';
+    let statusIcon = '🔒';
+    let statusTierKey = 'cement';
+    let accentHex = '#71717a';
+
+    if (currentMilestone) {
+      statusLabel = currentMilestone.label;
+      statusIcon = currentMilestone.icon;
+      statusTierKey = currentMilestone.tierKey;
+      accentHex = currentMilestone.accentHex;
+    } else if (watchedCount > 0) {
+      statusLabel = 'Bloqueada (libera aos 40%)';
+      statusIcon = '🔒';
+      statusTierKey = 'carving';
+      accentHex = '#a1a1aa';
+    }
 
     return {
       percentage,
@@ -723,20 +741,16 @@ export function resolveWalkMilestones(
       extraFilms,
       extraStars,
       filmsToNextExtraStar,
-      isStickerUnlocked: unlocked80,
-      isInaugurated: unlocked80,
-      isDiamond: unlocked80,
-      statusLabel: unlocked80
-        ? 'Estrela em Ascensão'
-        : watchedCount > 0
-        ? 'Bloqueada (libera aos 80%)'
-        : 'Bloqueada',
-      statusIcon: unlocked80 ? '🌟' : '🔒',
-      statusTierKey: unlocked80 ? 'diamond' : watchedCount > 0 ? 'carving' : 'cement',
-      accentHex: unlocked80 ? '#38bdf8' : watchedCount > 0 ? '#a1a1aa' : '#71717a',
-      currentMilestone: unlocked80 ? singleMilestone : null,
-      nextMilestone: unlocked80 ? null : singleMilestone,
-      milestones: [singleMilestone],
+      isStickerUnlocked: percentage >= 40,
+      isInaugurated: percentage >= 40,
+      isDiamond,
+      statusLabel,
+      statusIcon,
+      statusTierKey,
+      accentHex,
+      currentMilestone,
+      nextMilestone,
+      milestones,
     };
   }
 
@@ -1439,12 +1453,13 @@ function hydrateStarWithState(
   pendingPackRow: any | null
 ) {
   const isDirector = baseStar.kind === 'director';
+  const isRisingDir = isDirector && Boolean(baseStar.isNewEraVisionary);
   const stuckTier = albumRow?.stuck_tier ? String(albumRow.stuck_tier) : null;
   const stuckRank = stuckTier ? WALK_TIER_RANK[stuckTier] || 0 : 0;
   const currRank = WALK_TIER_RANK[baseStar.statusTierKey] || 0;
   const isStuck = Boolean(stuckTier && baseStar.isStickerUnlocked);
   const hasRarityUpgradeToStick = Boolean(
-    isStuck && currRank > stuckRank && !(isDirector && baseStar.isNewEraVisionary)
+    isStuck && currRank > stuckRank
   );
 
   const rawFeaturedMemberName = albumRow?.featured_member_name
@@ -1479,8 +1494,9 @@ function hydrateStarWithState(
   const selectedSkinLabel = albumRow?.selected_skin_label ? String(albumRow.selected_skin_label) : null;
   const activePhotoUrl = selectedSkinUrl || photoUrl;
 
-  const canCustomizeImmortal =
-    baseStar.percentage >= 90 || (isDirector && Boolean(baseStar.isNewEraVisionary));
+  const canCustomizeImmortal = isRisingDir
+    ? baseStar.percentage >= 100
+    : baseStar.percentage >= 90;
   const isFullArt = Boolean(canCustomizeImmortal && albumRow?.is_full_art);
   const isFavoriteGuardian = Boolean(canCustomizeImmortal && albumRow?.is_favorite_guardian);
   const rawAura = albumRow?.immortal_aura ? String(albumRow.immortal_aura) : 'prism';
@@ -1498,7 +1514,7 @@ function hydrateStarWithState(
 
   const claimedXpPct = Math.max(0, Number(albumRow?.claimed_xp_pct || 0));
   const claimedXpExtraStars = Math.max(0, Number(albumRow?.claimed_xp_extra_stars || 0));
-  const claimedXp = computeWalkXpForStar(claimedXpPct, claimedXpExtraStars, isDirector);
+  const claimedXp = computeWalkXpForStar(claimedXpPct, claimedXpExtraStars, isDirector, isRisingDir);
   const unclaimedXp = Math.max(0, internal.potentialXp - claimedXp);
 
   return {
@@ -1575,8 +1591,12 @@ function hydrateWalkOfFamePayload(
       const packTargetStars = Math.max(Number(p.extra_stars_unlocked || 0), Number(star.extraStars || 0));
       const packXp = Math.max(
         0,
-        computeWalkXpForStar(packTargetPct, packTargetStars, star.kind === 'director') -
-          Number(star.claimedXp || 0)
+        computeWalkXpForStar(
+          packTargetPct,
+          packTargetStars,
+          star.kind === 'director',
+          Boolean(star.isNewEraVisionary)
+        ) - Number(star.claimedXp || 0)
       );
       return {
         packId: Number(p.id),
@@ -2210,11 +2230,18 @@ async function computeWalkOfFameBase(forceRefresh: boolean): Promise<{
         curatedCount > 0 ? curatedCount : Math.max(careerPool.length, tmdbFeatureTotal)
       );
 
-      if (star.isNewEraVisionary || effectiveDirectorPool <= 7) {
+      if (
+        star.isNewEraVisionary ||
+        effectiveDirectorPool <= 7 ||
+        (typeof star.ceilingOverride === 'number' && star.ceilingOverride <= 7)
+      ) {
         isNewEraVisionary = true;
         ceiling = star.ceilingOverride || Math.max(4, Math.min(7, effectiveDirectorPool || 6));
         directorTier = 'visionario_7';
-      } else if (effectiveDirectorPool <= 10) {
+      } else if (
+        (typeof star.ceilingOverride === 'number' && star.ceilingOverride <= 9) ||
+        (!star.ceilingOverride && effectiveDirectorPool <= 10)
+      ) {
         isNewEraVisionary = false;
         ceiling = star.ceilingOverride || 8;
         directorTier = 'autor_8';
@@ -2235,13 +2262,13 @@ async function computeWalkOfFameBase(forceRefresh: boolean): Promise<{
         careerWrittenOnlyCount,
         careerTotalFilms: effectiveDirectorPool,
         ceilingTierLabel: isNewEraVisionary
-          ? 'Estrela em Ascensão Rank X'
+          ? 'Estrela em Ascensão (Rank X → X++)'
           : ceiling <= 8
-          ? 'Autor Consolidado (8 a 10 filmes)'
-          : 'Mestre Consagrado (11+ filmes)',
+          ? 'Autor Consolidado (Teto 8)'
+          : `Mestre Consagrado (Teto ${ceiling})`,
       };
     } else {
-      // Regra geral retroativa: respeita teto explícito quando definido (ex.: Thadeu Matos = 20); caso contrário, dubladores BR -> 25 | JP/US -> 15 | atores -> por pool
+      // Regra geral retroativa: respeita teto calibrado explícito (ex.: 6..25); caso contrário, dubladores BR -> 25 | JP/US -> 15 | atores -> por pool
       const isForeignDublador = star.kind === 'dublador' && !isBrazilianDublador;
       const effectiveFilmPool = isBrazilianDublador
         ? curatedCount || 15
@@ -2251,10 +2278,10 @@ async function computeWalkOfFameBase(forceRefresh: boolean): Promise<{
         ? Math.max(curatedCount, uniqueCombinedCount)
         : tmdbFeatureTotal;
       const hasExplicitCeiling =
-        star.ceilingOverride === 10 ||
-        star.ceilingOverride === 15 ||
-        star.ceilingOverride === 20 ||
-        star.ceilingOverride === 25;
+        typeof star.ceilingOverride === 'number' &&
+        Number.isFinite(star.ceilingOverride) &&
+        star.ceilingOverride >= 4 &&
+        star.ceilingOverride <= 40;
       ceiling = hasExplicitCeiling
         ? Number(star.ceilingOverride)
         : isBrazilianDublador
@@ -2325,14 +2352,14 @@ async function computeWalkOfFameBase(forceRefresh: boolean): Promise<{
     const unlocks =
       isDirector && isNewEraVisionary
         ? {
-            quoteUnlocked: true,
-            curiosity1Unlocked: true,
-            skinsUnlocked: true,
-            timelineUnlocked: true,
-            curiosities23Unlocked: true,
-            galaUnlocked: true,
-            immortalUnlocked: true,
-            verdictUnlocked: progress.percentage >= 80,
+            quoteUnlocked: progress.percentage >= 40,
+            curiosity1Unlocked: progress.percentage >= 40,
+            skinsUnlocked: progress.percentage >= 40,
+            timelineUnlocked: progress.percentage >= 80,
+            curiosities23Unlocked: progress.percentage >= 80,
+            galaUnlocked: progress.percentage >= 80,
+            immortalUnlocked: progress.percentage >= 100,
+            verdictUnlocked: progress.percentage >= 100,
             voiceClipsUnlocked: false,
           }
         : isDirector
@@ -2386,7 +2413,12 @@ async function computeWalkOfFameBase(forceRefresh: boolean): Promise<{
       fallbackTitle: star.rpgTitle,
     });
 
-    const potentialXp = computeWalkXpForStar(progress.percentage, progress.extraStars, isDirector);
+    const potentialXp = computeWalkXpForStar(
+      progress.percentage,
+      progress.extraStars,
+      isDirector,
+      isNewEraVisionary
+    );
 
     const hasRichPtWiki =
       typeof primary.wikiExtract === 'string' && primary.wikiExtract.trim().length >= 90;
@@ -2789,7 +2821,7 @@ export async function stickWalkOfFameStar(starId: string, options: { compact?: b
   const star = payload.stars.find((s) => s.id === starId);
   if (!star) throw new Error('Estrela não encontrada.');
   if (!star.isStickerUnlocked) {
-    const reqPct = star.kind === 'director' ? (star.isNewEraVisionary ? 80 : 20) : 15;
+    const reqPct = star.kind === 'director' ? (star.isNewEraVisionary ? 40 : 20) : 15;
     throw new Error(`Alcance pelo menos ${reqPct}% para liberar e colar esta figurinha.`);
   }
 
@@ -2927,7 +2959,7 @@ export async function openWalkOfFamePack(
   if (stickImmediately) {
     if (!star) throw new Error('Estrela não encontrada.');
     if (!star.isStickerUnlocked) {
-      const reqPct = star.kind === 'director' ? (star.isNewEraVisionary ? 80 : 20) : 15;
+      const reqPct = star.kind === 'director' ? (star.isNewEraVisionary ? 40 : 20) : 15;
       throw new Error(`Alcance pelo menos ${reqPct}% para liberar e colar esta figurinha.`);
     }
 

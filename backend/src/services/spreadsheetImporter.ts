@@ -8,6 +8,7 @@ import {
   normalizeGenre,
 } from './movieIntegration';
 import { invalidateWalkOfFameCache } from './walkOfFameService';
+import { normalizeCanonicalPlatform } from './trophies/platformNormalizer';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -134,16 +135,7 @@ function normalizeTag(tagName: string): string {
 }
 
 function sanitizePlatform(rawPlatform?: string): string {
-  if (!rawPlatform || !rawPlatform.trim()) return 'Não Informado';
-  const p = rawPlatform.toLowerCase().trim();
-  if (p.includes('aplle') || p.includes('apple')) return 'Apple TV+';
-  if (p.includes('cinema')) return 'Cinema';
-  if (p.includes('internet')) return 'Internet';
-  if (p.includes('netflix')) return 'Netflix';
-  if (p.includes('prime')) return 'Prime Video';
-  if (p.includes('disney')) return 'Disney+';
-  if (p.includes('hbo') || p === 'max') return 'HBO MAX';
-  return rawPlatform.trim();
+  return normalizeCanonicalPlatform(rawPlatform) || 'Não Informado';
 }
 
 function parseMonth(rawMonth: any): number | null {

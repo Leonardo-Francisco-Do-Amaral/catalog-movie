@@ -1,11 +1,12 @@
 /**
- * Sistema de Classificação de Raridade RPG por Dificuldade Cinematográfica dos 195 Países (5 Tiers)
+ * Sistema de Classificação de Raridade RPG por Dificuldade Cinematográfica (6 Tiers)
  */
 
-export const RARITY_ORDER = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+export const RARITY_ORDER = ['common', 'rare', 'epic', 'legendary', 'relic', 'mythic'];
 
 export const RARITY_RANK_WEIGHT = {
-  mythic: 5,
+  mythic: 6,
+  relic: 5,
   legendary: 4,
   epic: 3,
   rare: 2,
@@ -89,6 +90,25 @@ export const RARITY_TIER_CONFIG = {
     beaconFill: '#f59e0b',
     beaconStroke: '#fef08a'
   },
+  relic: {
+    key: 'relic',
+    label: 'RELÍQUIA',
+    shortDesc: 'Territórios Históricos Extintos & Especiais Fora da ONU (225 XP)',
+    border: 'border-teal-400/85 hover:border-amber-300 ring-1 ring-teal-400/30',
+    lockedBorder: 'border-teal-950/90 hover:border-teal-400/60',
+    glow: 'shadow-[0_0_28px_rgba(45,212,191,0.28)]',
+    badge: 'bg-gradient-to-r from-teal-400 via-cyan-300 to-amber-300 text-slate-950 border-teal-200',
+    softBadge: 'bg-teal-500/20 text-teal-200 border-teal-400/50',
+    lockedBadge: 'bg-teal-950/75 text-teal-300/90 border-teal-500/40',
+    accentText: 'text-teal-300',
+    dotClass: 'bg-teal-400 animate-pulse',
+    mapFill: 'rgba(20, 184, 166, 0.54)',
+    mapHoverFill: 'rgba(45, 212, 191, 0.86)',
+    mapStroke: '#2dd4bf',
+    mapHoverStroke: '#fef08a',
+    beaconFill: '#14b8a6',
+    beaconStroke: '#99f6e4'
+  },
   mythic: {
     key: 'mythic',
     label: 'MÍTICO',
@@ -158,6 +178,7 @@ const EPIC_CODES = new Set([
 
 export function getCountryRarityTier(code) {
   const c = String(code || '').toLowerCase().trim();
+  if (c.startsWith('hist_') || c.startsWith('spec_') || c.startsWith('extra_')) return 'relic';
   if (MYTHIC_18_CODES.has(c)) return 'mythic';
   if (COMMON_CODES.has(c)) return 'common';
   if (RARE_CODES.has(c)) return 'rare';
@@ -168,4 +189,24 @@ export function getCountryRarityTier(code) {
 export function getRarityMeta(tierOrCode) {
   if (RARITY_TIER_CONFIG[tierOrCode]) return RARITY_TIER_CONFIG[tierOrCode];
   return RARITY_TIER_CONFIG[getCountryRarityTier(tierOrCode)];
+}
+
+/**
+ * Normaliza e valida um código ISO-2 seguro para consulta ao FlagCDN.
+ * Retorna string vazia para territórios históricos/emblemáticos sem bandeira oficial no CDN.
+ */
+export function resolveValidIsoFlagCode(flagCode, fallbackCode) {
+  const candidate = flagCode !== undefined ? flagCode : fallbackCode;
+  if (!candidate) return '';
+  const raw = String(candidate).toLowerCase().trim();
+  if (
+    !raw ||
+    raw === 'su' ||
+    raw.startsWith('hist_') ||
+    raw.startsWith('spec_') ||
+    raw.startsWith('extra_')
+  ) {
+    return '';
+  }
+  return raw;
 }

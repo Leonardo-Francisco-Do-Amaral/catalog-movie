@@ -1,151 +1,9 @@
 /**
  * Motor Local de Avaliação de Troféus (Client-Side Fallback & Instant Preview)
- * Garante que a Sala de Troféus renderize com precisão mesmo se a rota backend estiver em carregamento ou offline.
+ * Espelha exatamente as regras, Ranks, Platinas e normalização canônica do backend.
  */
 import { CLIENT_TROPHY_DEFINITIONS, TIER_CONFIG } from './trophyDefinitions';
-import { UN_COUNTRIES_195, getCountryRarityTier } from '../data/unCountries195';
-
-function cleanStr(str) {
-  if (!str) return '';
-  return str
-    .toString()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim()
-    .toLowerCase();
-}
-
-const unLookupMap = new Map();
-const unByCode = new Map();
-const unCountryDefMap = unByCode;
-
-UN_COUNTRIES_195.forEach((c) => {
-  unByCode.set(c.code.toLowerCase(), c);
-  unLookupMap.set(cleanStr(c.name), c.code.toLowerCase());
-  unLookupMap.set(c.code.toLowerCase(), c.code.toLowerCase());
-  unLookupMap.set(cleanStr(c.iso3), c.code.toLowerCase());
-  if (Array.isArray(c.aliases)) {
-    c.aliases.forEach((alias) => {
-      unLookupMap.set(cleanStr(alias), c.code.toLowerCase());
-    });
-  }
-});
-
-// Aliases extras comuns
-unLookupMap.set('estados unidos', 'us');
-unLookupMap.set('usa', 'us');
-unLookupMap.set('eua', 'us');
-unLookupMap.set('brasil', 'br');
-unLookupMap.set('reino unido', 'gb');
-unLookupMap.set('uk', 'gb');
-unLookupMap.set('england', 'gb');
-unLookupMap.set('holanda', 'nl');
-unLookupMap.set('paises baixos', 'nl');
-unLookupMap.set('russia', 'ru');
-unLookupMap.set('coreia do sul', 'kr');
-unLookupMap.set('south korea', 'kr');
-unLookupMap.set('coreia do norte', 'kp');
-unLookupMap.set('north korea', 'kp');
-unLookupMap.set('japao', 'jp');
-unLookupMap.set('alemanha', 'de');
-unLookupMap.set('franca', 'fr');
-unLookupMap.set('italia', 'it');
-unLookupMap.set('espanha', 'es');
-
-
-const ALL_39_TAGS = [
-  "invocaversus",
-  "SK",
-  "TOP250",
-  "Vampiro",
-  "Criança Malvada",
-  "Colegio/Escola",
-  "Baseado em jogo",
-  "Baseado em Anime",
-  "Animais antropomorficos",
-  "Mudo",
-  "Preto e branco",
-  "Repetido",
-  "Paródia",
-  "Natal",
-  "Aliens",
-  "Final Epico",
-  "Gore",
-  "Sequestro",
-  "Personagem LGBT",
-  "Bruxo",
-  "Abuso Familiar",
-  "Dystopia",
-  "Viagem no Tempo",
-  "Crime real",
-  "Fatos Reais",
-  "Emocionante",
-  "Trágico",
-  "Preconceito",
-  "Lobisomem",
-  "Demônio",
-  "Religião",
-  "Zumbi",
-  "X-Men",
-  "Vilão",
-  "Fantasma",
-  "Super Poder",
-  "Marvel",
-  "DC",
-  "Multiverso"
-];
-
-function cleanTag(str) {
-  if (!str) return '';
-  let s = str.trim().replace(/^["']|["']$/g, '');
-  s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-  if (s === 'stephen king' || s === 'sk') return 'sk';
-  if (s === 'top 250' || s === 'top250') return 'top250';
-  if (s.includes('super hero') || s.includes('superhero') || s === 'heroi' || s.includes('super poder') || s.includes('superpoder')) return 'super poder';
-  if (s === 'gori' || s === 'gore') return 'gore';
-  if (s.includes('lgbt') || s.includes('persoangem') || s.includes('persomagem') || s.includes('presonagem')) return 'personagem lgbt';
-  if (s.includes('colegio') || s.includes('escola')) return 'colegio/escola';
-  if (s.includes('crianca malvada')) return 'crianca malvada';
-  if (s.includes('fatos reais')) return 'fatos reais';
-  if (s.includes('crime real')) return 'crime real';
-  if (s.includes('viagem no tempo')) return 'viagem no tempo';
-  if (s.includes('final epico')) return 'final epico';
-  if (s.includes('preto e branco')) return 'preto e branco';
-  if (s.includes('em familia')) return 'em familia';
-  if (s.includes('emocionante')) return 'emocionante';
-  if (s.includes('tragico')) return 'tragico';
-  if (s.includes('lobisomem')) return 'lobisomem';
-  if (s.includes('zumbi')) return 'zumbi';
-  if (s.includes('fantasma')) return 'fantasma';
-  if (s === 'x-men' || s === 'x-man') return 'x-men';
-  return s;
-}
-
-function movieHasTag(movie, targetTag) {
-  const target = cleanTag(targetTag);
-  const movieTags = (Array.isArray(movie.tags) ? movie.tags : []).map(cleanTag);
-  return movieTags.includes(target);
-}
-
-function movieHasCountry(movie, countryCode, map = unByCode) {
-  const code = (countryCode || '').toLowerCase();
-  if (movie.primaryCountryCode && movie.primaryCountryCode.toLowerCase() === code) return true;
-  if (Array.isArray(movie.coproductionCountries)) {
-    if (movie.coproductionCountries.some((c) => c.code && c.code.toLowerCase() === code)) return true;
-  }
-  const def = (map || unByCode).get(code);
-  if (def && Array.isArray(movie.countries)) {
-    const cleanNames = movie.countries.map(cleanStr);
-    if (cleanNames.includes(cleanStr(def.name))) return true;
-    if (Array.isArray(def.aliases)) {
-      for (const a of def.aliases) {
-        if (cleanNames.includes(cleanStr(a))) return true;
-      }
-    }
-  }
-  return false;
-}
-
+import { HISTORICAL_TERRITORIES, UN_COUNTRIES_195 } from '../data/unCountries195';
 
 const ALL_21_GENRES = [
   'Animação',
@@ -186,117 +44,137 @@ const MONTH_NAMES = {
   12: 'Dezembro',
 };
 
-function movieHasGenre(movie, genreName) {
-  if (!movie || !Array.isArray(movie.genres)) return false;
-  const target = cleanTag(genreName);
-  return movie.genres.some((g) => cleanTag(g) === target);
-}
-
-function movieHasAllGenres(movie, genreNames) {
-  return genreNames.every((g) => movieHasGenre(movie, g));
-}
-
-function movieHasAnyGenre(movie, genreNames) {
-  return genreNames.some((g) => movieHasGenre(movie, g));
-}
-
-function movieInMonth(movie, month) {
-  if (!movie || movie.month_seen === null || movie.month_seen === undefined) return false;
-  const m = Number(movie.month_seen);
-  if (Array.isArray(month)) {
-    return month.includes(m);
-  }
-  return m === month;
-}
-
-function movieInContinent(movie, continentName, map = unByCode) {
-  const targetContinent = cleanStr(continentName);
-  const codes = new Set();
-  if (movie.primaryCountryCode) codes.add(movie.primaryCountryCode.toLowerCase());
-  if (Array.isArray(movie.coproductionCountries)) {
-    movie.coproductionCountries.forEach((c) => c.code && codes.add(c.code.toLowerCase()));
-  }
-  if (Array.isArray(movie.countries)) {
-    movie.countries.forEach(cName => {
-      const c = unLookupMap.get(cleanStr(cName));
-      if (c) codes.add(c);
-    });
-  }
-  for (const c of codes) {
-    const def = (map || unByCode).get(c);
-    if (def && cleanStr(def.continent) === targetContinent) return true;
-  }
-  return false;
-}
-
-function cleanMovieTitleStr(str) {
+function cleanStr(str) {
   if (!str) return '';
   return str
     .toString()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .replace(/[:\-–—.,'"!?()]/g, ' ')
-    .replace(/\s+/g, ' ')
     .trim();
 }
 
-function matchFranchiseMovie(m, req) {
-  if (req.year && m.release_year) {
-    if (Math.abs(Number(m.release_year) - Number(req.year)) > 1) {
-      return false;
-    }
+function cleanTag(str) {
+  if (!str) return '';
+  let s = str.trim().replace(/^["']|["']$/g, '');
+  s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  if (s === 'stephen king' || s === 'sk') return 'sk';
+  if (s === 'top 250' || s === 'top250') return 'top250';
+  if (
+    s.includes('super hero') ||
+    s.includes('superhero') ||
+    s === 'heroi' ||
+    s.includes('super poder') ||
+    s.includes('superpoder')
+  ) {
+    return 'super poder';
   }
-
-  const mTitles = [cleanMovieTitleStr(m.title), cleanMovieTitleStr(m.original_title)].filter(Boolean);
-
-  if (Array.isArray(req.exclude)) {
-    for (const ex of req.exclude) {
-      const cEx = cleanMovieTitleStr(ex);
-      if (mTitles.some((t) => t.includes(cEx))) return false;
-    }
+  if (s === 'gori' || s === 'gore') return 'gore';
+  if (s.includes('lgbt') || s.includes('persoangem') || s.includes('persomagem') || s.includes('presonagem')) {
+    return 'personagem lgbt';
   }
-
-  const patterns = (req.patterns || []).map(cleanMovieTitleStr);
-  for (const p of patterns) {
-    for (const t of mTitles) {
-      if (t === p || t.includes(p)) {
-        return true;
-      }
-    }
-  }
-
-  return false;
+  if (s.includes('colegio') || s.includes('escola')) return 'colegio/escola';
+  if (s.includes('crianca malvada')) return 'crianca malvada';
+  if (s.includes('fatos reais')) return 'fatos reais';
+  if (s.includes('crime real')) return 'crime real';
+  if (s.includes('viagem no tempo')) return 'viagem no tempo';
+  if (s.includes('final epico')) return 'final epico';
+  if (s.includes('preto e branco')) return 'preto e branco';
+  if (s.includes('em familia')) return 'em familia';
+  if (s.includes('emocionante')) return 'emocionante';
+  if (s.includes('tragico')) return 'tragico';
+  if (s.includes('lobisomem')) return 'lobisomem';
+  if (s.includes('zumbi')) return 'zumbi';
+  if (s.includes('fantasma')) return 'fantasma';
+  if (s === 'x-men' || s === 'x-man') return 'x-men';
+  if (s === 'curta-metragem' || s === 'curta metragem') return 'curta';
+  return s;
 }
 
-function matchCuratedCandidate(m, req) {
-  if (req.year) {
-    const movieYear = Number(m.release_year || m.year || (m.release_date ? String(m.release_date).slice(0, 4) : 0));
-    if (movieYear > 1800 && Math.abs(movieYear - Number(req.year)) > 1) {
-      return false;
-    }
+function normalizeCanonicalPlatform(rawPlatform) {
+  const raw = String(rawPlatform ?? '').trim();
+  if (!raw) return '';
+  const compact = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (!compact || compact === 'naoinformado' || compact === 'na' || compact === 'null' || compact === 'undefined') {
+    return '';
   }
-
-  const mTitles = [cleanMovieTitleStr(m.title), cleanMovieTitleStr(m.original_title)].filter(Boolean);
-
-  if (Array.isArray(req.exclude)) {
-    for (const ex of req.exclude) {
-      const cEx = cleanMovieTitleStr(ex);
-      if (mTitles.some((t) => t.includes(cEx))) return false;
-    }
+  if (compact === 'cinema' || compact.includes('cinema')) return 'Cinema';
+  if (compact === 'bluray' || compact === 'bd') return 'Blu-ray';
+  if (compact === 'dvd') return 'DVD';
+  if (compact === 'netflix') return 'Netflix';
+  if (compact === 'primevideo' || compact === 'amazonprime' || compact === 'amazonprimevideo' || compact === 'prime') {
+    return 'Prime Video';
   }
-
-  const patterns = (req.patterns || []).map(cleanMovieTitleStr);
-  const matchesBase = patterns.some((p) => mTitles.some((t) => t === p || t.includes(p)));
-  if (!matchesBase) return false;
-
-  if (Array.isArray(req.requireAdditionalPatterns) && req.requireAdditionalPatterns.length > 0) {
-    const addPatterns = req.requireAdditionalPatterns.map(cleanMovieTitleStr);
-    const matchesAdd = addPatterns.some((ap) => mTitles.some((t) => t.includes(ap)));
-    if (!matchesAdd) return false;
+  if (compact === 'hbomax' || compact === 'max' || compact === 'hbo') return 'Max (HBO Max)';
+  if (compact === 'disney' || compact === 'disneyplus') return 'Disney+';
+  if (compact === 'star' || compact === 'starplus') return 'Star+';
+  if (compact === 'appletv' || compact === 'appletvplus' || compact === 'aplletv' || compact === 'apple') {
+    return 'Apple TV+';
   }
+  if (compact === 'youtube' || compact === 'yt') return 'YouTube';
+  if (compact === 'myfamilycine' || compact === 'mfc') return 'My Family Cine';
+  if (compact === 'internet') return 'Internet';
+  if (compact === 'globoplay') return 'Globoplay';
+  if (compact === 'paramount' || compact === 'paramountplus') return 'Paramount+';
+  if (compact === 'telecine') return 'Telecine';
+  if (compact === 'mubi') return 'MUBI';
+  if (compact === 'looke') return 'Looke';
+  if (compact === 'tv' || compact === 'televisao') return 'TV';
+  return raw;
+}
 
-  return true;
+const isPhysicalMedia = (p) => p === 'Blu-ray' || p === 'DVD';
+const isCinema = (p) => p === 'Cinema';
+const isYouTube = (p) => p === 'YouTube';
+const isHboMax = (p) => p === 'Max (HBO Max)';
+const isNetflix = (p) => p === 'Netflix';
+const isInternet = (p) => p === 'Internet';
+const isPrimeVideo = (p) => p === 'Prime Video';
+const isMyFamilyCine = (p) => p === 'My Family Cine';
+const isOfficialStreaming = (p) =>
+  p === 'Netflix' || p === 'Prime Video' || p === 'Max (HBO Max)' || p === 'Disney+' || p === 'Star+' || p === 'Apple TV+';
+const isFreeStreaming = (p) => p === 'Internet' || p === 'My Family Cine' || p === 'YouTube';
+const isInternetOrMfc = (p) => p === 'Internet' || p === 'My Family Cine';
+
+const isDubbed = (a) => a.includes('dublado');
+const isSubtitled = (a) => a.includes('legendado');
+const isOriginalAudio = (a) => a === 'original' || a.includes('idioma original');
+const isYouTubeSubtitled = (p, a) => a.includes('legendado pelo youtube') || (p === 'YouTube' && a.includes('legendado'));
+
+function parseStrictScore(val) {
+  if (val === null || val === undefined || typeof val === 'boolean') return null;
+  if (typeof val === 'number') return Number.isNaN(val) || !Number.isFinite(val) ? null : val;
+  let s = String(val).trim();
+  if (!s) return null;
+  const lower = s.toLowerCase();
+  if (['n/a', 'na', 'null', 'undefined', '-', 'none'].includes(lower)) return null;
+  if (s.includes('/')) s = s.split('/')[0].trim();
+  s = s.replace(/%/g, '').replace(',', '.').trim();
+  if (!s) return null;
+  const num = Number(s);
+  return Number.isNaN(num) || !Number.isFinite(num) ? null : num;
+}
+
+function parseGlobalReviews(val) {
+  if (val === null || val === undefined || typeof val === 'boolean') return null;
+  if (typeof val === 'number') return Number.isNaN(val) || !Number.isFinite(val) || val < 0 ? null : Math.round(val);
+  const s = String(val).trim();
+  if (!s) return null;
+  const lower = s.toLowerCase();
+  if (['n/a', 'na', 'null', 'undefined', '-', 'none'].includes(lower)) return null;
+  const upper = s.toUpperCase();
+  if (upper.endsWith('M')) {
+    const n = parseFloat(upper.slice(0, -1).replace(',', '.').trim());
+    return Number.isNaN(n) || n < 0 ? null : Math.round(n * 1_000_000);
+  }
+  if (upper.endsWith('K')) {
+    const n = parseFloat(upper.slice(0, -1).replace(',', '.').trim());
+    return Number.isNaN(n) || n < 0 ? null : Math.round(n * 1_000);
+  }
+  const cleaned = s.replace(/[.,\s]/g, '');
+  if (!/^\d+$/.test(cleaned)) return null;
+  const parsed = parseInt(cleaned, 10);
+  return Number.isNaN(parsed) || parsed < 0 ? null : parsed;
 }
 
 function getTitleLetters(rawTitle) {
@@ -305,133 +183,476 @@ function getTitleLetters(rawTitle) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .trim()
-    .replace(/^["'“‘(\[\-–—\s]+/, '');
-
+    .replace(/^["'“‘([\-–—\s]+/, '');
   const letters = new Set();
   const m1 = normalized.match(/^[a-zA-Z]/);
   if (m1) letters.add(m1[0].toUpperCase());
-
-  // Check common articles: O, A, Os, As, The, Um, Uma, An
-  const articleRegex = /^(o|a|os|as|the|um|uma|an)\s+([a-zA-Z])/i;
-  const m2 = normalized.match(articleRegex);
-  if (m2 && m2[2]) {
-    letters.add(m2[2].toUpperCase());
-  }
-
+  const m2 = normalized.match(/^(o|a|os|as|the|um|uma|an)\s+([a-zA-Z])/i);
+  if (m2 && m2[2]) letters.add(m2[2].toUpperCase());
   return Array.from(letters);
 }
 
-function getMovieDirectors(m) {
-  const set = new Set();
-  (m.directors || []).forEach((d) => d && set.add(cleanStr(d)));
-  const raw = m.raw_api_data || {};
-  if (raw.omdb?.Director && raw.omdb.Director !== 'N/A') {
-    raw.omdb.Director.split(',').forEach((d) => set.add(cleanStr(d)));
+const unByCode = new Map();
+const unLookupMap = new Map();
+for (const c of UN_COUNTRIES_195) {
+  const code = c.code.toLowerCase();
+  unByCode.set(code, c);
+  unLookupMap.set(cleanStr(code), code);
+  unLookupMap.set(cleanStr(c.iso3), code);
+  unLookupMap.set(cleanStr(c.name), code);
+  if (Array.isArray(c.aliases)) {
+    for (const a of c.aliases) unLookupMap.set(cleanStr(a), code);
   }
-  if (Array.isArray(raw.tmdb?.credits?.crew)) {
-    raw.tmdb.credits.crew.filter((c) => c.job === 'Director').forEach((c) => c.name && set.add(cleanStr(c.name)));
+}
+for (const h of HISTORICAL_TERRITORIES) {
+  const code = h.code.toLowerCase();
+  unLookupMap.set(cleanStr(code), code);
+  unLookupMap.set(cleanStr(h.name), code);
+  if (Array.isArray(h.aliases)) {
+    for (const a of h.aliases) unLookupMap.set(cleanStr(a), code);
   }
-  return set;
 }
 
-function getMovieWriters(m) {
-  const set = new Set();
-  (m.writers || []).forEach((w) => w && set.add(cleanStr(w)));
-  const raw = m.raw_api_data || {};
-  if (raw.omdb?.Writer && raw.omdb.Writer !== 'N/A') {
-    raw.omdb.Writer.split(',').forEach((w) => {
-      const cleaned = cleanStr(w.replace(/\s*\([^)]*\)/g, ''));
-      if (cleaned) set.add(cleaned);
-    });
+const ALL_21_GENRES_SET = new Set(ALL_21_GENRES.map(cleanTag));
+
+function addTokens(set, displayMap, rawList, stripParens = false) {
+  if (!rawList) return;
+  const items = Array.isArray(rawList)
+    ? rawList.map((x) => (typeof x === 'string' ? x : x?.name || '')).filter(Boolean)
+    : String(rawList) === 'N/A'
+      ? []
+      : String(rawList).split(',');
+  for (const r of items) {
+    let val = String(r).trim();
+    if (stripParens) val = val.replace(/\([^)]*\)/g, '').trim();
+    if (!val || val.toUpperCase() === 'N/A') continue;
+    const norm = cleanStr(val);
+    if (!norm) continue;
+    set.add(norm);
+    if (displayMap && !displayMap.has(norm)) displayMap.set(norm, val);
   }
-  if (Array.isArray(raw.tmdb?.credits?.crew)) {
-    raw.tmdb.credits.crew
-      .filter((c) => ['Writer', 'Screenplay', 'Story', 'Characters'].includes(c.job))
-      .forEach((c) => c.name && set.add(cleanStr(c.name)));
-  }
-  return set;
 }
 
-function getMovieProducers(m) {
-  const set = new Set();
-  (m.producers || []).forEach((p) => p && set.add(cleanStr(p)));
-  const raw = m.raw_api_data || {};
-  if (raw.omdb?.Production && raw.omdb.Production !== 'N/A') {
-    set.add(cleanStr(raw.omdb.Production));
-  }
-  if (Array.isArray(raw.tmdb?.credits?.crew)) {
-    raw.tmdb.credits.crew
-      .filter((c) => c && ['Producer', 'Executive Producer'].includes(c.job))
-      .forEach((c) => c.name && set.add(cleanStr(c.name)));
-  }
-  return set;
+function pushMap(map, key, val) {
+  const arr = map.get(key);
+  if (arr) arr.push(val);
+  else map.set(key, [val]);
 }
 
-function getMovieStudios(m) {
-  const set = new Set();
-  (m.studios || []).forEach((s) => s && set.add(cleanStr(s)));
-  const raw = m.raw_api_data || {};
-  if (raw.omdb?.Production && raw.omdb.Production !== 'N/A') {
-    set.add(cleanStr(raw.omdb.Production));
-  }
-  if (Array.isArray(raw.tmdb?.production_companies)) {
-    raw.tmdb.production_companies.forEach((p) => p.name && set.add(cleanStr(p.name)));
-  }
-  return set;
-}
+function buildClientCatalogIndex(rawMovies) {
+  const movies = [];
+  const moviesByMonth = new Map();
+  const moviesByRelYear = new Map();
+  const moviesByTag = new Map();
+  const moviesByGenre = new Map();
+  const moviesByCountryAll = new Map();
+  const moviesByCountryPrimary = new Map();
+  const moviesByContinent = new Map();
+  const moviesByPlatform = new Map();
+  const directorToMovies = new Map();
+  const writerToMovies = new Map();
 
-function getMovieDistributors(m) {
-  const set = new Set();
-  if (m.distributor) {
-    m.distributor.split(/[-–—,/]/).forEach((d) => {
-      const c = cleanStr(d);
-      if (c) set.add(c);
-    });
-  }
-  return set;
-}
+  let totalRuntimeMinutes = 0;
+  let maxCatalogYear = 2023;
 
-function movieHasAnyPattern(set, patterns) {
-  for (const item of set) {
-    for (const pat of patterns) {
-      const p = cleanStr(pat);
-      if (p && item.includes(p)) return true;
+  for (let i = 0; i < rawMovies.length; i++) {
+    const m = rawMovies[i];
+    const movieId = m.movie_id ?? m.id ?? `m_${i}`;
+    const title = String(m.title ?? '');
+    const originalTitle = String(m.original_title ?? '');
+    const relY = Number(m.release_year ?? m.ano_lancamento ?? m.ano);
+    const releaseYear = !Number.isNaN(relY) && relY > 1800 ? relY : null;
+    if (releaseYear && releaseYear > maxCatalogYear && releaseYear <= 2050) maxCatalogYear = releaseYear;
+
+    const ys = Number(m.year_seen ?? m.ano_visto);
+    const yearSeen = !Number.isNaN(ys) && ys > 1800 ? ys : null;
+    const ms = Number(m.month_seen ?? m.mes_visto);
+    const monthSeen = !Number.isNaN(ms) && ms >= 1 && ms <= 12 ? ms : null;
+    const rt = Number(m.runtime ?? m.duracao ?? m.min);
+    const runtime = !Number.isNaN(rt) && rt > 0 ? rt : 0;
+    totalRuntimeMinutes += runtime;
+
+    const canonicalPlatform = normalizeCanonicalPlatform(m.platform ?? m.plataforma ?? '');
+    const audioLower = String(m.audio_type ?? m.audio ?? '').trim().toLowerCase();
+    const titleLetters = new Set([...getTitleLetters(title), ...getTitleLetters(originalTitle)]);
+
+    const tagsSet = new Set();
+    const tagEntries = [];
+    for (const rawT of Array.isArray(m.tags) ? m.tags : []) {
+      const s = String(rawT ?? '').trim();
+      const c = cleanTag(s);
+      if (s && c && !tagsSet.has(c)) {
+        tagsSet.add(c);
+        tagEntries.push({ raw: s, clean: c });
+      }
+    }
+
+    const genresSet = new Set();
+    const genresRaw = Array.isArray(m.genres) ? m.genres.filter(Boolean) : [];
+    for (const rawG of genresRaw) {
+      const c = cleanTag(rawG);
+      if (c) genresSet.add(c);
+    }
+    let all21GenresCount = 0;
+    for (const cg of genresSet) {
+      if (ALL_21_GENRES_SET.has(cg)) all21GenresCount++;
+    }
+
+    const allCountryCodes = new Set();
+    if (m.primaryCountryCode) allCountryCodes.add(String(m.primaryCountryCode).toLowerCase());
+    if (Array.isArray(m.coproductionCountries)) {
+      for (const cc of m.coproductionCountries) if (cc?.code) allCountryCodes.add(String(cc.code).toLowerCase());
+    }
+    if (Array.isArray(m.countries)) {
+      for (const rc of m.countries) {
+        const mapped = unLookupMap.get(cleanStr(rc));
+        if (mapped) allCountryCodes.add(mapped);
+      }
+    }
+
+    let rawPrimary = m.primaryCountryCode ? String(m.primaryCountryCode).toLowerCase() : null;
+    if (!rawPrimary && Array.isArray(m.countries) && m.countries.length === 1) {
+      rawPrimary = unLookupMap.get(cleanStr(m.countries[0])) || null;
+    }
+    const primaryCountryCode195 = rawPrimary && unByCode.has(rawPrimary) ? rawPrimary : null;
+
+    const continentsSet = new Set();
+    for (const code of allCountryCodes) {
+      const def = unByCode.get(code);
+      if (def?.continent) continentsSet.add(cleanStr(def.continent));
+    }
+
+    const rawApi = m.raw_api_data || {};
+    const directors = new Set();
+    const directorsDisplay = new Map();
+    addTokens(directors, directorsDisplay, m.directors ?? m.director);
+    addTokens(directors, directorsDisplay, rawApi.omdb?.Director);
+    const writers = new Set();
+    const writersDisplay = new Map();
+    addTokens(writers, writersDisplay, m.writers ?? m.writer, true);
+    addTokens(writers, writersDisplay, rawApi.omdb?.Writer, true);
+    const producers = new Set();
+    addTokens(producers, null, m.producers ?? m.producer);
+    const studios = new Set();
+    addTokens(studios, null, m.studios ?? m.production_companies ?? m.studio);
+    const distributors = new Set();
+    addTokens(distributors, null, m.distributors ?? m.distributor);
+    addTokens(distributors, null, rawApi.omdb?.Production);
+    const companies = new Set([...studios, ...distributors]);
+
+    const ur = parseStrictScore(m.user_rating_raw ?? m.minha_nota ?? m.user_rating);
+    const imdb = parseStrictScore(m.imdb_rating ?? m.imdb);
+    const mc = parseStrictScore(m.metacritic_score ?? m.metacritic);
+    const rts = parseStrictScore(m.rotten_tomatoes_score ?? m.rotten_tomatoes);
+    const gr = parseGlobalReviews(m.global_reviews ?? m.vote_count ?? rawApi.omdb?.imdbVotes ?? rawApi.tmdb?.vote_count);
+
+    const indexed = {
+      raw: m,
+      movieId,
+      title,
+      originalTitle,
+      releaseYear,
+      monthSeen,
+      yearSeen,
+      runtime,
+      posterUrl: m.poster_url || null,
+      oscarWins: Number(m.oscar_wins) || 0,
+      oscarNoms: Number(m.oscar_nominations) || 0,
+      canonicalPlatform,
+      audioLower,
+      titleLetters,
+      tagsSet,
+      tagEntries,
+      genresSet,
+      genresRaw,
+      all21GenresCount,
+      primaryCountryCode195,
+      rawPrimaryCountryCode: rawPrimary,
+      primaryCountryName: (primaryCountryCode195 && unByCode.get(primaryCountryCode195)?.name) || m.primaryCountryName || null,
+      allCountryCodes,
+      continentsSet,
+      directors,
+      writers,
+      producers,
+      studios,
+      distributors,
+      companies,
+      ur,
+      urMillis: ur !== null ? Math.round(ur * 1000) : null,
+      imdb,
+      imdbMillis: imdb !== null ? Math.round(imdb * 1000) : null,
+      mc,
+      rt: rts,
+      gr,
+    };
+
+    movies.push(indexed);
+    if (monthSeen !== null) pushMap(moviesByMonth, monthSeen, indexed);
+    if (releaseYear !== null) pushMap(moviesByRelYear, releaseYear, indexed);
+    if (canonicalPlatform) pushMap(moviesByPlatform, canonicalPlatform, indexed);
+    for (const t of tagsSet) pushMap(moviesByTag, t, indexed);
+    for (const g of genresSet) pushMap(moviesByGenre, g, indexed);
+    for (const cc of allCountryCodes) pushMap(moviesByCountryAll, cc, indexed);
+    if (primaryCountryCode195) pushMap(moviesByCountryPrimary, primaryCountryCode195, indexed);
+    for (const ct of continentsSet) pushMap(moviesByContinent, ct, indexed);
+
+    for (const dNorm of directors) {
+      const e = directorToMovies.get(dNorm);
+      if (e) e.movies.push(indexed);
+      else directorToMovies.set(dNorm, { displayName: directorsDisplay.get(dNorm) || dNorm, movies: [indexed] });
+    }
+    for (const wNorm of writers) {
+      const e = writerToMovies.get(wNorm);
+      if (e) e.movies.push(indexed);
+      else writerToMovies.set(wNorm, { displayName: writersDisplay.get(wNorm) || wNorm, movies: [indexed] });
     }
   }
-  return false;
+
+  // Mapa Desafio 195 + Territórios Históricos
+  const unCountriesMap = new Map();
+  for (const c of UN_COUNTRIES_195) {
+    const code = c.code.toLowerCase();
+    const list = moviesByCountryPrimary.get(code) || [];
+    const sorted = [...list].sort((a, b) => (b.urMillis || 0) - (a.urMillis || 0));
+    const champ = sorted[0];
+    unCountriesMap.set(code, {
+      ...c,
+      code,
+      status: list.length > 0 ? 'conquered' : 'unconquered',
+      champion: champ ? { title: champ.title, release_year: champ.releaseYear, poster_url: champ.posterUrl } : null,
+    });
+  }
+
+  const historicalCountriesMap = new Map();
+  for (const h of HISTORICAL_TERRITORIES) {
+    const code = h.code.toLowerCase();
+    const list = movies.filter((mv) => mv.rawPrimaryCountryCode === code);
+    const sorted = [...list].sort((a, b) => (b.urMillis || 0) - (a.urMillis || 0));
+    const champ = sorted[0];
+    historicalCountriesMap.set(code, {
+      ...h,
+      code,
+      status: list.length > 0 ? 'conquered' : 'unconquered',
+      champion: champ ? { title: champ.title, release_year: champ.releaseYear, poster_url: champ.posterUrl } : null,
+    });
+  }
+
+  const allCountriesAndHistoricalMap = new Map([...unCountriesMap, ...historicalCountriesMap]);
+  const conqueredCountries = Array.from(unCountriesMap.values()).filter((c) => c.status === 'conquered');
+
+  return {
+    movies,
+    totalRuntimeMinutes,
+    maxCatalogYear,
+    moviesByMonth,
+    moviesByRelYear,
+    moviesByTag,
+    moviesByGenre,
+    moviesByCountryAll,
+    moviesByCountryPrimary,
+    moviesByContinent,
+    moviesByPlatform,
+    directorToMovies,
+    writerToMovies,
+    unCountryDefMap: unByCode,
+    unCountriesMap,
+    historicalCountriesMap,
+    allCountriesAndHistoricalMap,
+    conqueredCountries,
+  };
 }
 
-function buildMovieSlotsChecklist(
-  matchingMovies,
-  target,
-  extraInfoFormatter,
-  pendingSlotDesc,
-  flagCode
-) {
+const hasCountry = (m, c) => m.allCountryCodes.has(String(c).toLowerCase());
+const hasGenre = (m, g) => m.genresSet.has(cleanTag(g));
+const hasTag = (m, t) => m.tagsSet.has(cleanTag(t));
+const inMonth = (m, month) => (m.monthSeen === null ? false : Array.isArray(month) ? month.includes(m.monthSeen) : m.monthSeen === month);
+const hasPattern = (set, pats) => {
+  const cp = (pats || []).map(cleanStr);
+  for (const v of set) for (const p of cp) if (p && v.includes(p)) return true;
+  return false;
+};
+const fmtUr = (v) => v.toFixed(3);
+const fmtImdb = (v) => v.toFixed(1);
+const fmtGr = (v) => v.toLocaleString('pt-BR');
+
+function evalCritic(m, key) {
+  const { ur, urMillis, imdb, imdbMillis, mc, rt, gr } = m;
+  switch (key) {
+    case 'ur_gte_9000': return ur !== null && urMillis >= 9000 ? { matched: true, extraInfo: `Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'ur_lte_3000': return ur !== null && urMillis <= 3000 ? { matched: true, extraInfo: `Nota: ${fmtUr(ur)}`, sortScore: -urMillis } : null;
+    case 'rt_gte_90': return rt !== null && rt >= 90 ? { matched: true, extraInfo: `RT: ${rt}%`, sortScore: rt } : null;
+    case 'imdb_gte_80': return imdb !== null && imdbMillis >= 8000 ? { matched: true, extraInfo: `IMDb: ${fmtImdb(imdb)}`, sortScore: imdbMillis } : null;
+    case 'gr_gte_1m': return gr !== null && gr >= 1_000_000 ? { matched: true, extraInfo: `Reviews: ${fmtGr(gr)}`, sortScore: gr } : null;
+    case 'gr_lt_5k': return gr !== null && gr < 5_000 ? { matched: true, extraInfo: `Reviews: ${fmtGr(gr)}`, sortScore: -gr } : null;
+    case 'only_rt_na': return rt === null && mc !== null ? { matched: true, extraInfo: `RT: N/A | MC: ${mc}`, sortScore: mc } : null;
+    case 'only_mc_na': return mc === null && rt !== null ? { matched: true, extraInfo: `MC: N/A | RT: ${rt}%`, sortScore: rt } : null;
+    case 'gr_gt_1m_imdb_lt_70': return gr !== null && gr > 1_000_000 && imdb !== null && imdbMillis < 7000 ? { matched: true, extraInfo: `Reviews: ${fmtGr(gr)} | IMDb: ${fmtImdb(imdb)}`, sortScore: gr } : null;
+    case 'gr_lt_1k': return gr !== null && gr < 1_000 ? { matched: true, extraInfo: `Reviews: ${fmtGr(gr)}`, sortScore: -gr } : null;
+    case 'gr_lt_10k_ur_gte_8000': return gr !== null && gr < 10_000 && ur !== null && urMillis >= 8000 ? { matched: true, extraInfo: `Reviews: ${fmtGr(gr)} | Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'rt_lt_40_ur_gte_7500': return rt !== null && rt < 40 && ur !== null && urMillis >= 7500 ? { matched: true, extraInfo: `RT: ${rt}% | Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'mc_gte_80_ur_lte_6000': return mc !== null && mc >= 80 && ur !== null && urMillis <= 6000 ? { matched: true, extraInfo: `MC: ${mc} | Nota: ${fmtUr(ur)}`, sortScore: mc } : null;
+    case 'ur_pharmacist_decimals': return ur !== null && urMillis % 1000 !== 0 ? { matched: true, extraInfo: `Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'both_mc_rt_na': return mc === null && rt === null ? { matched: true, extraInfo: 'MC: N/A | RT: N/A', sortScore: urMillis || 0 } : null;
+    case 'rt_80_to_89': return rt !== null && rt >= 80 && rt <= 89 ? { matched: true, extraInfo: `RT: ${rt}%`, sortScore: rt } : null;
+    case 'ur_6000_to_7000': return ur !== null && urMillis >= 6000 && urMillis <= 7000 ? { matched: true, extraInfo: `Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'gr_500k_to_1m': return gr !== null && gr >= 500_000 && gr <= 1_000_000 ? { matched: true, extraInfo: `Reviews: ${fmtGr(gr)}`, sortScore: gr } : null;
+    case 'imdb_lt_65_mc_gt_70': return imdb !== null && imdbMillis < 6500 && mc !== null && mc > 70 ? { matched: true, extraInfo: `IMDb: ${fmtImdb(imdb)} | MC: ${mc}`, sortScore: mc } : null;
+    case 'ur_gte_9500': return ur !== null && urMillis >= 9500 ? { matched: true, extraInfo: `Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'gr_lt_100': return gr !== null && gr < 100 ? { matched: true, extraInfo: `Reviews: ${fmtGr(gr)}`, sortScore: -gr } : null;
+    case 'ur_gte_9000_imdb_lt_60': return ur !== null && urMillis >= 9000 && imdb !== null && imdbMillis < 6000 ? { matched: true, extraInfo: `Nota: ${fmtUr(ur)} | IMDb: ${fmtImdb(imdb)}`, sortScore: urMillis } : null;
+    case 'four_scores_spread_40': {
+      if (ur !== null && imdb !== null && mc !== null && rt !== null) {
+        const scores = [ur * 10, imdb * 10, mc, rt];
+        const diff = Math.max(...scores) - Math.min(...scores);
+        if (diff >= 40) return { matched: true, extraInfo: `Amplitude: ${diff.toFixed(1)}`, sortScore: diff };
+      }
+      return null;
+    }
+    case 'ur_gt_8000_imdb_lt_60_mc_lt_50_rt_lt_50': return ur !== null && urMillis > 8000 && imdb !== null && imdbMillis < 6000 && mc !== null && mc < 50 && rt !== null && rt < 50 ? { matched: true, extraInfo: `Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'rt_eq_100': return rt === 100 ? { matched: true, extraInfo: 'RT: 100%', sortScore: urMillis || 100 } : null;
+    case 'mc_gte_90': return mc !== null && mc >= 90 ? { matched: true, extraInfo: `MC: ${mc}`, sortScore: mc } : null;
+    case 'ur_lte_2000_imdb_lt_50': return ur !== null && urMillis <= 2000 && imdb !== null && imdbMillis < 5000 ? { matched: true, extraInfo: `Nota: ${fmtUr(ur)}`, sortScore: -urMillis } : null;
+    case 'gr_100_to_500': return gr !== null && gr >= 100 && gr <= 500 ? { matched: true, extraInfo: `Reviews: ${fmtGr(gr)}`, sortScore: gr } : null;
+    case 'ur_gte_9700': return ur !== null && urMillis >= 9700 ? { matched: true, extraInfo: `Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'ur_90_imdb_80_rt_90_mc_90': return ur !== null && urMillis >= 9000 && imdb !== null && imdbMillis >= 8000 && rt !== null && rt >= 90 && mc !== null && mc >= 90 ? { matched: true, extraInfo: `Nota: ${fmtUr(ur)} | 4 notas top`, sortScore: urMillis } : null;
+    case 'ur_gte_8500': return ur !== null && urMillis >= 8500 ? { matched: true, extraInfo: `Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'red_critic_lt_45_ur_gte_8500': return rt !== null && rt < 45 && mc !== null && mc < 45 && imdb !== null && imdbMillis < 6000 && ur !== null && urMillis >= 8500 ? { matched: true, extraInfo: `Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'imdb_gte_80_rt_gte_85': return imdb !== null && imdbMillis >= 8000 && rt !== null && rt >= 85 ? { matched: true, extraInfo: `IMDb: ${fmtImdb(imdb)} | RT: ${rt}%`, sortScore: imdbMillis } : null;
+    case 'gr_lt_5k_ur_gte_8500': return gr !== null && gr < 5_000 && ur !== null && urMillis >= 8500 ? { matched: true, extraInfo: `Reviews: ${fmtGr(gr)} | Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'imdb_lt_50_ur_gte_7500': return imdb !== null && imdbMillis < 5000 && ur !== null && urMillis >= 7500 ? { matched: true, extraInfo: `IMDb: ${fmtImdb(imdb)} | Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'checkpoint_777': return ur !== null && urMillis >= 7000 && urMillis <= 7999 && imdb !== null && imdbMillis >= 7000 && imdbMillis <= 7999 && rt !== null && rt >= 70 && rt <= 79 && mc !== null && mc >= 70 && mc <= 79 ? { matched: true, extraInfo: `7777: ${fmtUr(ur)}/${fmtImdb(imdb)}/${rt}%/${mc}`, sortScore: urMillis } : null;
+    case 'ur_gte_9750': return ur !== null && urMillis >= 9750 ? { matched: true, extraInfo: `Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'ur_90_imdb_80_rt_88_mc_85': return ur !== null && urMillis >= 9000 && imdb !== null && imdbMillis >= 8000 && rt !== null && rt >= 88 && mc !== null && mc >= 85 ? { matched: true, extraInfo: `Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'gr_lt_100k_ur_gte_8000': return gr !== null && gr < 100_000 && ur !== null && urMillis >= 8000 ? { matched: true, extraInfo: `Reviews: ${fmtGr(gr)} | Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'fr_ur_lt_5000': return hasCountry(m, 'fr') && ur !== null && urMillis < 5000 ? { matched: true, extraInfo: `França | Nota: ${fmtUr(ur)}`, sortScore: -urMillis } : null;
+    case 'xmen_ur_lt_7000': return hasTag(m, 'X-Men') && ur !== null && urMillis < 7000 ? { matched: true, extraInfo: `X-Men | Nota: ${fmtUr(ur)}`, sortScore: -urMillis } : null;
+    case 'natal_ur_gt_7000': return hasTag(m, 'Natal') && ur !== null && urMillis > 7000 ? { matched: true, extraInfo: `Natal | Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'game_rt_lt_50_ur_gte_7000': return hasTag(m, 'Baseado em jogo') && rt !== null && rt < 50 && ur !== null && urMillis >= 7000 ? { matched: true, extraInfo: `Jogo | RT: ${rt}% | Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'comedia_ur_gte_8500': return hasGenre(m, 'Comédia') && ur !== null && urMillis >= 8500 ? { matched: true, extraInfo: `Comédia | Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'terror_imdb_lt_55_outubro': return hasGenre(m, 'Terror') && imdb !== null && imdbMillis < 5500 && inMonth(m, 10) ? { matched: true, extraInfo: `Terror Out | IMDb: ${fmtImdb(imdb)}`, sortScore: -imdbMillis } : null;
+    case 'non_us_gr_gt_1m': return !hasCountry(m, 'us') && gr !== null && gr > 1_000_000 ? { matched: true, extraInfo: `Reviews: ${fmtGr(gr)}`, sortScore: gr } : null;
+    case 'br_gr_gt_100k': return hasCountry(m, 'br') && gr !== null && gr > 100_000 ? { matched: true, extraInfo: `Brasil | Reviews: ${fmtGr(gr)}`, sortScore: gr } : null;
+    case 'br_gr_lt_1k': return hasCountry(m, 'br') && gr !== null && gr < 1_000 ? { matched: true, extraInfo: `Brasil | Reviews: ${fmtGr(gr)}`, sortScore: -gr } : null;
+    case 'a24_ur_gt_8000': return hasPattern(m.companies, ['a24']) && ur !== null && urMillis > 8000 ? { matched: true, extraInfo: `A24 | Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'oscar_winner_gr_lt_300k': return m.oscarWins >= 1 && gr !== null && gr < 300_000 ? { matched: true, extraInfo: `Oscar | Reviews: ${fmtGr(gr)}`, sortScore: -gr } : null;
+    case 'agosto_ur_gt_7000': return inMonth(m, 8) && ur !== null && urMillis > 7000 ? { matched: true, extraInfo: `Agosto | Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'gore_rt_gt_90': return hasTag(m, 'Gore') && rt !== null && rt > 90 ? { matched: true, extraInfo: `Gore | RT: ${rt}%`, sortScore: rt } : null;
+    case 'musica_ur_gt_9000': return hasGenre(m, 'Música') && ur !== null && urMillis > 9000 ? { matched: true, extraInfo: `Música | Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'marvel_dc_ur_gt_8500': return (hasTag(m, 'Marvel') || hasTag(m, 'DC')) && ur !== null && urMillis > 8500 ? { matched: true, extraInfo: `Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'sk_ur_gte_8000': return hasTag(m, 'SK') && ur !== null && urMillis >= 8000 ? { matched: true, extraInfo: `SK | Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'oscar_acclaimed_ur_lte_6000': return (m.oscarNoms >= 1 || m.oscarWins >= 1) && ((rt !== null && rt >= 80) || (imdb !== null && imdbMillis >= 7500)) && ur !== null && urMillis <= 6000 ? { matched: true, extraInfo: `Nota: ${fmtUr(ur)}`, sortScore: -urMillis } : null;
+    case 'terror_ur_gt_8000': return hasGenre(m, 'Terror') && ur !== null && urMillis > 8000 ? { matched: true, extraInfo: `Terror | Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'emocionante_abuso_familiar_ur_gt_8000': return hasTag(m, 'Emocionante') && hasTag(m, 'Abuso Familiar') && ur !== null && urMillis > 8000 ? { matched: true, extraInfo: `Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'br_drama_ur_gt_9000': return hasCountry(m, 'br') && hasGenre(m, 'Drama') && ur !== null && urMillis > 9000 ? { matched: true, extraInfo: `BR Drama | Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'oscar_winner_gr_lt_500k': return m.oscarWins >= 1 && gr !== null && gr < 500_000 ? { matched: true, extraInfo: `Oscar | Reviews: ${fmtGr(gr)}`, sortScore: -gr } : null;
+    case 'final_epico_ur_gt_9000': return hasTag(m, 'Final Epico') && ur !== null && urMillis > 9000 ? { matched: true, extraInfo: `Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'animacao_ur_gt_8500_rt_gt_90': return hasGenre(m, 'Animação') && ur !== null && urMillis > 8500 && rt !== null && rt > 90 ? { matched: true, extraInfo: `RT: ${rt}% | Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'non_us_non_br_gr_lt_50k_ur_gt_8000': return !hasCountry(m, 'us') && !hasCountry(m, 'br') && gr !== null && gr < 50_000 && ur !== null && urMillis > 8000 ? { matched: true, extraInfo: `Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'blumhouse_terror_suspense_ur_gt_8000': return hasPattern(m.companies, ['blumhouse']) && (hasGenre(m, 'Terror') || hasGenre(m, 'Suspense')) && ur !== null && urMillis > 8000 ? { matched: true, extraInfo: `Blumhouse | Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'dezembro_ur_gte_8500': return inMonth(m, 12) && ur !== null && urMillis >= 8500 ? { matched: true, extraInfo: `Dezembro | Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'top250_ur_lt_7500': return hasTag(m, 'TOP250') && ur !== null && urMillis < 7500 ? { matched: true, extraInfo: `TOP250 | Nota: ${fmtUr(ur)}`, sortScore: -urMillis } : null;
+    case 'terror_imdb_lt_65_ur_gt_8000': return hasGenre(m, 'Terror') && imdb !== null && imdbMillis < 6500 && ur !== null && urMillis > 8000 ? { matched: true, extraInfo: `IMDb: ${fmtImdb(imdb)} | Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'lgbt_drama_romance_ur_gt_8500_rt_gt_80': return (hasGenre(m, 'Drama') || hasGenre(m, 'Romance')) && hasTag(m, 'Personagem LGBT') && ur !== null && urMillis > 8500 ? { matched: true, extraInfo: `LGBT • Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'oscar_winner_ur_gte_9000': return m.oscarWins >= 1 && ur !== null && urMillis >= 9000 ? { matched: true, extraInfo: `Oscar | Nota: ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    default: return null;
+  }
+}
+
+function evalRitual(m, key) {
+  const { runtime, releaseYear: relYear, yearSeen, canonicalPlatform: plat, audioLower: audio } = m;
+  switch (key) {
+    case 'cinema_count': return isCinema(plat) ? { matched: true, extraInfo: `Cinema`, sortScore: yearSeen || 0 } : null;
+    case 'audio_original_count': return isOriginalAudio(audio) ? { matched: true, extraInfo: `Áudio Original`, sortScore: yearSeen || 0 } : null;
+    case 'runtime_lte_15': return runtime > 0 && runtime <= 15 ? { matched: true, extraInfo: `${runtime} min`, sortScore: -runtime } : null;
+    case 'runtime_eq_120': return runtime === 120 ? { matched: true, extraInfo: '120 min', sortScore: yearSeen || 0 } : null;
+    case 'physical_media_count': return isPhysicalMedia(plat) ? { matched: true, extraInfo: plat, sortScore: yearSeen || 0 } : null;
+    case 'youtube_subtitled_count': return isYouTubeSubtitled(plat, audio) ? { matched: true, extraInfo: 'YouTube Legendado', sortScore: yearSeen || 0 } : null;
+    case 'youtube_count': return isYouTube(plat) ? { matched: true, extraInfo: 'YouTube', sortScore: yearSeen || 0 } : null;
+    case 'cinema_legendado_count': return isCinema(plat) && isSubtitled(audio) ? { matched: true, extraInfo: 'Cinema Legendado', sortScore: yearSeen || 0 } : null;
+    case 'audio_dublado_count': return isDubbed(audio) ? { matched: true, extraInfo: 'Dublado', sortScore: yearSeen || 0 } : null;
+    case 'audio_legendado_count': return isSubtitled(audio) ? { matched: true, extraInfo: 'Legendado', sortScore: yearSeen || 0 } : null;
+    case 'year_eq_1994': return relYear === 1994 ? { matched: true, extraInfo: '1994', sortScore: 1994 } : null;
+    case 'year_eq_2012': return relYear === 2012 ? { matched: true, extraInfo: '2012', sortScore: 2012 } : null;
+    case 'same_year_seen_release': return relYear !== null && yearSeen !== null && relYear === yearSeen ? { matched: true, extraInfo: `${relYear}`, sortScore: relYear } : null;
+    case 'year_between_1920_1940': return relYear !== null && relYear >= 1920 && relYear <= 1940 ? { matched: true, extraInfo: `${relYear}`, sortScore: relYear } : null;
+    case 'prime_video_same_year': return isPrimeVideo(plat) && relYear !== null && yearSeen !== null && relYear === yearSeen ? { matched: true, extraInfo: `Prime (${relYear})`, sortScore: relYear } : null;
+    case 'runtime_lte_60': return runtime > 0 && runtime <= 60 ? { matched: true, extraInfo: `${runtime} min`, sortScore: -runtime } : null;
+    case 'runtime_gt_150': return runtime > 150 ? { matched: true, extraInfo: `${runtime} min`, sortScore: runtime } : null;
+    case 'runtime_gt_180': return runtime > 180 ? { matched: true, extraInfo: `${runtime} min`, sortScore: runtime } : null;
+    case 'cinema_gt_150min': return isCinema(plat) && runtime > 150 ? { matched: true, extraInfo: `Cinema ${runtime}m`, sortScore: runtime } : null;
+    case 'hbo_max_count': return isHboMax(plat) ? { matched: true, extraInfo: plat, sortScore: yearSeen || 0 } : null;
+    case 'netflix_count': return isNetflix(plat) ? { matched: true, extraInfo: 'Netflix', sortScore: yearSeen || 0 } : null;
+    case 'internet_count': return isInternet(plat) ? { matched: true, extraInfo: 'Internet', sortScore: yearSeen || 0 } : null;
+    case 'free_streaming_same_year': return isFreeStreaming(plat) && relYear !== null && yearSeen !== null && relYear === yearSeen ? { matched: true, extraInfo: `${plat} (${relYear})`, sortScore: relYear } : null;
+    case 'seen_after_release_year': return relYear !== null && yearSeen !== null && yearSeen > relYear ? { matched: true, extraInfo: `${relYear} → ${yearSeen}`, sortScore: yearSeen - relYear } : null;
+    case 'year_lt_1994': return relYear !== null && relYear < 1994 ? { matched: true, extraInfo: `${relYear}`, sortScore: -relYear } : null;
+    case 'year_lt_1958': return relYear !== null && relYear < 1958 ? { matched: true, extraInfo: `${relYear}`, sortScore: -relYear } : null;
+    case 'year_1999_or_2000': return relYear === 1999 || relYear === 2000 ? { matched: true, extraInfo: `${relYear}`, sortScore: relYear } : null;
+    case 'year_between_2010_2020': return relYear !== null && relYear >= 2010 && relYear <= 2020 ? { matched: true, extraInfo: `${relYear}`, sortScore: relYear } : null;
+    case 'internet_or_mfc_count': return isInternetOrMfc(plat) ? { matched: true, extraInfo: plat, sortScore: yearSeen || 0 } : null;
+    case 'official_streaming_count': return isOfficialStreaming(plat) ? { matched: true, extraInfo: plat, sortScore: yearSeen || 0 } : null;
+    case 'time_capsule_30_years': return relYear !== null && yearSeen !== null && yearSeen - relYear >= 30 ? { matched: true, extraInfo: `+${yearSeen - relYear} anos`, sortScore: yearSeen - relYear } : null;
+    case 'year_eq_2001': return relYear === 2001 ? { matched: true, extraInfo: '2001', sortScore: 2001 } : null;
+    case 'year_between_1939_1945': return relYear !== null && relYear >= 1939 && relYear <= 1945 ? { matched: true, extraInfo: `${relYear}`, sortScore: relYear } : null;
+    default: return null;
+  }
+}
+
+function evalMultiRitual(m, key) {
+  const { runtime, releaseYear: relYear, canonicalPlatform: plat, audioLower: audio, ur, urMillis, imdb, imdbMillis, gr } = m;
+  switch (key) {
+    case 'cinema_ur_lt_7000': return isCinema(plat) && ur !== null && urMillis < 7000 && urMillis > 0 ? { matched: true, extraInfo: `Cinema | ${fmtUr(ur)}`, sortScore: -urMillis } : null;
+    case 'a24_ur_lt_6000': return hasPattern(m.companies, ['a24']) && ur !== null && urMillis < 6000 && urMillis > 0 ? { matched: true, extraInfo: `A24 | ${fmtUr(ur)}`, sortScore: -urMillis } : null;
+    case 'year_1994_seen_august': return relYear === 1994 && inMonth(m, 8) ? { matched: true, extraInfo: '1994 em Agosto', sortScore: 1994 } : null;
+    case 'brazil_year_1994': return relYear === 1994 && hasCountry(m, 'br') ? { matched: true, extraInfo: 'Brasil 1994', sortScore: 1994 } : null;
+    case 'animacao_dublada_15': return hasGenre(m, 'Animação') && isDubbed(audio) ? { matched: true, extraInfo: 'Animação Dublada', sortScore: 1 } : null;
+    case 'curta_youtube_5': return hasGenre(m, 'Curta') && isYouTube(plat) ? { matched: true, extraInfo: 'Curta no YouTube', sortScore: 1 } : null;
+    case 'brasil_cinema_5': return hasCountry(m, 'br') && isCinema(plat) ? { matched: true, extraInfo: 'Brasil no Cinema', sortScore: 1 } : null;
+    case 'cinema_ur_gt_8000_10': return isCinema(plat) && ur !== null && urMillis > 8000 ? { matched: true, extraInfo: `Cinema | ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'cinema_ferias_julho_dez_10': return isCinema(plat) && (inMonth(m, 7) || inMonth(m, 12)) ? { matched: true, extraInfo: 'Cinema nas Férias', sortScore: 1 } : null;
+    case 'biografia_non_us_non_br_5': return hasGenre(m, 'Biografia') && !hasCountry(m, 'us') && !hasCountry(m, 'br') ? { matched: true, extraInfo: 'Biografia Internacional', sortScore: 1 } : null;
+    case 'japao_sem_animes_games_terror_5': return hasCountry(m, 'jp') && !hasTag(m, 'Baseado em Anime') && !hasTag(m, 'Baseado em jogo') && !hasGenre(m, 'Terror') && !hasGenre(m, 'Animação') ? { matched: true, extraInfo: 'Japão Live-Action', sortScore: 1 } : null;
+    case 'pirata_tag_lgbt_15': return hasTag(m, 'Personagem LGBT') && (isMyFamilyCine(plat) || isYouTube(plat) || isInternet(plat)) ? { matched: true, extraInfo: plat, sortScore: 1 } : null;
+    case 'pirata_tag_crime_real_15': return hasTag(m, 'Crime real') && (isMyFamilyCine(plat) || isYouTube(plat) || isInternet(plat)) ? { matched: true, extraInfo: plat, sortScore: 1 } : null;
+    case 'midia_fisica_ur_gt_8000_15': return isPhysicalMedia(plat) && ur !== null && urMillis > 8000 ? { matched: true, extraInfo: `${plat} | ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'pre_1960_pb_mudo_3': return relYear !== null && relYear < 1960 && (hasTag(m, 'Preto e branco') || hasTag(m, 'Mudo')) ? { matched: true, extraInfo: `${relYear}`, sortScore: -relYear } : null;
+    case 'terror_anos_80_10': return hasGenre(m, 'Terror') && relYear !== null && relYear >= 1980 && relYear <= 1989 ? { matched: true, extraInfo: `${relYear}`, sortScore: relYear } : null;
+    case 'pirata_romance_30': return hasGenre(m, 'Romance') && (isMyFamilyCine(plat) || isYouTube(plat) || isInternet(plat)) ? { matched: true, extraInfo: plat, sortScore: 1 } : null;
+    case 'terror_sem_gore_30': return hasGenre(m, 'Terror') && !hasTag(m, 'Gore') ? { matched: true, extraInfo: 'Terror sem Gore', sortScore: 1 } : null;
+    case 'netflix_gore_30': return hasTag(m, 'Gore') && isNetflix(plat) ? { matched: true, extraInfo: 'Netflix Gore', sortScore: 1 } : null;
+    case 'minecraft_stack_64': return (hasTag(m, 'Baseado em jogo') || hasTag(m, 'Zumbi') || hasTag(m, 'Bruxo') || hasTag(m, 'Animais antropomorficos')) && (hasGenre(m, 'Aventura') || hasGenre(m, 'Fantasia')) ? { matched: true, extraInfo: 'Minecraft Stack', sortScore: 1 } : null;
+    case 'marvel_dc_cinema_20': return (hasTag(m, 'Marvel') || hasTag(m, 'DC')) && isCinema(plat) ? { matched: true, extraInfo: 'Cinema', sortScore: 1 } : null;
+    case 'pirata_hidden_gem_10': return (isInternet(plat) || isYouTube(plat) || isMyFamilyCine(plat)) && gr !== null && gr > 0 && gr < 50_000 && ur !== null && urMillis > 8000 ? { matched: true, extraInfo: `${plat} | ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'oscar_winner_streaming_oficial_20': return m.oscarWins >= 1 && isOfficialStreaming(plat) ? { matched: true, extraInfo: plat, sortScore: m.oscarWins } : null;
+    case 'gt_180_min_ur_gt_9000_5': return runtime > 180 && ur !== null && urMillis > 9000 ? { matched: true, extraInfo: `${runtime}m | ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'sony_midia_fisica_10': return hasPattern(m.companies, ['sony', 'columbia', 'tri-star', 'tristar', 'sony pictures']) && isPhysicalMedia(plat) ? { matched: true, extraInfo: plat, sortScore: 1 } : null;
+    case 'pre_1980_ur_gt_8000_imdb_gte_80_15': return relYear !== null && relYear < 1980 && ur !== null && urMillis > 8000 && imdb !== null && imdbMillis >= 8000 ? { matched: true, extraInfo: `${relYear} | ${fmtUr(ur)}`, sortScore: urMillis } : null;
+    case 'celso_russomanno_streaming_ur_lt_6000_30': return isOfficialStreaming(plat) && ur !== null && urMillis < 6000 && urMillis > 0 ? { matched: true, extraInfo: `${plat} | ${fmtUr(ur)}`, sortScore: -urMillis } : null;
+    default: return null;
+  }
+}
+
+function buildSlots(matches, targetValue, extraFn, pendingLabel) {
   const checklist = [];
-  const cappedMovies = matchingMovies.slice(0, target);
-
-  cappedMovies.forEach((m, idx) => {
-    checklist.push({
-      id: `m_${m.movie_id || m.id || idx}`,
-      name: `${m.title}${m.release_year ? ` (${m.release_year})` : ''}`,
-      flag: flagCode || (m.primaryCountryCode ? m.primaryCountryCode.toLowerCase() : null),
-      required: 1,
-      current: 1,
-      conquered: true,
-      movie_title: m.title,
-      movie_year: m.release_year,
-      poster_url: m.poster_url,
-      extra_info: extraInfoFormatter(m),
-    });
-  });
-
-  if (cappedMovies.length < target) {
-    for (let i = cappedMovies.length; i < target; i++) {
+  for (let i = 0; i < targetValue; i++) {
+    const m = matches[i];
+    if (m) {
       checklist.push({
         id: `slot_${i + 1}`,
-        name: `Filme #${i + 1} (${pendingSlotDesc})`,
-        flag: flagCode || null,
+        name: `Filme #${i + 1}: ${m.title}${m.releaseYear ? ` (${m.releaseYear})` : ''}`,
+        flag: m.primaryCountryCode195 || m.rawPrimaryCountryCode || null,
+        required: 1,
+        current: 1,
+        conquered: true,
+        movie_title: m.title,
+        movie_year: m.releaseYear,
+        poster_url: m.posterUrl,
+        extra_info: extraFn(m),
+      });
+    } else {
+      checklist.push({
+        id: `slot_${i + 1}`,
+        name: `Filme #${i + 1} (${pendingLabel})`,
         required: 1,
         current: 0,
         conquered: false,
@@ -439,5917 +660,601 @@ function buildMovieSlotsChecklist(
       });
     }
   }
-
-  return {
-    checklist,
-    progressCurrent: cappedMovies.length,
-  };
+  return { rawCount: matches.length, progressCurrent: Math.min(matches.length, targetValue), progressTarget: targetValue, isMet: matches.length >= targetValue, checklist };
 }
 
-/**
- * REGRA DE OURO DO TRIBUNAL DA CRÍTICA:
- * Jamais converte null, undefined, "" ou "N/A" em 0!
- */
-export function parseStrictScore(val) {
-  if (val === null || val === undefined || typeof val === 'boolean') return null;
-  if (typeof val === 'number') {
-    return Number.isNaN(val) || !Number.isFinite(val) ? null : val;
-  }
-  let s = String(val).trim();
-  if (!s) return null;
-  const lower = s.toLowerCase();
-  if (lower === 'n/a' || lower === 'na' || lower === 'null' || lower === 'undefined' || lower === '-' || lower === 'none') {
-    return null;
-  }
-  if (s.includes('/')) {
-    s = s.split('/')[0].trim();
-  }
-  s = s.replace(/%/g, '').replace(',', '.').trim();
-  if (!s) return null;
-  const num = Number(s);
-  return Number.isNaN(num) || !Number.isFinite(num) ? null : num;
-}
+function computeRule(def, index) {
+  const meta = def.target_metadata || {};
+  let pt = def.target_value || 1;
+  const checklist = [];
 
-export function parseGlobalReviews(val) {
-  if (val === null || val === undefined || typeof val === 'boolean') return null;
-  if (typeof val === 'number') {
-    return Number.isNaN(val) || !Number.isFinite(val) || val < 0 ? null : Math.round(val);
-  }
-  const s = String(val).trim();
-  if (!s) return null;
-  const lower = s.toLowerCase();
-  if (lower === 'n/a' || lower === 'na' || lower === 'null' || lower === 'undefined' || lower === '-' || lower === 'none') {
-    return null;
-  }
-  const upper = s.toUpperCase();
-  if (upper.endsWith('M')) {
-    const numPart = parseFloat(upper.slice(0, -1).replace(',', '.').trim());
-    return Number.isNaN(numPart) || !Number.isFinite(numPart) || numPart < 0 ? null : Math.round(numPart * 1_000_000);
-  }
-  if (upper.endsWith('K')) {
-    const numPart = parseFloat(upper.slice(0, -1).replace(',', '.').trim());
-    return Number.isNaN(numPart) || !Number.isFinite(numPart) || numPart < 0 ? null : Math.round(numPart * 1_000);
-  }
-  const cleaned = s.replace(/[.,\s]/g, '');
-  if (!/^\d+$/.test(cleaned)) return null;
-  const parsed = parseInt(cleaned, 10);
-  return Number.isNaN(parsed) || parsed < 0 ? null : parsed;
-}
-
-function extractCriticMetrics(movie) {
-  const rawUr =
-    movie.user_rating_raw !== undefined
-      ? movie.user_rating_raw
-      : movie.minha_nota !== undefined
-        ? movie.minha_nota
-        : movie.user_rating;
-  const ur = parseStrictScore(rawUr);
-
-  const rawImdb = movie.imdb_rating !== undefined ? movie.imdb_rating : movie.imdb;
-  const imdb = parseStrictScore(rawImdb);
-
-  const rawMc = movie.metacritic_score !== undefined ? movie.metacritic_score : movie.metacritic;
-  const mc = parseStrictScore(rawMc);
-
-  const rawRt = movie.rotten_tomatoes_score !== undefined ? movie.rotten_tomatoes_score : movie.rotten_tomatoes;
-  const rt = parseStrictScore(rawRt);
-
-  let gr = null;
-  if (movie.global_reviews !== undefined && movie.global_reviews !== null && String(movie.global_reviews).trim() !== '') {
-    gr = parseGlobalReviews(movie.global_reviews);
-  }
-  if (gr === null && movie.vote_count !== undefined && movie.vote_count !== null && String(movie.vote_count).trim() !== '') {
-    gr = parseGlobalReviews(movie.vote_count);
-  }
-  if (gr === null && movie.raw_api_data?.omdb?.imdbVotes) {
-    gr = parseGlobalReviews(movie.raw_api_data.omdb.imdbVotes);
-  }
-  if (gr === null && movie.raw_api_data?.tmdb?.vote_count !== undefined && movie.raw_api_data?.tmdb?.vote_count !== null) {
-    gr = parseGlobalReviews(movie.raw_api_data.tmdb.vote_count);
-  }
-
-  return { ur, imdb, mc, rt, gr };
-}
-
-function evaluateCriticTribunalMovie(movie, ruleKey) {
-  const { ur, imdb, mc, rt, gr } = extractCriticMetrics(movie);
-  const urMillis = ur !== null ? Math.round(ur * 1000) : null;
-  const imdbMillis = imdb !== null ? Math.round(imdb * 1000) : null;
-
-  const fmtUr = (v) => v.toFixed(3);
-  const fmtImdb = (v) => v.toFixed(1);
-  const fmtGr = (v) => v.toLocaleString('pt-BR');
-
-  switch (ruleKey) {
-    case 'ur_gte_9000':
-      if (ur !== null && urMillis >= 9000) {
-        return { matched: true, extraInfo: `Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
+  switch (def.target_type) {
+    case 'conquered_countries_count': {
+      const ex = meta.excludeCode ? String(meta.excludeCode).toLowerCase() : null;
+      const valid = ex ? index.conqueredCountries.filter((c) => c.code !== ex) : index.conqueredCountries;
+      valid.slice(0, 40).forEach((e) => checklist.push({ code: e.code, name: e.name, flag: e.code, required: 1, current: 1, conquered: true, movie_title: e.champion?.title }));
+      return { rawCount: valid.length, progressCurrent: Math.min(valid.length, pt), progressTarget: pt, isMet: valid.length >= pt, checklist };
+    }
+    case 'country_movie_count': {
+      const cc = String(meta.countryCode || '').toLowerCase();
+      const matches = meta.strictPrimary ? index.moviesByCountryPrimary.get(cc) || [] : index.moviesByCountryAll.get(cc) || [];
+      return buildSlots(matches, pt, () => meta.countryName || cc.toUpperCase(), meta.countryName || cc);
+    }
+    case 'continent_movie_count': {
+      const matches = index.moviesByContinent.get(cleanStr(meta.continent || 'Europa')) || [];
+      return buildSlots(matches, pt, (m) => m.primaryCountryName || meta.continent, meta.continent);
+    }
+    case 'country_list': {
+      let codes = Array.isArray(meta.countryCodes) ? meta.countryCodes.map((c) => c.toLowerCase()) : [];
+      if (codes.length === 0 && meta.continent) {
+        codes = Array.from(index.unCountryDefMap.values()).filter((c) => cleanStr(c.continent) === cleanStr(meta.continent)).map((c) => c.code);
       }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'ur_lte_3000':
-      if (ur !== null && urMillis <= 3000) {
-        return { matched: true, extraInfo: `Minha Nota: ${fmtUr(ur)}`, sortScore: -urMillis };
+      let conq = 0;
+      for (const code of codes) {
+        const entry = index.unCountriesMap.get(code);
+        const ok = entry?.status === 'conquered';
+        if (ok) conq++;
+        checklist.push({ code, name: entry?.name || code.toUpperCase(), flag: code, required: 1, current: ok ? 1 : 0, conquered: ok, movie_title: entry?.champion?.title || null });
       }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'rt_gte_90':
-      if (rt !== null && rt >= 90) {
-        return { matched: true, extraInfo: `Rotten Tomatoes: ${rt}%`, sortScore: rt };
+      return { rawCount: conq, progressCurrent: conq, progressTarget: codes.length || pt, isMet: conq >= (codes.length || pt), checklist };
+    }
+    case 'world_countries_checklist': {
+      const list = Array.isArray(meta.countries) ? meta.countries : [];
+      let conq = 0;
+      for (const item of list) {
+        const entry = index.unCountriesMap.get(String(item.code).toLowerCase());
+        const ok = entry?.status === 'conquered';
+        if (ok) conq++;
+        checklist.push({ code: item.code, name: item.name || item.code, flag: item.code, required: 1, current: ok ? 1 : 0, conquered: ok, movie_title: entry?.champion?.title || null });
       }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'imdb_gte_80':
-      if (imdb !== null && imdbMillis >= 8000) {
-        return { matched: true, extraInfo: `IMDb: ${fmtImdb(imdb)}`, sortScore: imdbMillis };
+      return { rawCount: conq, progressCurrent: conq, progressTarget: list.length || pt, isMet: conq >= (list.length || pt), checklist };
+    }
+    case 'country_movie_counts': {
+      const reqs = Array.isArray(meta.requirements) ? meta.requirements : [];
+      let sum = 0, reqTot = 0, allMet = true;
+      for (const r of reqs) {
+        const matches = index.moviesByCountryAll.get(String(r.code).toLowerCase()) || [];
+        const min = Number(r.min) || 1;
+        reqTot += min;
+        sum += Math.min(matches.length, min);
+        if (matches.length < min) allMet = false;
+        checklist.push({ code: r.code, name: `${r.name} (${matches.length}/${min})`, flag: r.code, required: min, current: Math.min(matches.length, min), conquered: matches.length >= min });
       }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'gr_gte_1m':
-      if (gr !== null && gr >= 1_000_000) {
-        return { matched: true, extraInfo: `Global Reviews: ${fmtGr(gr)}`, sortScore: gr };
+      return { rawCount: sum, progressCurrent: sum, progressTarget: reqTot || pt, isMet: allMet && sum >= (reqTot || pt), checklist };
+    }
+    case 'historical_territories_list': {
+      const codes = Array.isArray(meta.territoryCodes) ? meta.territoryCodes : [];
+      const minC = Number(meta.minCount) || pt || 4;
+      let conq = 0;
+      for (const code of codes) {
+        const h = index.historicalCountriesMap.get(String(code).toLowerCase());
+        const ok = h?.status === 'conquered';
+        if (ok) conq++;
+        checklist.push({ code, name: h?.name || code, flag: h?.flagCode || null, required: 1, current: ok ? 1 : 0, conquered: ok, movie_title: h?.champion?.title || null });
       }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'gr_lt_5k':
-      if (gr !== null && gr < 5_000) {
-        return { matched: true, extraInfo: `Global Reviews: ${fmtGr(gr)}`, sortScore: -gr };
+      return { rawCount: conq, progressCurrent: Math.min(conq, minC), progressTarget: minC, isMet: conq >= minC, checklist };
+    }
+    case 'allies_vs_axis_checklist': {
+      const slots = Array.isArray(meta.slots) ? meta.slots : [];
+      let conq = 0;
+      for (const s of slots) {
+        const hit = (s.codes || []).map((c) => index.allCountriesAndHistoricalMap.get(String(c).toLowerCase())).find((e) => e?.status === 'conquered');
+        if (hit) conq++;
+        checklist.push({ id: s.id, name: s.name, flag: hit?.flagCode || hit?.code || s.flag || null, required: 1, current: hit ? 1 : 0, conquered: Boolean(hit), movie_title: hit?.champion?.title || null });
       }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'only_rt_na':
-      if (rt === null && mc !== null) {
-        return { matched: true, extraInfo: `RT: N/A | Metacritic: ${mc}`, sortScore: mc };
+      return { rawCount: conq, progressCurrent: conq, progressTarget: slots.length || pt, isMet: conq >= (slots.length || pt), checklist };
+    }
+    case 'tag_movie_count': {
+      const tag = (Array.isArray(meta.tags) && meta.tags[0]) || meta.tag || '';
+      return buildSlots(index.moviesByTag.get(cleanTag(tag)) || [], pt, () => `Tag: ${tag}`, tag);
+    }
+    case 'movie_zero_tags_count': return buildSlots(index.movies.filter((m) => m.tagEntries.length === 0), pt, () => '0 tags', 'Sem tags');
+    case 'movies_min_tags_count': return buildSlots(index.movies.filter((m) => m.tagEntries.length >= (meta.minTags || 7)), pt, (m) => `${m.tagEntries.length} tags`, `${meta.minTags || 7}+ tags`);
+    case 'tag_double_and': {
+      const tags = Array.isArray(meta.tags) ? meta.tags : [];
+      return buildSlots(index.movies.filter((m) => tags.length > 0 && tags.every((t) => hasTag(m, t))), pt, () => tags.join(' + '), tags.join(' + '));
+    }
+    case 'tag_pool_sum': {
+      const tags = Array.isArray(meta.tags) ? meta.tags : [];
+      return buildSlots(index.movies.filter((m) => tags.some((t) => hasTag(m, t))), pt, () => tags.join(' / '), tags.join('/'));
+    }
+    case 'tag_multi_or_and': {
+      const any = meta.anyOfTags || [];
+      return buildSlots((index.moviesByTag.get(cleanTag(meta.mainTag)) || []).filter((m) => any.some((t) => hasTag(m, t))), pt, () => meta.mainTag, meta.mainTag);
+    }
+    case 'tag_checklist_quota': {
+      const quotas = Array.isArray(meta.quotas) ? meta.quotas : [];
+      const counts = quotas.map((q) => (index.moviesByTag.get(cleanTag(q.tag)) || []).length);
+      let sum = 0, reqTot = 0, okAll = true;
+      quotas.forEach((q, idx) => {
+        const req = Number(q.count) || 1;
+        reqTot += req;
+        sum += Math.min(counts[idx], req);
+        if (counts[idx] < req) okAll = false;
+        checklist.push({ id: `tq_${idx}`, name: `Tag "${q.tag}"`, required: req, current: Math.min(counts[idx], req), conquered: counts[idx] >= req });
+      });
+      return { rawCount: sum, progressCurrent: sum, progressTarget: pt || reqTot, isMet: okAll && sum >= (pt || reqTot), checklist, quotaRawCounts: counts };
+    }
+    case 'tag_hybrid_country': {
+      const tags = Array.isArray(meta.tags) ? meta.tags : meta.tag ? [meta.tag] : [];
+      const cc = String(meta.countryCode || '').toLowerCase();
+      return buildSlots((index.moviesByCountryAll.get(cc) || []).filter((m) => tags.every((t) => hasTag(m, t))), pt, () => `${meta.countryName} + ${tags.join(' + ')}`, meta.countryName || cc);
+    }
+    case 'tag_hybrid_continent': {
+      const tags = Array.isArray(meta.tags) ? meta.tags : meta.tag ? [meta.tag] : [];
+      return buildSlots((index.moviesByContinent.get(cleanStr(meta.continent)) || []).filter((m) => tags.every((t) => hasTag(m, t))), pt, () => meta.continent, meta.continent);
+    }
+    case 'tag_hybrid_exclude_country': {
+      const tags = Array.isArray(meta.tags) ? meta.tags : meta.tag ? [meta.tag] : [];
+      const ex = String(meta.excludeCountryCode || 'us').toLowerCase();
+      return buildSlots(index.movies.filter((m) => !hasCountry(m, ex) && tags.every((t) => hasTag(m, t))), pt, () => tags.join(' + '), tags.join(' + '));
+    }
+    case 'tag_hybrid_asian_horror': {
+      const ccs = meta.countryCodes || ['jp', 'kr', 'th', 'id'];
+      const hTags = meta.horrorTags || ['Fantasma', 'Demônio', 'Gore', 'Zumbi'];
+      return buildSlots(index.movies.filter((m) => ccs.some((c) => hasCountry(m, c)) && hTags.some((t) => hasTag(m, t))), pt, () => 'Terror Asiático', 'Terror Asiático');
+    }
+    case 'tag_non_br_us_count': return buildSlots((index.moviesByTag.get(cleanTag(meta.tag || 'Em Família')) || []).filter((m) => !hasCountry(m, 'us') && !hasCountry(m, 'br')), pt, () => 'Internacional', meta.tag);
+    case 'tag_platform_count': return buildSlots((index.moviesByTag.get(cleanTag(meta.tag)) || []).filter((m) => cleanStr(m.canonicalPlatform) === cleanStr(meta.platform)), pt, () => meta.platform, meta.tag);
+    case 'tag_min_rating_count': return buildSlots((index.moviesByTag.get(cleanTag(meta.tag)) || []).filter((m) => m.urMillis !== null && m.urMillis >= (meta.minRating || 8000)), pt, (m) => `Nota: ${fmtUr(m.ur)}`, meta.tag);
+    case 'tag_max_rating_count': return buildSlots((index.moviesByTag.get(cleanTag(meta.tag)) || []).filter((m) => m.urMillis !== null && m.urMillis < (meta.maxRating || 6000)), pt, (m) => `Nota: ${fmtUr(m.ur)}`, meta.tag);
+    case 'genre_count': return buildSlots(index.moviesByGenre.get(cleanTag(meta.genre)) || [], pt, () => meta.genre, meta.genre);
+    case 'genre_all_and': {
+      const gs = meta.genres || [];
+      return buildSlots(index.movies.filter((m) => gs.length > 0 && gs.every((g) => hasGenre(m, g))), pt, () => gs.join(' + '), gs.join(' + '));
+    }
+    case 'genre_and_or': {
+      const any = meta.anyOfGenres || [];
+      return buildSlots((index.moviesByGenre.get(cleanTag(meta.mainGenre)) || []).filter((m) => any.some((g) => hasGenre(m, g))), pt, () => meta.mainGenre, meta.mainGenre);
+    }
+    case 'genre_quotas': {
+      const quotas = Array.isArray(meta.quotas) ? meta.quotas : [];
+      const counts = quotas.map((q) => (index.moviesByGenre.get(cleanTag(q.genre)) || []).length);
+      let sum = 0, reqTot = 0, okAll = true;
+      quotas.forEach((q, idx) => {
+        const req = Number(q.count) || 1;
+        reqTot += req;
+        sum += Math.min(counts[idx], req);
+        if (counts[idx] < req) okAll = false;
+        checklist.push({ id: `gq_${idx}`, name: `Gênero ${q.genre}`, required: req, current: Math.min(counts[idx], req), conquered: counts[idx] >= req });
+      });
+      return { rawCount: sum, progressCurrent: sum, progressTarget: pt || reqTot, isMet: okAll && sum >= (pt || reqTot), checklist, quotaRawCounts: counts };
+    }
+    case 'genre_distinct_threshold': {
+      const minG = Number(meta.minPerGenre) || 25;
+      let qCount = 0;
+      for (const g of ALL_21_GENRES) {
+        const c = (index.moviesByGenre.get(cleanTag(g)) || []).length;
+        if (c >= minG) qCount++;
+        checklist.push({ id: `dg_${cleanTag(g)}`, name: g, required: minG, current: Math.min(c, minG), conquered: c >= minG });
       }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'only_mc_na':
-      if (mc === null && rt !== null) {
-        return { matched: true, extraInfo: `Metacritic: N/A | RT: ${rt}%`, sortScore: rt };
+      return { rawCount: qCount, progressCurrent: Math.min(qCount, pt), progressTarget: pt, isMet: qCount >= pt, checklist };
+    }
+    case 'movie_min_genre_count': return buildSlots(index.movies.filter((m) => m.all21GenresCount >= (meta.minGenresPerMovie || 4)), pt, (m) => `${m.all21GenresCount} gêneros`, `${meta.minGenresPerMovie || 4}+ gêneros`);
+    case 'country_genre': return buildSlots((index.moviesByCountryAll.get(String(meta.countryCode).toLowerCase()) || []).filter((m) => hasGenre(m, meta.genre)), pt, () => meta.genre, meta.genre);
+    case 'genre_tag_and': return buildSlots((index.moviesByGenre.get(cleanTag(meta.genre)) || []).filter((m) => hasTag(m, meta.tag)), pt, () => meta.tag, meta.genre);
+    case 'genre_and_tag_and_any_tag': return buildSlots((index.moviesByGenre.get(cleanTag(meta.genre)) || []).filter((m) => hasTag(m, meta.requiredTag) && (meta.orTags || []).some((t) => hasTag(m, t))), pt, () => meta.genre, meta.genre);
+    case 'genre_and_tags_or_max_rating': return buildSlots((index.moviesByGenre.get(cleanTag(meta.genre)) || []).filter((m) => m.urMillis !== null && m.urMillis < (meta.maxRating || 5000) && (meta.orTags || []).some((t) => hasTag(m, t))), pt, (m) => `Nota: ${fmtUr(m.ur)}`, meta.genre);
+    case 'genre_max_runtime_count': return buildSlots((index.moviesByGenre.get(cleanTag(meta.genre)) || []).filter((m) => m.runtime > 0 && m.runtime <= (meta.maxRuntime || 90)), pt, (m) => `${m.runtime}m`, meta.genre);
+    case 'terror_tragico_min_rating': return buildSlots((index.moviesByGenre.get(cleanTag(meta.genre || 'Terror')) || []).filter((m) => hasTag(m, meta.tag || 'Trágico') && m.urMillis !== null && m.urMillis > (meta.minRating || 8500)), pt, (m) => `Nota: ${fmtUr(m.ur)}`, 'Terror Trágico');
+    case 'month_movie_count': return buildSlots(index.moviesByMonth.get(Number(meta.month) || 1) || [], pt, () => MONTH_NAMES[Number(meta.month)], MONTH_NAMES[Number(meta.month)]);
+    case 'genre_month': return buildSlots((index.moviesByMonth.get(Number(meta.month)) || []).filter((m) => hasGenre(m, meta.genre)), pt, () => meta.genre, meta.genre);
+    case 'genre_or_month': return buildSlots((index.moviesByMonth.get(Number(meta.month)) || []).filter((m) => (meta.genres || []).some((g) => hasGenre(m, g))), pt, () => 'Gênero', 'Férias');
+    case 'tag_month': return buildSlots((index.moviesByMonth.get(Number(meta.month)) || []).filter((m) => hasTag(m, meta.tag)), pt, () => meta.tag, meta.tag);
+    case 'tag_month_range':
+    case 'tag_months': return buildSlots((index.moviesByTag.get(cleanTag(meta.tag)) || []).filter((m) => inMonth(m, meta.months || [])), pt, () => meta.tag, meta.tag);
+    case 'tag_or_month': return buildSlots((index.moviesByMonth.get(Number(meta.month)) || []).filter((m) => (meta.tags || []).some((t) => hasTag(m, t))), pt, () => 'Tag', 'Mês');
+    case 'tag_and_tag_or_month': return buildSlots((index.moviesByTag.get(cleanTag(meta.tag)) || []).filter((m) => hasTag(m, meta.orTag) || inMonth(m, Number(meta.orMonth) || 12)), pt, () => meta.tag, meta.tag);
+    case 'all_12_months_coverage': {
+      const monthCounts = [];
+      let cov = 0;
+      const minPM = Number(meta.minPerMonth) || 1;
+      for (let mo = 1; mo <= 12; mo++) {
+        const list = index.moviesByMonth.get(mo) || [];
+        monthCounts.push(list.length);
+        if (list.length >= minPM) cov++;
+        checklist.push({ id: `m_${mo}`, name: MONTH_NAMES[mo], required: minPM, current: Math.min(list.length, minPM), conquered: list.length >= minPM, movie_title: list[0]?.title || null });
       }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'gr_gt_1m_imdb_lt_70':
-      if (gr !== null && gr > 1_000_000 && imdb !== null && imdbMillis < 7000) {
-        return { matched: true, extraInfo: `Reviews: ${fmtGr(gr)} | IMDb: ${fmtImdb(imdb)}`, sortScore: gr };
+      return { rawCount: monthCounts.length ? Math.min(...monthCounts) : 0, progressCurrent: cov, progressTarget: 12, isMet: cov >= 12, checklist, monthCounts };
+    }
+    case 'tag_decades_checklist': {
+      const cands = index.moviesByTag.get(cleanTag(meta.tag || 'Bruxo')) || [];
+      const decs = meta.decades || [1960, 1970, 1980, 1990, 2000, 2010, 2020, 2030];
+      let cov = 0;
+      for (const d of decs) {
+        const m = cands.find((x) => x.releaseYear !== null && x.releaseYear >= d && x.releaseYear <= d + 9);
+        if (m) cov++;
+        checklist.push({ id: `d_${d}`, name: `Década ${d}`, required: 1, current: m ? 1 : 0, conquered: Boolean(m), movie_title: m?.title || null });
       }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'gr_lt_1k':
-      if (gr !== null && gr < 1_000) {
-        return { matched: true, extraInfo: `Global Reviews: ${fmtGr(gr)}`, sortScore: -gr };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'gr_lt_10k_ur_gte_8000':
-      if (gr !== null && gr < 10_000 && ur !== null && urMillis >= 8000) {
-        return { matched: true, extraInfo: `Reviews: ${fmtGr(gr)} | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'rt_lt_40_ur_gte_7500':
-      if (rt !== null && rt < 40 && ur !== null && urMillis >= 7500) {
-        return { matched: true, extraInfo: `RT: ${rt}% | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis - rt * 10 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'mc_gte_80_ur_lte_6000':
-      if (mc !== null && mc >= 80 && ur !== null && urMillis <= 6000) {
-        return { matched: true, extraInfo: `Metacritic: ${mc} | Minha Nota: ${fmtUr(ur)}`, sortScore: mc * 100 - urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'ur_pharmacist_decimals': {
-      if (ur !== null) {
-        const frac = ((urMillis % 1000) + 1000) % 1000;
-        if (frac !== 0 && frac !== 500) {
-          return { matched: true, extraInfo: `Minha Nota: ${fmtUr(ur)} (.${String(frac).padStart(3, '0')})`, sortScore: urMillis };
+      return { rawCount: cov, progressCurrent: cov, progressTarget: decs.length, isMet: cov >= decs.length, checklist };
+    }
+    case 'quad_natal_classico': return buildSlots((index.moviesByMonth.get(meta.month || 12) || []).filter((m) => (meta.countryCodes || ['us', 'ca', 'gb']).some((c) => hasCountry(m, c)) && (meta.anyOfGenres || ['Comédia', 'Família']).some((g) => hasGenre(m, g)) && hasTag(m, meta.tag || 'Natal')), pt, () => 'Natal Clássico', 'Natal Clássico');
+    case 'quad_natal_macabro': return buildSlots((index.moviesByMonth.get(meta.month || 12) || []).filter((m) => (meta.anyOfGenres || ['Terror', 'Suspense']).some((g) => hasGenre(m, g)) && hasTag(m, meta.tag || 'Natal')), pt, () => 'Natal Macabro', 'Natal Macabro');
+    case 'quad_outubro_macabro_mundo': return buildSlots((index.moviesByMonth.get(meta.month || 10) || []).filter((m) => !hasCountry(m, meta.excludeCountryCode || 'us') && (meta.anyOfGenres || ['Terror', 'Suspense']).some((g) => hasGenre(m, g)) && (meta.anyOfTags || ['Criança Malvada', 'Demônio', 'Fantasma', 'Gore', 'Vampiro', 'Zumbi']).some((t) => hasTag(m, t))), pt, () => 'Outubro Mundial', 'Outubro Mundial');
+    case 'quad_pride_sem_fronteiras': return buildSlots((index.moviesByMonth.get(6) || []).filter((m) => (meta.excludeCountryCodes || ['us', 'br']).every((c) => !hasCountry(m, c)) && (hasGenre(m, 'Drama') || hasGenre(m, 'Romance')) && hasTag(m, 'Personagem LGBT')), pt, () => 'Orgulho Sem Fronteiras', 'Orgulho Sem Fronteiras');
+    case 'triple_combo_brasil': return buildSlots((index.moviesByCountryAll.get('br') || []).filter((m) => (meta.anyOfGenres || ['Crime', 'Policial']).some((g) => hasGenre(m, g)) && (meta.anyOfTags || ['Crime real', 'Fatos Reais']).some((t) => hasTag(m, t))), pt, () => 'Crime Nacional', 'Crime Nacional');
+    case 'triple_combo_europa': return buildSlots((index.moviesByContinent.get('europa') || []).filter((m) => hasGenre(m, 'Terror') && (hasTag(m, 'Demônio') || hasTag(m, 'Religião'))), pt, () => 'Terror Europeu', 'Terror Europeu');
+    case 'hollywood_oscar_winner_count': return buildSlots(index.movies.filter((m) => m.oscarWins >= (meta.minWins || 1)), pt, (m) => `${m.oscarWins} Oscar(s)`, 'Oscar Winner');
+    case 'hollywood_oscar_exact_ratio': return buildSlots(index.movies.filter((m) => m.oscarNoms === (meta.nominations || 3) && m.oscarWins === (meta.wins || 3)), pt, () => `${meta.wins || 3}/${meta.nominations || 3} Oscar`, 'Placar Oscar');
+    case 'hollywood_oscar_nominations_min': return buildSlots(index.movies.filter((m) => m.oscarNoms >= (meta.minNominations || 10)), pt, (m) => `${m.oscarNoms} ind.`, 'Oscar Noms');
+    case 'hollywood_oscar_wins_min': return buildSlots(index.movies.filter((m) => m.oscarWins >= (meta.minWins || 8)), pt, (m) => `${m.oscarWins} Oscars`, 'Oscar Wins');
+    case 'hollywood_oscar_nominated_unwon_count': return buildSlots(index.movies.filter((m) => m.oscarNoms >= 1 && m.oscarWins === 0), pt, (m) => `${m.oscarNoms} ind / 0 wins`, 'Azarão Oscar');
+    case 'hollywood_oscar_5_noms_unwon_count': return buildSlots(index.movies.filter((m) => m.oscarNoms >= 5 && m.oscarWins === 0), pt, (m) => `${m.oscarNoms} ind / 0 wins`, '5+ ind 0 wins');
+    case 'hollywood_oscar_5_noms_5_wins_count': return buildSlots(index.movies.filter((m) => m.oscarNoms >= 5 && m.oscarWins >= 5), pt, (m) => `${m.oscarWins}/${m.oscarNoms}`, '5+/5+ Oscar');
+    case 'hollywood_oscar_dual_quota': {
+      const rw = meta.requiredWinners || 30, rn = meta.requiredNominees || 60;
+      const w = index.movies.filter((m) => m.oscarWins >= 1).length;
+      const n = index.movies.filter((m) => m.oscarNoms >= 1 || m.oscarWins >= 1).length;
+      const sum = Math.min(w, rw) + Math.min(n, rn);
+      return { rawCount: sum, progressCurrent: sum, progressTarget: rw + rn, isMet: w >= rw && n >= rn, checklist: [{ id: 'w', name: `Vencedores (${w}/${rw})`, required: rw, current: Math.min(w, rw), conquered: w >= rw }, { id: 'n', name: `Indicados (${n}/${rn})`, required: rn, current: Math.min(n, rn), conquered: n >= rn }] };
+    }
+    case 'hollywood_oscar_or_quota': {
+      const tw = meta.targetWins || 50, tn = meta.targetNominations || 120;
+      const w = index.movies.filter((m) => m.oscarWins >= 1).length;
+      const n = index.movies.filter((m) => m.oscarNoms >= 1 || m.oscarWins >= 1).length;
+      const pct = Math.round(Math.max(Math.min(1, w / tw), Math.min(1, n / tn)) * 100);
+      return { rawCount: pct, progressCurrent: pct, progressTarget: 100, isMet: w >= tw || n >= tn, checklist: [{ id: 'w', name: `${tw} Vencedores (${w})`, required: tw, current: Math.min(w, tw), conquered: w >= tw }, { id: 'n', name: `${tn} Indicados (${n})`, required: tn, current: Math.min(n, tn), conquered: n >= tn }] };
+    }
+    case 'hollywood_distributor_studio_count':
+    case 'hollywood_studio_count':
+    case 'hollywood_conglomerates_count': return buildSlots(index.movies.filter((m) => hasPattern(m.companies, meta.patterns || [])), pt, () => meta.company || meta.studio || 'Estúdio', meta.company || 'Estúdio');
+    case 'hollywood_studio_or_tag_count': return buildSlots(index.movies.filter((m) => hasPattern(m.companies, meta.patterns || []) || (meta.tag && hasTag(m, meta.tag))), pt, () => meta.tag || 'Estúdio', meta.tag || 'Estúdio');
+    case 'hollywood_director_or_writer_count': return buildSlots(index.movies.filter((m) => hasPattern(m.directors, meta.patterns || []) || hasPattern(m.writers, meta.patterns || []) || (meta.checkProducers && hasPattern(m.producers, meta.patterns || []))), pt, () => meta.person || 'Cineasta', meta.person || 'Cineasta');
+    case 'hollywood_same_director_writer_count': return buildSlots(index.movies.filter((m) => { for (const d of m.directors) if (m.writers.has(d)) return true; return false; }), pt, () => 'Autoral', 'Diretor = Roteirista');
+    case 'hollywood_unique_directors_quota': {
+      const minF = meta.minFilmsPerDirector || 3;
+      const q = Array.from(index.directorToMovies.values()).filter((x) => x.movies.length >= minF);
+      return { rawCount: q.length, progressCurrent: Math.min(q.length, pt), progressTarget: pt, isMet: q.length >= pt, checklist: q.slice(0, pt).map((d, i) => ({ id: `d_${i}`, name: `${d.displayName} (${d.movies.length})`, required: minF, current: minF, conquered: true })) };
+    }
+    case 'hollywood_unique_writers_quota': {
+      const minF = meta.minFilmsPerWriter || 3;
+      const q = Array.from(index.writerToMovies.values()).filter((x) => x.movies.length >= minF);
+      return { rawCount: q.length, progressCurrent: Math.min(q.length, pt), progressTarget: pt, isMet: q.length >= pt, checklist: q.slice(0, pt).map((w, i) => ({ id: `w_${i}`, name: `${w.displayName} (${w.movies.length})`, required: minF, current: minF, conquered: true })) };
+    }
+    case 'critic_tribunal_rule': {
+      const key = String(meta.ruleKey || '');
+      const scored = [];
+      for (const m of index.movies) { const r = evalCritic(m, key); if (r?.matched) scored.push({ m, r }); }
+      scored.sort((a, b) => b.r.sortScore - a.r.sortScore);
+      const map = new Map(scored.map((s) => [s.m, s.r.extraInfo]));
+      return buildSlots(scored.map((s) => s.m), pt, (m) => map.get(m) || 'Veredicto', 'Crítica');
+    }
+    case 'rt_lt_ur_gte_count': return buildSlots(index.movies.filter((m) => m.rt !== null && m.rt < (meta.maxRt || 40) && m.urMillis !== null && m.urMillis >= (meta.minRating || 8000)), pt, (m) => `RT: ${m.rt}%`, 'RT < 40%');
+    case 'multi_critic_range_count': {
+      const d = meta.digit || 6, minD = meta.minDistinctMetrics || 3;
+      return buildSlots(index.movies.filter((m) => {
+        let h = 0;
+        if (m.rt !== null && m.rt >= d * 10 && m.rt <= d * 10 + 9) h++;
+        if (m.mc !== null && m.mc >= d * 10 && m.mc <= d * 10 + 9) h++;
+        if (m.imdbMillis !== null && m.imdbMillis >= d * 1000 && m.imdbMillis <= d * 1000 + 999) h++;
+        if (m.urMillis !== null && m.urMillis >= d * 1000 && m.urMillis <= d * 1000 + 999) h++;
+        return h >= minD;
+      }), pt, () => `Faixa do ${d}`, `Notas ${d}`);
+    }
+    case 'bomba_ray_tracing_count': return buildSlots(index.movies.filter((m) => m.releaseYear >= (meta.minYear || 2021) && m.gr > (meta.minGlobalReviews || 500_000) && m.urMillis !== null && m.urMillis < (meta.maxRating || 5000) && (meta.genres || ['Ficção Científica', 'Ação']).some((g) => hasGenre(m, g))), pt, (m) => fmtUr(m.ur), 'Bomba');
+    case 'genres_or_decade_range_count': return buildSlots(index.movies.filter((m) => m.releaseYear >= (meta.minYear || 1980) && m.releaseYear <= (meta.maxYear || 1989) && (meta.genres || ['Ação', 'Aventura']).some((g) => hasGenre(m, g))), pt, (m) => `${m.releaseYear}`, 'Década');
+    case 'tag_and_any_of_tags': return buildSlots((index.moviesByTag.get(cleanTag(meta.tag)) || []).filter((m) => (meta.orTags || []).some((t) => hasTag(m, t))), pt, () => meta.tag, meta.tag);
+    case 'tag_and_genres_or_year_range': return buildSlots((index.moviesByTag.get(cleanTag(meta.tag)) || []).filter((m) => m.releaseYear >= (meta.minYear || 1990) && m.releaseYear <= (meta.maxYear || 2004) && (meta.orGenres || []).some((g) => hasGenre(m, g))), pt, (m) => `${m.releaseYear}`, meta.tag);
+    case 'tags_or_physical_media_count': return buildSlots(index.movies.filter((m) => isPhysicalMedia(m.canonicalPlatform) && (meta.orTags || ['Trágico', 'Emocionante']).some((t) => hasTag(m, t))), pt, (m) => m.canonicalPlatform, 'Mídia Física');
+    case 'cinema_specific_months_count': return buildSlots((index.moviesByPlatform.get('Cinema') || []).filter((m) => inMonth(m, meta.months || [2, 3, 9])), pt, (m) => MONTH_NAMES[m.monthSeen], 'Cinema');
+    case 'hybrid_15_countries_masterpieces': {
+      const best = new Map();
+      for (const m of index.movies) {
+        if (m.urMillis !== null && m.urMillis >= 8500 && m.primaryCountryCode195 && m.primaryCountryCode195 !== 'us') {
+          const p = best.get(m.primaryCountryCode195);
+          if (!p || m.urMillis > p.urMillis) best.set(m.primaryCountryCode195, m);
         }
       }
-      return { matched: false, extraInfo: '', sortScore: 0 };
+      const list = Array.from(best.values());
+      return buildSlots(list, pt, (m) => `Nota: ${fmtUr(m.ur)}`, 'Obra-prima internacional');
     }
-
-    case 'both_mc_rt_na':
-      if (mc === null && rt === null) {
-        return {
-          matched: true,
-          extraInfo: `Metacritic: N/A | RT: N/A${ur !== null ? ` | Nota: ${fmtUr(ur)}` : ''}`,
-          sortScore: urMillis || 0,
-        };
+    case 'hybrid_curador_joias_raras': {
+      const qual = index.movies.filter((m) => m.urMillis !== null && m.urMillis >= 8500 && m.gr !== null && m.gr < 50_000 && m.tagEntries.length > 0)
+        .sort((a, b) => a.tagEntries.length - b.tagEntries.length || b.urMillis - a.urMillis);
+      const usedM = new Set(), usedT = new Set(), usedC = new Set(), picked = [];
+      for (const m of qual) {
+        if (picked.length >= pt) break;
+        if (!m.primaryCountryCode195 || usedC.has(m.primaryCountryCode195)) continue;
+        const tag = m.tagEntries.find((t) => !usedT.has(t.clean));
+        if (!tag) continue;
+        usedC.add(m.primaryCountryCode195); usedT.add(tag.clean); usedM.add(m.movieId); picked.push(m);
       }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'rt_80_to_89':
-      if (rt !== null && rt >= 80 && rt <= 89) {
-        return { matched: true, extraInfo: `Rotten Tomatoes: ${rt}%`, sortScore: rt };
+      for (const m of [...qual].sort((a, b) => b.urMillis - a.urMillis)) {
+        if (picked.length >= pt) break;
+        if (usedM.has(m.movieId)) continue;
+        const tag = m.tagEntries.find((t) => !usedT.has(t.clean));
+        if (!tag) continue;
+        usedT.add(tag.clean); usedM.add(m.movieId); if (m.primaryCountryCode195) usedC.add(m.primaryCountryCode195); picked.push(m);
       }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'ur_6000_to_7000':
-      if (ur !== null && urMillis >= 6000 && urMillis <= 7000) {
-        return { matched: true, extraInfo: `Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
+      const res = buildSlots(picked, pt, (m) => `Nota: ${fmtUr(m.ur)} | Reviews: ${fmtGr(m.gr)}`, 'Joia Rara (tag distinta)');
+      res.isMet = picked.length >= pt && usedC.size >= (meta.minCountries || 8);
+      return res;
+    }
+    case 'hybrid_shyamalan_paradox': {
+      const sm = index.movies.filter((m) => hasPattern(m.directors, ['shyamalan', 'm. night shyamalan', 'm night shyamalan']));
+      const h = sm.some((m) => m.urMillis !== null && m.urMillis >= 8000);
+      const l = sm.some((m) => m.urMillis !== null && m.urMillis < 6000);
+      const c = (h ? 1 : 0) + (l ? 1 : 0);
+      return { rawCount: c, progressCurrent: c, progressTarget: 2, isMet: c === 2, checklist: [{ id: 's1', name: 'Shyamalan >= 8.000', required: 1, current: h ? 1 : 0, conquered: h }, { id: 's2', name: 'Shyamalan < 6.000', required: 1, current: l ? 1 : 0, conquered: l }] };
+    }
+    case 'ritual_cinefilo_rule': {
+      const key = String(meta.ruleKey || '');
+      const scored = [];
+      for (const m of index.movies) { const r = evalRitual(m, key); if (r?.matched) scored.push({ m, r }); }
+      return buildSlots(scored.map((s) => s.m), pt, (m) => scored.find((x) => x.m === m)?.r.extraInfo || 'Ritual', 'Ritual');
+    }
+    case 'ritual_nomade_telas': {
+      const minP = meta.minMoviesPerPlatform || 3;
+      const qual = Array.from(index.moviesByPlatform.entries()).filter(([, list]) => list.length >= minP);
+      return { rawCount: qual.length, progressCurrent: Math.min(qual.length, pt), progressTarget: pt, isMet: qual.length >= pt, checklist: Array.from(index.moviesByPlatform.entries()).map(([p, list]) => ({ id: p, name: `${p} (${list.length})`, required: minP, current: Math.min(list.length, minP), conquered: list.length >= minP })) };
+    }
+    case 'ritual_total_minutos': return { rawCount: index.totalRuntimeMinutes, progressCurrent: Math.min(index.totalRuntimeMinutes, pt), progressTarget: pt, isMet: index.totalRuntimeMinutes >= pt, checklist: [] };
+    case 'ritual_anos_checklist': {
+      const sy = meta.startYear || 1994, ey = meta.endYear || 2027;
+      let cov = 0;
+      for (let y = sy; y <= ey; y++) {
+        const hit = (index.moviesByRelYear.get(y) || [])[0];
+        if (hit) cov++;
+        checklist.push({ id: `y_${y}`, name: `Ano ${y}`, required: 1, current: hit ? 1 : 0, conquered: Boolean(hit), movie_title: hit?.title || null });
       }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'gr_500k_to_1m':
-      if (gr !== null && gr >= 500_000 && gr <= 1_000_000) {
-        return { matched: true, extraInfo: `Global Reviews: ${fmtGr(gr)}`, sortScore: gr };
+      return { rawCount: cov, progressCurrent: cov, progressTarget: ey - sy + 1, isMet: cov >= ey - sy + 1, checklist };
+    }
+    case 'ritual_petista': {
+      const base = meta.baseYears || [2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016];
+      const yrs = [...base];
+      for (let y = meta.recentStartYear || 2023; y <= index.maxCatalogYear; y++) yrs.push(y);
+      let cov = 0;
+      for (const y of yrs) {
+        const hit = (index.moviesByRelYear.get(y) || [])[0];
+        if (hit) cov++;
+        checklist.push({ id: `p_${y}`, name: `Ano ${y}`, required: 1, current: hit ? 1 : 0, conquered: Boolean(hit), movie_title: hit?.title || null });
       }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'imdb_lt_65_mc_gt_70':
-      if (imdb !== null && imdbMillis < 6500 && mc !== null && mc > 70) {
-        return { matched: true, extraInfo: `IMDb: ${fmtImdb(imdb)} | Metacritic: ${mc}`, sortScore: mc * 100 - imdbMillis };
+      return { rawCount: cov, progressCurrent: cov, progressTarget: yrs.length, isMet: cov >= yrs.length, checklist };
+    }
+    case 'multi_ritual_rule': {
+      const key = String(meta.ruleKey || '');
+      if (key === 'brazil_copa_1950_2014') {
+        const br = index.moviesByCountryAll.get('br') || [];
+        const a = br.some((m) => m.releaseYear === 1950), b = br.some((m) => m.releaseYear === 2014);
+        const c = (a ? 1 : 0) + (b ? 1 : 0);
+        return { rawCount: c, progressCurrent: c, progressTarget: 2, isMet: c === 2, checklist: [] };
       }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'ur_gte_9500':
-      if (ur !== null && urMillis >= 9500) {
-        return { matched: true, extraInfo: `Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'gr_lt_100':
-      if (gr !== null && gr < 100) {
-        return { matched: true, extraInfo: `Global Reviews: ${fmtGr(gr)}`, sortScore: -gr };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'ur_gte_9000_imdb_lt_60':
-      if (ur !== null && urMillis >= 9000 && imdb !== null && imdbMillis < 6000) {
-        return { matched: true, extraInfo: `Minha Nota: ${fmtUr(ur)} | IMDb: ${fmtImdb(imdb)}`, sortScore: urMillis - imdbMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'four_scores_spread_40': {
-      if (ur !== null && imdb !== null && mc !== null && rt !== null) {
-        const norms = [ur, imdb, mc / 10, rt / 10];
-        const maxNorm = Math.max(...norms);
-        const minNorm = Math.min(...norms);
-        const spreadMillis = Math.round((maxNorm - minNorm) * 1000);
-        if (spreadMillis >= 4000) {
-          return {
-            matched: true,
-            extraInfo: `Nota: ${fmtUr(ur)} | IMDb: ${fmtImdb(imdb)} | RT: ${rt}% | MC: ${mc} (Δ ${(spreadMillis / 1000).toFixed(2)} pts)`,
-            sortScore: spreadMillis,
-          };
+      if (key === 'viajante_9_decadas_18') {
+        const decs = [1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020];
+        const used = new Set(), ccSet = new Set();
+        let cov = 0;
+        for (const d of decs) {
+          const cands = index.movies.filter((m) => m.releaseYear >= d && m.releaseYear <= d + 9 && m.urMillis >= 8000);
+          for (let s = 0; s < 2; s++) {
+            const pick = cands.find((x) => !used.has(x.movieId));
+            if (pick) { used.add(pick.movieId); cov++; if (pick.primaryCountryCode195) ccSet.add(pick.primaryCountryCode195); }
+          }
         }
+        return { rawCount: cov, progressCurrent: cov, progressTarget: 18, isMet: cov >= 18 && ccSet.size >= 10, checklist: [] };
       }
-      return { matched: false, extraInfo: '', sortScore: 0 };
+      const scored = [];
+      for (const m of index.movies) { const r = evalMultiRitual(m, key); if (r?.matched) scored.push({ m, r }); }
+      return buildSlots(scored.map((s) => s.m), pt, () => 'Multi', 'Multi');
     }
-
-    case 'ur_gt_8000_imdb_lt_60_mc_lt_50_rt_lt_50':
-      if (
-        ur !== null &&
-        urMillis > 8000 &&
-        imdb !== null &&
-        imdbMillis < 6000 &&
-        mc !== null &&
-        mc < 50 &&
-        rt !== null &&
-        rt < 50
-      ) {
-        return {
-          matched: true,
-          extraInfo: `Nota: ${fmtUr(ur)} | IMDb: ${fmtImdb(imdb)} | MC: ${mc} | RT: ${rt}%`,
-          sortScore: urMillis,
-        };
+    case 'alphabet_az_coverage': {
+      const alph = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+      let cov = 0;
+      for (const l of alph) {
+        const hit = index.movies.find((m) => m.titleLetters.has(l));
+        if (hit) cov++;
+        checklist.push({ id: `l_${l}`, name: `Letra ${l}`, required: 1, current: hit ? 1 : 0, conquered: Boolean(hit), movie_title: hit?.title || null });
       }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'rt_eq_100':
-      if (rt !== null && rt === 100) {
-        return { matched: true, extraInfo: `Rotten Tomatoes: 100%${ur !== null ? ` | Minha Nota: ${fmtUr(ur)}` : ''}`, sortScore: urMillis || 100 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'mc_gte_90':
-      if (mc !== null && mc >= 90) {
-        return { matched: true, extraInfo: `Metacritic: ${mc}`, sortScore: mc };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'ur_lte_2000_imdb_lt_50':
-      if (ur !== null && urMillis <= 2000 && imdb !== null && imdbMillis < 5000) {
-        return { matched: true, extraInfo: `Minha Nota: ${fmtUr(ur)} | IMDb: ${fmtImdb(imdb)}`, sortScore: -(urMillis + imdbMillis) };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'gr_100_to_500':
-      if (gr !== null && gr >= 100 && gr <= 500) {
-        return { matched: true, extraInfo: `Global Reviews: ${fmtGr(gr)}`, sortScore: -gr };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'ur_gte_9700':
-      if (ur !== null && urMillis >= 9700) {
-        return { matched: true, extraInfo: `Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'ur_90_imdb_80_rt_90_mc_90':
-      if (ur !== null && urMillis >= 9000 && imdb !== null && imdbMillis >= 8000 && rt !== null && rt >= 90 && mc !== null && mc >= 90) {
-        return {
-          matched: true,
-          extraInfo: `Nota: ${fmtUr(ur)} | IMDb: ${fmtImdb(imdb)} | RT: ${rt}% | MC: ${mc}`,
-          sortScore: urMillis + mc * 10 + rt * 10,
-        };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'ur_gte_8500':
-      if (ur !== null && urMillis >= 8500) {
-        return { matched: true, extraInfo: `Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'red_critic_lt_45_ur_gte_8500':
-      if (ur !== null && urMillis >= 8500 && ((mc !== null && mc < 45) || (rt !== null && rt < 45))) {
-        const parts = [`Minha Nota: ${fmtUr(ur)}`];
-        if (mc !== null) parts.push(`MC: ${mc}`);
-        if (rt !== null) parts.push(`RT: ${rt}%`);
-        return { matched: true, extraInfo: parts.join(' | '), sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'imdb_gte_80_rt_gte_85':
-      if (imdb !== null && imdbMillis >= 8000 && rt !== null && rt >= 85) {
-        return { matched: true, extraInfo: `IMDb: ${fmtImdb(imdb)} | RT: ${rt}%`, sortScore: imdbMillis + rt * 10 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'gr_lt_5k_ur_gte_8500':
-      if (gr !== null && gr < 5_000 && ur !== null && urMillis >= 8500) {
-        return { matched: true, extraInfo: `Reviews: ${fmtGr(gr)} | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'imdb_lt_50_ur_gte_7500':
-      if (imdb !== null && imdbMillis < 5000 && ur !== null && urMillis >= 7500) {
-        return { matched: true, extraInfo: `IMDb: ${fmtImdb(imdb)} | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis - imdbMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'checkpoint_777':
-      if (
-        ur !== null &&
-        urMillis >= 7000 &&
-        urMillis <= 7999 &&
-        imdb !== null &&
-        imdbMillis >= 7000 &&
-        imdbMillis <= 7999 &&
-        rt !== null &&
-        rt >= 70 &&
-        rt <= 79 &&
-        mc !== null &&
-        mc >= 70 &&
-        mc <= 79 &&
-        gr !== null &&
-        gr >= 700_000 &&
-        gr <= 799_999
-      ) {
-        return {
-          matched: true,
-          extraInfo: `Nota: ${fmtUr(ur)} | IMDb: ${fmtImdb(imdb)} | RT: ${rt}% | MC: ${mc} | Reviews: ${fmtGr(gr)}`,
-          sortScore: urMillis,
-        };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'ur_gte_9750':
-      if (ur !== null && urMillis >= 9750) {
-        return { matched: true, extraInfo: `Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'ur_90_imdb_80_rt_88_mc_85':
-      if (ur !== null && urMillis >= 9000 && imdb !== null && imdbMillis >= 8000 && rt !== null && rt >= 88 && mc !== null && mc >= 85) {
-        return {
-          matched: true,
-          extraInfo: `Nota: ${fmtUr(ur)} | IMDb: ${fmtImdb(imdb)} | RT: ${rt}% | MC: ${mc}`,
-          sortScore: urMillis + mc * 10 + rt * 10,
-        };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'gr_lt_100k_ur_gte_8000':
-      if (gr !== null && gr < 100_000 && ur !== null && urMillis >= 8000) {
-        return { matched: true, extraInfo: `Reviews: ${fmtGr(gr)} | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'fr_ur_lt_5000':
-      if (movieHasCountry(movie, 'fr', unCountryDefMap) && ur !== null && urMillis < 5000) {
-        return { matched: true, extraInfo: `França | Minha Nota: ${fmtUr(ur)}`, sortScore: -urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'xmen_ur_lt_7000':
-      if (movieHasTag(movie, 'X-Men') && ur !== null && urMillis < 7000) {
-        return { matched: true, extraInfo: `Tag X-Men | Minha Nota: ${fmtUr(ur)}`, sortScore: -urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'natal_ur_gt_7000':
-      if (movieHasTag(movie, 'Natal') && ur !== null && urMillis > 7000) {
-        return { matched: true, extraInfo: `Tag Natal | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'game_rt_lt_50_ur_gte_7000':
-      if (movieHasTag(movie, 'Baseado em jogo') && rt !== null && rt < 50 && ur !== null && urMillis >= 7000) {
-        return {
-          matched: true,
-          extraInfo: `Tag Baseado em jogo | RT: ${rt}% | Minha Nota: ${fmtUr(ur)}`,
-          sortScore: urMillis + (100 - rt),
-        };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'comedia_ur_gte_8500':
-      if (movieHasGenre(movie, 'Comédia') && ur !== null && urMillis >= 8500) {
-        return { matched: true, extraInfo: `Comédia | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'terror_imdb_lt_55_outubro':
-      if (movieHasGenre(movie, 'Terror') && imdb !== null && imdbMillis < 5500 && movieInMonth(movie, 10)) {
-        return { matched: true, extraInfo: `Terror em Outubro | IMDb: ${fmtImdb(imdb)}`, sortScore: -imdbMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'non_us_gr_gt_1m':
-      if (!movieHasCountry(movie, 'us', unCountryDefMap) && gr !== null && gr > 1_000_000) {
-        return {
-          matched: true,
-          extraInfo: `${movie.primaryCountryName || 'Fora dos EUA'} | Reviews: ${fmtGr(gr)}`,
-          sortScore: gr,
-        };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'br_gr_gt_100k':
-      if (movieHasCountry(movie, 'br', unCountryDefMap) && gr !== null && gr > 100_000) {
-        return { matched: true, extraInfo: `Brasil | Reviews: ${fmtGr(gr)}`, sortScore: gr };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'br_gr_lt_1k':
-      if (movieHasCountry(movie, 'br', unCountryDefMap) && gr !== null && gr < 1_000) {
-        return { matched: true, extraInfo: `Brasil | Reviews: ${fmtGr(gr)}`, sortScore: -gr };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'a24_ur_gt_8000':
-      if (
-        (movieHasAnyPattern(getMovieStudios(movie), ['a24']) ||
-          movieHasAnyPattern(getMovieDistributors(movie), ['a24'])) &&
-        ur !== null &&
-        urMillis > 8000
-      ) {
-        return { matched: true, extraInfo: `A24 | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'oscar_winner_gr_lt_300k':
-      if ((Number(movie.oscar_wins) || 0) >= 1 && gr !== null && gr < 300_000) {
-        return {
-          matched: true,
-          extraInfo: `${movie.oscar_wins || 1} Oscar(s) | Reviews: ${fmtGr(gr)}`,
-          sortScore: -gr,
-        };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'agosto_ur_gt_7000':
-      if (movieInMonth(movie, 8) && ur !== null && urMillis > 7000) {
-        return { matched: true, extraInfo: `Visto em Agosto | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'gore_rt_gt_90':
-      if (movieHasTag(movie, 'Gore') && rt !== null && rt > 90) {
-        return {
-          matched: true,
-          extraInfo: `Tag Gore | RT: ${rt}%${ur !== null ? ` | Minha Nota: ${fmtUr(ur)}` : ''}`,
-          sortScore: rt,
-        };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'musica_ur_gt_9000':
-      if (movieHasGenre(movie, 'Música') && ur !== null && urMillis > 9000) {
-        return { matched: true, extraInfo: `Música | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'marvel_dc_ur_gt_8500':
-      if (
-        (movieHasTag(movie, 'Marvel') || movieHasTag(movie, 'DC')) &&
-        ur !== null &&
-        urMillis > 8500
-      ) {
-        const heroTag = movieHasTag(movie, 'Marvel') ? 'Marvel' : 'DC';
-        return { matched: true, extraInfo: `Tag ${heroTag} | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'sk_ur_gte_8000':
-      if (movieHasTag(movie, 'SK') && ur !== null && urMillis >= 8000) {
-        return { matched: true, extraInfo: `Tag SK (Stephen King) | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'oscar_acclaimed_ur_lte_6000':
-      if (
-        ((Number(movie.oscar_nominations) || 0) >= 1 || (Number(movie.oscar_wins) || 0) >= 1) &&
-        ((rt !== null && rt >= 80) || (imdb !== null && imdbMillis >= 7500)) &&
-        ur !== null &&
-        urMillis <= 6000
-      ) {
-        const juryInfo = [
-          rt !== null ? `RT: ${rt}%` : '',
-          imdb !== null ? `IMDb: ${fmtImdb(imdb)}` : '',
-        ].filter(Boolean).join(' | ');
-        return {
-          matched: true,
-          extraInfo: `Oscar Aclamado (${juryInfo}) | Minha Nota: ${fmtUr(ur)}`,
-          sortScore: -urMillis,
-        };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'terror_ur_gt_8000':
-      if (movieHasGenre(movie, 'Terror') && ur !== null && urMillis > 8000) {
-        return { matched: true, extraInfo: `Terror | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'emocionante_abuso_familiar_ur_gt_8000':
-      if (movieHasTag(movie, 'Emocionante') && movieHasTag(movie, 'Abuso Familiar') && ur !== null && urMillis > 8000) {
-        return { matched: true, extraInfo: `Emocionante + Abuso Familiar | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'br_drama_ur_gt_9000':
-      if (movieHasCountry(movie, 'br', unCountryDefMap) && movieHasGenre(movie, 'Drama') && ur !== null && urMillis > 9000) {
-        return { matched: true, extraInfo: `Brasil • Drama | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'oscar_winner_gr_lt_500k':
-      if ((Number(movie.oscar_wins) || 0) >= 1 && gr !== null && gr < 500_000) {
-        return {
-          matched: true,
-          extraInfo: `${movie.oscar_wins || 1} Oscar(s) | Reviews: ${fmtGr(gr)}`,
-          sortScore: -gr,
-        };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'final_epico_ur_gt_9000':
-      if (movieHasTag(movie, 'Final Epico') && ur !== null && urMillis > 9000) {
-        return { matched: true, extraInfo: `Final Épico | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'animacao_ur_gt_8500_rt_gt_90':
-      if (movieHasGenre(movie, 'Animação') && ur !== null && urMillis > 8500 && rt !== null && rt > 90) {
-        return { matched: true, extraInfo: `Animação | RT: ${rt}% | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis + rt * 10 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'fatos_reais_bio_hist_doc_ur_gt_8500':
-      if (
-        (movieHasGenre(movie, 'Biografia') || movieHasGenre(movie, 'História') || movieHasGenre(movie, 'Documentário')) &&
-        movieHasTag(movie, 'Fatos Reais') &&
-        ur !== null &&
-        urMillis > 8500
-      ) {
-        const matchingGenres = (movie.genres || []).filter((g) => ['Biografia', 'História', 'Documentário'].includes(g));
-        return { matched: true, extraInfo: `Fatos Reais • ${matchingGenres.join('/')} | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'non_us_non_br_gr_lt_50k_ur_gt_8000':
-      if (
-        !movieHasCountry(movie, 'us', unCountryDefMap) &&
-        !movieHasCountry(movie, 'br', unCountryDefMap) &&
-        gr !== null &&
-        gr < 50_000 &&
-        ur !== null &&
-        urMillis > 8000
-      ) {
-        return {
-          matched: true,
-          extraInfo: `${movie.primaryCountryName || 'Internacional'} | Reviews: ${fmtGr(gr)} | Minha Nota: ${fmtUr(ur)}`,
-          sortScore: urMillis,
-        };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'blumhouse_terror_suspense_ur_gt_8000':
-      if (
-        (movieHasAnyPattern(getMovieStudios(movie), ['blumhouse']) ||
-          movieHasAnyPattern(getMovieDistributors(movie), ['blumhouse'])) &&
-        (movieHasGenre(movie, 'Terror') || movieHasGenre(movie, 'Suspense')) &&
-        ur !== null &&
-        urMillis > 8000
-      ) {
-        const matchedGenre = movieHasGenre(movie, 'Terror') ? 'Terror' : 'Suspense';
-        return { matched: true, extraInfo: `Blumhouse • ${matchedGenre} | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'dezembro_ur_gte_8500':
-      if (movieInMonth(movie, 12) && ur !== null && urMillis >= 8500) {
-        return { matched: true, extraInfo: `Visto em Dezembro | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'top250_ur_lt_7500':
-      if (movieHasTag(movie, 'TOP250') && ur !== null && urMillis < 7500) {
-        return { matched: true, extraInfo: `Tag TOP250 | Minha Nota: ${fmtUr(ur)}`, sortScore: -urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'terror_imdb_lt_65_ur_gt_8000':
-      if (movieHasGenre(movie, 'Terror') && imdb !== null && imdbMillis < 6500 && ur !== null && urMillis > 8000) {
-        return { matched: true, extraInfo: `Terror | IMDb: ${fmtImdb(imdb)} | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis - imdbMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'lgbt_drama_romance_ur_gt_8500_rt_gt_80':
-      if (
-        (movieHasGenre(movie, 'Drama') || movieHasGenre(movie, 'Romance')) &&
-        movieHasTag(movie, 'Personagem LGBT') &&
-        ur !== null &&
-        urMillis > 8500 &&
-        rt !== null &&
-        rt > 80
-      ) {
-        const matchedGenre = movieHasGenre(movie, 'Drama') ? 'Drama' : 'Romance';
-        return {
-          matched: true,
-          extraInfo: `Personagem LGBT • ${matchedGenre} | RT: ${rt}% | Minha Nota: ${fmtUr(ur)}`,
-          sortScore: urMillis + rt * 10,
-        };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'oscar_winner_ur_gte_9000':
-      if ((Number(movie.oscar_wins) || 0) >= 1 && ur !== null && urMillis >= 9000) {
-        return { matched: true, extraInfo: `${movie.oscar_wins || 1} Oscar(s) | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'santissima_trindade_6_cats': {
-      const c1 = ur !== null && urMillis >= 9000 && imdb !== null && imdbMillis >= 8000;
-      const c2 = (Number(movie.oscar_nominations) || 0) >= 1 || (Number(movie.oscar_wins) || 0) >= 1;
-      const c3 = movieHasTag(movie, 'TOP250') || movieHasTag(movie, 'Final Epico');
-      const c4 = (movie.genres || []).filter((g) => ALL_21_GENRES.includes(g)).length >= 2;
-      const c5 =
-        (Boolean(movie.primaryCountryCode) ||
-          (Array.isArray(movie.countries) && movie.countries.length > 0) ||
-          (Array.isArray(movie.coproductionCountries) && movie.coproductionCountries.length > 0)) &&
-        movie.month_seen !== null &&
-        movie.month_seen !== undefined &&
-        Number(movie.month_seen) >= 1 &&
-        Number(movie.month_seen) <= 12;
-
-      if (c1 && c2 && c3 && c4 && c5) {
-        return {
-          matched: true,
-          extraInfo: `Nota: ${fmtUr(ur)} | IMDb: ${fmtImdb(imdb)} | Oscar | ${(movie.genres || []).slice(0, 2).join('/')} | Mês ${movie.month_seen}`,
-          sortScore: urMillis + imdbMillis,
-        };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
+      return { rawCount: cov, progressCurrent: cov, progressTarget: 26, isMet: cov >= 26, checklist };
     }
-
-    default:
-      return { matched: false, extraInfo: '', sortScore: 0 };
-  }
-}
-
-
-// ==========================================
-// HELPERS PARA A CATEGORIA: O RITUAL DO CINÉFILO
-// ==========================================
-function getMovieRuntime(movie) {
-  const r = Number(movie.runtime ?? movie.duracao ?? movie.min);
-  return !isNaN(r) && r > 0 ? r : 0;
-}
-
-function getMovieReleaseYear(movie) {
-  const y = Number(movie.release_year ?? movie.ano_lancamento ?? movie.ano);
-  return !isNaN(y) && y > 1800 ? y : null;
-}
-
-function getMovieYearSeen(movie) {
-  const y = Number(movie.year_seen ?? movie.ano_visto);
-  return !isNaN(y) && y > 1800 ? y : null;
-}
-
-function getMoviePlatform(movie) {
-  return String(movie.platform ?? movie.plataforma ?? '').trim();
-}
-
-function getMovieAudio(movie) {
-  return String(movie.audio_type ?? movie.audio ?? '').trim();
-}
-
-function isPhysicalMedia(plat) {
-  const p = plat.toLowerCase().replace(/[-_\s]/g, '');
-  return p === 'bluray' || p === 'dvd';
-}
-
-function isCinema(plat) {
-  return plat.toLowerCase().trim() === 'cinema';
-}
-
-function isYouTube(plat) {
-  const p = plat.toLowerCase().replace(/[-_\s]/g, '');
-  return p === 'youtube';
-}
-
-function isHboMax(plat) {
-  const p = plat.toLowerCase().replace(/[-_\s]/g, '');
-  return p === 'hbomax' || p === 'max' || p === 'hbo';
-}
-
-function isNetflix(plat) {
-  const p = plat.toLowerCase().replace(/[-_\s]/g, '');
-  return p === 'netflix';
-}
-
-function isInternet(plat) {
-  return plat.toLowerCase().trim() === 'internet';
-}
-
-function isPrimeVideo(plat) {
-  const p = plat.toLowerCase().replace(/[-_\s]/g, '');
-  return p === 'primevideo' || p === 'amazonprime' || p === 'amazonprimevideo';
-}
-
-function isMyFamilyCine(plat) {
-  const p = plat.toLowerCase().replace(/[-_\s]/g, '');
-  return p === 'myfamilycine' || p === 'mfc';
-}
-
-function isOfficialStreaming(plat) {
-  const p = plat.toLowerCase().replace(/[-_\s+]/g, '');
-  return (
-    p === 'netflix' ||
-    p === 'primevideo' ||
-    p === 'amazonprime' ||
-    p === 'amazonprimevideo' ||
-    p === 'hbomax' ||
-    p === 'max' ||
-    p === 'disney' ||
-    p === 'star' ||
-    p === 'appletv'
-  );
-}
-
-function isFreeStreaming(plat) {
-  const p = plat.toLowerCase().replace(/[-_\s]/g, '');
-  return p === 'internet' || p === 'myfamilycine' || p === 'mfc' || p === 'youtube';
-}
-
-function isInternetOrMfc(plat) {
-  const p = plat.toLowerCase().replace(/[-_\s]/g, '');
-  return p === 'internet' || p === 'myfamilycine' || p === 'mfc';
-}
-
-function isDubbed(audio) {
-  return audio.toLowerCase().includes('dublado');
-}
-
-function isSubtitled(audio) {
-  return audio.toLowerCase().includes('legendado');
-}
-
-function isOriginalAudio(audio) {
-  const a = audio.toLowerCase().trim();
-  return a === 'original' || a.includes('idioma original');
-}
-
-function isYouTubeSubtitled(plat, audio) {
-  const a = audio.toLowerCase();
-  const p = plat.toLowerCase().replace(/[-_\s]/g, '');
-  return a.includes('legendado pelo youtube') || (p === 'youtube' && a.includes('legendado'));
-}
-
-function evaluateRitualCinefiloMovie(m, ruleKey) {
-  const runtime = getMovieRuntime(m);
-  const relYear = getMovieReleaseYear(m);
-  const yearSeen = getMovieYearSeen(m);
-  const plat = getMoviePlatform(m);
-  const audio = getMovieAudio(m);
-
-  switch (ruleKey) {
-    case 'cinema_count':
-      if (isCinema(plat)) {
-        return { matched: true, extraInfo: `Assistido no Cinema (${yearSeen || relYear || 'Ano N/I'})`, sortScore: yearSeen || relYear || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'audio_original_count':
-      if (isOriginalAudio(audio)) {
-        return { matched: true, extraInfo: `Áudio Original (${plat || 'Plataforma N/I'})`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'runtime_lte_15':
-      if (runtime > 0 && runtime <= 15) {
-        return { matched: true, extraInfo: `Duração: ${runtime} min`, sortScore: -runtime };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'runtime_eq_120':
-      if (runtime === 120) {
-        return { matched: true, extraInfo: `Duração exata: 120 min`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'physical_media_count':
-      if (isPhysicalMedia(plat)) {
-        return { matched: true, extraInfo: `Mídia Física: ${plat}`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'youtube_subtitled_count':
-      if (isYouTubeSubtitled(plat, audio)) {
-        return { matched: true, extraInfo: `YouTube Legendado`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'youtube_count':
-      if (isYouTube(plat)) {
-        return { matched: true, extraInfo: `YouTube (${audio || 'Áudio N/I'})`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'cinema_legendado_count':
-      if (isCinema(plat) && isSubtitled(audio)) {
-        return { matched: true, extraInfo: `Cinema Legendado`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'audio_dublado_count':
-      if (isDubbed(audio)) {
-        return { matched: true, extraInfo: `Áudio: ${audio}`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'audio_legendado_count':
-      if (isSubtitled(audio)) {
-        return { matched: true, extraInfo: `Áudio: ${audio}`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'year_eq_1994':
-      if (relYear === 1994) {
-        return { matched: true, extraInfo: `Lançado em 1994`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'year_eq_2012':
-      if (relYear === 2012) {
-        return { matched: true, extraInfo: `Lançado em 2012`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'same_year_seen_release':
-      if (relYear !== null && yearSeen !== null && relYear === yearSeen) {
-        return { matched: true, extraInfo: `Lançado e visto em ${relYear}`, sortScore: relYear };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'year_between_1920_1940':
-      if (relYear !== null && relYear >= 1920 && relYear <= 1940) {
-        return { matched: true, extraInfo: `Lançado em ${relYear}`, sortScore: relYear };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'prime_video_same_year':
-      if (isPrimeVideo(plat) && relYear !== null && yearSeen !== null && relYear === yearSeen) {
-        return { matched: true, extraInfo: `Prime Video no lançamento (${relYear})`, sortScore: relYear };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'runtime_lte_60':
-      if (runtime > 0 && runtime <= 60) {
-        return { matched: true, extraInfo: `Duração: ${runtime} min`, sortScore: -runtime };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'runtime_gt_150':
-      if (runtime > 150) {
-        return { matched: true, extraInfo: `Duração: ${runtime} min`, sortScore: runtime };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'runtime_gt_180':
-      if (runtime > 180) {
-        return { matched: true, extraInfo: `Duração épica: ${runtime} min`, sortScore: runtime };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'cinema_gt_150min':
-      if (isCinema(plat) && runtime > 150) {
-        return { matched: true, extraInfo: `Cinema (${runtime} min)`, sortScore: runtime };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'hbo_max_count':
-      if (isHboMax(plat)) {
-        return { matched: true, extraInfo: `HBO Max (${audio || 'Áudio N/I'})`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'netflix_count':
-      if (isNetflix(plat)) {
-        return { matched: true, extraInfo: `Netflix (${audio || 'Áudio N/I'})`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'internet_count':
-      if (isInternet(plat)) {
-        return { matched: true, extraInfo: `Internet (${audio || 'Áudio N/I'})`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'free_streaming_same_year':
-      if (isFreeStreaming(plat) && relYear !== null && yearSeen !== null && relYear === yearSeen) {
-        return { matched: true, extraInfo: `${plat} no lançamento (${relYear})`, sortScore: relYear };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'seen_after_release_year':
-      if (relYear !== null && yearSeen !== null && yearSeen > relYear) {
-        return { matched: true, extraInfo: `Lançado em ${relYear}, visto em ${yearSeen} (+${yearSeen - relYear} anos)`, sortScore: yearSeen - relYear };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'year_lt_1994':
-      if (relYear !== null && relYear < 1994) {
-        return { matched: true, extraInfo: `Lançado em ${relYear} (antes de 1994)`, sortScore: -relYear };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'year_lt_1958':
-      if (relYear !== null && relYear < 1958) {
-        return { matched: true, extraInfo: `Lançado em ${relYear} (antes de 1958)`, sortScore: -relYear };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'year_1999_or_2000':
-      if (relYear === 1999 || relYear === 2000) {
-        return { matched: true, extraInfo: `Lançado em ${relYear} (Bug do Milênio)`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'year_between_2010_2020':
-      if (relYear !== null && relYear >= 2010 && relYear <= 2020) {
-        return { matched: true, extraInfo: `Lançado em ${relYear}`, sortScore: relYear };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'internet_or_mfc_count':
-      if (isInternetOrMfc(plat)) {
-        return { matched: true, extraInfo: `${plat}`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'official_streaming_count':
-      if (isOfficialStreaming(plat)) {
-        return { matched: true, extraInfo: `Streaming Oficial: ${plat}`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'time_capsule_30_years':
-      if (relYear !== null && yearSeen !== null && (yearSeen - relYear) >= 30) {
-        return { matched: true, extraInfo: `Lançado em ${relYear}, visto em ${yearSeen} (${yearSeen - relYear} anos depois)`, sortScore: yearSeen - relYear };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-
-    case 'year_eq_2001':
-      if (relYear === 2001) {
-        return { matched: true, extraInfo: 'Lançado em 2001', sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'year_between_1939_1945':
-      if (relYear !== null && relYear >= 1939 && relYear <= 1945) {
-        return { matched: true, extraInfo: `Segunda Guerra (${relYear})`, sortScore: relYear };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-    default:
-      return { matched: false, extraInfo: '', sortScore: 0 };
-  }
-}
-
-function evaluateMultiRitualMovie(m, ruleKey, unCountryDefMap) {
-  const runtime = getMovieRuntime(m);
-  const relYear = getMovieReleaseYear(m);
-  const yearSeen = getMovieYearSeen(m);
-  const plat = getMoviePlatform(m);
-  const audio = getMovieAudio(m);
-  const { ur, imdb, gr } = extractCriticMetrics(m);
-  const urMillis = ur !== null ? Math.round(ur * 1000) : null;
-  const imdbMillis = imdb !== null ? Math.round(imdb * 1000) : null;
-
-  const fmtUr = (v) => v.toFixed(3);
-  const fmtImdb = (v) => v.toFixed(1);
-  const fmtGr = (v) => v.toLocaleString('pt-BR');
-
-  switch (ruleKey) {
-    case 'cinema_ur_lt_7000':
-      if (isCinema(plat) && ur !== null && urMillis < 7000 && urMillis > 0) {
-        return { matched: true, extraInfo: `Cinema | Minha Nota: ${fmtUr(ur)} (< 7.000)`, sortScore: -urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'a24_ur_lt_6000': {
-      const isA24 =
-        movieHasAnyPattern(getMovieStudios(m), ['a24']) ||
-        movieHasAnyPattern(getMovieDistributors(m), ['a24']);
-      if (isA24 && ur !== null && urMillis < 6000 && urMillis > 0) {
-        return { matched: true, extraInfo: `A24 | Minha Nota: ${fmtUr(ur)} (< 6.000)`, sortScore: -urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
+    case 'hybrid_country_oscar_winner': return buildSlots((index.moviesByCountryAll.get(String(meta.countryCode || 'br').toLowerCase()) || []).filter((m) => m.oscarWins >= (meta.minWins || 1)), pt, (m) => `${m.oscarWins} Oscar(s)`, 'Oscar');
+    case 'hybrid_non_us_oscar_winner': return buildSlots(index.movies.filter((m) => !hasCountry(m, meta.excludeCountryCode || 'us') && m.oscarWins >= (meta.minWins || 1)), pt, (m) => `${m.oscarWins} Oscar(s)`, 'Oscar Não-EUA');
+    case 'hybrid_genre_oscar_winner': return buildSlots((index.moviesByGenre.get(cleanTag(meta.genre || 'Animação')) || []).filter((m) => m.oscarWins >= (meta.minWins || 1)), pt, (m) => `${m.oscarWins} Oscar(s)`, 'Oscar');
+    case 'hybrid_genre_studio_month': return buildSlots((index.moviesByMonth.get(meta.month || 10) || []).filter((m) => hasGenre(m, meta.genre || 'Terror') && hasPattern(m.companies, meta.studioPatterns || ['blumhouse'])), pt, () => 'Combo', 'Combo');
+    case 'hybrid_genre_tag': return buildSlots((index.moviesByGenre.get(cleanTag(meta.genre || 'Romance')) || []).filter((m) => hasTag(m, meta.tag)), pt, () => meta.tag, meta.genre);
+    case 'hybrid_disney_fox_horror': return buildSlots((index.moviesByGenre.get(cleanTag('Terror')) || []).filter((m) => hasPattern(m.companies, meta.companyPatterns || ['disney', 'pixar', 'buena vista', '20th century'])), pt, () => 'Terror Disney/Fox', 'Terror');
+    case 'hybrid_disney_vacation_july_dec': return buildSlots(index.movies.filter((m) => inMonth(m, meta.months || [7, 12]) && (meta.anyOfGenres || ['Animação', 'Família']).some((g) => hasGenre(m, g)) && hasPattern(m.companies, meta.companyPatterns || ['disney', 'pixar', 'buena vista'])), pt, () => 'Disney Férias', 'Disney');
+    case 'hybrid_gore_twisted_lionsgate': return buildSlots((index.moviesByGenre.get(cleanTag('Terror')) || []).filter((m) => hasTag(m, 'Gore') && hasPattern(m.companies, meta.companyPatterns || ['twisted pictures', 'lionsgate'])), pt, () => 'Gore Twisted', 'Gore');
+    case 'hybrid_pixar_emotional_animals': return buildSlots((index.moviesByGenre.get(cleanTag('Animação')) || []).filter((m) => hasPattern(m.companies, meta.companyPatterns || ['disney', 'pixar', 'buena vista']) && (meta.anyOfTags || ['Emocionante', 'Animais antropomorficos']).some((t) => hasTag(m, t))), pt, () => 'Pixar Emocionante', 'Pixar');
+    case 'hybrid_sk_oscar': return buildSlots((index.moviesByTag.get('sk') || []).filter((m) => m.oscarNoms >= 1 || m.oscarWins >= 1), pt, () => 'SK Oscar', 'SK Oscar');
+    case 'hybrid_top250_oscar_winner': return buildSlots((index.moviesByTag.get('top250') || []).filter((m) => m.oscarWins >= 1), pt, () => 'TOP250 Oscar', 'TOP250');
+    case 'hybrid_warner_dc_vs_disney_marvel': {
+      const a = index.movies.filter((m) => (hasGenre(m, 'Ação') || hasGenre(m, 'Aventura')) && hasTag(m, 'DC') && hasPattern(m.companies, ['warner'])).length;
+      const b = index.movies.filter((m) => (hasGenre(m, 'Ação') || hasGenre(m, 'Aventura')) && hasTag(m, 'Marvel') && hasPattern(m.companies, ['disney', 'buena vista', 'sony', 'columbia'])).length;
+      const sum = Math.min(15, a) + Math.min(15, b);
+      return { rawCount: sum, progressCurrent: sum, progressTarget: 30, isMet: a >= 15 && b >= 15, checklist: [] };
     }
-
-    case 'year_1994_seen_august':
-      if (relYear === 1994 && movieInMonth(m, 8)) {
-        return { matched: true, extraInfo: 'Lançado em 1994 | Visto em Agosto', sortScore: 1994 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'brazil_year_1994':
-      if (relYear === 1994 && movieHasCountry(m, 'br', unCountryDefMap)) {
-        return { matched: true, extraInfo: 'Brasil | Lançado em 1994', sortScore: 1994 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'animacao_dublada_15':
-      if (movieHasGenre(m, 'Animação') && isDubbed(audio)) {
-        return { matched: true, extraInfo: `Animação Dublada (${plat || 'Plataforma N/I'})`, sortScore: yearSeen || relYear || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'terror_cinema_internet_outubro_5':
-      if (movieHasGenre(m, 'Terror') && (isCinema(plat) || isInternet(plat)) && movieInMonth(m, 10)) {
-        return { matched: true, extraInfo: `Terror em Outubro (${plat})`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'curta_youtube_5':
-      if ((movieHasGenre(m, 'Curta') || movieHasGenre(m, 'Curta-metragem') || movieHasGenre(m, 'Curta Metragem')) && isYouTube(plat)) {
-        return { matched: true, extraInfo: 'Curta no YouTube', sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'brasil_cinema_5':
-      if (movieHasCountry(m, 'br', unCountryDefMap) && isCinema(plat)) {
-        return { matched: true, extraInfo: 'Filme Brasileiro no Cinema', sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'cinema_ur_gt_8000_10':
-      if (isCinema(plat) && ur !== null && urMillis > 8000) {
-        return { matched: true, extraInfo: `Cinema | Minha Nota: ${fmtUr(ur)} (> 8.000)`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'cinema_ferias_julho_dez_10':
-      if (isCinema(plat) && (movieInMonth(m, 7) || movieInMonth(m, 12))) {
-        return { matched: true, extraInfo: `Cinema nas Férias (${movieInMonth(m, 7) ? 'Julho' : 'Dezembro'})`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'biografia_non_us_non_br_5':
-      if (movieHasGenre(m, 'Biografia') && !movieHasCountry(m, 'us', unCountryDefMap) && !movieHasCountry(m, 'br', unCountryDefMap)) {
-        return { matched: true, extraInfo: `Biografia (${m.primaryCountryName || m.primaryCountryCode || 'Internacional'})`, sortScore: yearSeen || relYear || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'japao_sem_animes_games_terror_5':
-      if (
-        movieHasCountry(m, 'jp', unCountryDefMap) &&
-        !movieHasTag(m, 'Baseado em Anime') &&
-        !movieHasTag(m, 'Baseado em jogo') &&
-        !movieHasGenre(m, 'Terror') &&
-        !movieHasGenre(m, 'Animação')
-      ) {
-        return { matched: true, extraInfo: 'Japão (Sem Anime/Terror/Game)', sortScore: yearSeen || relYear || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'pirata_tag_lgbt_15':
-      if (movieHasTag(m, 'Personagem LGBT') && (isMyFamilyCine(plat) || isYouTube(plat) || isInternet(plat))) {
-        return { matched: true, extraInfo: `Tag Personagem LGBT (${plat})`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'pirata_tag_crime_real_15':
-      if (movieHasTag(m, 'Crime real') && (isMyFamilyCine(plat) || isYouTube(plat) || isInternet(plat))) {
-        return { matched: true, extraInfo: `Tag Crime real (${plat})`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'audio_original_non_us_non_br_5':
-      if (isOriginalAudio(audio) && !movieHasCountry(m, 'br', unCountryDefMap) && !movieHasCountry(m, 'us', unCountryDefMap)) {
-        return { matched: true, extraInfo: `Idioma Original (${m.primaryCountryName || m.primaryCountryCode || 'Mundo'})`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'midia_fisica_ur_gt_8000_15':
-      if (isPhysicalMedia(plat) && ur !== null && urMillis > 8000) {
-        return { matched: true, extraInfo: `Mídia Física (${plat}) | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'guerra_historia_gt_150_5':
-      if ((movieHasGenre(m, 'Guerra') || movieHasGenre(m, 'História') || movieHasGenre(m, 'Historia')) && runtime > 150) {
-        return { matched: true, extraInfo: `Guerra/História | Duração: ${runtime} min`, sortScore: runtime };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'pre_1960_pb_mudo_3':
-      if (relYear !== null && relYear < 1960 && (movieHasTag(m, 'Preto e branco') || movieHasTag(m, 'Mudo'))) {
-        return { matched: true, extraInfo: `Ano ${relYear} | Preto e branco / Mudo`, sortScore: -relYear };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'blockbuster_estreia_cinema_15':
-      if (isCinema(plat) && relYear !== null && yearSeen !== null && relYear === yearSeen && gr !== null && gr > 500_000) {
-        return { matched: true, extraInfo: `Cinema na Estreia (${relYear}) | Reviews: ${fmtGr(gr)}`, sortScore: gr };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'terror_anos_80_10':
-      if (movieHasGenre(m, 'Terror') && relYear !== null && relYear >= 1980 && relYear <= 1989) {
-        return { matched: true, extraInfo: `Terror de ${relYear}`, sortScore: relYear };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'pirata_romance_30':
-      if (movieHasGenre(m, 'Romance') && (isMyFamilyCine(plat) || isYouTube(plat) || isInternet(plat))) {
-        return { matched: true, extraInfo: `Romance (${plat})`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'terror_sem_gore_30':
-      if (movieHasGenre(m, 'Terror') && !movieHasTag(m, 'Gore')) {
-        return { matched: true, extraInfo: 'Terror sem Gore', sortScore: yearSeen || relYear || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'netflix_gore_30':
-      if (movieHasTag(m, 'Gore') && isNetflix(plat)) {
-        return { matched: true, extraInfo: 'Tag Gore na Netflix', sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'minecraft_stack_64': {
-      const hasMcTag =
-        movieHasTag(m, 'Baseado em jogo') ||
-        movieHasTag(m, 'Zumbi') ||
-        movieHasTag(m, 'Bruxo') ||
-        movieHasTag(m, 'Animais antropomorficos');
-      const hasMcGenre = movieHasGenre(m, 'Aventura') || movieHasGenre(m, 'Fantasia');
-      if (hasMcTag && hasMcGenre) {
-        return { matched: true, extraInfo: 'Minecraft: Tag + Aventura/Fantasia', sortScore: yearSeen || relYear || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
+    case 'hybrid_seven_deadly_sins': {
+      const s1 = index.movies.filter((m) => hasPattern(m.directors, ['paul w.s. anderson', 'paul w s anderson']) || hasPattern(m.writers, ['paul w.s. anderson', 'paul w s anderson'])).length;
+      const s2 = (index.moviesByCountryAll.get('us') || []).length;
+      const s3 = index.movies.filter((m) => hasPattern(m.writers, ['bob kane'])).length;
+      const s4 = (index.moviesByTag.get(cleanTag('Criança Malvada')) || []).length;
+      const s5 = (index.moviesByGenre.get(cleanTag('Curta')) || []).length;
+      const s6 = index.movies.filter((m) => hasPattern(m.companies, ['blumhouse', 'disney', 'pixar', 'buena vista'])).length;
+      const s7 = (index.moviesByTag.get(cleanTag('Natal')) || []).length;
+      const arr = [s1, s2, s3, s4, s5, s6, s7];
+      const sum = arr.reduce((acc, v) => acc + Math.min(7, v), 0);
+      return { rawCount: sum, progressCurrent: sum, progressTarget: 49, isMet: arr.every((v) => v >= 7), checklist: [] };
     }
-
-    case 'marvel_dc_cinema_20':
-      if ((movieHasTag(m, 'Marvel') || movieHasTag(m, 'DC')) && isCinema(plat)) {
-        return { matched: true, extraInfo: 'Marvel/DC no Cinema', sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'pirata_hidden_gem_10':
-      if (
-        (isInternet(plat) || isYouTube(plat) || isMyFamilyCine(plat)) &&
-        gr !== null && gr > 0 && gr < 50_000 &&
-        ur !== null && urMillis > 8000
-      ) {
-        return { matched: true, extraInfo: `${plat} | Reviews: ${fmtGr(gr)} | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'oscar_winner_streaming_oficial_20':
-      if ((Number(m.oscar_wins) || 0) >= 1 && isOfficialStreaming(plat)) {
-        return { matched: true, extraInfo: `${m.oscar_wins} Oscar(s) | Plataforma: ${plat}`, sortScore: Number(m.oscar_wins) || 1 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'gt_180_min_ur_gt_9000_5':
-      if (runtime > 180 && ur !== null && urMillis > 9000) {
-        return { matched: true, extraInfo: `Duração: ${runtime} min | Minha Nota: ${fmtUr(ur)}`, sortScore: urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'sony_midia_fisica_10': {
-      const isSony =
-        movieHasAnyPattern(getMovieStudios(m), ['sony', 'columbia', 'tri-star', 'tristar', 'sony pictures']) ||
-        movieHasAnyPattern(getMovieDistributors(m), ['sony', 'columbia', 'tri-star', 'tristar', 'sony pictures']);
-      if (isSony && isPhysicalMedia(plat)) {
-        return { matched: true, extraInfo: `Sony Pictures em Mídia Física (${plat})`, sortScore: yearSeen || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
+    case 'michael_jackson_anthology': {
+      const mus = (index.moviesByGenre.get(cleanTag('Música')) || []).length >= 15;
+      const checks = [
+        (m) => m.releaseYear === 1970 && (hasTag(m, 'Colegio/Escola') || hasTag(m, 'Em Família')),
+        (m) => m.releaseYear === 1983 && hasGenre(m, 'Ação'),
+        (m) => m.releaseYear === 1983 && (hasTag(m, 'Trágico') || hasGenre(m, 'Suspense')),
+        (m) => m.releaseYear === 1984 && (hasTag(m, 'Lobisomem') || hasTag(m, 'Zumbi')),
+        (m) => m.releaseYear === 1987 && hasTag(m, 'Criança Malvada'),
+        (m) => m.releaseYear === 1988 && (hasTag(m, 'Crime real') || hasGenre(m, 'Policial') || hasGenre(m, 'Crime')),
+        (m) => m.releaseYear === 1991 && (hasTag(m, 'Preto e branco') || hasTag(m, 'Em Família')),
+        (m) => m.releaseYear === 1991 && (hasTag(m, 'Emocionante') || hasTag(m, 'Fatos Reais')),
+        (m) => m.releaseYear === 1992 && hasTag(m, 'Viagem no Tempo'),
+        (m) => m.releaseYear === 1995 && (hasTag(m, 'Em Família') || hasGenre(m, 'Romance')),
+        (m) => m.releaseYear === 1995 && (hasTag(m, 'Trágico') || hasGenre(m, 'Documentário')),
+        (m) => m.releaseYear === 1996 && hasCountry(m, 'br'),
+        (m) => m.releaseYear === 1996 && hasTag(m, 'Fantasma'),
+        (m) => m.releaseYear === 1997 && hasTag(m, 'Gore'),
+        (m) => m.releaseYear === 2014 && (hasTag(m, 'Em Família') || hasTag(m, 'Emocionante')),
+      ];
+      let c = mus ? 1 : 0;
+      for (const fn of checks) if (index.movies.some(fn)) c++;
+      return { rawCount: c, progressCurrent: c, progressTarget: 16, isMet: c >= 16, checklist: [] };
     }
-
-    case 'pre_1980_ur_gt_8000_imdb_gte_80_15':
-      if (relYear !== null && relYear < 1980 && ur !== null && urMillis > 8000 && imdb !== null && imdbMillis >= 8000) {
-        return { matched: true, extraInfo: `Ano ${relYear} | Minha Nota: ${fmtUr(ur)} | IMDb: ${fmtImdb(imdb)}`, sortScore: urMillis + imdbMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    case 'oscar_ano_lancamento_ou_mais_um_15': {
-      const hasOscar = (Number(m.oscar_nominations) || 0) >= 1 || (Number(m.oscar_wins) || 0) >= 1;
-      if (hasOscar && relYear !== null && yearSeen !== null && (yearSeen === relYear || yearSeen === relYear + 1)) {
-        return { matched: true, extraInfo: `Oscar (${m.oscar_wins || 0}W/${m.oscar_nominations || 0}N) | Lançado: ${relYear}, Visto: ${yearSeen}`, sortScore: yearSeen };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-    }
-
-    case 'dublagem_classica_80_90_30': {
-      const isActionAdvComedy = movieHasGenre(m, 'Ação') || movieHasGenre(m, 'Aventura') || movieHasGenre(m, 'Comédia');
-      if (isActionAdvComedy && relYear !== null && relYear >= 1980 && relYear <= 1999 && isDubbed(audio)) {
-        return { matched: true, extraInfo: `Dublado (${relYear}) | Sessão da Tarde`, sortScore: yearSeen || relYear || 0 };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-    }
-
-    case 'exodia_7_categorias_5': {
-      const isNonUsNonBr = !movieHasCountry(m, 'us', unCountryDefMap) && !movieHasCountry(m, 'br', unCountryDefMap);
-      const isJanOrDec = movieInMonth(m, [1, 12]);
-      const has2Tags = (Array.isArray(m.tags) ? m.tags.length : 0) >= 2;
-      const has2Genres = (Array.isArray(m.genres) ? m.genres.length : 0) >= 2;
-      const hasOscar = (Number(m.oscar_nominations) || 0) >= 1 || (Number(m.oscar_wins) || 0) >= 1;
-      const isUrGte9 = ur !== null && urMillis >= 9000;
-      const isRitualMet = runtime > 120 && (isCinema(plat) || isPhysicalMedia(plat));
-
-      if (isNonUsNonBr && isJanOrDec && has2Tags && has2Genres && hasOscar && isUrGte9 && isRitualMet) {
-        return {
-          matched: true,
-          extraInfo: `Exodia 7 Cats | ${m.primaryCountryName || 'Mundo'} | Mês ${m.month_seen} | Nota: ${fmtUr(ur)} | ${runtime}m | ${plat}`,
-          sortScore: urMillis,
-        };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-    }
-
-    case 'celso_russomanno_streaming_ur_lt_6000_30':
-      if (isOfficialStreaming(plat) && ur !== null && urMillis < 6000 && urMillis > 0) {
-        return { matched: true, extraInfo: `Streaming Oficial (${plat}) | Minha Nota: ${fmtUr(ur)} (< 6.000)`, sortScore: -urMillis };
-      }
-      return { matched: false, extraInfo: '', sortScore: 0 };
-
-    default:
-      return { matched: false, extraInfo: '', sortScore: 0 };
+    default: return { rawCount: 0, progressCurrent: 0, progressTarget: pt, isMet: false, checklist: [] };
   }
 }
 
 export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, previousTrophies = []) {
-  const catalogMovies = Array.isArray(movies) ? movies : [];
-  const previousTrophiesMap = new Map((Array.isArray(previousTrophies) ? previousTrophies : []).map((t) => [t.id, t]));
-  // 1. Mapeia filmes para países da ONU
-  const moviesByCode = new Map();
-  const championsByCode = new Map();
+  const index = buildClientCatalogIndex(Array.isArray(movies) ? movies : []);
+  const prevMap = new Map((Array.isArray(previousTrophies) ? previousTrophies : []).map((t) => [t.id, t]));
+  const nonPlats = CLIENT_TROPHY_DEFINITIONS.filter((d) => d.kind !== 'platinum' && d.target_type !== 'platinum_dynamic');
+  const plats = CLIENT_TROPHY_DEFINITIONS.filter((d) => d.kind === 'platinum' || d.target_type === 'platinum_dynamic');
+  const nowIso = new Date().toISOString();
 
-  for (const m of movies) {
-    const rawCountries = Array.isArray(m.countries) ? m.countries : [];
-    const matchedCodes = new Set();
+  const cards = [];
+  for (const def of nonPlats) {
+    const raw = computeRule(def, index);
+    const prev = prevMap.get(def.id);
+    const categories = def.categories || [def.category];
 
-    for (const raw of rawCountries) {
-      const code = unLookupMap.get(cleanStr(raw));
-      if (code) {
-        matchedCodes.add(code);
-      }
-    }
+    if (def.kind === 'rank' && Array.isArray(def.ranks)) {
+      const cardOverride = testOverrides[def.id] !== undefined ? testOverrides[def.id] : prev?.test_override ?? null;
+      let unlockedCount = 0;
+      let highestTier = null;
+      const ranks = def.ranks.map((step) => {
+        const stepOv = cardOverride !== null ? cardOverride : testOverrides[step.id] !== undefined ? testOverrides[step.id] : null;
+        let stepTarget = step.target_value;
+        let stepCurrent = Math.min(raw.rawCount, stepTarget);
+        let stepMet = raw.rawCount >= stepTarget;
 
-    for (const code of matchedCodes) {
-      if (!moviesByCode.has(code)) {
-        moviesByCode.set(code, []);
-      }
-      const list = moviesByCode.get(code);
-      list.push(m);
-    }
-  }
-
-  // Ordena filmes de cada país por maior nota do usuário (critério padrão de Campeão)
-  for (const [code, list] of moviesByCode.entries()) {
-    list.sort((a, b) => (Number(b.user_rating) || 0) - (Number(a.user_rating) || 0));
-    championsByCode.set(code, list[0]);
-  }
-
-  // Helper estrito para resolver o País de Origem único no Desafio dos 195 (sem vazar coproduções não curadas)
-  const resolveClientPrimaryCountryCode195 = (movie) => {
-    if (!movie) return null;
-    if (movie.primaryCountryCode) {
-      const c = String(movie.primaryCountryCode).toLowerCase().trim();
-      return unByCode.has(c) ? c : null;
-    }
-    const manual = String(movie.manual_origin_code || movie.manual_pick_code || '').toLowerCase().trim();
-    if (manual) {
-      return unByCode.has(manual) ? manual : null;
-    }
-    const rawCountries = Array.isArray(movie.countries) ? movie.countries : [];
-    if (rawCountries.length !== 1) return null;
-    const code = unLookupMap.get(cleanStr(rawCountries[0]));
-    return code && unByCode.has(code) ? code : null;
-  };
-
-  // 2. Mapa de países conquistados no Desafio 195 (país de origem único por filme)
-  const worldOriginMoviesByCode = new Map();
-  const worldOriginChampionsByCode = new Map();
-
-  for (const m of movies) {
-    const pCode = resolveClientPrimaryCountryCode195(m);
-    if (!pCode) continue;
-    if (!worldOriginMoviesByCode.has(pCode)) {
-      worldOriginMoviesByCode.set(pCode, []);
-    }
-    worldOriginMoviesByCode.get(pCode).push(m);
-  }
-
-  for (const [code, list] of worldOriginMoviesByCode.entries()) {
-    list.sort((a, b) => (Number(b.user_rating) || 0) - (Number(a.user_rating) || 0));
-    worldOriginChampionsByCode.set(code, list[0]);
-  }
-
-  const evaluatedTrophies = [];
-
-  const standardDefs = CLIENT_TROPHY_DEFINITIONS.filter(
-    (t) => t.tier !== 'platinum' && t.target_type !== 'platinum_dynamic' && t.target_type !== 'platinum_all_category'
-  );
-
-  for (const def of standardDefs) {
-    let progressCurrent = 0;
-    let progressTarget = def.target_value;
-    let isMet = false;
-    const checklist = [];
-
-    switch (def.target_type) {
-      case 'country_movie_count': {
-        const cCode = String(def.target_metadata?.countryCode || '').toLowerCase();
-        const cName = def.target_metadata?.countryName || unByCode.get(cCode)?.name || cCode.toUpperCase();
-        const mList = moviesByCode.get(cCode) || [];
-        progressTarget = def.target_value;
-
-        if (progressTarget === 1) {
-          const rep = mList[0] || championsByCode.get(cCode) || null;
-          const hasMovie = mList.length > 0;
-          progressCurrent = hasMovie ? 1 : 0;
-          isMet = hasMovie;
-          checklist.push({
-            code: cCode,
-            name: cName,
-            flag: cCode,
-            required: 1,
-            current: hasMovie ? 1 : 0,
-            conquered: hasMovie,
-            movie_title: rep?.title || null,
-            movie_year: rep?.release_year || null,
-            poster_url: rep?.poster_url || null,
-          });
-        } else {
-          const res = buildMovieSlotsChecklist(
-            mList,
-            progressTarget,
-            (m) => m.user_rating ? `Nota: ${m.user_rating}` : `Filme de ${cName}`,
-            `Pendente: filme de ${cName}`,
-            cCode
-          );
-          progressCurrent = res.progressCurrent;
-          checklist.push(...res.checklist);
-          isMet = progressCurrent >= progressTarget;
-        }
-        break;
-      }
-
-      case 'country_list': {
-        let codes = def.target_metadata?.countryCodes || [];
-        if (def.target_metadata?.continent) {
-          const cont = def.target_metadata.continent;
-          codes = UN_COUNTRIES_195.filter((c) => c.continent === cont).map((c) => c.code.toLowerCase());
-        }
-        progressTarget = codes.length;
-        let conqCount = 0;
-
-        for (const code of codes) {
-          const cCode = code.toLowerCase();
-          const unDef = unByCode.get(cCode);
-          const hasMovie = (worldOriginMoviesByCode.get(cCode)?.length || 0) > 0;
-          if (hasMovie) conqCount++;
-
-          const rep = hasMovie ? (worldOriginChampionsByCode.get(cCode) || null) : null;
-          checklist.push({
-            code: cCode,
-            name: unDef?.name || cCode.toUpperCase(),
-            flag: cCode,
-            required: 1,
-            current: hasMovie ? 1 : 0,
-            conquered: hasMovie,
-            movie_title: rep?.title || null,
-            movie_year: rep?.release_year || null,
-            poster_url: rep?.poster_url || null,
-          });
+        if (def.target_type === 'all_12_months_coverage' && Array.isArray(raw.monthCounts)) {
+          stepTarget = 12;
+          stepCurrent = raw.monthCounts.filter((c) => c >= step.target_value).length;
+          stepMet = stepCurrent >= 12;
+        } else if ((def.target_type === 'genre_quotas' || def.target_type === 'tag_checklist_quota') && Array.isArray(raw.quotaRawCounts)) {
+          const n = raw.quotaRawCounts.length || 2;
+          const per = Math.max(1, Math.floor(step.target_value / n));
+          stepTarget = per * n;
+          stepCurrent = raw.quotaRawCounts.reduce((a, v) => a + Math.min(v, per), 0);
+          stepMet = raw.quotaRawCounts.every((v) => v >= per);
         }
 
-        progressCurrent = conqCount;
-        isMet = conqCount >= progressTarget;
-        break;
-      }
-
-      case 'country_movie_counts': {
-        const reqs = def.target_metadata?.requirements || [];
-        let totalCurrent = 0;
-        let allSatisfied = true;
-
-        for (const req of reqs) {
-          const cCode = req.code.toLowerCase();
-          const mList = moviesByCode.get(cCode) || [];
-          const count = mList.length;
-          const met = count >= req.min;
-          if (!met) allSatisfied = false;
-          totalCurrent += Math.min(count, req.min);
-
-          const rep = mList[0] || null;
-          checklist.push({
-            code: cCode,
-            name: `${req.name} (${count}/${req.min} filmes)`,
-            flag: cCode,
-            required: req.min,
-            current: Math.min(count, req.min),
-            conquered: met,
-            movie_title: rep?.title || null,
-            movie_year: rep?.release_year || null,
-            poster_url: rep?.poster_url || null,
-            extra_info: met ? 'Requisito atingido' : `Falta(m) ${req.min - count} filme(s)`,
-          });
-        }
-
-        progressCurrent = totalCurrent;
-        isMet = allSatisfied;
-        break;
-      }
-
-      case 'multi_country_movie_sum': {
-        const codes = def.target_metadata?.countryCodes || [];
-        const names = def.target_metadata?.countryNames || [];
-        let sum = 0;
-
-        codes.forEach((code, idx) => {
-          const cCode = code.toLowerCase();
-          const count = moviesByCode.get(cCode)?.length || 0;
-          sum += count;
-          checklist.push({
-            code: cCode,
-            name: `${names[idx] || cCode.toUpperCase()}: ${count} filme(s)`,
-            flag: cCode,
-            required: def.target_value,
-            current: count,
-            conquered: count > 0,
-          });
-        });
-
-        progressCurrent = Math.min(sum, progressTarget);
-        isMet = sum >= progressTarget;
-        break;
-      }
-
-      case 'continent_movie_count': {
-        const contName = def.target_metadata?.continent || 'Europa';
-        const euroCodes = new Set(
-          UN_COUNTRIES_195.filter((c) => c.continent === contName).map((c) => c.code.toLowerCase())
-        );
-
-        const continentMovies = [];
-        for (const movie of movies) {
-          const codes = new Set();
-          if (movie.primaryCountryCode) codes.add(movie.primaryCountryCode.toLowerCase());
-          if (Array.isArray(movie.coproductionCountries)) {
-            movie.coproductionCountries.forEach((cp) => cp.code && codes.add(cp.code.toLowerCase()));
-          }
-          const hasContinentCountry = Array.from(codes).some((cd) => euroCodes.has(cd));
-          if (hasContinentCountry) {
-            continentMovies.push(movie);
-          }
-        }
-
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          continentMovies,
-          progressTarget,
-          () => `Filme da ${contName}`,
-          `Pendente: filme da ${contName}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'conquered_countries_count': {
-        const excludeCode = def.target_metadata?.excludeCode?.toLowerCase();
-        let validConq = 0;
-
-        for (const c of UN_COUNTRIES_195) {
-          const cCode = c.code.toLowerCase();
-          if (excludeCode && cCode === excludeCode) continue;
-          const has = (worldOriginMoviesByCode.get(cCode)?.length || 0) > 0;
-          if (has) {
-            validConq++;
-            if (checklist.length < 30) {
-              const rep = worldOriginChampionsByCode.get(cCode);
-              checklist.push({
-                code: cCode,
-                name: c.name,
-                flag: cCode,
-                required: 1,
-                current: 1,
-                conquered: true,
-                movie_title: rep?.title || null,
-                movie_year: rep?.release_year || null,
-                poster_url: rep?.poster_url || null,
-              });
-            }
-          }
-        }
-
-        progressCurrent = Math.min(validConq, progressTarget);
-        isMet = validConq >= progressTarget;
-
-        if (validConq < progressTarget) {
-          checklist.unshift({
-            name: `Progresso Geral: ${validConq} de ${progressTarget} países conquistados`,
-            required: progressTarget,
-            current: validConq,
-            conquered: false,
-          });
-        }
-        break;
-      }
-
-      case 'rarity_tier_coverage': {
-        const tiers = ['common', 'rare', 'epic', 'legendary', 'mythic'];
-        const tierLabels = {
-          common: 'Comum (Potência Cinematográfica)',
-          rare: 'Raro (Consolidado Autoral)',
-          epic: 'Épico (Produção Esporádica)',
-          legendary: 'Lendário (Poucos Títulos)',
-          mythic: 'Mítico (Os 18 Mais Difíceis)',
+        const isUnlocked = stepOv === true ? true : stepOv === false ? false : stepMet;
+        if (isUnlocked) { unlockedCount++; highestTier = step.tier; }
+        return {
+          ...step,
+          is_unlocked: isUnlocked,
+          unlocked_at: isUnlocked ? nowIso : null,
+          test_override: stepOv,
+          is_new: false,
+          progress_current: stepCurrent,
+          progress_target: stepTarget,
+          progress_percentage: stepTarget > 0 ? Math.min(100, Math.round((stepCurrent / stepTarget) * 100)) : 0,
         };
-
-        let tiersCovered = 0;
-        for (const tr of tiers) {
-          const conq = UN_COUNTRIES_195.find(
-            (c) => (c.rarityTier || getCountryRarityTier(c.code)) === tr && (worldOriginMoviesByCode.get(c.code.toLowerCase())?.length || 0) > 0
-          );
-          const has = Boolean(conq);
-          if (has) tiersCovered++;
-
-          const rep = conq ? worldOriginChampionsByCode.get(conq.code.toLowerCase()) : null;
-          checklist.push({
-            name: tierLabels[tr],
-            flag: conq?.code || null,
-            required: 1,
-            current: has ? 1 : 0,
-            conquered: has,
-            movie_title: rep ? `${conq.name}: ${rep.title}` : null,
-            movie_year: rep?.release_year || null,
-            poster_url: rep?.poster_url || null,
-          });
-        }
-
-        progressCurrent = tiersCovered;
-        progressTarget = 5;
-        isMet = tiersCovered >= 5;
-        break;
-      }
-
-      case 'rarity_mythic_count': {
-        const mythicCountries = UN_COUNTRIES_195.filter((c) => getCountryRarityTier(c.code) === 'mythic');
-        const conqList = mythicCountries.filter((c) => (worldOriginMoviesByCode.get(c.code.toLowerCase())?.length || 0) > 0);
-        progressCurrent = Math.min(conqList.length, progressTarget);
-        isMet = conqList.length >= progressTarget;
-
-        if (conqList.length > 0) {
-          conqList.forEach((c) => {
-            const rep = worldOriginChampionsByCode.get(c.code.toLowerCase());
-            checklist.push({
-              code: c.code,
-              name: c.name,
-              flag: c.code,
-              required: 1,
-              current: 1,
-              conquered: true,
-              movie_title: rep?.title || null,
-              movie_year: rep?.release_year || null,
-              poster_url: rep?.poster_url || null,
-            });
-          });
-        } else {
-          checklist.push({
-            name: 'Conquiste pelo menos 1 dos 18 países Míticos no Desafio 195',
-            required: 1,
-            current: 0,
-            conquered: false,
-          });
-        }
-        break;
-      }
-
-      case 'rarity_all_mythic': {
-        const mythicCountries = UN_COUNTRIES_195.filter((c) => getCountryRarityTier(c.code) === 'mythic');
-        progressTarget = 18;
-        let conqCount = 0;
-
-        for (const c of mythicCountries) {
-          const has = (worldOriginMoviesByCode.get(c.code.toLowerCase())?.length || 0) > 0;
-          if (has) conqCount++;
-
-          const rep = has ? worldOriginChampionsByCode.get(c.code.toLowerCase()) : null;
-          checklist.push({
-            code: c.code,
-            name: c.name,
-            flag: c.code,
-            required: 1,
-            current: has ? 1 : 0,
-            conquered: has,
-            movie_title: rep?.title || null,
-            movie_year: rep?.release_year || null,
-            poster_url: rep?.poster_url || null,
-          });
-        }
-
-        progressCurrent = conqCount;
-        isMet = conqCount >= progressTarget;
-        break;
-      }
-
-      case 'global_movie_and_country_count': {
-        const minMovies = 1000;
-        const minCountries = 100;
-        const totalMovies = movies.length;
-        const totalCountries = Array.from(worldOriginMoviesByCode.keys()).length;
-
-        isMet = totalMovies >= minMovies && totalCountries >= minCountries;
-        const mScore = Math.min(totalMovies, minMovies) / minMovies;
-        const cScore = Math.min(totalCountries, minCountries) / minCountries;
-        progressCurrent = Math.round(((mScore + cScore) / 2) * 100);
-        progressTarget = 100;
-
-        checklist.push({
-          name: '1.000 Filmes no Catálogo',
-          required: minMovies,
-          current: totalMovies,
-          conquered: totalMovies >= minMovies,
-          extra_info: `${totalMovies} / ${minMovies} filmes`,
-        });
-        checklist.push({
-          name: '100 Países Diferentes no Desafio dos 195',
-          required: minCountries,
-          current: totalCountries,
-          conquered: totalCountries >= minCountries,
-          extra_info: `${totalCountries} / ${minCountries} países conquistados no Desafio 195`,
-        });
-        break;
-      }
-
-      
-      // ==========================================
-      // ==========================================
-      // 🧬 DNA CINÉFILO: CASOS DE AVALIAÇÃO CLIENT-SIDE
-      // ==========================================
-      case 'tag_movie_count': {
-        const targetTag = def.target_metadata?.tags?.[0] || '';
-        const matchingMovies = movies.filter((m) => movieHasTag(m, targetTag));
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `Tag [${targetTag}]`,
-          `Pendente: tag [${targetTag}]`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_double_and': {
-        const reqTags = def.target_metadata?.tags || [];
-        const tag1 = reqTags[0] || '';
-        const tag2 = reqTags[1] || '';
-        const matchingMovies = movies.filter((m) => movieHasTag(m, tag1) && movieHasTag(m, tag2));
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `Tags: [${tag1}] + [${tag2}]`,
-          `Pendente: [${tag1}] + [${tag2}]`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_hybrid_country': {
-        const reqTag = def.target_metadata?.tags?.[0] || '';
-        const cCode = def.target_metadata?.countryCode || '';
-        const cName = def.target_metadata?.countryName || cCode.toUpperCase();
-        const matchingMovies = movies.filter((m) => movieHasTag(m, reqTag) && movieHasCountry(m, cCode, unByCode));
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `Tag [${reqTag}] + País [${cName}]`,
-          `Pendente: ${cName} com [${reqTag}]`,
-          cCode.toLowerCase()
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_hybrid_multi_country': {
-        const reqTags = def.target_metadata?.tags || [];
-        const cCodes = def.target_metadata?.countryCodes || [];
-        const cName = def.target_metadata?.countryName || 'Países Selecionados';
-        const matchingMovies = movies.filter((m) => {
-          const hasAllTags = reqTags.every((t) => movieHasTag(m, t));
-          const hasAnyCountry = cCodes.some((code) => movieHasCountry(m, code, unByCode));
-          return hasAllTags && hasAnyCountry;
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `${reqTags.join(' + ')} em ${cName}`,
-          `Pendente: ${cName} com ${reqTags.join(' + ')}`,
-          cCodes[0]?.toLowerCase()
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_hybrid_continent': {
-        const reqTag = def.target_metadata?.tags?.[0] || '';
-        const continent = def.target_metadata?.continent || 'África';
-        const matchingMovies = movies.filter((m) => movieHasTag(m, reqTag) && movieInContinent(m, continent, unByCode));
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `Tag [${reqTag}] na ${continent}`,
-          `Pendente: filme da ${continent} com [${reqTag}]`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_hybrid_exclude_country': {
-        const reqTag = def.target_metadata?.tags?.[0] || '';
-        const excludeCode = def.target_metadata?.excludeCountryCode || 'us';
-        const matchingMovies = movies.filter((m) => movieHasTag(m, reqTag) && !movieHasCountry(m, excludeCode, unByCode));
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `[${reqTag}] fora dos EUA`,
-          `Pendente: filme com [${reqTag}] fora dos EUA`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_hybrid_asian_horror': {
-        const horrorTags = def.target_metadata?.horrorTags || ['Fantasma', 'Demônio', 'Gore', 'Zumbi'];
-        const countryCodes = def.target_metadata?.countryCodes || ['jp', 'kr', 'th', 'id'];
-        const matchingMovies = movies.filter((m) => {
-          const hasHorror = horrorTags.some((t) => movieHasTag(m, t));
-          const hasAsianCountry = countryCodes.some((code) => movieHasCountry(m, code, unByCode));
-          return hasHorror && hasAsianCountry;
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'Terror Asiático',
-          'Pendente: terror no Japão/Coreia/Tailândia/Indonésia'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_multi_or_and': {
-        const mainTag = def.target_metadata?.mainTag || '';
-        const anyOfTags = def.target_metadata?.anyOfTags || [];
-        const matchingMovies = movies.filter((m) => {
-          const hasMain = movieHasTag(m, mainTag);
-          const hasAny = anyOfTags.some((t) => movieHasTag(m, t));
-          return hasMain && hasAny;
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `Combinação [${mainTag}] + [${anyOfTags.join('/')}]`,
-          `Pendente: [${mainTag}] + [${anyOfTags.join('/')}]`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_pool_sum': {
-        const poolTags = def.target_metadata?.tags || [];
-        const matchingMovies = movies.filter((m) => poolTags.some((t) => movieHasTag(m, t)));
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => {
-            const matched = poolTags.filter((t) => movieHasTag(m, t));
-            return `Tag(s): ${matched.join(', ')}`;
-          },
-          'Pendente: filme com uma das tags exigidas'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_checklist_quota': {
-        const quotas = def.target_metadata?.quotas || [];
-        let totalCurrent = 0;
-        let totalTarget = 0;
-        let allQuotasMet = true;
-
-        quotas.forEach((q) => {
-          const countInTag = movies.filter((m) => movieHasTag(m, q.tag)).length;
-          const isQMet = countInTag >= q.count;
-          if (!isQMet) allQuotasMet = false;
-          totalCurrent += Math.min(countInTag, q.count);
-          totalTarget += q.count;
-
-          checklist.push({
-            name: `Tag [${q.tag}] (${q.count} filmes)`,
-            required: q.count,
-            current: Math.min(countInTag, q.count),
-            conquered: isQMet,
-            extra_info: `${Math.min(countInTag, q.count)} / ${q.count} filme(s)`,
-          });
-        });
-
-        progressTarget = totalTarget || def.target_value;
-        progressCurrent = Math.min(totalCurrent, progressTarget);
-        isMet = allQuotasMet && progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_all_39_coverage': {
-        const minPerTag = Number(def.target_metadata?.minPerTag || 1);
-        let tagsFulfilled = 0;
-
-        ALL_39_TAGS.forEach((tag) => {
-          const countInTag = movies.filter((m) => movieHasTag(m, tag)).length;
-          const isFulfilled = countInTag >= minPerTag;
-          if (isFulfilled) tagsFulfilled++;
-
-          checklist.push({
-            name: `Tag [${tag}]`,
-            required: minPerTag,
-            current: Math.min(countInTag, minPerTag),
-            conquered: isFulfilled,
-            extra_info: isFulfilled ? `${countInTag} filme(s)` : 'Pendente (0 filmes)',
-          });
-        });
-
-        progressTarget = 39;
-        progressCurrent = Math.min(tagsFulfilled, progressTarget);
-        isMet = tagsFulfilled >= progressTarget;
-        break;
-      }
-
-      
-      // ==========================================
-      // 🎬 ANATOMIA DO CINEMA & 📅 DATA LIMITE & CROSSOVERS
-      // ==========================================
-      case 'genre_count': {
-        const genre = def.target_metadata?.genre || '';
-        const matchingMovies = movies.filter((m) => movieHasGenre(m, genre));
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `Gênero: ${genre}`,
-          `Pendente: gênero ${genre}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'genre_all_and': {
-        const reqGenres = def.target_metadata?.genres || [];
-        const matchingMovies = movies.filter((m) => movieHasAllGenres(m, reqGenres));
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `Gêneros: ${reqGenres.join(' + ')}`,
-          `Pendente: ${reqGenres.join(' + ')}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'genre_and_or': {
-        const mainGenre = def.target_metadata?.mainGenre || '';
-        const anyOf = def.target_metadata?.anyOfGenres || [];
-        const matchingMovies = movies.filter((m) => movieHasGenre(m, mainGenre) && movieHasAnyGenre(m, anyOf));
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `${mainGenre} com ${anyOf.join('/')}`,
-          `Pendente: ${mainGenre} com ${anyOf.join('/')}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'genre_all_21_coverage': {
-        const minPerGenre = Number(def.target_metadata?.minPerGenre || 1);
-        let genresFulfilled = 0;
-        progressTarget = 21;
-
-        ALL_21_GENRES.forEach((g) => {
-          const count = movies.filter((m) => movieHasGenre(m, g)).length;
-          const met = count >= minPerGenre;
-          if (met) genresFulfilled++;
-          checklist.push({
-            name: `Gênero: ${g}`,
-            required: minPerGenre,
-            current: Math.min(count, minPerGenre),
-            conquered: met,
-            extra_info: met ? `${count} filme(s) catalogado(s)` : `Pendente (${count}/${minPerGenre})`,
-          });
-        });
-
-        progressCurrent = Math.min(genresFulfilled, progressTarget);
-        isMet = genresFulfilled >= progressTarget;
-        break;
-      }
-
-      case 'movie_min_genre_count': {
-        const minGenres = Number(def.target_metadata?.minGenresPerMovie || 3);
-        const matchingMovies = movies.filter((m) => Array.isArray(m.genres) && m.genres.length >= minGenres);
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `${m.genres.length} gêneros: ${m.genres.join(', ')}`,
-          `Pendente: filme com >= ${minGenres} gêneros`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'genre_quotas': {
-        const quotas = def.target_metadata?.quotas || [];
-        let totalCurrent = 0;
-        let totalTarget = 0;
-        let allQuotasMet = true;
-
-        quotas.forEach((q) => {
-          const countInGenre = movies.filter((m) => movieHasGenre(m, q.genre)).length;
-          const isQMet = countInGenre >= q.count;
-          if (!isQMet) allQuotasMet = false;
-          totalCurrent += Math.min(countInGenre, q.count);
-          totalTarget += q.count;
-
-          checklist.push({
-            name: `Gênero: ${q.genre} (${q.count} filmes)`,
-            required: q.count,
-            current: Math.min(countInGenre, q.count),
-            conquered: isQMet,
-            extra_info: `${Math.min(countInGenre, q.count)} / ${q.count} filme(s)`,
-          });
-        });
-
-        progressTarget = totalTarget || def.target_value;
-        progressCurrent = Math.min(totalCurrent, progressTarget);
-        isMet = allQuotasMet && progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'genre_distinct_threshold': {
-        const minPer = def.target_metadata?.minPerGenre || 25;
-        const reqDistinct = def.target_metadata?.requiredDistinctGenres || 15;
-        let qualifyingCount = 0;
-        progressTarget = reqDistinct;
-
-        ALL_21_GENRES.forEach((g) => {
-          const count = movies.filter((m) => movieHasGenre(m, g)).length;
-          const met = count >= minPer;
-          if (met) qualifyingCount++;
-          checklist.push({
-            name: `Gênero: ${g}`,
-            required: minPer,
-            current: Math.min(count, minPer),
-            conquered: met,
-            extra_info: `${count}/${minPer} filmes`,
-          });
-        });
-
-        progressCurrent = Math.min(qualifyingCount, progressTarget);
-        isMet = qualifyingCount >= progressTarget;
-        break;
-      }
-
-      case 'month_movie_count': {
-        const month = def.target_metadata?.month;
-        const matchingMovies = movies.filter((m) => movieInMonth(m, month));
-        progressTarget = def.target_value;
-        const monthName = MONTH_NAMES[month] || `Mês ${month}`;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `Assistido em ${MONTH_NAMES[m.month_seen] || m.month_seen}`,
-          `Pendente: assistido em ${monthName}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'all_12_months_coverage': {
-        const minPerMonth = Number(def.target_metadata?.minPerMonth || 1);
-        let monthsFulfilled = 0;
-        progressTarget = 12;
-
-        for (let mo = 1; mo <= 12; mo++) {
-          const count = movies.filter((m) => movieInMonth(m, mo)).length;
-          const met = count >= minPerMonth;
-          if (met) monthsFulfilled++;
-          checklist.push({
-            name: `${MONTH_NAMES[mo] || mo}`,
-            required: minPerMonth,
-            current: Math.min(count, minPerMonth),
-            conquered: met,
-            extra_info: `${count} / ${minPerMonth} filme(s)`,
-          });
-        }
-
-        progressCurrent = Math.min(monthsFulfilled, progressTarget);
-        isMet = monthsFulfilled >= progressTarget;
-        break;
-      }
-
-      case 'genre_month': {
-        const genre = def.target_metadata?.genre || '';
-        const month = def.target_metadata?.month;
-        const monthName = MONTH_NAMES[month] || `Mês ${month}`;
-        const matchingMovies = movies.filter((m) => movieHasGenre(m, genre) && movieInMonth(m, month));
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `${genre} em ${monthName}`,
-          `Pendente: ${genre} em ${monthName}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_month': {
-        const tag = def.target_metadata?.tag || '';
-        const month = def.target_metadata?.month;
-        const monthName = MONTH_NAMES[month] || `Mês ${month}`;
-        const matchingMovies = movies.filter((m) => movieHasTag(m, tag) && movieInMonth(m, month));
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `Tag [${tag}] em ${monthName}`,
-          `Pendente: tag [${tag}] em ${monthName}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_month_range':
-      case 'tag_months': {
-        const tag = def.target_metadata?.tag || '';
-        const months = def.target_metadata?.months || [];
-        const matchingMovies = movies.filter((m) => movieHasTag(m, tag) && movieInMonth(m, months));
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `Tag [${tag}] em ${MONTH_NAMES[m.month_seen] || m.month_seen}`,
-          `Pendente: tag [${tag}] nos meses exigidos`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'genre_or_month': {
-        const genres = def.target_metadata?.genres || [];
-        const month = def.target_metadata?.month;
-        const monthName = MONTH_NAMES[month] || `Mês ${month}`;
-        const matchingMovies = movies.filter((m) => movieHasAnyGenre(m, genres) && movieInMonth(m, month));
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `${genres.join('/')} em ${monthName}`,
-          `Pendente: ${genres.join('/')} em ${monthName}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_or_month': {
-        const tags = def.target_metadata?.tags || [];
-        const month = def.target_metadata?.month;
-        const monthName = MONTH_NAMES[month] || `Mês ${month}`;
-        const matchingMovies = movies.filter((m) => tags.some((t) => movieHasTag(m, t)) && movieInMonth(m, month));
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `${tags.join('/')} em ${monthName}`,
-          `Pendente: ${tags.join('/')} em ${monthName}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'country_genres_or': {
-        const cCode = def.target_metadata?.countryCode;
-        const cName = def.target_metadata?.countryName || cCode;
-        const genres = def.target_metadata?.genres || [];
-        const matchingMovies = movies.filter((m) => movieHasCountry(m, cCode, unCountryDefMap) && movieHasAnyGenre(m, genres));
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `${cName} com ${genres.join('/')}`,
-          `Pendente: ${cName} com ${genres.join('/')}`,
-          cCode
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'country_genres_and': {
-        const cCode = def.target_metadata?.countryCode;
-        const cName = def.target_metadata?.countryName || cCode;
-        const genres = def.target_metadata?.genres || [];
-        const matchingMovies = movies.filter((m) => movieHasCountry(m, cCode, unCountryDefMap) && movieHasAllGenres(m, genres));
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `${cName} com ${genres.join(' + ')}`,
-          `Pendente: ${cName} com ${genres.join(' + ')}`,
-          cCode
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'country_genre': {
-        const cCode = def.target_metadata?.countryCode;
-        const cName = def.target_metadata?.countryName || cCode;
-        const genre = def.target_metadata?.genre || '';
-        const matchingMovies = movies.filter((m) => movieHasCountry(m, cCode, unCountryDefMap) && movieHasGenre(m, genre));
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `${cName} (${genre})`,
-          `Pendente: filme de ${cName} (${genre})`,
-          cCode
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'genre_tag_and': {
-        const genre = def.target_metadata?.genre || '';
-        const tag = def.target_metadata?.tag || '';
-        const matchingMovies = movies.filter((m) => movieHasGenre(m, genre) && movieHasTag(m, tag));
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `${genre} + Tag [${tag}]`,
-          `Pendente: ${genre} + Tag [${tag}]`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'genre_tag_or': {
-        const genre = def.target_metadata?.genre || '';
-        const anyTags = def.target_metadata?.anyOfTags || [];
-        const matchingMovies = movies.filter((m) => movieHasGenre(m, genre) && anyTags.some((t) => movieHasTag(m, t)));
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `${genre} + Tag [${anyTags.join('/')}]`,
-          `Pendente: ${genre} + Tag [${anyTags.join('/')}]`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'triple_combo_japan': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasCountry(m, 'jp', unCountryDefMap) &&
-            movieHasGenre(m, 'Animação') &&
-            movieHasGenre(m, 'Ficção Científica') &&
-            (movieHasTag(m, 'Baseado em Anime') || movieHasTag(m, 'Dystopia'))
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'Japão: Animação + Ficção Científica',
-          'Pendente: Japão (Animação + SciFi)',
-          'jp'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'triple_combo_brasil': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasCountry(m, 'br', unCountryDefMap) &&
-            (movieHasGenre(m, 'Crime') || movieHasGenre(m, 'Policial')) &&
-            (movieHasTag(m, 'Crime real') || movieHasTag(m, 'Fatos Reais'))
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'Brasil: Crime/Policial + Fatos Reais',
-          'Pendente: Brasil (Crime/Policial)',
-          'br'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'triple_combo_europa': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieInContinent(m, 'Europa', unCountryDefMap) &&
-            movieHasGenre(m, 'Terror') &&
-            (movieHasTag(m, 'Demônio') || movieHasTag(m, 'Religião'))
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'Europa: Terror + Demônio/Religião',
-          'Pendente: Europa (Terror + Demônio/Religião)'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'triple_combo_romenia_dracula': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasCountry(m, 'ro', unCountryDefMap) &&
-            movieHasGenre(m, 'Terror') &&
-            movieHasTag(m, 'Vampiro')
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'Romênia: Terror + Vampiro',
-          'Pendente: Romênia (Terror + Vampiro)',
-          'ro'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'quad_natal_classico': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            (movieHasCountry(m, 'us', unCountryDefMap) ||
-              movieHasCountry(m, 'ca', unCountryDefMap) ||
-              movieHasCountry(m, 'gb', unCountryDefMap)) &&
-            (movieHasGenre(m, 'Comédia') || movieHasGenre(m, 'Família')) &&
-            movieHasTag(m, 'Natal') &&
-            movieInMonth(m, 12)
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'EUA/Canadá/UK + Comédia/Família + Natal (Dezembro)',
-          'Pendente: Natal Clássico'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'quad_pride_sem_fronteiras': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            !movieHasCountry(m, 'us', unCountryDefMap) &&
-            (movieHasGenre(m, 'Drama') || movieHasGenre(m, 'Romance')) &&
-            movieHasTag(m, 'Personagem LGBT') &&
-            movieInMonth(m, 6)
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'Fora dos EUA + Drama/Romance + LGBT (Junho)',
-          'Pendente: Orgulho sem Fronteiras'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'quad_halloween_eua': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasCountry(m, 'us', unCountryDefMap) &&
-            movieHasGenre(m, 'Terror') &&
-            ['Gore', 'Fantasma', 'Demônio', 'Bruxo', 'Zumbi', 'SK'].some((t) => movieHasTag(m, t)) &&
-            movieInMonth(m, 10)
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'EUA + Terror + Outubro',
-          'Pendente: Halloween Americano',
-          'us'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'quad_outubro_macabro_mundo': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            !movieHasCountry(m, 'us', unCountryDefMap) &&
-            (movieHasGenre(m, 'Terror') || movieHasGenre(m, 'Suspense')) &&
-            ['Criança Malvada', 'Demônio', 'Fantasma', 'Gore', 'Vampiro', 'Zumbi'].some((t) => movieHasTag(m, t)) &&
-            movieInMonth(m, 10)
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'Mundial + Terror/Suspense + Outubro',
-          'Pendente: Outubro Macabro Mundial'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'quad_natal_macabro': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            (movieHasGenre(m, 'Terror') || movieHasGenre(m, 'Suspense')) &&
-            movieHasTag(m, 'Natal') &&
-            movieInMonth(m, 12)
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'Terror/Suspense + Natal (Dezembro)',
-          'Pendente: Natal Macabro'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      // ==========================================
-      // 🌌 UNIVERSOS & SAGAS (Franquias e Coleções)
-      // ==========================================
-      case 'franchise_movie_list': {
-        const reqMovies = def.target_metadata?.movies || [];
-        progressTarget = reqMovies.length || def.target_value || 1;
-        let countConquered = 0;
-        const usedMovieIds = new Set();
-
-        reqMovies.forEach((req, idx) => {
-          const matchedMovie = movies.find(
-            (m) => !usedMovieIds.has(m.movie_id || m.id) && matchFranchiseMovie(m, req)
-          );
-          if (matchedMovie) {
-            usedMovieIds.add(matchedMovie.movie_id || matchedMovie.id);
-            countConquered++;
-            checklist.push({
-              id: `req_${idx + 1}`,
-              name: req.name,
-              flag: matchedMovie.primaryCountryCode ? matchedMovie.primaryCountryCode.toLowerCase() : null,
-              required: 1,
-              current: 1,
-              conquered: true,
-              movie_title: matchedMovie.title,
-              movie_year: matchedMovie.release_year,
-              poster_url: matchedMovie.poster_url,
-              extra_info: 'Conquistado',
-            });
-          } else {
-            checklist.push({
-              id: `req_${idx + 1}`,
-              name: req.name,
-              flag: null,
-              required: 1,
-              current: 0,
-              conquered: false,
-              extra_info: 'Pendente',
-            });
-          }
-        });
-
-        progressCurrent = countConquered;
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'mcu_phase_count': {
-        const reqPhases = def.target_value || 3;
-        progressTarget = reqPhases;
-        let completedPhases = 0;
-
-        for (let p = 1; p <= 6; p++) {
-          const phaseDef = CLIENT_TROPHY_DEFINITIONS.find((t) => t.id === `us_mcu_phase_${p}`);
-          const phaseMovies = phaseDef?.target_metadata?.movies || [];
-          let phaseDoneCount = 0;
-          phaseMovies.forEach((req) => {
-            if (movies.some((m) => matchFranchiseMovie(m, req))) {
-              phaseDoneCount++;
-            }
-          });
-          const isPhaseMet = phaseMovies.length > 0 && phaseDoneCount >= phaseMovies.length;
-          if (isPhaseMet) completedPhases++;
-
-          checklist.push({
-            id: `phase_${p}`,
-            name: `MCU Fase ${p} (${phaseMovies.length} filmes)`,
-            flag: null,
-            required: phaseMovies.length,
-            current: phaseDoneCount,
-            conquered: isPhaseMet,
-            extra_info: isPhaseMet ? '100% Concluída' : `${phaseDoneCount}/${phaseMovies.length} filmes`,
-          });
-        }
-
-        progressCurrent = completedPhases;
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'dc_showcase_count': {
-        const matchingMovies = movies.filter((m) => {
-          const t1 = cleanMovieTitleStr(m.title);
-          const t2 = cleanMovieTitleStr(m.original_title);
-          return t1.includes('dc showcase') || t2.includes('dc showcase');
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'Curta DC Showcase',
-          'Pendente: curta DC Showcase'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'dc_animated_feature_count': {
-        const matchingMovies = movies.filter((m) => {
-          const isDC = movieHasTag(m, 'DC');
-          const isAnimation = movieHasGenre(m, 'Animacao') || movieHasGenre(m, 'Animação');
-          const t1 = cleanMovieTitleStr(m.title);
-          const t2 = cleanMovieTitleStr(m.original_title);
-          const isShowcase = t1.includes('dc showcase') || t2.includes('dc showcase');
-          return isDC && isAnimation && !isShowcase;
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'Longa Animado DC (Excl. Showcase)',
-          'Pendente: longa de animação DC'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      // ==========================================
-      // 🕴️ A MÁFIA DE HOLLYWOOD
-      // ==========================================
-      case 'hollywood_oscar_winner_count': {
-        const minWins = def.target_metadata?.minWins || 1;
-        const matchingMovies = movies.filter(
-          (m) => (Number(m.oscar_wins) || 0) >= minWins
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `${m.oscar_wins} vitórias / ${m.oscar_nominations || 0} indicações no Oscar`,
-          'Pendente: Filme Ganhador do Oscar'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hollywood_oscar_exact_ratio': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            (Number(m.oscar_nominations) || 0) === def.target_metadata?.nominations &&
-            (Number(m.oscar_wins) || 0) === def.target_metadata?.wins
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => '3 indicações e 3 vitórias (100% de aproveitamento)',
-          'Pendente: 3 de 3 no Oscar'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hollywood_oscar_nominations_min': {
-        const minNoms = def.target_metadata?.minNominations || 10;
-        const matchingMovies = movies.filter(
-          (m) => (Number(m.oscar_nominations) || 0) >= minNoms
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `${m.oscar_nominations} indicações (${m.oscar_wins || 0} vitórias)`,
-          'Pendente: Filme com 10+ indicações ao Oscar'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hollywood_oscar_wins_min': {
-        const minWins = def.target_metadata?.minWins || 8;
-        const matchingMovies = movies.filter(
-          (m) => (Number(m.oscar_wins) || 0) >= minWins
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `${m.oscar_wins} estatuetas conquistadas`,
-          'Pendente: Filme com 8+ vitórias no Oscar'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hollywood_oscar_nominated_unwon_count': {
-        const matchingMovies = movies.filter(
-          (m) => (Number(m.oscar_nominations) || 0) >= 1 && (Number(m.oscar_wins) || 0) === 0
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `${m.oscar_nominations} indicações (0 vitórias)`,
-          'Pendente: Indicado ao Oscar sem vitória'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hollywood_oscar_5_noms_unwon_count': {
-        const matchingMovies = movies.filter(
-          (m) => (Number(m.oscar_nominations) || 0) >= 5 && (Number(m.oscar_wins) || 0) === 0
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `${m.oscar_nominations} indicações (0 vitórias - Maior Azarão)`,
-          'Pendente: 5+ indicações e 0 vitórias'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hollywood_oscar_5_noms_5_wins_count': {
-        const matchingMovies = movies.filter(
-          (m) => (Number(m.oscar_nominations) || 0) >= 5 && (Number(m.oscar_wins) || 0) >= 5
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `${m.oscar_wins} vitórias em ${m.oscar_nominations} indicações (Quina Dourada)`,
-          'Pendente: 5+ vitórias no Oscar'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hollywood_director_count': {
-        const patterns = def.target_metadata?.patterns || [];
-        const dirName = def.target_metadata?.director || 'Diretor';
-        const matchingMovies = movies.filter((m) =>
-          movieHasAnyPattern(getMovieDirectors(m), patterns)
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `Direção: ${dirName}`,
-          `Pendente: filme de ${dirName}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hollywood_writer_count': {
-        const patterns = def.target_metadata?.patterns || [];
-        const writerName = def.target_metadata?.writer || 'Roteirista';
-        const matchingMovies = movies.filter((m) =>
-          movieHasAnyPattern(getMovieWriters(m), patterns)
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `Roteiro: ${writerName}`,
-          `Pendente: roteiro de ${writerName}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hollywood_director_or_writer_count': {
-        const patterns = def.target_metadata?.patterns || [];
-        const personName = def.target_metadata?.person || 'Autor';
-        const checkProducers = Boolean(def.target_metadata?.checkProducers);
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasAnyPattern(getMovieDirectors(m), patterns) ||
-            movieHasAnyPattern(getMovieWriters(m), patterns) ||
-            (checkProducers && movieHasAnyPattern(getMovieProducers(m), patterns))
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => {
-            const isDir = movieHasAnyPattern(getMovieDirectors(m), patterns);
-            const isWri = movieHasAnyPattern(getMovieWriters(m), patterns);
-            const isProd = checkProducers && movieHasAnyPattern(getMovieProducers(m), patterns);
-            const roles = [];
-            if (isDir) roles.push('Direção');
-            if (isWri) roles.push('Roteiro');
-            if (isProd) roles.push('Produção');
-            return `${roles.join(' & ') || 'Crédito'}: ${personName}`;
-          },
-          `Pendente: filme de ${personName}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hollywood_distributor_studio_count': {
-        const patterns = def.target_metadata?.patterns || [];
-        const companyName = def.target_metadata?.company || 'Estúdio/Distribuidora';
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasAnyPattern(getMovieDistributors(m), patterns) ||
-            movieHasAnyPattern(getMovieStudios(m), patterns)
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => companyName,
-          `Pendente: ${companyName}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hollywood_studio_count': {
-        const patterns = def.target_metadata?.patterns || [];
-        const studioName = def.target_metadata?.studio || 'Estúdio';
-        const matchingMovies = movies.filter((m) =>
-          movieHasAnyPattern(getMovieStudios(m), patterns)
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `Estúdio: ${studioName}`,
-          `Pendente: produção de ${studioName}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hollywood_studio_or_tag_count': {
-        const patterns = def.target_metadata?.patterns || [];
-        const tag = def.target_metadata?.tag;
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasAnyPattern(getMovieStudios(m), patterns) ||
-            (tag && movieHasTag(m, tag))
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'DC Studios / Tag DC',
-          'Pendente: filme/produção DC'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hollywood_director_writer_or_studio_count': {
-        const personPatterns = def.target_metadata?.personPatterns || [];
-        const studioPatterns = def.target_metadata?.studioPatterns || [];
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasAnyPattern(getMovieDirectors(m), personPatterns) ||
-            movieHasAnyPattern(getMovieWriters(m), personPatterns) ||
-            movieHasAnyPattern(getMovieStudios(m), studioPatterns)
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'J.J. Abrams / Bad Robot',
-          'Pendente: J.J. Abrams / Bad Robot'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hollywood_director_or_studio_count': {
-        const directorPatterns = def.target_metadata?.directorPatterns || [];
-        const studioPatterns = def.target_metadata?.studioPatterns || [];
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasAnyPattern(getMovieDirectors(m), directorPatterns) ||
-            movieHasAnyPattern(getMovieStudios(m), studioPatterns)
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'M. Night Shyamalan / Blinding Edge',
-          'Pendente: M. Night Shyamalan'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hollywood_director_pool_count': {
-        const patterns = def.target_metadata?.patterns || [];
-        const matchingMovies = movies.filter((m) =>
-          movieHasAnyPattern(getMovieDirectors(m), patterns)
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => {
-            const dirs = Array.from(getMovieDirectors(m)).map((d) =>
-              d.replace(/\b\w/g, (c) => c.toUpperCase())
-            );
-            return `Direção: ${dirs.join(', ')}`;
-          },
-          'Pendente: Mestre do Terror Moderno'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hollywood_same_director_writer_count': {
-        const matchingMovies = movies.filter((m) => {
-          const dirs = getMovieDirectors(m);
-          const wrs = getMovieWriters(m);
-          for (const d of dirs) {
-            if (wrs.has(d)) return true;
-          }
-          return false;
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => {
-            const dirs = getMovieDirectors(m);
-            const wrs = getMovieWriters(m);
-            const shared = Array.from(dirs).find((d) => wrs.has(d));
-            return shared
-              ? `Autor: ${shared.replace(/\b\w/g, (c) => c.toUpperCase())}`
-              : 'Diretor e Roteirista';
-          },
-          'Pendente: Diretor & Roteirista mesmo autor'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hollywood_unique_directors_quota': {
-        const minFilms = def.target_metadata?.minFilmsPerDirector || 3;
-        const dirMap = new Map();
-        for (const m of movies) {
-          const dirs = getMovieDirectors(m);
-          for (const d of dirs) {
-            if (!dirMap.has(d)) dirMap.set(d, []);
-            dirMap.get(d).push(m);
-          }
-        }
-        const qualifiedDirs = Array.from(dirMap.entries())
-          .filter(([_, list]) => list.length >= minFilms)
-          .sort((a, b) => b[1].length - a[1].length);
-
-        progressTarget = def.target_value;
-        progressCurrent = qualifiedDirs.length;
-        isMet = progressCurrent >= progressTarget;
-
-        const cappedDirs = qualifiedDirs.slice(0, progressTarget);
-        cappedDirs.forEach(([dirName, list], idx) => {
-          checklist.push({
-            id: `dir_${idx + 1}`,
-            name: dirName.replace(/\b\w/g, (c) => c.toUpperCase()),
-            flag: null,
-            required: minFilms,
-            current: list.length,
-            conquered: true,
-            extra_info: `${list.length} filmes no catálogo`,
-          });
-        });
-
-        if (cappedDirs.length < progressTarget) {
-          for (let i = cappedDirs.length; i < progressTarget; i++) {
-            checklist.push({
-              id: `dir_slot_${i + 1}`,
-              name: `Diretor #${i + 1} (${minFilms}+ filmes)`,
-              flag: null,
-              required: minFilms,
-              current: 0,
-              conquered: false,
-              extra_info: `Pendente: necessita de ${minFilms} filmes dirigidos`,
-            });
-          }
-        }
-        break;
-      }
-
-      case 'hollywood_unique_writers_quota': {
-        const minFilms = def.target_metadata?.minFilmsPerWriter || 3;
-        const writerMap = new Map();
-        for (const m of movies) {
-          const wrs = getMovieWriters(m);
-          for (const w of wrs) {
-            if (!writerMap.has(w)) writerMap.set(w, []);
-            writerMap.get(w).push(m);
-          }
-        }
-        const qualifiedWriters = Array.from(writerMap.entries())
-          .filter(([_, list]) => list.length >= minFilms)
-          .sort((a, b) => b[1].length - a[1].length);
-
-        progressTarget = def.target_value;
-        progressCurrent = qualifiedWriters.length;
-        isMet = progressCurrent >= progressTarget;
-
-        const cappedWriters = qualifiedWriters.slice(0, progressTarget);
-        cappedWriters.forEach(([writerName, list], idx) => {
-          checklist.push({
-            id: `writer_${idx + 1}`,
-            name: writerName.replace(/\b\w/g, (c) => c.toUpperCase()),
-            flag: null,
-            required: minFilms,
-            current: list.length,
-            conquered: true,
-            extra_info: `${list.length} filmes no catálogo`,
-          });
-        });
-
-        if (cappedWriters.length < progressTarget) {
-          for (let i = cappedWriters.length; i < progressTarget; i++) {
-            checklist.push({
-              id: `writer_slot_${i + 1}`,
-              name: `Roteirista #${i + 1} (${minFilms}+ filmes)`,
-              flag: null,
-              required: minFilms,
-              current: 0,
-              conquered: false,
-              extra_info: `Pendente: necessita de ${minFilms} filmes escritos`,
-            });
-          }
-        }
-        break;
-      }
-
-      case 'hollywood_oscar_dual_quota': {
-        const winners = movies.filter((m) => (Number(m.oscar_wins) || 0) >= 1);
-        const nominees = movies.filter((m) => (Number(m.oscar_nominations) || 0) >= 1);
-        const wCapped = Math.min(30, winners.length);
-        const nCapped = Math.min(60, nominees.length);
-        progressTarget = 90;
-        progressCurrent = wCapped + nCapped;
-        isMet = winners.length >= 30 && nominees.length >= 60;
-
-        checklist.push({
-          id: 'oscar_winners_quota',
-          name: '🏆 Filmes Ganhadores do Oscar (mínimo 1 vitória cada)',
-          flag: null,
-          required: 30,
-          current: wCapped,
-          conquered: winners.length >= 30,
-          extra_info: `${winners.length} de 30 filmes conquistados (${Math.min(100, Math.round((winners.length / 30) * 100))}%)`,
-        });
-
-        checklist.push({
-          id: 'oscar_nominees_quota',
-          name: '🎬 Filmes Indicados ao Oscar (mínimo 1 indicação cada)',
-          flag: null,
-          required: 60,
-          current: nCapped,
-          conquered: nominees.length >= 60,
-          extra_info: `${nominees.length} de 60 filmes conquistados (${Math.min(100, Math.round((nominees.length / 60) * 100))}%)`,
-        });
-        break;
-      }
-
-      case 'hollywood_conglomerates_count': {
-        const patterns = def.target_metadata?.patterns || [];
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasAnyPattern(getMovieStudios(m), patterns) ||
-            movieHasAnyPattern(getMovieDistributors(m), patterns)
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'Conglomerado de Hollywood',
-          'Pendente: Filme de Grande Conglomerado'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hollywood_oscar_or_quota': {
-        const winners = movies.filter((m) => (Number(m.oscar_wins) || 0) >= 1);
-        const nominees = movies.filter((m) => (Number(m.oscar_nominations) || 0) >= 1);
-        const pctW = Math.min(100, Math.round((winners.length / 50) * 100));
-        const pctN = Math.min(100, Math.round((nominees.length / 120) * 100));
-        progressTarget = 100;
-        progressCurrent = Math.max(pctW, pctN);
-        isMet = winners.length >= 50 || nominees.length >= 120;
-
-        checklist.push({
-          id: 'opt_winners_50',
-          name: '🏆 Opção A: 50 Filmes Ganhadores do Oscar',
-          flag: null,
-          required: 50,
-          current: Math.min(50, winners.length),
-          conquered: winners.length >= 50,
-          extra_info: `${winners.length} de 50 filmes (${pctW}%)`,
-        });
-
-        checklist.push({
-          id: 'opt_nominees_120',
-          name: '🎬 Opção B: 120 Filmes Indicados ao Oscar',
-          flag: null,
-          required: 120,
-          current: Math.min(120, nominees.length),
-          conquered: nominees.length >= 120,
-          extra_info: `${nominees.length} de 120 filmes (${pctN}%)`,
-        });
-        break;
-      }
-
-      // ==========================================
-      // 🔥 PACOTE ESPECIAL MULTICATEGORIA & PETRÓLEO
-      // ==========================================
-      case 'hybrid_director_month': {
-        const patterns = def.target_metadata?.directorPatterns || [];
-        const month = def.target_metadata?.month || 12;
-        const matchingMovies = movies.filter(
-          (m) => movieHasAnyPattern(getMovieDirectors(m), patterns) && movieInMonth(m, month)
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `Direção: Michael Bay (Assistido em ${MONTH_NAMES[month] || 'Dezembro'})`,
-          `Pendente: filme de Michael Bay em ${MONTH_NAMES[month] || 'Dezembro'}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_country_oscar_winner': {
-        const code = def.target_metadata?.countryCode || 'br';
-        const minWins = def.target_metadata?.minWins || 1;
-        const matchingMovies = movies.filter(
-          (m) => movieHasCountry(m, code, unByCode) && (Number(m.oscar_wins) || 0) >= minWins
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `Brasil + ${m.oscar_wins} vitórias no Oscar`,
-          'Pendente: Filme brasileiro vencedor do Oscar',
-          code
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_genre_oscar_winner': {
-        const genre = def.target_metadata?.genre || 'Terror';
-        const minWins = def.target_metadata?.minWins || 1;
-        const matchingMovies = movies.filter(
-          (m) => movieHasGenre(m, genre) && (Number(m.oscar_wins) || 0) >= minWins
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `Gênero ${genre} + ${m.oscar_wins} vitórias no Oscar`,
-          `Pendente: Filme de ${genre} vencedor do Oscar`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_genre_studio_month': {
-        const genre = def.target_metadata?.genre || 'Terror';
-        const patterns = def.target_metadata?.studioPatterns || ['blumhouse'];
-        const month = def.target_metadata?.month || 10;
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasGenre(m, genre) &&
-            (movieHasAnyPattern(getMovieStudios(m), patterns) || movieHasAnyPattern(getMovieDistributors(m), patterns)) &&
-            movieInMonth(m, month)
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `Terror Blumhouse (Outubro)`,
-          'Pendente: Terror Blumhouse em Outubro'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'world_countries_checklist': {
-        const reqCountries = def.target_metadata?.countries || [];
-        progressTarget = reqCountries.length;
-        let countDone = 0;
-
-        reqCountries.forEach((rc) => {
-          const cCode = rc.code.toLowerCase();
-          const hasMovie = (worldOriginMoviesByCode.get(cCode)?.length || 0) > 0;
-          const repMovie = hasMovie ? worldOriginChampionsByCode.get(cCode) : null;
-          if (hasMovie) countDone++;
-
-          checklist.push({
-            id: `country_${cCode}`,
-            name: `${rc.name} (${cCode.toUpperCase()})`,
-            flag: cCode,
-            required: 1,
-            current: hasMovie ? 1 : 0,
-            conquered: hasMovie,
-            movie_title: repMovie ? repMovie.title : undefined,
-            movie_year: repMovie ? repMovie.release_year : undefined,
-            poster_url: repMovie ? repMovie.poster_url : undefined,
-            extra_info: hasMovie ? 'Conquistado no Desafio 195' : 'Pendente no Desafio 195',
-          });
-        });
-
-        progressCurrent = countDone;
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_non_us_oscar_winner': {
-        const minWins = def.target_metadata?.minWins || 1;
-        const matchingMovies = movies.filter(
-          (m) =>
-            m.primaryCountryCode &&
-            m.primaryCountryCode.toLowerCase() !== 'us' &&
-            (Number(m.oscar_wins) || 0) >= minWins
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `${(m.primaryCountryName || m.primaryCountryCode || '').toUpperCase()} + ${m.oscar_wins} vitórias no Oscar`,
-          'Pendente: Filme fora dos EUA vencedor do Oscar'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_genre_tag': {
-        const genre = def.target_metadata?.genre || 'Romance';
-        const tag = def.target_metadata?.tag || 'Personagem LGBT';
-        const matchingMovies = movies.filter(
-          (m) => movieHasGenre(m, genre) && movieHasTag(m, tag)
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `${genre} + Tag ${tag}`,
-          `Pendente: ${genre} com tag ${tag}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_director_genres': {
-        const patterns = def.target_metadata?.directorPatterns || ['alfred hitchcock', 'hitchcock'];
-        const anyOfGenres = def.target_metadata?.anyOfGenres || ['Suspense', 'Mistério'];
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasAnyPattern(getMovieDirectors(m), patterns) &&
-            anyOfGenres.some((g) => movieHasGenre(m, g))
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'Direção: Alfred Hitchcock (Suspense/Mistério)',
-          'Pendente: Filme de Hitchcock (Suspense/Mistério)'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_warren_invocaversus': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasGenre(m, 'Terror') &&
-            movieHasTag(m, 'invocaversus') &&
-            (movieHasAnyPattern(getMovieDirectors(m), ['james wan']) ||
-              movieHasAnyPattern(getMovieWriters(m), ['james wan']) ||
-              movieHasAnyPattern(getMovieStudios(m), ['new line']) ||
-              movieHasAnyPattern(getMovieDistributors(m), ['new line']))
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'Terror + Tag "invocaversus" + James Wan / New Line',
-          'Pendente: Filme do Universo Invocação do Mal'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_pixar_emotional_animals': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasGenre(m, 'Animação') &&
-            (movieHasAnyPattern(getMovieStudios(m), ['disney', 'pixar', 'walt disney', 'buena vista']) ||
-              movieHasAnyPattern(getMovieDistributors(m), ['disney', 'pixar', 'walt disney', 'buena vista'])) &&
-            (movieHasTag(m, 'Emocionante') || movieHasTag(m, 'Animais antropomorficos'))
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'Disney/Pixar Animação + Emocionante / Animais',
-          'Pendente: Animação Disney/Pixar'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_gore_twisted_lionsgate': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasGenre(m, 'Terror') &&
-            movieHasTag(m, 'Gore') &&
-            (movieHasAnyPattern(getMovieStudios(m), ['twisted pictures', 'lionsgate']) ||
-              movieHasAnyPattern(getMovieDistributors(m), ['twisted pictures', 'lionsgate']))
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'Terror + Tag Gore + Twisted Pictures/Lionsgate',
-          'Pendente: Terror Gore Twisted/Lionsgate'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_brazil_comedy_producers': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasCountry(m, 'br', unByCode) &&
-            movieHasGenre(m, 'Comédia') &&
-            (movieHasAnyPattern(getMovieStudios(m), ['downtown filmes', 'globo filmes', 'paris filmes']) ||
-              movieHasAnyPattern(getMovieDistributors(m), ['downtown filmes', 'globo filmes', 'paris filmes']))
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'Brasil Comédia + Downtown / Globo / Paris Filmes',
-          'Pendente: Comédia nacional de grande estúdio',
-          'br'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_disney_vacation_july_dec': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            (movieHasGenre(m, 'Animação') || movieHasGenre(m, 'Família')) &&
-            (movieHasAnyPattern(getMovieStudios(m), ['disney', 'pixar', 'walt disney', 'buena vista']) ||
-              movieHasAnyPattern(getMovieDistributors(m), ['disney', 'pixar', 'walt disney', 'buena vista'])) &&
-            (movieInMonth(m, 7) || movieInMonth(m, 12))
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `Disney/Pixar Animação/Família (Assistido em ${MONTH_NAMES[Number(m.month_seen)] || 'Férias'})`,
-          'Pendente: Disney/Pixar em Julho ou Dezembro'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_hitchcock_black_white': {
-        const patterns = def.target_metadata?.directorPatterns || ['alfred hitchcock', 'hitchcock'];
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasAnyPattern(getMovieDirectors(m), patterns) &&
-            movieHasTag(m, 'Preto e branco')
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'Alfred Hitchcock + Tag Preto e branco',
-          'Pendente: Clássico P&B de Hitchcock'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_disney_fox_horror': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasGenre(m, 'Terror') &&
-            (movieHasAnyPattern(getMovieStudios(m), ['disney', 'pixar', 'walt disney', 'buena vista', '20th century', 'twentieth century']) ||
-              movieHasAnyPattern(getMovieDistributors(m), ['disney', 'pixar', 'walt disney', 'buena vista', '20th century', 'twentieth century']))
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'Terror + Disney / Buena Vista / 20th Century Fox',
-          'Pendente: Terror Disney ou Fox'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_a24_horror_tags': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            (movieHasAnyPattern(getMovieStudios(m), ['a24']) || movieHasAnyPattern(getMovieDistributors(m), ['a24'])) &&
-            (movieHasGenre(m, 'Terror') || movieHasGenre(m, 'Suspense')) &&
-            (movieHasTag(m, 'Bruxo') || movieHasTag(m, 'Demônio') || movieHasTag(m, 'Gore') || movieHasTag(m, 'Trágico'))
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'A24 + Terror/Suspense + Tag Bruxo/Demônio/Gore/Trágico',
-          'Pendente: Terror Cult A24'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_top250_oscar_winner': {
-        const matchingMovies = movies.filter(
-          (m) => movieHasTag(m, 'TOP250') && (Number(m.oscar_wins) || 0) >= 1
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `TOP 250 IMDb + ${m.oscar_wins} vitórias no Oscar`,
-          'Pendente: Filme TOP250 Vencedor do Oscar'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_sk_oscar': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasTag(m, 'SK') &&
-            ((Number(m.oscar_nominations) || 0) >= 1 || (Number(m.oscar_wins) || 0) >= 1)
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `Stephen King (SK) + ${m.oscar_nominations || 0} noms / ${m.oscar_wins || 0} vitórias`,
-          'Pendente: Filme de Stephen King indicado/vencedor do Oscar'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_zombie_game_constantin_pwsa': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasTag(m, 'Zumbi') &&
-            movieHasTag(m, 'Baseado em jogo') &&
-            (movieHasAnyPattern(getMovieStudios(m), ['constantin']) ||
-              movieHasAnyPattern(getMovieDirectors(m), ['paul w.s. anderson', 'paul ws anderson', 'paul w. s. anderson', 'paul w s anderson']) ||
-              movieHasAnyPattern(getMovieWriters(m), ['paul w.s. anderson', 'paul ws anderson', 'paul w. s. anderson', 'paul w s anderson']))
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'Zumbi + Baseado em jogo + Constantin / Paul W.S. Anderson',
-          'Pendente: Zumbi de Videogame Constantin/PWSA'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_drama_oscar_jan_feb_mar': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            (movieHasGenre(m, 'Drama') || movieHasGenre(m, 'Biografia')) &&
-            ((Number(m.oscar_nominations) || 0) >= 1 || (Number(m.oscar_wins) || 0) >= 1) &&
-            (movieInMonth(m, 1) || movieInMonth(m, 2) || movieInMonth(m, 3))
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `Drama/Biografia Oscar (${MONTH_NAMES[Number(m.month_seen)] || 'Verão'})`,
-          'Pendente: Drama indicado ao Oscar em Jan/Fev/Mar'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_shyamalan_twist': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasAnyPattern(getMovieDirectors(m), ['m. night shyamalan', 'shyamalan']) &&
-            (movieHasGenre(m, 'Suspense') || movieHasGenre(m, 'Mistério')) &&
-            (movieHasTag(m, 'Final Epico') || movieHasTag(m, 'Super Poder'))
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'M. Night Shyamalan + Suspense/Mistério + Final Épico / Super Poder',
-          'Pendente: Plot Twist de Shyamalan'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_warner_dc_vs_disney_marvel': {
-        const matchingA = movies.filter(
-          (m) =>
-            (movieHasGenre(m, 'Ação') || movieHasGenre(m, 'Aventura')) &&
-            movieHasTag(m, 'DC') &&
-            (movieHasAnyPattern(getMovieStudios(m), ['warner']) || movieHasAnyPattern(getMovieDistributors(m), ['warner']))
-        );
-        const matchingB = movies.filter(
-          (m) =>
-            (movieHasGenre(m, 'Ação') || movieHasGenre(m, 'Aventura')) &&
-            movieHasTag(m, 'Marvel') &&
-            (movieHasAnyPattern(getMovieStudios(m), ['disney', 'buena vista', 'sony', 'columbia']) ||
-              movieHasAnyPattern(getMovieDistributors(m), ['disney', 'buena vista', 'sony', 'columbia']))
-        );
-        const curA = Math.min(15, matchingA.length);
-        const curB = Math.min(15, matchingB.length);
-        progressTarget = 30;
-        progressCurrent = curA + curB;
-        isMet = matchingA.length >= 15 && matchingB.length >= 15;
-
-        checklist.push({
-          id: 'dc_warner_quota',
-          name: '🦇 DC Comics na Warner Bros. (Ação/Aventura)',
-          flag: null,
-          required: 15,
-          current: curA,
-          conquered: matchingA.length >= 15,
-          extra_info: `${matchingA.length} de 15 filmes conquistados (${Math.min(100, Math.round((matchingA.length / 15) * 100))}%)`,
-        });
-
-        checklist.push({
-          id: 'marvel_disney_sony_quota',
-          name: '🛡️ Marvel Studios na Disney / Sony (Ação/Aventura)',
-          flag: null,
-          required: 15,
-          current: curB,
-          conquered: matchingB.length >= 15,
-          extra_info: `${matchingB.length} de 15 filmes conquistados (${Math.min(100, Math.round((matchingB.length / 15) * 100))}%)`,
-        });
-        break;
-      }
-
-      case 'hybrid_drama_bio_hist_oscar_winner': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            (movieHasGenre(m, 'Drama') || movieHasGenre(m, 'Biografia') || movieHasGenre(m, 'História')) &&
-            (Number(m.oscar_wins) || 0) >= 1
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `Drama/Biografia/História + ${m.oscar_wins} vitórias no Oscar`,
-          'Pendente: Drama/Biografia/História Vencedor do Oscar'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_halloween_masters': {
-        const matchingMovies = movies.filter(
-          (m) =>
-            movieHasGenre(m, 'Terror') &&
-            (movieHasTag(m, 'Fantasma') ||
-              movieHasTag(m, 'Demônio') ||
-              movieHasTag(m, 'Gore') ||
-              movieHasTag(m, 'Vampiro') ||
-              movieHasTag(m, 'Zumbi')) &&
-            (movieHasAnyPattern(getMovieStudios(m), ['blumhouse', 'a24', 'new line', 'lionsgate']) ||
-              movieHasAnyPattern(getMovieDistributors(m), ['blumhouse', 'a24', 'new line', 'lionsgate'])) &&
-            movieInMonth(m, 10)
-        );
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => 'Terror Sobrenatural de Grande Estúdio (Outubro)',
-          'Pendente: Terror Sobrenatural em Outubro'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_seven_deadly_sins': {
-        const matching1 = movies.filter(
-          (m) =>
-            movieHasAnyPattern(getMovieDirectors(m), ['paul w.s. anderson', 'paul ws anderson', 'paul w. s. anderson', 'paul w s anderson']) ||
-            movieHasAnyPattern(getMovieWriters(m), ['paul w.s. anderson', 'paul ws anderson', 'paul w. s. anderson', 'paul w s anderson'])
-        );
-        const matching2 = movies.filter((m) => movieHasCountry(m, 'us', unByCode));
-        const matching3 = movies.filter((m) => movieHasAnyPattern(getMovieWriters(m), ['bob kane']));
-        const matching4 = movies.filter((m) => movieHasTag(m, 'Criança Malvada'));
-        const matching5 = movies.filter((m) => movieHasGenre(m, 'Curta'));
-        const matching6 = movies.filter(
-          (m) =>
-            movieHasAnyPattern(getMovieStudios(m), ['blumhouse', 'disney', 'pixar', 'walt disney', 'buena vista']) ||
-            movieHasAnyPattern(getMovieDistributors(m), ['blumhouse', 'disney', 'pixar', 'walt disney', 'buena vista'])
-        );
-        const matching7 = movies.filter((m) => movieHasTag(m, 'Natal'));
-
-        const cur1 = Math.min(7, matching1.length);
-        const cur2 = Math.min(7, matching2.length);
-        const cur3 = Math.min(7, matching3.length);
-        const cur4 = Math.min(7, matching4.length);
-        const cur5 = Math.min(7, matching5.length);
-        const cur6 = Math.min(7, matching6.length);
-        const cur7 = Math.min(7, matching7.length);
-
-        progressTarget = 49;
-        progressCurrent = cur1 + cur2 + cur3 + cur4 + cur5 + cur6 + cur7;
-        isMet = cur1 >= 7 && cur2 >= 7 && cur3 >= 7 && cur4 >= 7 && cur5 >= 7 && cur6 >= 7 && cur7 >= 7;
-
-        const sinsConfig = [
-          {
-            id: 'sin_luxuria',
-            name: '❤️ 1. Luxúria (Direção/Roteiro de Paul W.S. Anderson)',
-            matching: matching1,
-            cur: cur1,
-            desc: 'Filmes de Paul W.S. Anderson ("Olha minha mulher!")',
-          },
-          {
-            id: 'sin_orgulho',
-            name: '👑 2. Orgulho (Filmes dos Estados Unidos)',
-            matching: matching2,
-            cur: cur2,
-            desc: 'Filmes produzidos nos Estados Unidos',
-          },
-          {
-            id: 'sin_inveja',
-            name: '🐍 3. Inveja (Roteiro de Bob Kane)',
-            matching: matching3,
-            cur: cur3,
-            desc: 'Filmes creditados a Bob Kane (Bill Finger)',
-          },
-          {
-            id: 'sin_ira',
-            name: '🔥 4. Ira (Tag Criança Malvada)',
-            matching: matching4,
-            cur: cur4,
-            desc: 'Filmes com a tag Criança Malvada',
-          },
-          {
-            id: 'sin_preguica',
-            name: '🦥 5. Preguiça (Gênero Curta)',
-            matching: matching5,
-            cur: cur5,
-            desc: 'Filmes do gênero Curta',
-          },
-          {
-            id: 'sin_avareza',
-            name: '💰 6. Avareza (Blumhouse ou Disney / Pixar)',
-            matching: matching6,
-            cur: cur6,
-            desc: 'Filmes da Blumhouse ou Disney/Pixar',
-          },
-          {
-            id: 'sin_gula',
-            name: '🍗 7. Gula (Tag Natal - A Grande Ceia)',
-            matching: matching7,
-            cur: cur7,
-            desc: 'Filmes com a tag Natal',
-          },
-        ];
-
-        for (const sin of sinsConfig) {
-          checklist.push({
-            id: sin.id,
-            name: sin.name,
-            flag: null,
-            required: 7,
-            current: sin.cur,
-            conquered: sin.cur >= 7,
-            extra_info: `${sin.cur} de 7 filmes conquistados (${sin.matching.length} no catálogo)`,
-          });
-
-          const capped = sin.matching.slice(0, 7);
-          capped.forEach((m, idx) => {
-            checklist.push({
-              id: `${sin.id}_m_${m.movie_id || m.id || idx}`,
-              name: `   ↳ ${m.title}${m.release_year ? ` (${m.release_year})` : ''}`,
-              flag: m.primaryCountryCode ? m.primaryCountryCode.toLowerCase() : null,
-              required: 1,
-              current: 1,
-              conquered: true,
-              movie_title: m.title,
-              movie_year: m.release_year,
-              poster_url: m.poster_url,
-              extra_info: sin.desc,
-            });
-          });
-
-          if (capped.length < 7) {
-            for (let i = capped.length; i < 7; i++) {
-              checklist.push({
-                id: `${sin.id}_slot_${i + 1}`,
-                name: `   ↳ Filme #${i + 1} (${sin.desc})`,
-                flag: null,
-                required: 1,
-                current: 0,
-                conquered: false,
-                extra_info: 'Pendente',
-              });
-            }
-          }
-        }
-        break;
-      }
-
-      case 'hybrid_supreme_5_categories': {
-        const matchingMovies = movies.filter((m) => {
-          const isNonUs = m.primaryCountryCode && m.primaryCountryCode.toLowerCase() !== 'us';
-          const has2Genres = Array.isArray(m.genres) && m.genres.length >= 2;
-          const has1Tag = Array.isArray(m.tags) && m.tags.length >= 1;
-          const hasOscar = (Number(m.oscar_nominations) || 0) >= 1 || (Number(m.oscar_wins) || 0) >= 1;
-          const hasMonth =
-            m.month_seen !== null &&
-            m.month_seen !== undefined &&
-            Number(m.month_seen) >= 1 &&
-            Number(m.month_seen) <= 12;
-          return isNonUs && has2Genres && has1Tag && hasOscar && hasMonth;
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) =>
-            `${(m.primaryCountryName || m.primaryCountryCode || '').toUpperCase()} | ${m.genres.slice(0, 2).join('/')} | ${m.tags[0]} | Oscar | Mês ${m.month_seen}`,
-          'Pendente: Filme combo 5 categorias'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'critic_tribunal_rule': {
-        const ruleKey = String(def.target_metadata?.ruleKey || '');
-        const dedupMap = new Map();
-        for (const m of movies) {
-          const key = m.movie_id || m.id || `${m.title}_${m.release_year || ''}`;
-          const prevM = dedupMap.get(key);
-          if (!prevM || (parseStrictScore(m.user_rating) ?? -1) > (parseStrictScore(prevM.user_rating) ?? -1)) {
-            dedupMap.set(key, m);
-          }
-        }
-        const evaluatedMatches = [];
-        for (const m of dedupMap.values()) {
-          const evalRes = evaluateCriticTribunalMovie(m, ruleKey);
-          if (evalRes.matched) {
-            evaluatedMatches.push({
-              movie: m,
-              extraInfo: evalRes.extraInfo,
-              sortScore: evalRes.sortScore,
-            });
-          }
-        }
-        evaluatedMatches.sort((a, b) => b.sortScore - a.sortScore);
-        const extraMap = new Map();
-        const matchingMovies = evaluatedMatches.map((e) => {
-          extraMap.set(e.movie, e.extraInfo);
-          return e.movie;
-        });
-
-        progressTarget = def.target_value;
-        const cleanReq = def.description.replace(/^Conquistar\s+\d+\s+filmes?\s+(com\s+|onde\s+)?/i, '').replace(/\s*\(\d+\s+filmes?\)\.?$/i, '');
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => extraMap.get(m) || 'Veredicto aprovado',
-          `Pendente: ${cleanReq}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hybrid_shyamalan_paradox': {
-        const patterns = ['m. night shyamalan', 'm night shyamalan', 'shyamalan'];
-        const shyamalanMovies = movies.filter((m) => movieHasAnyPattern(getMovieDirectors(m), patterns));
-        const slot1Candidates = shyamalanMovies.filter((m) => {
-          const { ur } = extractCriticMetrics(m);
-          return ur !== null && Math.round(ur * 1000) >= 8000;
-        });
-        const slot2Candidates = shyamalanMovies.filter((m) => {
-          const { ur } = extractCriticMetrics(m);
-          return ur !== null && Math.round(ur * 1000) < 6000;
-        });
-        progressTarget = 2;
-        const curSlot1 = slot1Candidates.length > 0 ? 1 : 0;
-        const curSlot2 = slot2Candidates.length > 0 ? 1 : 0;
-        progressCurrent = curSlot1 + curSlot2;
-        isMet = curSlot1 === 1 && curSlot2 === 1;
-
-        const best1 = slot1Candidates[0];
-        const best2 = slot2Candidates[0];
-        checklist.push({
-          id: 'shyamalan_hit',
-          name: 'Filme de M. Night Shyamalan com Minha Nota >= 8.000',
-          required: 1,
-          current: curSlot1,
-          is_unlocked: curSlot1 === 1,
-          movie_title: best1?.title || null,
-          extra_info: best1
-            ? `Minha Nota: ${Number(best1.user_rating_raw || best1.user_rating).toFixed(3)}`
-            : 'Pendente: Obra-prima de Shyamalan (>= 8.000)',
-        });
-        checklist.push({
-          id: 'shyamalan_miss',
-          name: 'Filme de M. Night Shyamalan com Minha Nota < 6.000',
-          required: 1,
-          current: curSlot2,
-          is_unlocked: curSlot2 === 1,
-          movie_title: best2?.title || null,
-          extra_info: best2
-            ? `Minha Nota: ${Number(best2.user_rating_raw || best2.user_rating).toFixed(3)}`
-            : 'Pendente: Decepção de Shyamalan (< 6.000)',
-        });
-        break;
-      }
-
-      case 'hybrid_15_countries_masterpieces': {
-        const countryMap = new Map();
-        for (const m of movies) {
-          const { ur } = extractCriticMetrics(m);
-          if (ur === null || Math.round(ur * 1000) < 8500) continue;
-
-          const cCode = resolveClientPrimaryCountryCode195(m);
-          if (!cCode || cCode === 'us') continue;
-
-          const currentRating = Number(m.user_rating_raw || m.user_rating);
-          const existing = countryMap.get(cCode);
-          if (!existing || currentRating > Number(existing.user_rating_raw || existing.user_rating)) {
-            countryMap.set(cCode, m);
-          }
-        }
-
-        const entries = Array.from(countryMap.entries());
-        entries.sort(
-          (a, b) => Number(b[1].user_rating_raw || b[1].user_rating) - Number(a[1].user_rating_raw || a[1].user_rating)
-        );
-
-        progressTarget = 15;
-        progressCurrent = Math.min(15, entries.length);
-        isMet = entries.length >= 15;
-
-        for (let i = 0; i < 15; i++) {
-          const item = entries[i];
-          if (item) {
-            const [cCode, m] = item;
-            const cDef = unCountryDefMap.get(cCode);
-            checklist.push({
-              id: `masterpiece_country_${cCode}`,
-              code: cCode,
-              name: cDef ? `${cDef.flag || '🏳️'} ${cDef.name}` : cCode.toUpperCase(),
-              flag: cDef?.flag || null,
-              required: 1,
-              current: 1,
-              is_unlocked: true,
-              movie_title: m.title,
-              extra_info: `Minha Nota: ${Number(m.user_rating_raw || m.user_rating).toFixed(3)}`,
-            });
-          } else {
-            checklist.push({
-              id: `masterpiece_slot_${i + 1}`,
-              name: `País Estrangeiro #${i + 1} com Minha Nota >= 8.500`,
-              required: 1,
-              current: 0,
-              is_unlocked: false,
-              movie_title: null,
-              extra_info: 'Pendente: Filme internacional com nota >= 8.500',
-            });
-          }
-        }
-        break;
-      }
-
-      case 'hybrid_curador_joias_raras': {
-        const qualifyingMovies = [];
-        for (const m of movies) {
-          const { ur, gr } = extractCriticMetrics(m);
-          if (ur === null || Math.round(ur * 1000) < 8500) continue;
-          if (gr === null || gr >= 50_000) continue;
-          if (!Array.isArray(m.tags) || m.tags.length === 0) continue;
-
-          qualifyingMovies.push(m);
-        }
-
-        qualifyingMovies.sort(
-          (a, b) => Number(b.user_rating_raw || b.user_rating) - Number(a.user_rating_raw || a.user_rating)
-        );
-
-        const selectedMovies = [];
-        const seenCountries = new Set();
-
-        // 1ª passada: 1 filme por país (Desafio 195) para maximizar diversidade geográfica
-        for (const m of qualifyingMovies) {
-          const cCode = resolveClientPrimaryCountryCode195(m);
-          if (cCode && !seenCountries.has(cCode)) {
-            seenCountries.add(cCode);
-            selectedMovies.push(m);
-            if (selectedMovies.length === 15) break;
-          }
-        }
-
-        // 2ª passada se ainda faltar para 15 filmes
-        if (selectedMovies.length < 15) {
-          for (const m of qualifyingMovies) {
-            if (!selectedMovies.includes(m)) {
-              selectedMovies.push(m);
-              const cCode = resolveClientPrimaryCountryCode195(m);
-              if (cCode) seenCountries.add(cCode);
-              if (selectedMovies.length === 15) break;
-            }
-          }
-        }
-
-        progressTarget = 15;
-        progressCurrent = Math.min(15, selectedMovies.length);
-        const countriesCount = seenCountries.size;
-        isMet = selectedMovies.length >= 15 && countriesCount >= 8;
-
-        const res = buildMovieSlotsChecklist(
-          selectedMovies,
-          progressTarget,
-          (m) =>
-            `Reviews: ${(parseGlobalReviews(m.global_reviews || m.vote_count) || 0).toLocaleString('pt-BR')} | Minha Nota: ${Number(m.user_rating_raw || m.user_rating).toFixed(3)} | País: ${m.primaryCountryName || m.primaryCountryCode || 'Mundo'}`,
-          `Pendente: Filme < 50k Reviews, Nota >= 8.500 e 1+ Tag (Total: 8+ países diferentes)`
-        );
-        checklist.push(...res.checklist);
-        break;
-      }
-
-      case 'michael_jackson_anthology': {
-        progressTarget = 16;
-        let countMet = 0;
-
-        // Marco 0: Meta Global - 15 filmes do gênero Música
-        const musicMovies = movies.filter((m) => movieHasGenre(m, 'Música'));
-        const musicCount = musicMovies.length;
-        const isMusicGlobalMet = musicCount >= 15;
-        if (isMusicGlobalMet) countMet++;
-
-        checklist.push({
-          id: 'track_00_music_genre',
-          name: 'Meta Global: Conquistar 15 Filmes com o Gênero Música',
-          required: 15,
-          current: Math.min(15, musicCount),
-          conquered: isMusicGlobalMet,
-          movie_title: musicMovies[0]?.title || null,
-          movie_year: musicMovies[0]?.release_year || null,
-          poster_url: musicMovies[0]?.poster_url || null,
-          rule_desc: 'Ter pelo menos 15 filmes cadastrados com o gênero oficial Música no catálogo',
-          extra_info: isMusicGlobalMet
-            ? `✅ Cumprida (${musicCount}/15 filmes) • Requisito: Ter pelo menos 15 filmes com o gênero Música`
-            : `🔒 Pendente (${musicCount}/15 filmes) • Requisito: Ter pelo menos 15 filmes com o gênero Música`,
-        });
-
-        // 15 Faixas Cronológicas
-        const trackDefinitions = [
-          {
-            id: 'track_01_abc',
-            name: 'Faixa 01: [ABC] (1970) — The Jackson 5',
-            ruleDesc: '1 filme lançado em 1970 com a tag "Colegio/Escola" OU tag "Em Família"',
-            match: (m) =>
-              Number(m.release_year) === 1970 &&
-              (movieHasTag(m, 'Colegio/Escola') || movieHasTag(m, 'Em Família')),
-          },
-          {
-            id: 'track_02_beat_it',
-            name: 'Faixa 02: [Beat It] (1983)',
-            ruleDesc: '1 filme lançado em 1983 com o gênero "Ação"',
-            match: (m) =>
-              Number(m.release_year) === 1983 &&
-              movieHasGenre(m, 'Ação'),
-          },
-          {
-            id: 'track_03_billie_jean',
-            name: 'Faixa 03: [Billie Jean] (1983)',
-            ruleDesc: '1 filme lançado em 1983 com a tag "Trágico" OU gênero "Suspense"',
-            match: (m) =>
-              Number(m.release_year) === 1983 &&
-              (movieHasTag(m, 'Trágico') || movieHasGenre(m, 'Suspense')),
-          },
-          {
-            id: 'track_04_thriller',
-            name: 'Faixa 04: [Thriller] (1984)',
-            ruleDesc: '1 filme lançado em 1984 com a tag "Lobisomem" OU tag "Zumbi"',
-            match: (m) =>
-              Number(m.release_year) === 1984 &&
-              (movieHasTag(m, 'Lobisomem') || movieHasTag(m, 'Zumbi')),
-          },
-          {
-            id: 'track_05_bad',
-            name: 'Faixa 05: [Bad] (1987)',
-            ruleDesc: '1 filme lançado em 1987 com a tag "Criança Malvada"',
-            match: (m) =>
-              Number(m.release_year) === 1987 &&
-              movieHasTag(m, 'Criança Malvada'),
-          },
-          {
-            id: 'track_06_smooth_criminal',
-            name: 'Faixa 06: [Smooth Criminal] (1988)',
-            ruleDesc: '1 filme lançado em 1988 com a tag "Crime real" OU gênero "Policial"',
-            match: (m) =>
-              Number(m.release_year) === 1988 &&
-              (movieHasTag(m, 'Crime real') || movieHasGenre(m, 'Policial') || movieHasGenre(m, 'Crime')),
-          },
-          {
-            id: 'track_07_black_or_white',
-            name: 'Faixa 07: [Black or White] (1991)',
-            ruleDesc: '1 filme lançado em 1991 com a tag "Preto e branco" OU tag "Em Família"',
-            match: (m) =>
-              Number(m.release_year) === 1991 &&
-              (movieHasTag(m, 'Preto e branco') || movieHasTag(m, 'Em Família')),
-          },
-          {
-            id: 'track_08_heal_the_world',
-            name: 'Faixa 08: [Heal the World] (1991)',
-            ruleDesc: '1 filme lançado em 1991 com a tag "Emocionante" OU tag "Fatos Reais"',
-            match: (m) =>
-              Number(m.release_year) === 1991 &&
-              (movieHasTag(m, 'Emocionante') || movieHasTag(m, 'Fatos Reais')),
-          },
-          {
-            id: 'track_09_remember_the_time',
-            name: 'Faixa 09: [Remember the Time] (1992)',
-            ruleDesc: '1 filme lançado em 1992 com a tag "Viagem no Tempo"',
-            match: (m) =>
-              Number(m.release_year) === 1992 &&
-              movieHasTag(m, 'Viagem no Tempo'),
-          },
-          {
-            id: 'track_10_you_are_not_alone',
-            name: 'Faixa 10: [You Are Not Alone] (1995)',
-            ruleDesc: '1 filme lançado em 1995 com a tag "Em Família" OU gênero "Romance"',
-            match: (m) =>
-              Number(m.release_year) === 1995 &&
-              (movieHasTag(m, 'Em Família') || movieHasGenre(m, 'Romance')),
-          },
-          {
-            id: 'track_11_earth_song',
-            name: 'Faixa 11: [Earth Song] (1995)',
-            ruleDesc: '1 filme lançado em 1995 com a tag "Trágico" OU gênero "Documentário"',
-            match: (m) =>
-              Number(m.release_year) === 1995 &&
-              (movieHasTag(m, 'Trágico') || movieHasGenre(m, 'Documentário')),
-          },
-          {
-            id: 'track_12_they_dont_care_about_us',
-            name: "Faixa 12: [They Don't Care About Us] (1996)",
-            ruleDesc: '1 filme lançado em 1996 produzido/gravado no Brasil',
-            match: (m) =>
-              Number(m.release_year) === 1996 &&
-              movieHasCountry(m, 'br'),
-          },
-          {
-            id: 'track_13_ghosts',
-            name: 'Faixa 13: [Ghosts] (1996)',
-            ruleDesc: '1 filme lançado em 1996 com a tag "Fantasma"',
-            match: (m) =>
-              Number(m.release_year) === 1996 &&
-              movieHasTag(m, 'Fantasma'),
-          },
-          {
-            id: 'track_14_blood_on_the_dance_floor',
-            name: 'Faixa 14: [Blood on the Dance Floor] (1997)',
-            ruleDesc: '1 filme lançado em 1997 com a tag "Gore"',
-            match: (m) =>
-              Number(m.release_year) === 1997 &&
-              movieHasTag(m, 'Gore'),
-          },
-          {
-            id: 'track_15_love_never_felt_so_good',
-            name: 'Faixa 15: [Love Never Felt So Good] (2014) — feat. Justin Timberlake',
-            ruleDesc: '1 filme lançado em 2014 com a tag "Em Família" OU tag "Emocionante"',
-            match: (m) =>
-              Number(m.release_year) === 2014 &&
-              (movieHasTag(m, 'Em Família') || movieHasTag(m, 'Emocionante')),
-          },
-        ];
-
-        trackDefinitions.forEach((trk) => {
-          const matchedMovie = movies.find(trk.match);
-          if (matchedMovie) {
-            countMet++;
-            checklist.push({
-              id: trk.id,
-              name: trk.name,
-              required: 1,
-              current: 1,
-              conquered: true,
-              movie_title: matchedMovie.title,
-              movie_year: matchedMovie.release_year,
-              poster_url: matchedMovie.poster_url || null,
-              flag: matchedMovie.primaryCountryCode ? matchedMovie.primaryCountryCode.toLowerCase() : null,
-              rule_desc: trk.ruleDesc,
-              extra_info: `✅ Cumprida (${matchedMovie.title}) • Requisito: ${trk.ruleDesc}`,
-            });
-          } else {
-            checklist.push({
-              id: trk.id,
-              name: trk.name,
-              required: 1,
-              current: 0,
-              conquered: false,
-              movie_title: null,
-              movie_year: null,
-              poster_url: null,
-              flag: null,
-              rule_desc: trk.ruleDesc,
-              extra_info: `🔒 Pendente • Requisito: ${trk.ruleDesc}`,
-            });
-          }
-        });
-
-        progressCurrent = countMet;
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-
-      // ==========================================
-      // CASOS DA CATEGORIA: O RITUAL DO CINÉFILO
-      // ==========================================
-      case 'ritual_cinefilo_rule': {
-        const ruleKey = String(def.target_metadata?.ruleKey || '');
-        const evaluatedMatches = [];
-        for (const m of movies) {
-          const evalRes = evaluateRitualCinefiloMovie(m, ruleKey);
-          if (evalRes.matched) {
-            evaluatedMatches.push({
-              movie: m,
-              extraInfo: evalRes.extraInfo,
-              sortScore: evalRes.sortScore,
-            });
-          }
-        }
-        evaluatedMatches.sort((a, b) => b.sortScore - a.sortScore);
-        const extraMap = new Map();
-        const matchingMovies = evaluatedMatches.map((e) => {
-          extraMap.set(e.movie, e.extraInfo);
-          return e.movie;
-        });
-
-        progressTarget = def.target_value;
-        const cleanReq = def.description.replace(/^Conquistar\s+\d+\s+filmes?\s+(com\s+|onde\s+|no\s+|em\s+)?/i, '').replace(/\s*\(\d+\s+filmes?\)\.?$/i, '');
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => extraMap.get(m) || 'Ritual cumprido',
-          `Pendente: ${cleanReq}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'ritual_pentacampeonato': {
-        const pentaYears = [1958, 1962, 1970, 1994, 2002];
-        progressTarget = 5;
-        let conqueredYears = 0;
-        for (const yr of pentaYears) {
-          const match = movies.find((m) => getMovieReleaseYear(m) === yr);
-          if (match) {
-            conqueredYears++;
-            checklist.push({
-              id: `penta_${yr}`,
-              name: `Copa do Mundo de ${yr}`,
-              required: 1,
-              current: 1,
-              conquered: true,
-              movie_title: match.title,
-              movie_year: yr,
-              poster_url: match.poster_url || null,
-              extra_info: `Lançado no ano do título: ${yr}`,
-            });
-          } else {
-            checklist.push({
-              id: `penta_${yr}`,
-              name: `Copa do Mundo de ${yr}`,
-              required: 1,
-              current: 0,
-              conquered: false,
-              movie_title: null,
-              extra_info: `Pendente: Filme lançado em ${yr}`,
-            });
-          }
-        }
-        progressCurrent = conqueredYears;
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'ritual_ditadura': {
-        const startYr = 1964;
-        const endYr = 1985;
-        progressTarget = 21;
-        let conqueredCount = 0;
-        for (let yr = startYr; yr <= endYr; yr++) {
-          const match = movies.find((m) => getMovieReleaseYear(m) === yr);
-          if (match) {
-            conqueredCount++;
-            checklist.push({
-              id: `ditadura_${yr}`,
-              name: `Ano de ${yr}`,
-              required: 1,
-              current: 1,
-              conquered: true,
-              movie_title: match.title,
-              movie_year: yr,
-              poster_url: match.poster_url || null,
-              extra_info: `Filme de ${yr}`,
-            });
-          } else {
-            checklist.push({
-              id: `ditadura_${yr}`,
-              name: `Ano de ${yr}`,
-              required: 1,
-              current: 0,
-              conquered: false,
-              movie_title: null,
-              extra_info: `Pendente: Filme lançado em ${yr}`,
-            });
-          }
-        }
-        progressCurrent = Math.min(progressTarget, conqueredCount);
-        isMet = conqueredCount >= progressTarget;
-        break;
-      }
-
-      case 'ritual_petista': {
-        const baseYears = [2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016];
-        let maxCatYear = 2023;
-        for (const m of movies) {
-          const y = getMovieReleaseYear(m);
-          if (y && y > maxCatYear && y <= 2050) {
-            maxCatYear = y;
-          }
-        }
-        const recentYears = [];
-        for (let y = 2023; y <= maxCatYear; y++) {
-          recentYears.push(y);
-        }
-        const allPetistaYears = [...baseYears, ...recentYears];
-        progressTarget = allPetistaYears.length;
-        let conqueredCount = 0;
-        for (const yr of allPetistaYears) {
-          const match = movies.find((m) => getMovieReleaseYear(m) === yr);
-          if (match) {
-            conqueredCount++;
-            checklist.push({
-              id: `petista_${yr}`,
-              name: `Ano de ${yr}`,
-              required: 1,
-              current: 1,
-              conquered: true,
-              movie_title: match.title,
-              movie_year: yr,
-              poster_url: match.poster_url || null,
-              extra_info: `Filme de ${yr}`,
-            });
-          } else {
-            checklist.push({
-              id: `petista_${yr}`,
-              name: `Ano de ${yr}`,
-              required: 1,
-              current: 0,
-              conquered: false,
-              movie_title: null,
-              extra_info: `Pendente: Filme lançado em ${yr}`,
-            });
-          }
-        }
-        progressCurrent = conqueredCount;
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'ritual_nomade_telas': {
-        progressTarget = 8;
-        const moviesByPlat = new Map();
-        for (const m of movies) {
-          const rawPlat = getMoviePlatform(m);
-          if (!rawPlat || rawPlat === 'Não Informado' || rawPlat === 'N/A') continue;
-          const p = rawPlat;
-          if (!moviesByPlat.has(p)) moviesByPlat.set(p, []);
-          moviesByPlat.get(p).push(m);
-        }
-        const sortedPlats = Array.from(moviesByPlat.entries()).sort((a, b) => b[1].length - a[1].length);
-        let qualifyingPlats = 0;
-        for (const [pName, pMovies] of sortedPlats) {
-          const isQual = pMovies.length >= 3;
-          if (isQual) qualifyingPlats++;
-          checklist.push({
-            id: `plat_${pName.toLowerCase().replace(/\s+/g, '_')}`,
-            name: `Plataforma: ${pName}`,
-            required: 3,
-            current: Math.min(3, pMovies.length),
-            conquered: isQual,
-            movie_title: pMovies[0]?.title || null,
-            poster_url: pMovies[0]?.poster_url || null,
-            extra_info: `${pMovies.length} filme(s) assistido(s) nesta plataforma`,
-          });
-        }
-        progressCurrent = Math.min(8, qualifyingPlats);
-        isMet = qualifyingPlats >= progressTarget;
-        break;
-      }
-
-      case 'ritual_projecao_classica': {
-        progressTarget = 200;
-        const cinemaMovies = movies.filter((m) => isCinema(getMoviePlatform(m)));
-        const physicalMovies = movies.filter((m) => isPhysicalMedia(getMoviePlatform(m)));
-
-        const cinCur = Math.min(100, cinemaMovies.length);
-        const physCur = Math.min(100, physicalMovies.length);
-        progressCurrent = cinCur + physCur;
-        isMet = cinemaMovies.length >= 100 && physicalMovies.length >= 100;
-
-        checklist.push({
-          id: 'projecao_cinema',
-          name: '100 Filmes assistidos no Cinema',
-          required: 100,
-          current: cinCur,
-          conquered: cinemaMovies.length >= 100,
-          movie_title: cinemaMovies[0]?.title || null,
-          poster_url: cinemaMovies[0]?.poster_url || null,
-          extra_info: `${cinemaMovies.length} de 100 filmes no Cinema`,
-        });
-
-        checklist.push({
-          id: 'projecao_fisica',
-          name: '100 Filmes assistidos em Blu-ray ou DVD',
-          required: 100,
-          current: physCur,
-          conquered: physicalMovies.length >= 100,
-          movie_title: physicalMovies[0]?.title || null,
-          poster_url: physicalMovies[0]?.poster_url || null,
-          extra_info: `${physicalMovies.length} de 100 filmes em Mídia Física`,
-        });
-        break;
-      }
-
-      case 'ritual_enciclopedia_acustica': {
-        progressTarget = 500;
-        const dubbedMovies = movies.filter((m) => isDubbed(getMovieAudio(m)));
-        const subtitledMovies = movies.filter((m) => isSubtitled(getMovieAudio(m)));
-        const originalMovies = movies.filter((m) => isOriginalAudio(getMovieAudio(m)));
-
-        const dubCur = Math.min(300, dubbedMovies.length);
-        const subCur = Math.min(150, subtitledMovies.length);
-        const origCur = Math.min(50, originalMovies.length);
-
-        progressCurrent = dubCur + subCur + origCur;
-        isMet = dubbedMovies.length >= 300 && subtitledMovies.length >= 150 && originalMovies.length >= 50;
-
-        checklist.push({
-          id: 'acustica_dublado',
-          name: '300 Filmes com áudio Dublado',
-          required: 300,
-          current: dubCur,
-          conquered: dubbedMovies.length >= 300,
-          movie_title: dubbedMovies[0]?.title || null,
-          poster_url: dubbedMovies[0]?.poster_url || null,
-          extra_info: `${dubbedMovies.length} de 300 filmes Dublados`,
-        });
-
-        checklist.push({
-          id: 'acustica_legendado',
-          name: '150 Filmes com áudio Legendado',
-          required: 150,
-          current: subCur,
-          conquered: subtitledMovies.length >= 150,
-          movie_title: subtitledMovies[0]?.title || null,
-          poster_url: subtitledMovies[0]?.poster_url || null,
-          extra_info: `${subtitledMovies.length} de 150 filmes Legendados`,
-        });
-
-        checklist.push({
-          id: 'acustica_original',
-          name: '50 Filmes no idioma Original',
-          required: 50,
-          current: origCur,
-          conquered: originalMovies.length >= 50,
-          movie_title: originalMovies[0]?.title || null,
-          poster_url: originalMovies[0]?.poster_url || null,
-          extra_info: `${originalMovies.length} de 50 filmes em Idioma Original`,
-        });
-        break;
-      }
-
-      case 'ritual_total_minutos': {
-        const targetMinutes = Number(def.target_value) || 30000;
-        progressTarget = targetMinutes;
-        const totalMinutes = movies.reduce((acc, m) => acc + getMovieRuntime(m), 0);
-        progressCurrent = Math.min(progressTarget, totalMinutes);
-        isMet = totalMinutes >= progressTarget;
-
-        const hours = Math.floor(totalMinutes / 60);
-        const targetHours = Math.floor(targetMinutes / 60);
-
-        checklist.push({
-          id: `minutos_${targetMinutes}`,
-          name: `${targetMinutes.toLocaleString('pt-BR')} minutos (${targetHours} horas) assistidos`,
-          required: targetMinutes,
-          current: progressCurrent,
-          conquered: isMet,
-          extra_info: `${totalMinutes.toLocaleString('pt-BR')} minutos acumulados (${hours} horas líquidas)`,
-        });
-        break;
-      }
-
-      case 'ritual_anos_checklist': {
-        const startYear = Number(def.target_metadata?.startYear) || 1994;
-        const endYear = Number(def.target_metadata?.endYear) || 2027;
-        const totalYears = endYear - startYear + 1;
-        progressTarget = totalYears;
-
-        let conqueredCount = 0;
-        for (let y = startYear; y <= endYear; y++) {
-          const matchedMovie = catalogMovies.find((m) => getMovieReleaseYear(m) === y);
-          if (matchedMovie) {
-            conqueredCount++;
-            checklist.push({
-              id: `ano_${y}`,
-              name: `Ano de ${y}`,
-              required: 1,
-              current: 1,
-              conquered: true,
-              movie_title: matchedMovie.title,
-              movie_year: y,
-              poster_url: matchedMovie.poster_url || null,
-              extra_info: `✅ Conquistado (${matchedMovie.title})`,
-            });
-          } else {
-            checklist.push({
-              id: `ano_${y}`,
-              name: `Ano de ${y}`,
-              required: 1,
-              current: 0,
-              conquered: false,
-              movie_title: null,
-              movie_year: y,
-              poster_url: null,
-              extra_info: `🔒 Pendente: Nenhum filme gravado/lançado em ${y}`,
-            });
-          }
-        }
-
-        progressCurrent = conqueredCount;
-        isMet = conqueredCount >= progressTarget;
-        break;
-      }
-
-      case 'multi_ritual_rule': {
-        const ruleKey = String(def.target_metadata?.ruleKey || '');
-
-        if (ruleKey === 'brazil_copa_1950_2014') {
-          progressTarget = 2;
-          const m1950 = catalogMovies.find((m) => movieHasCountry(m, 'br', unCountryDefMap) && getMovieReleaseYear(m) === 1950);
-          const m2014 = catalogMovies.find((m) => movieHasCountry(m, 'br', unCountryDefMap) && getMovieReleaseYear(m) === 2014);
-
-          checklist.push({
-            id: 'copa_1950',
-            name: 'Brasil na Copa de 1950 (Maracanazo)',
-            required: 1,
-            current: m1950 ? 1 : 0,
-            conquered: Boolean(m1950),
-            movie_title: m1950?.title || null,
-            movie_year: 1950,
-            poster_url: m1950?.poster_url || null,
-            extra_info: m1950 ? `✅ Conquistado (${m1950.title})` : '🔒 Pendente: Filme brasileiro de 1950',
-          });
-
-          checklist.push({
-            id: 'copa_2014',
-            name: 'Brasil na Copa de 2014 (Mineiraço 7x1)',
-            required: 1,
-            current: m2014 ? 1 : 0,
-            conquered: Boolean(m2014),
-            movie_title: m2014?.title || null,
-            movie_year: 2014,
-            poster_url: m2014?.poster_url || null,
-            extra_info: m2014 ? `✅ Conquistado (${m2014.title})` : '🔒 Pendente: Filme brasileiro de 2014',
-          });
-
-          progressCurrent = (m1950 ? 1 : 0) + (m2014 ? 1 : 0);
-          isMet = progressCurrent >= progressTarget;
-          break;
-        }
-
-        if (ruleKey === 'cesio_137_combo_7') {
-          progressTarget = 7;
-          const usedIds = new Set();
-          let currentConquered = 0;
-
-          // 3 filmes de 1987
-          for (let i = 1; i <= 3; i++) {
-            const m = catalogMovies.find((mv) => {
-              const id = mv.movie_id || mv.id;
-              return !usedIds.has(id) && getMovieReleaseYear(mv) === 1987;
-            });
-            if (m) {
-              usedIds.add(m.movie_id || m.id);
-              currentConquered++;
-              checklist.push({
-                id: `cesio_1987_${i}`,
-                name: `Filme do Ano do Desastre (1987) #${i}`,
-                required: 1,
-                current: 1,
-                conquered: true,
-                movie_title: m.title,
-                movie_year: 1987,
-                poster_url: m.poster_url || null,
-                extra_info: `✅ Conquistado (${m.title})`,
-              });
-            } else {
-              checklist.push({
-                id: `cesio_1987_${i}`,
-                name: `Filme do Ano do Desastre (1987) #${i}`,
-                required: 1,
-                current: 0,
-                conquered: false,
-                movie_title: null,
-                poster_url: null,
-                extra_info: '🔒 Pendente: Filme gravado/lançado em 1987',
-              });
-            }
-          }
-
-          // 1 filme com 136..138 min (Protocolo Césio-137)
-          const m137 = catalogMovies.find((mv) => {
-            const id = mv.movie_id || mv.id;
-            const rt = getMovieRuntime(mv);
-            return !usedIds.has(id) && rt >= 136 && rt <= 138;
-          });
-          if (m137) {
-            usedIds.add(m137.movie_id || m137.id);
-            currentConquered++;
-            checklist.push({
-              id: 'cesio_137_min',
-              name: 'Duração no Marco do Césio-137 (136 a 138 min)',
-              required: 1,
-              current: 1,
-              conquered: true,
-              movie_title: m137.title,
-              movie_year: getMovieReleaseYear(m137) || undefined,
-              poster_url: m137.poster_url || null,
-              extra_info: `✅ Conquistado (${m137.title} - ${getMovieRuntime(m137)} min)`,
-            });
-          } else {
-            checklist.push({
-              id: 'cesio_137_min',
-              name: 'Duração no Marco do Césio-137 (136 a 138 min)',
-              required: 1,
-              current: 0,
-              conquered: false,
-              movie_title: null,
-              poster_url: null,
-              extra_info: '🔒 Pendente: Filme com duração entre 136 e 138 minutos',
-            });
-          }
-
-          // 3 filmes do Brasil com tag Trágico ou Fatos Reais
-          for (let i = 1; i <= 3; i++) {
-            const m = catalogMovies.find((mv) => {
-              const id = mv.movie_id || mv.id;
-              return (
-                !usedIds.has(id) &&
-                movieHasCountry(mv, 'br', unCountryDefMap) &&
-                (movieHasTag(mv, 'Trágico') || movieHasTag(mv, 'Fatos Reais'))
-              );
-            });
-            if (m) {
-              usedIds.add(m.movie_id || m.id);
-              currentConquered++;
-              checklist.push({
-                id: `cesio_br_tragico_${i}`,
-                name: `Brasil Trágico ou Fatos Reais #${i}`,
-                required: 1,
-                current: 1,
-                conquered: true,
-                movie_title: m.title,
-                movie_year: getMovieReleaseYear(m) || undefined,
-                poster_url: m.poster_url || null,
-                extra_info: `✅ Conquistado (${m.title})`,
-              });
-            } else {
-              checklist.push({
-                id: `cesio_br_tragico_${i}`,
-                name: `Brasil Trágico ou Fatos Reais #${i}`,
-                required: 1,
-                current: 0,
-                conquered: false,
-                movie_title: null,
-                poster_url: null,
-                extra_info: '🔒 Pendente: Filme brasileiro com tag Trágico ou Fatos Reais',
-              });
-            }
-          }
-
-          progressCurrent = currentConquered;
-          isMet = currentConquered >= progressTarget;
-          break;
-        }
-
-        if (ruleKey === 'pirata_30_paises') {
-          progressTarget = 30;
-          const pirateMovies = catalogMovies.filter((m) => {
-            const plat = getMoviePlatform(m);
-            return isMyFamilyCine(plat) || isYouTube(plat) || isInternet(plat);
-          });
-
-          const countryMap = new Map();
-          for (const m of pirateMovies) {
-            const cCode = resolveClientPrimaryCountryCode195(m);
-            if (!cCode) continue;
-            const unDef = unCountryDefMap.get(cCode);
-            const cName = unDef ? unDef.name : (m.primaryCountryName || cCode.toUpperCase());
-            if (!countryMap.has(cCode)) {
-              countryMap.set(cCode, {
-                countryName: cName,
-                flag: cCode,
-                movie: m,
-              });
-            }
-          }
-
-          const conqueredEntries = Array.from(countryMap.values());
-          progressCurrent = Math.min(progressTarget, conqueredEntries.length);
-
-          for (let i = 0; i < progressTarget; i++) {
-            const entry = conqueredEntries[i];
-            if (entry) {
-              checklist.push({
-                id: `pirata_pais_${i + 1}`,
-                name: `País #${i + 1}: ${entry.countryName}`,
-                required: 1,
-                current: 1,
-                conquered: true,
-                flag: entry.flag,
-                movie_title: entry.movie.title,
-                movie_year: getMovieReleaseYear(entry.movie) || undefined,
-                poster_url: entry.movie.poster_url || null,
-                extra_info: `✅ Conquistado (${entry.movie.title} via ${getMoviePlatform(entry.movie)})`,
-              });
-            } else {
-              checklist.push({
-                id: `pirata_pais_${i + 1}`,
-                name: `País Pirata #${i + 1}`,
-                required: 1,
-                current: 0,
-                conquered: false,
-                movie_title: null,
-                poster_url: null,
-                extra_info: '🔒 Pendente: Filme de novo país assistido via Pirataria',
-              });
-            }
-          }
-
-          isMet = conqueredEntries.length >= progressTarget;
-          break;
-        }
-
-        if (ruleKey === 'viajante_9_decadas_18') {
-          progressTarget = 18;
-          const decades = [
-            { label: 'Anos 1940 (1940-1949)', start: 1940, end: 1949 },
-            { label: 'Anos 1950 (1950-1959)', start: 1950, end: 1959 },
-            { label: 'Anos 1960 (1960-1969)', start: 1960, end: 1969 },
-            { label: 'Anos 1970 (1970-1979)', start: 1970, end: 1979 },
-            { label: 'Anos 1980 (1980-1989)', start: 1980, end: 1989 },
-            { label: 'Anos 1990 (1990-1999)', start: 1990, end: 1999 },
-            { label: 'Anos 2000 (2000-2009)', start: 2000, end: 2009 },
-            { label: 'Anos 2010 (2010-2019)', start: 2010, end: 2019 },
-            { label: 'Anos 2020 (2020-2029)', start: 2020, end: 2029 },
-          ];
-
-          const usedIds = new Set();
-          const conqueredCountries = new Set();
-          let totalConquered = 0;
-
-          decades.forEach((dec) => {
-            const candidates = catalogMovies
-              .filter((mv) => {
-                const y = getMovieReleaseYear(mv);
-                if (y === null || y < dec.start || y > dec.end) return false;
-                const { ur } = extractCriticMetrics(mv);
-                const urMillis = ur !== null ? Math.round(ur * 1000) : null;
-                return urMillis !== null && urMillis >= 8000;
-              })
-              .sort((a, b) => {
-                const urA = extractCriticMetrics(a).ur || 0;
-                const urB = extractCriticMetrics(b).ur || 0;
-                return urB - urA;
-              });
-
-            for (let slot = 1; slot <= 2; slot++) {
-              const m = candidates.find((mv) => !usedIds.has(mv.movie_id || mv.id));
-              if (m) {
-                usedIds.add(m.movie_id || m.id);
-                totalConquered++;
-                const cCode195 = resolveClientPrimaryCountryCode195(m);
-                if (cCode195) conqueredCountries.add(cCode195);
-
-                const { ur } = extractCriticMetrics(m);
-                checklist.push({
-                  id: `viajante_${dec.start}_${slot}`,
-                  name: `${dec.label} - Filme #${slot}`,
-                  required: 1,
-                  current: 1,
-                  conquered: true,
-                  movie_title: m.title,
-                  movie_year: getMovieReleaseYear(m) || undefined,
-                  poster_url: m.poster_url || null,
-                  flag: cCode195 || null,
-                  extra_info: `✅ Conquistado (${m.title} - Nota: ${ur ? ur.toFixed(3) : '8.0+'} | ${m.primaryCountryName || 'País N/I'})`,
-                });
-              } else {
-                checklist.push({
-                  id: `viajante_${dec.start}_${slot}`,
-                  name: `${dec.label} - Filme #${slot}`,
-                  required: 1,
-                  current: 0,
-                  conquered: false,
-                  movie_title: null,
-                  poster_url: null,
-                  extra_info: `🔒 Pendente: Filme de ${dec.start}-${dec.end} com Minha Nota >= 8.000`,
-                });
-              }
-            }
-          });
-
-          progressCurrent = totalConquered;
-          isMet = totalConquered >= progressTarget && conqueredCountries.size >= 10;
-          break;
-        }
-
-        // Caso padrão de slots para multi_ritual_rule
-        const evaluatedMatches = [];
-        for (const m of catalogMovies) {
-          const evalRes = evaluateMultiRitualMovie(m, ruleKey, unCountryDefMap);
-          if (evalRes.matched) {
-            evaluatedMatches.push({
-              movie: m,
-              extraInfo: evalRes.extraInfo,
-              sortScore: evalRes.sortScore,
-            });
-          }
-        }
-        evaluatedMatches.sort((a, b) => b.sortScore - a.sortScore);
-        const extraMap = new Map();
-        const matchingMovies = evaluatedMatches.map((e) => {
-          extraMap.set(e.movie, e.extraInfo);
-          return e.movie;
-        });
-
-        progressTarget = def.target_value;
-        const cleanReq = def.description
-          .replace(/^Conquistar\s+\d+\s+filmes?\s+(com\s+|onde\s+|assistidos\s+em\s+|vistos\s+no\s+)?/i, '')
-          .replace(/\s*\(\d+\s+filmes?\)\.?$/i, '');
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => extraMap.get(m) || 'Critério atendido',
-          `Pendente: ${cleanReq}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'secret_session_curated': {
-        const reqMovies = def.target_metadata?.movies || [];
-        progressTarget = def.target_value || def.target_metadata?.minTarget || reqMovies.length || 1;
-        let countConquered = 0;
-        const usedMovieIds = new Set();
-
-        reqMovies.forEach((req, idx) => {
-          const matchedMovie = catalogMovies.find(
-            (m) => !usedMovieIds.has(m.movie_id || m.id) && matchCuratedCandidate(m, req)
-          );
-          if (matchedMovie) {
-            usedMovieIds.add(matchedMovie.movie_id || matchedMovie.id);
-            countConquered++;
-            checklist.push({
-              id: `${def.id}_curated_${idx + 1}`,
-              name: req.name,
-              required: 1,
-              current: 1,
-              conquered: true,
-              movie_title: matchedMovie.title,
-              movie_year: matchedMovie.release_year,
-              poster_url: matchedMovie.poster_url || null,
-              extra_info: `✅ Conquistado (${matchedMovie.title})`,
-            });
-          } else {
-            checklist.push({
-              id: `${def.id}_curated_${idx + 1}`,
-              name: req.name,
-              required: 1,
-              current: 0,
-              conquered: false,
-              extra_info: '🔒 Pendente',
-            });
-          }
-        });
-
-        progressCurrent = Math.min(progressTarget, countConquered);
-        isMet = countConquered >= progressTarget;
-        break;
-      }
-
-      case 'secret_session_pairs': {
-        const pairs = def.target_metadata?.pairs || [];
-        progressTarget = def.target_value || def.target_metadata?.minTarget || 3;
-        let countConquered = 0;
-        const usedMovieIds = new Set();
-
-        pairs.forEach((pair, idx) => {
-          const matchA = catalogMovies.find(
-            (m) => !usedMovieIds.has(m.movie_id || m.id) && matchCuratedCandidate(m, pair.partA)
-          );
-          const matchB = catalogMovies.find(
-            (m) =>
-              !usedMovieIds.has(m.movie_id || m.id) &&
-              (matchA ? (m.movie_id || m.id) !== (matchA.movie_id || matchA.id) : true) &&
-              matchCuratedCandidate(m, pair.partB)
-          );
-
-          if (matchA && matchB) {
-            usedMovieIds.add(matchA.movie_id || matchA.id);
-            usedMovieIds.add(matchB.movie_id || matchB.id);
-            countConquered++;
-            checklist.push({
-              id: `ss_pair_${idx + 1}`,
-              name: pair.name,
-              required: 1,
-              current: 1,
-              conquered: true,
-              movie_title: `${matchA.title} + ${matchB.title}`,
-              movie_year: matchA.release_year || matchB.release_year,
-              poster_url: matchA.poster_url || matchB.poster_url || null,
-              extra_info: `✅ Par Conquistado (${matchA.title} + ${matchB.title})`,
-            });
-          } else {
-            let partialStatus = '🔒 Pendente: Nenhuma versão assistida';
-            let titleInfo = null;
-            let posterInfo = null;
-
-            if (matchA && !matchB) {
-              partialStatus = `⚠️ Incompleto: Assistido "${matchA.title}", falta corte alternativo`;
-              titleInfo = matchA.title;
-              posterInfo = matchA.poster_url || null;
-            } else if (!matchA && matchB) {
-              partialStatus = `⚠️ Incompleto: Assistido "${matchB.title}", falta versão cinema`;
-              titleInfo = matchB.title;
-              posterInfo = matchB.poster_url || null;
-            }
-
-            checklist.push({
-              id: `ss_pair_${idx + 1}`,
-              name: pair.name,
-              required: 1,
-              current: 0,
-              conquered: false,
-              movie_title: titleInfo,
-              poster_url: posterInfo,
-              extra_info: partialStatus,
-            });
-          }
-        });
-
-        progressCurrent = Math.min(progressTarget, countConquered);
-        isMet = countConquered >= progressTarget;
-        break;
-      }
-
-      case 'alphabet_az_coverage': {
-        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-        progressTarget = 26;
-        let conqueredLetters = 0;
-
-        alphabet.forEach((letter) => {
-          const matchedMovie = catalogMovies.find((m) => {
-            const lettersA = getTitleLetters(m.title);
-            const lettersB = getTitleLetters(m.original_title);
-            return lettersA.includes(letter) || lettersB.includes(letter);
-          });
-
-          if (matchedMovie) {
-            conqueredLetters++;
-            checklist.push({
-              id: `letter_${letter}`,
-              name: `Letra ${letter}`,
-              required: 1,
-              current: 1,
-              conquered: true,
-              movie_title: matchedMovie.title,
-              movie_year: matchedMovie.release_year,
-              poster_url: matchedMovie.poster_url || null,
-              extra_info: `✅ Conquistado (${matchedMovie.title})`,
-            });
-          } else {
-            checklist.push({
-              id: `letter_${letter}`,
-              name: `Letra ${letter}`,
-              required: 1,
-              current: 0,
-              conquered: false,
-              extra_info: `🔒 Pendente: Filme começando com a letra ${letter}`,
-            });
-          }
-        });
-
-        progressCurrent = Math.min(progressTarget, conqueredLetters);
-        isMet = conqueredLetters >= progressTarget;
-        break;
-      }
-
-      // ==========================================
-      // CASOS ESPECIAIS: TAG EM FAMÍLIA E EXTREMOS DE TAGS
-      // ==========================================
-      case 'movie_zero_tags_count': {
-        const matchingMovies = catalogMovies.filter((m) => {
-          const t = Array.isArray(m.tags) ? m.tags.filter((x) => Boolean(x && String(x).trim())) : [];
-          return t.length === 0;
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => '0 tags vinculadas',
-          'Pendente: filme sem tags'
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_and_tag_or_month': {
-        const reqTag = def.target_metadata?.tag || 'Em Família';
-        const orTag = def.target_metadata?.orTag || 'Natal';
-        const orMonth = def.target_metadata?.orMonth || 12;
-        const matchingMovies = catalogMovies.filter((m) => {
-          if (!movieHasTag(m, reqTag)) return false;
-          return movieHasTag(m, orTag) || movieInMonth(m, orMonth);
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => {
-            const hasNatalTag = movieHasTag(m, orTag);
-            const inDez = movieInMonth(m, orMonth);
-            const reason = hasNatalTag && inDez ? `Tag [${orTag}] + Dezembro` : hasNatalTag ? `Tag [${orTag}]` : 'Assistido em Dezembro';
-            return `Tag [${reqTag}] + ${reason}`;
-          },
-          `Pendente: [${reqTag}] com [${orTag}] ou Dezembro`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_platform_count': {
-        const reqTag = def.target_metadata?.tag || 'Em Família';
-        const reqPlatform = (def.target_metadata?.platform || '').toLowerCase();
-        const matchingMovies = catalogMovies.filter((m) => {
-          if (!movieHasTag(m, reqTag)) return false;
-          const plat = (m.viewingPlatform || m.platform || '').toString().toLowerCase();
-          return plat.includes(reqPlatform);
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          () => `Tag [${reqTag}] no Cinema`,
-          `Pendente: [${reqTag}] no Cinema`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_min_rating_count': {
-        const reqTag = def.target_metadata?.tag || 'Em Família';
-        const rawMin = def.target_metadata?.minRating || 8500;
-        const minRatingMillis = rawMin > 10 ? rawMin : Math.round(rawMin * 1000);
-        const matchingMovies = catalogMovies.filter((m) => {
-          if (!movieHasTag(m, reqTag)) return false;
-          const { ur } = extractCriticMetrics(m);
-          const urMillis = ur !== null ? Math.round(ur * 1000) : null;
-          return urMillis !== null && urMillis >= minRatingMillis;
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => {
-            const { ur } = extractCriticMetrics(m);
-            return `Tag [${reqTag}] | Minha Nota: ${ur !== null ? ur.toFixed(3) : '-'}`;
-          },
-          `Pendente: [${reqTag}] com Minha Nota >= ${(minRatingMillis / 1000).toFixed(1)}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_non_br_us_count': {
-        const reqTag = def.target_metadata?.tag || 'Em Família';
-        const matchingMovies = catalogMovies.filter((m) => {
-          if (!movieHasTag(m, reqTag)) return false;
-          const isBr = movieHasCountry(m, 'br', unCountryDefMap);
-          const isUs = movieHasCountry(m, 'us', unCountryDefMap);
-          return !isBr && !isUs;
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `Fora do BR e EUA (${m.primaryCountryName || 'Estrangeiro'})`,
-          `Pendente: [${reqTag}] fora de BR e EUA`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_official_streaming_count': {
-        const reqTag = def.target_metadata?.tag || 'Em Família';
-        const matchingMovies = catalogMovies.filter((m) => {
-          if (!movieHasTag(m, reqTag)) return false;
-          const plat = (m.viewingPlatform || m.platform || '').toString();
-          return isOfficialStreaming(plat);
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `Streaming Oficial: ${m.viewingPlatform || m.platform}`,
-          `Pendente: [${reqTag}] em streaming oficial`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_and_any_of_tags': {
-        const reqTag = def.target_metadata?.tag || 'Em Família';
-        const orTags = def.target_metadata?.orTags || [];
-        const matchingMovies = catalogMovies.filter((m) => {
-          if (!movieHasTag(m, reqTag)) return false;
-          return orTags.some((ot) => movieHasTag(m, ot));
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => {
-            const matchedTag = orTags.find((ot) => movieHasTag(m, ot)) || '';
-            return `Tag [${reqTag}] + [${matchedTag}]`;
-          },
-          `Pendente: [${reqTag}] + [${orTags.join(' / ')}]`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_distinct_countries_count': {
-        const reqTag = def.target_metadata?.tag || 'Em Família';
-        const matchingMovies = catalogMovies.filter((m) => movieHasTag(m, reqTag));
-        const countryMap = new Map();
-        for (const m of matchingMovies) {
-          const cCode = resolveClientPrimaryCountryCode195(m);
-          if (!cCode) continue;
-          if (!countryMap.has(cCode)) countryMap.set(cCode, []);
-          countryMap.get(cCode).push(m);
-        }
-        const distinctCountries = Array.from(countryMap.keys());
-        progressTarget = def.target_value;
-        progressCurrent = Math.min(progressTarget, distinctCountries.length);
-        isMet = distinctCountries.length >= progressTarget;
-
-        for (let i = 0; i < progressTarget; i++) {
-          if (i < distinctCountries.length) {
-            const cCode = distinctCountries[i];
-            const unDef = unCountryDefMap.get(cCode);
-            const cName = unDef ? unDef.name : cCode.toUpperCase();
-            const firstMovie = countryMap.get(cCode)[0];
-            checklist.push({
-              id: `tag_country_${i + 1}`,
-              code: cCode,
-              flag: cCode,
-              name: `País ${i + 1}: ${cName}`,
-              required: 1,
-              current: 1,
-              conquered: true,
-              extra_info: `✅ Conquistado no Desafio 195 (${firstMovie.title})`,
-            });
-          } else {
-            checklist.push({
-              id: `tag_country_${i + 1}`,
-              name: `País ${i + 1}`,
-              required: 1,
-              current: 0,
-              conquered: false,
-              extra_info: `🔒 Pendente: Novo país com tag [${reqTag}]`,
-            });
-          }
-        }
-        break;
-      }
-
-      case 'movies_min_tags_count': {
-        const minTags = def.target_metadata?.minTags || 7;
-        const matchingMovies = catalogMovies.filter((m) => {
-          const t = Array.isArray(m.tags) ? m.tags.filter((x) => Boolean(x && String(x).trim())) : [];
-          return t.length >= minTags;
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `${(Array.isArray(m.tags) ? m.tags : []).length} tags vinculadas`,
-          `Pendente: filme com ${minTags}+ tags`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      // ==========================================
-      // CASOS ESPECIAIS: MEMES, GAMES E HOMENAGENS
-      // ==========================================
-      case 'terror_tragico_min_rating': {
-        const reqGenre = def.target_metadata?.genre || 'Terror';
-        const reqTag = def.target_metadata?.tag || 'Trágico';
-        const rawMin = def.target_metadata?.minRating || 8500;
-        const minRatingMillis = rawMin > 10 ? rawMin : Math.round(rawMin * 1000);
-        const matchingMovies = catalogMovies.filter((m) => {
-          if (!movieHasGenre(m, reqGenre) || !movieHasTag(m, reqTag)) return false;
-          const { ur } = extractCriticMetrics(m);
-          const urMillis = ur !== null ? Math.round(ur * 1000) : null;
-          return urMillis !== null && urMillis > minRatingMillis;
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => {
-            const { ur } = extractCriticMetrics(m);
-            return `${reqGenre} + [${reqTag}] | Minha Nota: ${ur !== null ? ur.toFixed(3) : '-'} (> 8.500)`;
-          },
-          `Pendente: ${reqGenre} com [${reqTag}] e Minha Nota > 8.500`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'rt_lt_ur_gte_count': {
-        const maxRt = def.target_metadata?.maxRt ?? 40;
-        const rawMin = def.target_metadata?.minRating || 8000;
-        const minRatingMillis = rawMin > 10 ? rawMin : Math.round(rawMin * 1000);
-        const matchingMovies = catalogMovies.filter((m) => {
-          const { ur, rt } = extractCriticMetrics(m);
-          if (rt === null || isNaN(rt) || rt >= maxRt) return false;
-          const urMillis = ur !== null ? Math.round(ur * 1000) : null;
-          return urMillis !== null && urMillis >= minRatingMillis;
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => {
-            const { ur, rt } = extractCriticMetrics(m);
-            return `RT: ${rt}% (< ${maxRt}%) | Minha Nota: ${ur !== null ? ur.toFixed(3) : '-'} (>= ${(minRatingMillis / 1000).toFixed(1)})`;
-          },
-          `Pendente: RT < ${maxRt}% com Minha Nota >= ${(minRatingMillis / 1000).toFixed(1)}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tags_or_physical_media_count': {
-        const orTags = def.target_metadata?.orTags || ['Trágico', 'Emocionante'];
-        const matchingMovies = catalogMovies.filter((m) => {
-          const hasAnyTag = orTags.some((t) => movieHasTag(m, t));
-          if (!hasAnyTag) return false;
-          const plat = getMoviePlatform(m);
-          return isPhysicalMedia(plat);
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => {
-            const matchedTag = orTags.find((t) => movieHasTag(m, t)) || 'Tag';
-            const plat = getMoviePlatform(m);
-            return `Tag [${matchedTag}] em Mídia Física (${plat})`;
-          },
-          `Pendente: [${orTags.join(' / ')}] em Mídia Física (Blu-ray ou DVD)`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_and_genres_or_year_range': {
-        const reqTag = def.target_metadata?.tag || 'Repetido';
-        const orGenres = def.target_metadata?.orGenres || ['Crime', 'Ação'];
-        const minYear = def.target_metadata?.minYear || 1990;
-        const maxYear = def.target_metadata?.maxYear || 2004;
-        const matchingMovies = catalogMovies.filter((m) => {
-          if (!movieHasTag(m, reqTag)) return false;
-          const hasAnyGenre = orGenres.some((g) => movieHasGenre(m, g));
-          if (!hasAnyGenre) return false;
-          const relYear = getMovieReleaseYear(m);
-          return relYear !== null && relYear >= minYear && relYear <= maxYear;
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => {
-            const matchedGenre = orGenres.find((g) => movieHasGenre(m, g)) || 'Gênero';
-            const relYear = getMovieReleaseYear(m);
-            return `Tag [${reqTag}] | ${matchedGenre} | Lançado em ${relYear}`;
-          },
-          `Pendente: [${reqTag}] de ${orGenres.join(' ou ')} (${minYear}-${maxYear})`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'hyrule_triforce_checklist': {
-        const poderTarget = Number(def.target_metadata?.poderTarget || 10);
-        const sabedoriaTarget = Number(def.target_metadata?.sabedoriaTarget || 10);
-        const coragemTarget = Number(def.target_metadata?.coragemTarget || 10);
-        progressTarget = poderTarget + sabedoriaTarget + coragemTarget;
-
-        const usedMovieIds = new Set();
-
-        // 1. Trilha do Poder (10): Ação ou Guerra com duração > 140 min
-        const poderCandidates = catalogMovies.filter((m) => {
-          const hasGenre = movieHasGenre(m, 'Ação') || movieHasGenre(m, 'Guerra');
-          return hasGenre && getMovieRuntime(m) > 140;
-        });
-        let poderCount = 0;
-        for (let i = 0; i < poderTarget; i++) {
-          const m = poderCandidates.find((c) => !usedMovieIds.has(c.movie_id || c.id));
-          if (m && poderCount < poderTarget) {
-            usedMovieIds.add(m.movie_id || m.id);
-            poderCount++;
-            checklist.push({
-              id: `${def.id}_poder_${i + 1}`,
-              name: `Trilha do Poder: ${m.title}${m.release_year ? ` (${m.release_year})` : ''}`,
-              required: 1,
-              current: 1,
-              conquered: true,
-              movie_title: m.title,
-              movie_year: m.release_year,
-              poster_url: m.poster_url || null,
-              extra_info: `Duração: ${getMovieRuntime(m)} min | ${(m.genres || []).filter((g) => ['Ação', 'Guerra'].includes(g)).join('/')}`,
-            });
-          } else {
-            checklist.push({
-              id: `${def.id}_poder_${i + 1}`,
-              name: `Trilha do Poder #${i + 1} (Ação/Guerra > 140m)`,
-              required: 1,
-              current: 0,
-              conquered: false,
-              extra_info: '🔒 Pendente',
-            });
-          }
-        }
-
-        // 2. Trilha da Sabedoria (10): Documentário, História ou Biografia com Minha Nota >= 8.000
-        const sabedoriaCandidates = catalogMovies.filter((m) => {
-          const hasGenre =
-            movieHasGenre(m, 'Documentário') ||
-            movieHasGenre(m, 'Documentario') ||
-            movieHasGenre(m, 'História') ||
-            movieHasGenre(m, 'Historia') ||
-            movieHasGenre(m, 'Biografia');
-          if (!hasGenre) return false;
-          const { ur } = extractCriticMetrics(m);
-          const urMillis = ur !== null ? Math.round(ur * 1000) : null;
-          return urMillis !== null && urMillis >= 8000;
-        });
-        let sabedoriaCount = 0;
-        for (let i = 0; i < sabedoriaTarget; i++) {
-          const m = sabedoriaCandidates.find((c) => !usedMovieIds.has(c.movie_id || c.id));
-          if (m && sabedoriaCount < sabedoriaTarget) {
-            usedMovieIds.add(m.movie_id || m.id);
-            sabedoriaCount++;
-            const { ur } = extractCriticMetrics(m);
-            checklist.push({
-              id: `${def.id}_sabedoria_${i + 1}`,
-              name: `Trilha da Sabedoria: ${m.title}${m.release_year ? ` (${m.release_year})` : ''}`,
-              required: 1,
-              current: 1,
-              conquered: true,
-              movie_title: m.title,
-              movie_year: m.release_year,
-              poster_url: m.poster_url || null,
-              extra_info: `Minha Nota: ${ur !== null ? ur.toFixed(3) : '8.000+'} | ${(m.genres || []).filter((g) => ['Documentário', 'Documentario', 'História', 'Historia', 'Biografia'].includes(g)).join('/')}`,
-            });
-          } else {
-            checklist.push({
-              id: `${def.id}_sabedoria_${i + 1}`,
-              name: `Trilha da Sabedoria #${i + 1} (Doc/Hist/Bio c/ Nota ≥ 8.000)`,
-              required: 1,
-              current: 0,
-              conquered: false,
-              extra_info: '🔒 Pendente',
-            });
-          }
-        }
-
-        // 3. Trilha da Coragem (10): Terror com tag Demônio, Gore ou Fantasma
-        const coragemCandidates = catalogMovies.filter((m) => {
-          if (!movieHasGenre(m, 'Terror')) return false;
-          return (
-            movieHasTag(m, 'Demônio') ||
-            movieHasTag(m, 'Demonio') ||
-            movieHasTag(m, 'Gore') ||
-            movieHasTag(m, 'Fantasma')
-          );
-        });
-        let coragemCount = 0;
-        for (let i = 0; i < coragemTarget; i++) {
-          const m = coragemCandidates.find((c) => !usedMovieIds.has(c.movie_id || c.id));
-          if (m && coragemCount < coragemTarget) {
-            usedMovieIds.add(m.movie_id || m.id);
-            coragemCount++;
-            const matchedTag = ['Demônio', 'Demonio', 'Gore', 'Fantasma'].find((t) => movieHasTag(m, t)) || 'Terror';
-            checklist.push({
-              id: `${def.id}_coragem_${i + 1}`,
-              name: `Trilha da Coragem: ${m.title}${m.release_year ? ` (${m.release_year})` : ''}`,
-              required: 1,
-              current: 1,
-              conquered: true,
-              movie_title: m.title,
-              movie_year: m.release_year,
-              poster_url: m.poster_url || null,
-              extra_info: `Terror com Tag [${matchedTag}]`,
-            });
-          } else {
-            checklist.push({
-              id: `${def.id}_coragem_${i + 1}`,
-              name: `Trilha da Coragem #${i + 1} (Terror c/ Demônio, Gore ou Fantasma)`,
-              required: 1,
-              current: 0,
-              conquered: false,
-              extra_info: '🔒 Pendente',
-            });
-          }
-        }
-
-        progressCurrent = poderCount + sabedoriaCount + coragemCount;
-        isMet = poderCount >= poderTarget && sabedoriaCount >= sabedoriaTarget && coragemCount >= coragemTarget;
-        break;
-      }
-
-      case 'tag_decades_checklist': {
-        const reqTag = def.target_metadata?.tag || 'Bruxo';
-        const decades = def.target_metadata?.decades || [1960, 1970, 1980, 1990, 2000, 2010, 2020, 2030];
-        progressTarget = def.target_value || decades.length;
-        let countDecades = 0;
-
-        for (const dec of decades) {
-          const m = catalogMovies.find((cm) => {
-            if (!movieHasTag(cm, reqTag)) return false;
-            const y = getMovieReleaseYear(cm);
-            return y !== null && y >= dec && y <= dec + 9;
-          });
-
-          if (m) {
-            countDecades++;
-            checklist.push({
-              id: `${def.id}_dec_${dec}`,
-              name: `Década de ${dec}s`,
-              required: 1,
-              current: 1,
-              conquered: true,
-              movie_title: m.title,
-              movie_year: m.release_year,
-              poster_url: m.poster_url || null,
-              extra_info: `✅ Conquistado (${m.title} - ${m.release_year})`,
-            });
-          } else {
-            checklist.push({
-              id: `${def.id}_dec_${dec}`,
-              name: `Década de ${dec}s`,
-              required: 1,
-              current: 0,
-              conquered: false,
-              extra_info: `🔒 Pendente (filme dos anos ${dec} c/ tag [${reqTag}])`,
-            });
-          }
-        }
-
-        progressCurrent = countDecades;
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'genres_or_decade_range_count': {
-        const genres = def.target_metadata?.genres || ['Ação', 'Aventura'];
-        const minYear = Number(def.target_metadata?.minYear || 1980);
-        const maxYear = Number(def.target_metadata?.maxYear || 1989);
-        const matchingMovies = catalogMovies.filter((m) => {
-          const hasAnyGenre = genres.some((g) => movieHasGenre(m, g));
-          if (!hasAnyGenre) return false;
-          const y = getMovieReleaseYear(m);
-          return y !== null && y >= minYear && y <= maxYear;
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => {
-            const matched = genres.filter((g) => movieHasGenre(m, g)).join('/');
-            return `${matched} (${m.release_year})`;
-          },
-          `Pendente: ${genres.join(' ou ')} (${minYear}-${maxYear})`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'multi_critic_range_count': {
-        const digit = Number(def.target_metadata?.digit || 6);
-        const minMetrics = Number(def.target_metadata?.minDistinctMetrics || 3);
-        const matchingMovies = catalogMovies.filter((m) => {
-          const { ur, imdb, mc, rt } = extractCriticMetrics(m);
-          const urMillis = ur !== null ? Math.round(ur * 1000) : null;
-          const inRt = rt !== null && rt >= digit * 10 && rt <= digit * 10 + 9;
-          const inMc = mc !== null && mc >= digit * 10 && mc <= digit * 10 + 9;
-          const inImdb = imdb !== null && imdb >= digit && imdb < digit + 1;
-          const inUr = urMillis !== null && urMillis >= digit * 1000 && urMillis <= digit * 1000 + 999;
-          const count = (inRt ? 1 : 0) + (inMc ? 1 : 0) + (inImdb ? 1 : 0) + (inUr ? 1 : 0);
-          return count >= minMetrics;
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => {
-            const { ur, imdb, mc, rt } = extractCriticMetrics(m);
-            const urMillis = ur !== null ? Math.round(ur * 1000) : null;
-            const parts = [];
-            if (rt !== null && rt >= digit * 10 && rt <= digit * 10 + 9) parts.push(`RT: ${rt}%`);
-            if (mc !== null && mc >= digit * 10 && mc <= digit * 10 + 9) parts.push(`MC: ${mc}`);
-            if (imdb !== null && imdb >= digit && imdb < digit + 1) parts.push(`IMDb: ${imdb.toFixed(1)}`);
-            if (urMillis !== null && urMillis >= digit * 1000 && urMillis <= digit * 1000 + 999) parts.push(`Nota: ${ur.toFixed(3)}`);
-            return parts.join(' | ');
-          },
-          `Pendente: filme com 3+ notas na faixa do ${digit}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'genre_and_tag_and_any_tag': {
-        const reqGenre = def.target_metadata?.genre || 'Drama';
-        const reqTag = def.target_metadata?.requiredTag || 'Em Família';
-        const orTags = def.target_metadata?.orTags || ['Abuso Familiar', 'Preconceito'];
-        const matchingMovies = catalogMovies.filter((m) => {
-          if (!movieHasGenre(m, reqGenre)) return false;
-          if (!movieHasTag(m, reqTag)) return false;
-          return orTags.some((t) => movieHasTag(m, t));
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => {
-            const matchedOr = orTags.find((t) => movieHasTag(m, t)) || 'Tag';
-            return `${reqGenre} + [${reqTag}] + [${matchedOr}]`;
-          },
-          `Pendente: ${reqGenre} com [${reqTag}] e [${orTags.join(' ou ')}]`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'genres_or_and_tags_and': {
-        const genres = def.target_metadata?.genres || ['Terror', 'Suspense'];
-        const requiredTags = def.target_metadata?.requiredTags || ['Trágico', 'Final Epico'];
-        const matchingMovies = catalogMovies.filter((m) => {
-          const hasAnyGenre = genres.some((g) => movieHasGenre(m, g));
-          if (!hasAnyGenre) return false;
-          return requiredTags.every((t) => movieHasTag(m, t));
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => {
-            const matchedGenre = genres.find((g) => movieHasGenre(m, g)) || 'Gênero';
-            return `${matchedGenre} | [${requiredTags.join(' + ')}]`;
-          },
-          `Pendente: ${genres.join(' ou ')} com tags [${requiredTags.join(' e ')}]`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'genre_and_tags_or_max_rating': {
-        const reqGenre = def.target_metadata?.genre || 'Ficção Científica';
-        const orTags = def.target_metadata?.orTags || ['Dystopia', 'Viagem no Tempo'];
-        const rawMax = def.target_metadata?.maxRating || 5000;
-        const maxRatingMillis = rawMax > 10 ? rawMax : Math.round(rawMax * 1000);
-        const matchingMovies = catalogMovies.filter((m) => {
-          if (!movieHasGenre(m, reqGenre)) return false;
-          const hasOrTag = orTags.some((t) => movieHasTag(m, t));
-          if (!hasOrTag) return false;
-          const { ur } = extractCriticMetrics(m);
-          const urMillis = ur !== null ? Math.round(ur * 1000) : null;
-          return urMillis !== null && urMillis < maxRatingMillis;
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => {
-            const matchedTag = orTags.find((t) => movieHasTag(m, t)) || 'Tag';
-            const { ur } = extractCriticMetrics(m);
-            return `${reqGenre} [${matchedTag}] | Minha Nota: ${ur !== null ? ur.toFixed(3) : '-'}`;
-          },
-          `Pendente: ${reqGenre} c/ [${orTags.join(' ou ')}] e Minha Nota < ${(maxRatingMillis / 1000).toFixed(1)}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'stealth_suspense_crime_count': {
-        const incGenres = def.target_metadata?.includeGenres || ['Suspense', 'Crime'];
-        const incTags = def.target_metadata?.includeTags || ['Fatos reais', 'Sequestro'];
-        const excGenres = def.target_metadata?.excludeGenres || ['Ação'];
-        const excTags = def.target_metadata?.excludeTags || ['Gore'];
-
-        const matchingMovies = catalogMovies.filter((m) => {
-          const hasIncGenre = incGenres.some((g) => movieHasGenre(m, g));
-          if (!hasIncGenre) return false;
-          const hasIncTag = incTags.some((t) => movieHasTag(m, t));
-          if (!hasIncTag) return false;
-          const hasExcGenre = excGenres.some((g) => movieHasGenre(m, g));
-          if (hasExcGenre) return false;
-          const hasExcTag = excTags.some((t) => movieHasTag(m, t));
-          if (hasExcTag) return false;
-          return true;
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => {
-            const g = incGenres.find((genre) => movieHasGenre(m, genre)) || 'Gênero';
-            const t = incTags.find((tag) => movieHasTag(m, tag)) || 'Tag';
-            return `${g} + [${t}] (Sem Ação/Gore)`;
-          },
-          `Pendente: Suspense/Crime com [${incTags.join(' ou ')}] (sem Ação e sem Gore)`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'genre_max_runtime_count': {
-        const reqGenre = def.target_metadata?.genre || 'Ação';
-        const maxRuntime = Number(def.target_metadata?.maxRuntime || 90);
-        const matchingMovies = catalogMovies.filter((m) => {
-          if (!movieHasGenre(m, reqGenre)) return false;
-          const r = getMovieRuntime(m);
-          return r > 0 && r <= maxRuntime;
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => `${reqGenre} (${getMovieRuntime(m)} min)`,
-          `Pendente: ${reqGenre} com até ${maxRuntime} min`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'tag_max_rating_count': {
-        const reqTag = def.target_metadata?.tag || 'Fatos reais';
-        const rawMax = def.target_metadata?.maxRating || 6000;
-        const maxRatingMillis = rawMax > 10 ? rawMax : Math.round(rawMax * 1000);
-        const matchingMovies = catalogMovies.filter((m) => {
-          if (!movieHasTag(m, reqTag)) return false;
-          const { ur } = extractCriticMetrics(m);
-          const urMillis = ur !== null ? Math.round(ur * 1000) : null;
-          return urMillis !== null && urMillis < maxRatingMillis;
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => {
-            const { ur } = extractCriticMetrics(m);
-            return `Tag [${reqTag}] | Minha Nota: ${ur !== null ? ur.toFixed(3) : '-'}`;
-          },
-          `Pendente: [${reqTag}] com Minha Nota < ${(maxRatingMillis / 1000).toFixed(1)}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'bomba_ray_tracing_count': {
-        const genres = def.target_metadata?.genres || ['Ficção Científica', 'Ação'];
-        const minYear = Number(def.target_metadata?.minYear || 2021);
-        const minReviews = Number(def.target_metadata?.minGlobalReviews || 500000);
-        const rawMax = def.target_metadata?.maxRating || 5000;
-        const maxRatingMillis = rawMax > 10 ? rawMax : Math.round(rawMax * 1000);
-
-        const matchingMovies = catalogMovies.filter((m) => {
-          const hasAnyGenre = genres.some((g) => movieHasGenre(m, g));
-          if (!hasAnyGenre) return false;
-          const y = getMovieReleaseYear(m);
-          if (y === null || y < minYear) return false;
-          const { ur, gr } = extractCriticMetrics(m);
-          if (gr === null || gr <= minReviews) return false;
-          const urMillis = ur !== null ? Math.round(ur * 1000) : null;
-          return urMillis !== null && urMillis < maxRatingMillis;
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => {
-            const { ur, gr } = extractCriticMetrics(m);
-            return `${m.release_year} | Reviews: ${gr?.toLocaleString('pt-BR')} | Minha Nota: ${ur !== null ? ur.toFixed(3) : '-'}`;
-          },
-          `Pendente: Ficção/Ação >= ${minYear} c/ > ${minReviews.toLocaleString('pt-BR')} reviews e Nota < ${(maxRatingMillis / 1000).toFixed(1)}`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      case 'cinema_specific_months_count': {
-        const months = def.target_metadata?.months || [2, 3, 9];
-        const matchingMovies = catalogMovies.filter((m) => {
-          const plat = getMoviePlatform(m);
-          return isCinema(plat) && movieInMonth(m, months);
-        });
-        progressTarget = def.target_value;
-        const res = buildMovieSlotsChecklist(
-          matchingMovies,
-          progressTarget,
-          (m) => {
-            const mIdx = Number(m.month_seen);
-            return `Cinema em ${MONTH_NAMES[mIdx] || `Mês ${mIdx}`}`;
-          },
-          `Pendente: Filme no Cinema em Fevereiro, Março ou Setembro`
-        );
-        progressCurrent = res.progressCurrent;
-        checklist.push(...res.checklist);
-        isMet = progressCurrent >= progressTarget;
-        break;
-      }
-
-      default:
-        break;
-    }
-
-    const testOverride = testOverrides[def.id] ?? null;
-    let finalUnlocked = isMet;
-    if (testOverride === true) finalUnlocked = true;
-    if (testOverride === false) finalUnlocked = false;
-
-    const progressPct = progressTarget > 0 ? Math.min(100, Math.round((progressCurrent / progressTarget) * 100)) : 0;
-
-    evaluatedTrophies.push({
-      id: def.id,
-      category: def.category,
-      categories: def.categories || (def.target_metadata?.isHybrid ? ['volta_ao_mundo', 'dna_cinefilo'] : [def.category]),
-      tier: def.tier,
-      title: def.title,
-      description: def.description,
-      icon: def.icon,
-      target_type: def.target_type,
-      target_value: def.target_value,
-      target_metadata: def.target_metadata,
-      sort_order: def.sort_order,
-      is_unlocked: finalUnlocked,
-      unlocked_at: (() => {
-        const prevAt = previousTrophiesMap.get(def.id)?.unlocked_at;
-        if (prevAt) return testOverride === false ? null : prevAt;
-        return finalUnlocked ? new Date().toISOString() : null;
-      })(),
-      progress_current: progressCurrent,
-      progress_target: progressTarget,
-      progress_percentage: progressPct,
-      checklist,
-      is_new: false,
-      test_override: testOverride,
-    });
-  }
-
-  
-  // Platinas dinâmicas independentes por categoria
-  const platinumDefs = CLIENT_TROPHY_DEFINITIONS.filter(
-    (t) => t.tier === 'platinum' || t.target_type === 'platinum_dynamic' || t.target_type === 'platinum_all_category'
-  );
-  for (const platDef of platinumDefs) {
-    const targetCategory = platDef.target_metadata?.category || platDef.target_metadata?.categoryScope || platDef.category;
-    const nonPlat = evaluatedTrophies.filter((t) => {
-      if (t.id === platDef.id || t.tier === 'platinum' || t.target_type === 'platinum_dynamic' || t.target_type === 'platinum_all_category') return false;
-      const cats = Array.isArray(t.categories) && t.categories.length > 0 ? t.categories : [t.category];
-      return cats.includes(targetCategory);
-    });
-    const totalNonPlat = nonPlat.length;
-    const unlockedNonPlat = nonPlat.filter((t) => t.is_unlocked).length;
-    const platPct = totalNonPlat > 0 ? Math.round((unlockedNonPlat / totalNonPlat) * 100) : 0;
-    const isPlatMet = unlockedNonPlat === totalNonPlat && totalNonPlat > 0;
-
-    const testOverridePlat = testOverrides[platDef.id] ?? null;
-    let finalPlatUnlocked = isPlatMet;
-    if (testOverridePlat === true) finalPlatUnlocked = true;
-    if (testOverridePlat === false) finalPlatUnlocked = false;
-
-    const tierOrder = ['bronze', 'silver', 'epic', 'gold', 'mythic'];
-    const platChecklist = tierOrder.map((tr) => {
-      const inTier = nonPlat.filter((t) => t.tier === tr);
-      const unqInTier = inTier.filter((t) => t.is_unlocked).length;
-      return {
-        name: `${TIER_CONFIG[tr].symbol} Troféus de ${TIER_CONFIG[tr].name}`,
-        required: inTier.length,
-        current: unqInTier,
-        conquered: unqInTier === inTier.length && inTier.length > 0,
-        extra_info: `${unqInTier} de ${inTier.length} conquistados (${inTier.length > 0 ? Math.round((unqInTier / inTier.length) * 100) : 0}%)`,
-      };
-    });
-
-    evaluatedTrophies.push({
-      id: platDef.id,
-      category: platDef.category,
-      categories: platDef.categories || [platDef.category],
-      tier: platDef.tier,
-      title: platDef.title,
-      description: platDef.description,
-      icon: platDef.icon,
-      target_type: platDef.target_type,
-      target_value: totalNonPlat,
-      target_metadata: platDef.target_metadata,
-      sort_order: platDef.sort_order,
-      is_unlocked: finalPlatUnlocked,
-      unlocked_at: (() => {
-        const prevPlatAt = previousTrophiesMap.get(platDef.id)?.unlocked_at;
-        if (prevPlatAt) return testOverridePlat === false ? null : prevPlatAt;
-        return finalPlatUnlocked ? new Date().toISOString() : null;
-      })(),
-      progress_current: unlockedNonPlat,
-      progress_target: totalNonPlat,
-      progress_percentage: platPct,
-      checklist: platChecklist,
-      is_new: false,
-      test_override: testOverridePlat,
-    });
-  }
-
-
-  evaluatedTrophies.sort((a, b) => a.sort_order - b.sort_order);
-
-  const tierStats = {
-    bronze: { name: 'Bronze', color: '#CD7F32', symbol: '🥉', total: 0, unlocked: 0, percentage: 0 },
-    silver: { name: 'Prata', color: '#C0C0C0', symbol: '🥈', total: 0, unlocked: 0, percentage: 0 },
-    epic: { name: 'Épico', color: '#9B59B6', symbol: '💜', total: 0, unlocked: 0, percentage: 0 },
-    gold: { name: 'Ouro', color: '#FFD700', symbol: '🥇', total: 0, unlocked: 0, percentage: 0 },
-    mythic: { name: 'Mítico', color: '#EF4444', symbol: '💎', total: 0, unlocked: 0, percentage: 0 },
-    platinum: { name: 'Platina', color: '#E5E4E2', symbol: '🏆', total: 0, unlocked: 0, percentage: 0 },
-  };
-
-  let totalPoints = 0;
-  let earnedPoints = 0;
-
-  for (const t of evaluatedTrophies) {
-    const tr = t.tier;
-    const points = TIER_CONFIG[tr]?.points || 15;
-    tierStats[tr].total++;
-    totalPoints += points;
-    if (t.is_unlocked) {
-      tierStats[tr].unlocked++;
-      earnedPoints += points;
+      });
+
+      const active = ranks.find((r) => !r.is_unlocked) || ranks[ranks.length - 1];
+      cards.push({
+        ...def,
+        categories,
+        search_keywords: [def.title, def.description, ...ranks.map((r) => `${r.title} ${r.description}`)].join(' '),
+        is_unlocked: unlockedCount >= ranks.length,
+        unlocked_at: unlockedCount > 0 ? nowIso : null,
+        test_override: cardOverride,
+        is_new: false,
+        progress_current: active?.progress_current ?? raw.progressCurrent,
+        progress_target: active?.progress_target ?? raw.progressTarget,
+        progress_percentage: active?.progress_percentage ?? 0,
+        ranks,
+        unlocked_ranks_count: unlockedCount,
+        highest_unlocked_tier: highestTier,
+        checklist: raw.checklist,
+      });
+    } else {
+      const ov = testOverrides[def.id] !== undefined ? testOverrides[def.id] : prev?.test_override ?? null;
+      const isUnlocked = ov === true ? true : ov === false ? false : raw.isMet;
+      cards.push({
+        ...def,
+        categories,
+        search_keywords: `${def.title} ${def.description}`,
+        is_unlocked: isUnlocked,
+        unlocked_at: isUnlocked ? prev?.unlocked_at || nowIso : null,
+        test_override: ov,
+        is_new: false,
+        progress_current: raw.progressCurrent,
+        progress_target: raw.progressTarget,
+        progress_percentage: raw.progressTarget > 0 ? Math.min(100, Math.round((raw.progressCurrent / raw.progressTarget) * 100)) : 0,
+        checklist: raw.checklist,
+      });
     }
   }
 
-  for (const tr of Object.keys(tierStats)) {
-    const st = tierStats[tr];
-    st.percentage = st.total > 0 ? Math.round((st.unlocked / st.total) * 100) : 0;
+  for (const pDef of plats) {
+    const scopeCat = pDef.target_metadata?.categoryScope || pDef.target_metadata?.category || pDef.category;
+    const scoped = cards.filter((c) => c.category === scopeCat || (c.categories || []).includes(scopeCat));
+    let tot = 0, done = 0;
+    for (const c of scoped) {
+      if (c.kind === 'rank' && Array.isArray(c.ranks)) {
+        tot += c.ranks.length;
+        done += c.ranks.filter((r) => r.is_unlocked).length;
+      } else {
+        tot += 1;
+        if (c.is_unlocked) done += 1;
+      }
+    }
+    const ov = testOverrides[pDef.id] !== undefined ? testOverrides[pDef.id] : null;
+    const isUnlocked = ov === true ? true : ov === false ? false : tot > 0 && done >= tot;
+    cards.push({
+      ...pDef,
+      categories: pDef.categories || [pDef.category],
+      search_keywords: `${pDef.title} ${pDef.description}`,
+      is_unlocked: isUnlocked,
+      unlocked_at: isUnlocked ? nowIso : null,
+      test_override: ov,
+      is_new: false,
+      progress_current: done,
+      progress_target: tot,
+      progress_percentage: tot > 0 ? Math.min(100, Math.round((done / tot) * 100)) : 0,
+      checklist: scoped.map((c) => ({ id: c.id, name: c.title, required: 1, current: c.is_unlocked ? 1 : 0, conquered: c.is_unlocked })),
+    });
   }
 
-  const unlockedCount = evaluatedTrophies.filter((t) => t.is_unlocked).length;
-  const overallPercentage = evaluatedTrophies.length > 0 ? Math.round((unlockedCount / evaluatedTrophies.length) * 100) : 0;
+  cards.sort((a, b) => a.sort_order - b.sort_order);
+
+  const tierStats = {};
+  for (const [k, cfg] of Object.entries(TIER_CONFIG)) {
+    tierStats[k] = { name: cfg.name, symbol: cfg.symbol, color: cfg.color, total: 0, unlocked: 0, percentage: 0 };
+  }
+  let totalPoints = 0, earnedPoints = 0, unlockedCards = 0, totalAch = 0, unlockedAch = 0;
+  for (const c of cards) {
+    if (c.kind === 'rank' && Array.isArray(c.ranks)) {
+      if ((c.unlocked_ranks_count || 0) > 0) unlockedCards++;
+      for (const r of c.ranks) {
+        totalAch++;
+        const pts = TIER_CONFIG[r.tier]?.points || 15;
+        tierStats[r.tier].total++;
+        totalPoints += pts;
+        if (r.is_unlocked) { unlockedAch++; tierStats[r.tier].unlocked++; earnedPoints += pts; }
+      }
+    } else {
+      if (c.is_unlocked) unlockedCards++;
+      totalAch++;
+      const pts = TIER_CONFIG[c.tier]?.points || 15;
+      tierStats[c.tier].total++;
+      totalPoints += pts;
+      if (c.is_unlocked) { unlockedAch++; tierStats[c.tier].unlocked++; earnedPoints += pts; }
+    }
+  }
+  for (const st of Object.values(tierStats)) st.percentage = st.total > 0 ? Math.round((st.unlocked / st.total) * 100) : 0;
 
   return {
-    totalTrophies: evaluatedTrophies.length,
-    unlockedCount,
+    totalTrophies: cards.length,
+    totalAchievements: totalAch,
+    unlockedCount: unlockedCards,
+    unlockedAchievementsCount: unlockedAch,
+    overallPercentage: totalAch > 0 ? Math.round((unlockedAch / totalAch) * 100) : 0,
     totalPoints,
     earnedPoints,
-    overallPercentage,
     tierStats,
-    trophies: evaluatedTrophies,
+    trophies: cards,
     newlyUnlocked: [],
     progressedTrophies: [],
   };

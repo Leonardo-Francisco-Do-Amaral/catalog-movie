@@ -128,7 +128,7 @@ const FIXED_TIER_THEMES = {
 };
 
 export const RISING_STAR_RANK_X_TOOLTIP =
-  'Estrela em Ascensão (Rank X): diretores com até 7 filmes na carreira. Frase de set, curiosidades, foto própria, manias, obra-prima e auras já vêm liberados; apenas a figurinha exclusiva e o Show de Cartazes & Veredito desbloqueiam juntos ao atingir 80% da filmografia.';
+  'Estrela em Ascensão (Rank X → X+ → X++): diretores com teto enxuto de até 7 filmes na carreira. 40% (Rank X): libera a figurinha, Frase de Set, 1ª Curiosidade e Foto Própria (+70 XP). 80% (Rank X+): libera os marcos de 60% & 80% (Manias de Set, Curiosidades #2–#3 e Obra-Prima, +150 XP). 100% (Rank X++): libera o Cânone Total (Show de Cartazes e 10 Auras, +125 XP).';
 
 export const RISING_STAR_THEME = {
   id: 'rising_5_titanium_hud',
@@ -138,7 +138,7 @@ export const RISING_STAR_THEME = {
   name: 'Visor IMAX Titânio & Safira',
   badge: 'Visor IMAX',
   icon: '🌟',
-  pctHint: '80%+ • Rank X (Dossiê Liberado)',
+  pctHint: '40% / 80% / 100% • Rank X → X++',
   accentHex: '#38bdf8',
   frameBackground:
     'linear-gradient(135deg, #09090b 0%, #38bdf8 26%, #f8fafc 50%, #818cf8 74%, #09090b 100%)',
@@ -155,6 +155,70 @@ export const RISING_STAR_THEME = {
   filmHoleColor: 'rgba(224, 242, 254, 0.8)',
   filmCode: 'IMAX CAM',
 };
+
+export const RISING_STAR_STAGE_THEMES = {
+  silver: {
+    ...RISING_STAR_THEME,
+    key: 'silver',
+    shortTag: 'RANK X • 40%',
+    label: 'Estágio 1 • Rank X',
+    icon: '🌟',
+    pctHint: '40%+',
+    accentHex: '#38bdf8',
+    filmCode: 'IMAX • X',
+  },
+  mythic: {
+    ...RISING_STAR_THEME,
+    key: 'mythic',
+    shortTag: 'RANK X+ • 80%',
+    label: 'Estágio 2 • Rank X+',
+    icon: '⚡',
+    pctHint: '80%+',
+    accentHex: '#818cf8',
+    frameBackground:
+      'linear-gradient(135deg, #09090b 0%, #6366f1 24%, #e0e7ff 50%, #ec4899 76%, #09090b 100%)',
+    innerTrimColor: 'rgba(165, 180, 252, 0.95)',
+    boxShadow: '0 14px 36px -6px rgba(99, 102, 241, 0.56), 0 0 28px rgba(236, 72, 153, 0.34)',
+    badgeStyle: {
+      backgroundColor: 'rgba(30, 27, 75, 0.94)',
+      color: '#e0e7ff',
+      borderColor: '#818cf8',
+    },
+    filmCode: 'IMAX • X+',
+  },
+  diamond: {
+    ...RISING_STAR_THEME,
+    key: 'diamond',
+    shortTag: 'RANK X++ • 100%',
+    label: 'Estágio 3 • Rank X++',
+    icon: '👑',
+    pctHint: '100%',
+    accentHex: '#fde047',
+    frameBackground:
+      'linear-gradient(135deg, #09090b 0%, #38bdf8 22%, #ffffff 48%, #fde047 74%, #1e1b4b 100%)',
+    innerTrimColor: 'rgba(254, 240, 138, 0.96)',
+    boxShadow: '0 14px 42px rgba(255, 255, 255, 0.42), 0 0 32px rgba(250, 204, 21, 0.42)',
+    badgeStyle: {
+      backgroundColor: 'rgba(15, 23, 42, 0.94)',
+      color: '#fef9c3',
+      borderColor: '#fde047',
+    },
+    filmCode: 'IMAX • X++',
+  },
+};
+
+export function getRisingStarTheme(tierKey) {
+  if (!tierKey || tierKey === 'carving' || tierKey === 'cement') {
+    return {
+      ...DIRECTOR_TIER_THEMES.carving,
+      pctHint: '0%–39%',
+      label: 'Estrela em Ascensão (Bloqueada)',
+    };
+  }
+  if (tierKey === 'diamond') return RISING_STAR_STAGE_THEMES.diamond;
+  if (tierKey === 'mythic' || tierKey === 'gold') return RISING_STAR_STAGE_THEMES.mythic;
+  return RISING_STAR_STAGE_THEMES.silver;
+}
 
 export const DIRECTOR_TIER_THEMES = {
   carving: {
@@ -412,12 +476,28 @@ export const DIRECTOR_MILESTONE_XP = {
   90: 125,
 };
 
+export const RISING_STAR_MILESTONE_XP = {
+  40: 70,
+  80: 150,
+  100: 125,
+};
+
 export const WALK_EXTRA_STAR_XP = 60;
 export const WALK_FILMS_PER_EXTRA_STAR = 2;
 
-export function computeWalkXpClient(percentage = 0, extraStars = 0, isDirector = false) {
+export function computeWalkXpClient(
+  percentage = 0,
+  extraStars = 0,
+  isDirector = false,
+  isNewEraVisionary = false
+) {
   let xp = 0;
-  const table = isDirector ? DIRECTOR_MILESTONE_XP : WALK_MILESTONE_XP;
+  const table =
+    isDirector && isNewEraVisionary
+      ? RISING_STAR_MILESTONE_XP
+      : isDirector
+      ? DIRECTOR_MILESTONE_XP
+      : WALK_MILESTONE_XP;
   for (const [th, reward] of Object.entries(table)) {
     if (percentage >= Number(th)) xp += reward;
   }
@@ -431,7 +511,12 @@ export function resolveWalkRpgRank(
   isDirector = false,
   isNewEraVisionary = false
 ) {
-  if (isDirector && isNewEraVisionary) return 'X';
+  if (isDirector && isNewEraVisionary) {
+    if (percentage >= 100) return 'X++';
+    if (percentage >= 80) return 'X+';
+    if (percentage >= 40) return 'X';
+    return 'E';
+  }
   if (percentage >= 90 && extraStars > 0) return 'SS';
   if (percentage >= 90) return 'S';
   if (isDirector) {
@@ -457,11 +542,13 @@ export const WALK_CAR_POINTS_BY_RANK = {
   'A+': 0.5,
   S: 0.6,
   SS: 0.7,
-  X: 0.5,
+  X: 0.3,
+  'X+': 0.5,
+  'X++': 0.7,
 };
 
 export const ACTOR_RANK_ORDER = ['D', 'C', 'B', 'A', 'A+', 'S', 'SS'];
-export const DIRECTOR_RANK_ORDER = ['C', 'B', 'A', 'A+', 'S', 'SS', 'X'];
+export const DIRECTOR_RANK_ORDER = ['C', 'B', 'A', 'A+', 'S', 'SS', 'X', 'X+', 'X++'];
 
 export const WALK_RANK_DISPLAY_META = {
   D: {
@@ -542,9 +629,31 @@ export const WALK_RANK_DISPLAY_META = {
     badgeClass:
       'bg-gradient-to-r from-sky-500/35 via-indigo-500/35 to-cyan-400/35 text-sky-100 border-sky-300/85',
     barGradient: 'from-sky-400 via-indigo-400 to-cyan-300',
+    points: 0.3,
+    actorHint: null,
+    directorHint: '≤7 filmes • 40%–79%',
+  },
+  'X+': {
+    rank: 'X+',
+    label: 'Estrela em Ascensão • Rank X+',
+    shortLabel: 'Rank X+',
+    badgeClass:
+      'bg-gradient-to-r from-indigo-500/35 via-fuchsia-500/30 to-sky-400/35 text-indigo-100 border-indigo-300/85',
+    barGradient: 'from-indigo-400 via-fuchsia-400 to-sky-300',
     points: 0.5,
     actorHint: null,
-    directorHint: '≤7 filmes • 80%+',
+    directorHint: '≤7 filmes • 80%–99%',
+  },
+  'X++': {
+    rank: 'X++',
+    label: 'Estrela em Ascensão • Rank X++',
+    shortLabel: 'Rank X++',
+    badgeClass:
+      'bg-gradient-to-r from-amber-400/35 via-sky-400/35 to-fuchsia-400/35 text-amber-100 border-amber-300/90',
+    barGradient: 'from-amber-300 via-white to-sky-400',
+    points: 0.7,
+    actorHint: null,
+    directorHint: '≤7 filmes • 100%',
   },
 };
 
@@ -557,7 +666,10 @@ export function resolveWalkRpgRankFromTier(
   const key = String(tierKey || '').toLowerCase();
   if (!key || key === 'cement' || key === 'carving') return 'E';
   if (isDirector && isNewEraVisionary) {
-    return key === 'diamond' ? 'X' : 'E';
+    if (key === 'diamond') return 'X++';
+    if (key === 'mythic' || key === 'gold') return 'X+';
+    if (key === 'silver' || key === 'bronze' || key === 'epic') return 'X';
+    return 'E';
   }
   if (key === 'diamond') return extraStars > 0 ? 'SS' : 'S';
   if (key === 'mythic') return 'A+';
@@ -674,12 +786,28 @@ export const DUBLADOR_UNLOCK_ROADMAP = [
 
 export const RISING_STAR_UNLOCK_ROADMAP = [
   {
-    pct: 80,
-    xpReward: 345,
-    tierKey: 'diamond',
+    pct: 40,
+    xpReward: 70,
+    tierKey: 'silver',
     icon: '🌟',
-    title: 'Estrela em Ascensão (Rank X) — Figurinha Exclusiva + 🃏 Show de Cartazes',
-    short: '80% Figurinha + Show de Cartazes (Rank X)',
+    title: 'Rank X (40%) — Figurinha + Frase de Set + Curiosidade #1 + Foto Própria',
+    short: '40% Rank X: Figurinha + Marco 40% (+70 XP)',
+  },
+  {
+    pct: 80,
+    xpReward: 150,
+    tierKey: 'mythic',
+    icon: '⚡',
+    title: 'Rank X+ (80%) — DNA Autoral & Manias (60%) + Curiosidades #2–#3 + Obra-Prima',
+    short: '80% Rank X+: Marcos 60% & 80% (+150 XP)',
+  },
+  {
+    pct: 100,
+    xpReward: 125,
+    tierKey: 'diamond',
+    icon: '👑',
+    title: 'Rank X++ (100%) — Cânone Total: Show de Cartazes (Oscar & Framboesa) + 10 Auras',
+    short: '100% Rank X++: Tudo Restante (+125 XP)',
   },
 ];
 
@@ -725,14 +853,14 @@ export function tierKeyForPct(pct, isDirector = false) {
 export function resolveUnlocksForPct(pct, isDirector = false, isNewEraVisionary = false, isDublador = false) {
   if (isDirector && isNewEraVisionary) {
     return {
-      quoteUnlocked: true,
-      curiosity1Unlocked: true,
-      skinsUnlocked: true,
-      timelineUnlocked: true,
-      curiosities23Unlocked: true,
-      galaUnlocked: true,
-      immortalUnlocked: true,
-      verdictUnlocked: pct >= 80,
+      quoteUnlocked: pct >= 40,
+      curiosity1Unlocked: pct >= 40,
+      skinsUnlocked: pct >= 40,
+      timelineUnlocked: pct >= 80,
+      curiosities23Unlocked: pct >= 80,
+      galaUnlocked: pct >= 80,
+      immortalUnlocked: pct >= 100,
+      verdictUnlocked: pct >= 100,
       voiceClipsUnlocked: false,
     };
   }
@@ -829,16 +957,18 @@ export function applySimulatedMilestoneToStar(star, simPct, simExtraStars = null
   const isNewEraVisionary = isDir && Boolean(star.isNewEraVisionary);
   const pct = simPct != null ? simPct : star.percentage;
   const tierKey = isNewEraVisionary
-    ? pct >= 80
+    ? pct >= 100
       ? 'diamond'
+      : pct >= 80
+      ? 'mythic'
+      : pct >= 40
+      ? 'silver'
       : pct > 0
       ? 'carving'
       : 'cement'
     : tierKeyForPct(pct, isDir);
   const theme = isNewEraVisionary
-    ? pct >= 80
-      ? RISING_STAR_THEME
-      : DIRECTOR_TIER_THEMES.carving
+    ? getRisingStarTheme(tierKey)
     : getThemeForTier(tierKey, isDir);
   const ceiling = Number(star.ceiling || 20);
   const extraStars =
@@ -1004,11 +1134,11 @@ export function applySimulatedMilestoneToStar(star, simPct, simExtraStars = null
   const baseMilestones = isNewEraVisionary
     ? RISING_STAR_UNLOCK_ROADMAP.map((r) => ({
         thresholdPct: r.pct,
-        id: 'estrela_ascensao_80',
+        id: `estrela_ascensao_${r.pct}`,
         tierKey: r.tierKey,
         label: r.title,
         icon: r.icon,
-        accentHex: '#38bdf8',
+        accentHex: getRisingStarTheme(r.tierKey).accentHex,
         xpReward: r.xpReward,
         targetCount: Math.max(1, Math.round((r.pct / 100) * ceiling)),
       }))
@@ -1028,9 +1158,14 @@ export function applySimulatedMilestoneToStar(star, simPct, simExtraStars = null
     remainingFilms: pct >= m.thresholdPct ? 0 : Math.max(1, (m.targetCount || 1) - simWatchedCount),
   }));
 
-  const unlockFloor = isDir ? (isNewEraVisionary ? 80 : 20) : 15;
+  const unlockFloor = isDir ? (isNewEraVisionary ? 40 : 20) : 15;
   const nextMilestone = nextMilestones.find((m) => !m.unlocked) || null;
-  const simPotentialXp = computeWalkXpClient(Math.min(100, pct), extraStars, isDir);
+  const simPotentialXp = computeWalkXpClient(
+    Math.min(100, pct),
+    extraStars,
+    isDir,
+    isNewEraVisionary
+  );
 
   return {
     ...star,
@@ -1045,7 +1180,7 @@ export function applySimulatedMilestoneToStar(star, simPct, simExtraStars = null
     accentHex: theme.accentHex,
     isStickerUnlocked: pct >= unlockFloor,
     isInaugurated: pct >= unlockFloor,
-    isDiamond: isNewEraVisionary ? pct >= 80 : pct >= 90,
+    isDiamond: isNewEraVisionary ? pct >= 100 : pct >= 90,
     isStuck: pct >= unlockFloor,
     stuckTier: pct >= unlockFloor ? tierKey : null,
     featuredMemberName: featuredMemberObj?.name || featuredMemberName,

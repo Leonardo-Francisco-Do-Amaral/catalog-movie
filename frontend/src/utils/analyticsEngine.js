@@ -7,7 +7,7 @@ import {
   calculateClientXpStatus,
 } from './xpSystem';
 import { CATEGORY_BADGE_CONFIG, getCleanTrophyTitle } from '../components/TrophyBadges';
-import { UN_COUNTRIES_195, getCountryRarityTier } from '../data/unCountries195';
+import { UN_COUNTRIES_195, HISTORICAL_TERRITORIES, getCountryRarityTier } from '../data/unCountries195';
 import {
   getWalkCarPointsForRank,
   isDirectorStar,
@@ -29,6 +29,14 @@ UN_COUNTRIES_195.forEach((c) => {
   UN_COUNTRY_BY_NAME.set(normalizeKey(c.name), c);
   if (Array.isArray(c.aliases)) {
     c.aliases.forEach((a) => UN_COUNTRY_BY_NAME.set(normalizeKey(a), c));
+  }
+});
+HISTORICAL_TERRITORIES.forEach((h) => {
+  const code = h.code.toLowerCase();
+  UN_COUNTRY_BY_CODE.set(code, h);
+  UN_COUNTRY_BY_NAME.set(normalizeKey(h.name), h);
+  if (Array.isArray(h.aliases)) {
+    h.aliases.forEach((a) => UN_COUNTRY_BY_NAME.set(normalizeKey(a), h));
   }
 });
 [['estados unidos', 'us'], ['usa', 'us'], ['eua', 'us'], ['brasil', 'br'], ['reino unido', 'gb'], ['uk', 'gb'], ['inglaterra', 'gb'], ['holanda', 'nl'], ['paises baixos', 'nl'], ['russia', 'ru'], ['coreia do sul', 'kr'], ['coreia do norte', 'kp']].forEach(([alias, code]) => {
@@ -333,7 +341,7 @@ export function computeRatingsPantheon(movies = []) {
   };
 }
 
-const RARITY_RANK_195 = { mythic: 5, legendary: 4, epic: 3, rare: 2, common: 1 };
+const RARITY_RANK_195 = { mythic: 6, relic: 5, legendary: 4, epic: 3, rare: 2, common: 1 };
 
 const OMDB_MONTH_MAP = {
   jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
@@ -1532,18 +1540,29 @@ export function computeRpgAndGuilds(
   // VIT (Caça-Troféus PS5): SÓ ao desbloquear troféu (Bronze 0.2, Prata 0.4, Épico 0.6, Ouro 0.8, Mítico 1.0, Platina 3.0)
   let vitSum = 0;
   let unlockedTrophiesCount = 0;
+  const weightForTier = (tier) => {
+    if (tier === 'platinum') return 3.0;
+    if (tier === 'mythic') return 1.0;
+    if (tier === 'gold') return 0.8;
+    if (tier === 'epic') return 0.6;
+    if (tier === 'silver') return 0.4;
+    return 0.2;
+  };
   if (trophiesList && trophiesList.length > 0) {
     trophiesList.forEach((t) => {
+      if (t.kind === 'rank' && Array.isArray(t.ranks) && t.ranks.length > 0) {
+        t.ranks.forEach((r) => {
+          if (r.is_unlocked) {
+            unlockedTrophiesCount++;
+            vitSum += weightForTier(String(r.tier || '').toLowerCase());
+          }
+        });
+        return;
+      }
       const isUnlocked = Boolean(t.is_unlocked || t.unlocked);
       if (isUnlocked) {
         unlockedTrophiesCount++;
-        const tier = String(t.tier || '').toLowerCase();
-        if (tier === 'platinum') vitSum += 3.0;
-        else if (tier === 'mythic') vitSum += 1.0;
-        else if (tier === 'gold') vitSum += 0.8;
-        else if (tier === 'epic') vitSum += 0.6;
-        else if (tier === 'silver') vitSum += 0.4;
-        else vitSum += 0.2;
+        vitSum += weightForTier(String(t.tier || '').toLowerCase());
       }
     });
   } else if (activeXp?.sources?.trophies?.byTier) {
@@ -1818,7 +1837,7 @@ export function computeRpgAndGuilds(
   if (Array.isArray(trophiesList) && trophiesList.length > 0) {
     const catMap = new Map();
     Object.keys(CATEGORY_BADGE_CONFIG).forEach((k) => {
-      if (k !== 'multi') {
+      if (k !== 'multi' && k !== 'sessao_secreta') {
         catMap.set(k, { key: k, ...CATEGORY_BADGE_CONFIG[k], unlocked: 0, total: 0 });
       }
     });
@@ -1831,6 +1850,42 @@ export function computeRpgAndGuilds(
         : t.category
         ? [t.category]
         : [];
+
+      const isRankCard = t.kind === 'rank' && Array.isArray(t.ranks) && t.ranks.length > 0;
+      if (isRankCard) {
+        const doneRanks = t.ranks.filter((r) => r.is_unlocked);
+        cats.forEach((ck) => {
+          if (catMap.has(ck)) {
+            const c = catMap.get(ck);
+            c.total += t.ranks.length;
+            c.unlocked += doneRanks.length;
+          }
+        });
+        doneRanks.forEach((r) => {
+          rarestUnlockedTrophies.push({
+            ...t,
+            id: r.id,
+            tier: r.tier,
+            title: r.title || t.title,
+            cleanTitle: getCleanTrophyTitle(r.title || t.title),
+            weight: tierWeight[String(r.tier || 'bronze').toLowerCase()] || 1,
+          });
+        });
+        if (!t.is_unlocked) {
+          const pct = Number(t.progress_percentage ?? 0);
+          if (pct >= 50 && pct < 100) {
+            almostThereQuests.push({
+              ...t,
+              cleanTitle: getCleanTrophyTitle(t.title),
+              pct: Math.round(pct),
+              currentVal: t.progress_current ?? 0,
+              targetVal: t.progress_target ?? 1,
+            });
+          }
+        }
+        return;
+      }
+
       cats.forEach((ck) => {
         if (catMap.has(ck)) {
           const c = catMap.get(ck);

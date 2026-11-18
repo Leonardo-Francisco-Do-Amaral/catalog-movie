@@ -47,6 +47,28 @@ const ISO_COUNTRY_OVERRIDES: Record<string, string> = {
   CN: 'China',
   HK: 'Hong Kong',
   TW: 'Taiwan',
+  MO: 'Macau',
+  GL: 'Groenlândia',
+  PR: 'Porto Rico',
+  XK: 'Kosovo',
+  FO: 'Ilhas Faroé',
+  PF: 'Polinésia Francesa',
+  NC: 'Nova Caledônia',
+  MQ: 'Martinica',
+  GP: 'Guadalupe',
+  RE: 'Ilha da Reunião',
+  CW: 'Curaçao',
+  AW: 'Aruba',
+  IM: 'Ilha de Man',
+  EH: 'Saara Ocidental',
+  BM: 'Bermudas',
+  GI: 'Gibraltar',
+  CK: 'Ilhas Cook',
+  GU: 'Guam',
+  AQ: 'Antártida',
+  AN: 'Antilhas Holandesas',
+  DD: 'Alemanha Oriental',
+  CS: 'Sérvia e Montenegro',
   TH: 'Tailândia',
   AU: 'Austrália',
   AT: 'Áustria',
@@ -163,6 +185,34 @@ export function normalizeCountryName(rawName: string): string {
   if (lower === 'tailandia' || lower === 'thailand') return 'Tailândia';
   if (lower === 'ucrania' || lower === 'ukraine') return 'Ucrânia';
   if (lower === 'uniao sovietica' || lower === 'urss' || lower === 'soviet union') return 'União Soviética';
+  if (lower === 'alemanha oriental' || lower === 'east germany' || lower === 'rda') return 'Alemanha Oriental';
+  if (lower === 'iugoslavia' || lower === 'jugoslavia' || lower === 'yugoslavia') return 'Iugoslávia';
+  if (lower === 'checoslovaquia' || lower === 'tchecoslovaquia' || lower === 'czechoslovakia') return 'Checoslováquia';
+  if (lower === 'servia e montenegro' || lower === 'serbia and montenegro') return 'Sérvia e Montenegro';
+  if (lower === 'antilhas holandesas' || lower === 'netherlands antilles') return 'Antilhas Holandesas';
+  if (lower === 'hong kong' || lower === 'hong kong, rae da china' || lower === 'hong kong s.a.r.') return 'Hong Kong';
+  if (lower === 'taiwan' || lower === 'formosa' || lower === 'chinese taipei') return 'Taiwan';
+  if (lower === 'macau' || lower === 'macao' || lower === 'macau, rae da china' || lower === 'macao s.a.r') return 'Macau';
+  if (lower === 'groenlandia' || lower === 'greenland') return 'Groenlândia';
+  if (lower === 'porto rico' || lower === 'puerto rico') return 'Porto Rico';
+  if (lower === 'kosovo') return 'Kosovo';
+  if (lower === 'ilhas faroe' || lower === 'faroe islands' || lower === 'faeroe is.') return 'Ilhas Faroé';
+  if (lower === 'tibete' || lower === 'tibet') return 'Tibete';
+  if (lower === 'curdistao' || lower === 'kurdistan') return 'Curdistão';
+  if (lower === 'polinesia francesa' || lower === 'french polynesia' || lower === 'fr. polynesia') return 'Polinésia Francesa';
+  if (lower === 'nova caledonia' || lower === 'new caledonia') return 'Nova Caledônia';
+  if (lower === 'martinica' || lower === 'martinique') return 'Martinica';
+  if (lower === 'guadalupe' || lower === 'guadeloupe') return 'Guadalupe';
+  if (lower === 'ilha da reuniao' || lower === 'reuniao' || lower === 'reunion' || lower === 'la reunion') return 'Ilha da Reunião';
+  if (lower === 'curacao') return 'Curaçao';
+  if (lower === 'aruba') return 'Aruba';
+  if (lower === 'ilha de man' || lower === 'isle of man') return 'Ilha de Man';
+  if (lower === 'saara ocidental' || lower === 'western sahara' || lower === 'w. sahara') return 'Saara Ocidental';
+  if (lower === 'bermudas' || lower === 'bermuda') return 'Bermudas';
+  if (lower === 'gibraltar') return 'Gibraltar';
+  if (lower === 'ilhas cook' || lower === 'cook islands' || lower === 'cook is.') return 'Ilhas Cook';
+  if (lower === 'guam') return 'Guam';
+  if (lower === 'antartida' || lower === 'antartica' || lower === 'antarctica') return 'Antártida';
 
   if (trimmed.length === 2) {
     const byIso = translateIsoCountryToPt(trimmed);

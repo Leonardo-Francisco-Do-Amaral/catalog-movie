@@ -86,7 +86,8 @@ export default function LevelDetailsModal({
   const completedDecadesCount = Object.keys(timeMachineSource.completedDecades || {}).length;
 
   const tierKeys = ['platinum', 'mythic', 'gold', 'epic', 'silver', 'bronze'];
-  const rarityKeys = ['mythic', 'legendary', 'epic', 'rare', 'common'];
+  const rarityKeys = ['mythic', 'relic', 'legendary', 'epic', 'rare', 'common'];
+  const timeMachineRarityKeys = ['mythic', 'legendary', 'epic', 'rare', 'common'];
 
   const modalContent = (
     <div
@@ -368,7 +369,7 @@ export default function LevelDetailsModal({
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                   {rarityKeys.map((rKey) => {
                     const meta = COUNTRY_RARITY_META[rKey];
                     const st = countriesSource.byRarity?.[rKey] || {
@@ -508,7 +509,7 @@ export default function LevelDetailsModal({
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-                  {rarityKeys.map((rKey) => {
+                  {timeMachineRarityKeys.map((rKey) => {
                     const meta = TIME_MACHINE_RARITY_META[rKey];
                     const st = timeMachineSource.byRarity?.[rKey] || {
                       count: 0,

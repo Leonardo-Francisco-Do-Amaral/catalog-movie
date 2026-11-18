@@ -9,7 +9,6 @@ import {
   saveToastSettings,
   TIER_THEMES,
 } from './PS5TrophyToastContainer';
-import { evaluateTrophiesClientSide } from '../utils/trophyEngineClient';
 import {
   triggerXPGainToast,
   triggerTimeMachineUnlock,
@@ -278,15 +277,15 @@ export default function TrophyTestPanelModal({
         },
         {
           id: `sim_dual_prog_2_${Date.now()}`,
-          category: 'sessao_secreta',
+          category: 'mafia_hollywood',
           tier: 'bronze',
-          title: 'Sessão Secreta: Caçador de Easter Eggs',
-          description: 'Descobrir segredos cinematográficos ocultos.',
-          icon: '🕵️',
-          currentCount: 3,
-          targetCount: 5,
-          previousPercentage: 40,
-          progress_percentage: 60,
+          title: 'A Máfia de Hollywood: TUDUM! Caiu Direto no Sofá',
+          description: 'Filmes produzidos ou distribuídos pela Netflix.',
+          icon: '🎬',
+          currentCount: 8,
+          targetCount: 10,
+          previousPercentage: 70,
+          progress_percentage: 80,
           increasedBy: 1,
         },
         {
@@ -330,11 +329,11 @@ export default function TrophyTestPanelModal({
         },
         {
           id: `sim_dual_prog_6_${Date.now()}`,
-          category: 'sessao_secreta',
+          category: 'dna_cinefilo',
           tier: 'silver',
-          title: 'Sessão Secreta: Maratona Cult',
-          description: 'Completar desafios temáticos da Sessão Secreta.',
-          icon: '🕵️‍♂️',
+          title: 'O DNA Cinéfilo: Vampiros & Cia',
+          description: 'Combinar tags temáticas raras.',
+          icon: '🧬',
           currentCount: 4,
           targetCount: 5,
           previousPercentage: 60,
@@ -581,9 +580,9 @@ export default function TrophyTestPanelModal({
         {
           id: `sim_triple_gold_${Date.now()}`,
           tier: 'gold',
-          category: 'sessao_secreta',
-          title: 'Sessão Secreta: 88 Milhas por Hora!',
-          description: 'Conquistou um clássico imortal viajando na Máquina do Tempo!',
+          category: 'ritual_cinefilo',
+          title: 'O Ritual do Cinéfilo: 88 Milhas por Hora!',
+          description: 'Conquistou um clássico imortal viajando no catálogo!',
           icon: '⚡',
         },
       ],
@@ -945,6 +944,7 @@ export default function TrophyTestPanelModal({
       }
     } catch {
       try {
+        const { evaluateTrophiesClientSide } = await import('../utils/trophyEngineClient');
         const localOverrides = { [selectedTrophyId]: overrideState };
         const localData = evaluateTrophiesClientSide(movies, localOverrides);
         setMessage({
@@ -958,8 +958,17 @@ export default function TrophyTestPanelModal({
           }`,
         });
         if (overrideState === true) {
-          const t = trophies.find((x) => x.id === selectedTrophyId);
-          if (t) triggerPS5TrophyToast(t);
+          let toastTarget = trophies.find((x) => x.id === selectedTrophyId);
+          if (!toastTarget) {
+            for (const c of trophies) {
+              const step = c.ranks?.find((r) => r.id === selectedTrophyId);
+              if (step) {
+                toastTarget = { ...step, category: c.category, icon: c.icon, is_rank_step: true };
+                break;
+              }
+            }
+          }
+          if (toastTarget) triggerPS5TrophyToast(toastTarget);
         }
         if (onSyncSuccess) onSyncSuccess(localData);
       } catch (err2) {
@@ -988,6 +997,7 @@ export default function TrophyTestPanelModal({
       }
     } catch {
       try {
+        const { evaluateTrophiesClientSide } = await import('../utils/trophyEngineClient');
         const localData = evaluateTrophiesClientSide(movies, {});
         setMessage({
           type: 'success',
@@ -1020,6 +1030,7 @@ export default function TrophyTestPanelModal({
       }
     } catch {
       try {
+        const { evaluateTrophiesClientSide } = await import('../utils/trophyEngineClient');
         const localData = evaluateTrophiesClientSide(movies, {});
         setMessage({
           type: 'success',
@@ -1773,11 +1784,24 @@ export default function TrophyTestPanelModal({
             onChange={(e) => setSelectedTrophyId(e.target.value)}
             className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-2.5 text-xs text-zinc-200 focus:outline-none focus:border-amber-500/50"
           >
-            {trophies.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.icon} [{t.tier?.toUpperCase()}] {t.title} {t.is_unlocked ? '✅' : '🔒'}
-              </option>
-            ))}
+            {trophies.flatMap((t) => {
+              const cardOption = (
+                <option key={t.id} value={t.id}>
+                  {t.icon} {t.kind === 'rank' ? '[RANK CARD]' : `[${t.tier?.toUpperCase()}]`} {t.title} {t.is_unlocked ? '✅' : '🔒'}
+                </option>
+              );
+              if (t.kind === 'rank' && Array.isArray(t.ranks)) {
+                return [
+                  cardOption,
+                  ...t.ranks.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      &nbsp;&nbsp;↳ [{r.tier?.toUpperCase()} • meta {r.target_value}] {r.title} {r.is_unlocked ? '✅' : '🔒'}
+                    </option>
+                  )),
+                ];
+              }
+              return [cardOption];
+            })}
           </select>
 
           <div className="flex items-center gap-2 flex-wrap">

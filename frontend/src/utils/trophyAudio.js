@@ -81,7 +81,15 @@ const SOUND_PATHS = {
     cn: '/sounds/paises/por-pais/cn_2F_announcer_china.wav',
     ru: '/sounds/paises/por-pais/ru_30_announcer_ussr.wav',
     su: '/sounds/paises/por-pais/ru_30_announcer_ussr.wav',
+    hist_su: '/sounds/paises/por-pais/ru_30_announcer_ussr.wav',
     th: '/sounds/paises/por-pais/th_33_announcer_thailand.wav',
+  },
+  mapTimelines: {
+    modern: '/sounds/maquina-do-tempo/za-warudo-sfx-no-voice.mp3',
+    ww2: '/sounds/maquina-do-tempo/za-warudo-sfx-no-voice.mp3',
+    cold_war: '/sounds/maquina-do-tempo/zelda-ocarina-of-time-zelda-lullaby.mp3',
+    pioneers: '/sounds/maquina-do-tempo/life_is_strange-consequences.mp3',
+    relic_radar: '/sounds/maquina-do-tempo/stranger-things-clock-final-sound.mp3',
   },
   timeMachineRandom: [
     '/sounds/maquina-do-tempo/arch-vile sight.wav',
@@ -1280,6 +1288,20 @@ export function playDirectorRazzieTomatoSound() {
   return true;
 }
 
+export function playMapTimelineTransitionSound(timelineId = 'modern') {
+  if (isAudioMuted()) return false;
+  const audioUrl = SOUND_PATHS.mapTimelines?.[timelineId] || SOUND_PATHS.mapTimelines?.ww2;
+  if (audioUrl) {
+    return playAudioFile(audioUrl, {
+      volume: 0.78,
+      interrupt: true,
+      onFallback: () => playSyntheticTimeMachineSound('legendary'),
+    });
+  }
+  playSyntheticTimeMachineSound('legendary');
+  return true;
+}
+
 function playSyntheticWorldConquestSound(rarity = 'common') {
   try {
     if (isAudioMuted()) return;
@@ -1287,7 +1309,8 @@ function playSyntheticWorldConquestSound(rarity = 'common') {
     if (!ctx) return;
 
     const now = ctx.currentTime;
-    const isRareOrHigher = rarity === 'mythic' || rarity === 'legendary' || rarity === 'epic';
+    const isRareOrHigher =
+      rarity === 'mythic' || rarity === 'relic' || rarity === 'legendary' || rarity === 'epic';
 
     const pingOsc = ctx.createOscillator();
     const pingGain = ctx.createGain();

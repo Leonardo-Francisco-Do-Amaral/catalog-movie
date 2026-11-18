@@ -31,6 +31,8 @@ import {
 } from './services/timeMachineService';
 import {
   seedTrophies,
+  getCachedTrophiesSummary,
+  getTrophyChecklistById,
   evaluateTrophies,
   acknowledgeNewTrophies,
   setTrophyTestOverride,
@@ -1520,7 +1522,7 @@ async function evaluateWorldActionFeedback(
   let progressedTrophies: any[] = [];
   let xpStatus: any = null;
   try {
-    const trophyResult = await evaluateTrophies({ markNew: true });
+    const trophyResult = await evaluateTrophies({ markNew: true, existingWorldData: nextWorld });
     newlyUnlocked = trophyResult.newlyUnlocked || [];
     progressedTrophies = trophyResult.progressedTrophies || [];
     xpStatus = trophyResult.xpStatus || null;
@@ -1662,10 +1664,26 @@ app.put('/api/challenge/time-machine/wishlist/:year', async (req: Request, res: 
 // Rota: Obter todos os troféus, resumo geral, contagem por tier e novidades
 app.get('/api/trophies', async (req: Request, res: Response) => {
   try {
-    const data = await evaluateTrophies({ markNew: false, skipUnlocked: true });
+    const forceRefresh = req.query.refresh === '1' || req.query.refresh === 'true';
+    const data = forceRefresh ? await evaluateTrophies({ markNew: false }) : await getCachedTrophiesSummary();
     return res.json({ success: true, data });
   } catch (err: any) {
     console.error('[Trophies] Erro ao listar troféus:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Rota: Carregar checklist detalhado sob demanda para 1 troféu específico
+app.get('/api/trophies/:id/checklist', async (req: Request, res: Response) => {
+  try {
+    const trophyId = String(req.params.id || '');
+    const data = await getTrophyChecklistById(trophyId);
+    if (!data) {
+      return res.status(404).json({ success: false, error: 'Troféu não encontrado.' });
+    }
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[Trophies] Erro ao carregar checklist sob demanda:', err.message);
     return res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -1675,7 +1693,8 @@ app.post('/api/trophies/evaluate', async (req: Request, res: Response) => {
   try {
     await evaluateAndBuildUniverseCodex({ persist: true }).catch(() => {});
     const markNew = req.body.markNew !== undefined ? Boolean(req.body.markNew) : true;
-    const data = await evaluateTrophies({ markNew, forceSeed: true, skipUnlocked: false });
+    const forceSeed = Boolean(req.body.forceSeed);
+    const data = await evaluateTrophies({ markNew, forceSeed });
     return res.json({ success: true, data });
   } catch (err: any) {
     console.error('[Trophies] Erro ao avaliar troféus:', err.message);

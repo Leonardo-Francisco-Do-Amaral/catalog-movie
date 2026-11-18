@@ -46,6 +46,18 @@ export const DIRECTOR_MILESTONE_XP: Record<number, number> = {
   90: 125,
 };
 
+export const RISING_STAR_MILESTONES: WalkMilestoneTier[] = [
+  { thresholdPct: 40, id: 'estrela_ascensao_40', label: 'Estágio 1 • Rank X', tierKey: 'silver', icon: '🌟', accentHex: '#38bdf8' },
+  { thresholdPct: 80, id: 'estrela_ascensao_80', label: 'Estágio 2 • Rank X+', tierKey: 'mythic', icon: '⚡', accentHex: '#818cf8' },
+  { thresholdPct: 100, id: 'estrela_ascensao_100', label: 'Estágio 3 • Rank X++', tierKey: 'diamond', icon: '👑', accentHex: '#fde047' },
+];
+
+export const RISING_STAR_MILESTONE_XP: Record<number, number> = {
+  40: 70,
+  80: 150,
+  100: 125,
+};
+
 export const WALK_EXTRA_STAR_XP = 60;
 export const WALK_FILMS_PER_EXTRA_STAR = 2;
 
@@ -102,9 +114,15 @@ export const EMPTY_WALK_OF_FAME_XP_SUMMARY: WalkOfFameXpSummary = {
 export function computeWalkXpSplit(
   percentage: number,
   extraStars: number,
-  isDirector = false
+  isDirector = false,
+  isNewEraVisionary = false
 ): { milestonesXp: number; extraStarsXp: number; totalXp: number } {
-  const xpTable = isDirector ? DIRECTOR_MILESTONE_XP : WALK_MILESTONE_XP;
+  const xpTable =
+    isDirector && isNewEraVisionary
+      ? RISING_STAR_MILESTONE_XP
+      : isDirector
+      ? DIRECTOR_MILESTONE_XP
+      : WALK_MILESTONE_XP;
   let milestonesXp = 0;
   for (const [thStr, xpVal] of Object.entries(xpTable)) {
     if (percentage >= Number(thStr)) milestonesXp += xpVal;
@@ -120,9 +138,10 @@ export function computeWalkXpSplit(
 export function computeWalkXpForStar(
   percentage: number,
   extraStars: number,
-  isDirector = false
+  isDirector = false,
+  isNewEraVisionary = false
 ): number {
-  return computeWalkXpSplit(percentage, extraStars, isDirector).totalXp;
+  return computeWalkXpSplit(percentage, extraStars, isDirector, isNewEraVisionary).totalXp;
 }
 
 export function resolveRpgRank(
@@ -131,7 +150,12 @@ export function resolveRpgRank(
   isDirector = false,
   isNewEraVisionary = false
 ): string {
-  if (isDirector && isNewEraVisionary) return 'X';
+  if (isDirector && isNewEraVisionary) {
+    if (percentage >= 100) return 'X++';
+    if (percentage >= 80) return 'X+';
+    if (percentage >= 40) return 'X';
+    return 'E';
+  }
   if (percentage >= 90 && extraStars > 0) return 'SS';
   if (percentage >= 90) return 'S';
   if (isDirector) {
@@ -157,7 +181,9 @@ export const WALK_CAR_POINTS_BY_RANK: Record<string, number> = {
   'A+': 0.5,
   S: 0.6,
   SS: 0.7,
-  X: 0.5,
+  X: 0.3,
+  'X+': 0.5,
+  'X++': 0.7,
 };
 
 export function resolveRpgRankFromTier(
@@ -169,7 +195,10 @@ export function resolveRpgRankFromTier(
   const key = String(tierKey || '').toLowerCase();
   if (!key || key === 'cement' || key === 'carving') return 'E';
   if (isDirector && isNewEraVisionary) {
-    return key === 'diamond' ? 'X' : 'E';
+    if (key === 'diamond') return 'X++';
+    if (key === 'mythic' || key === 'gold') return 'X+';
+    if (key === 'silver' || key === 'bronze' || key === 'epic') return 'X';
+    return 'E';
   }
   if (key === 'diamond') return extraStars > 0 ? 'SS' : 'S';
   if (key === 'mythic') return 'A+';
@@ -331,7 +360,7 @@ export interface WalkStarDefinition {
   groupMembers?: WalkGroupMemberDef[];
 }
 
-export const WALK_OF_FAME_STARS: WalkStarDefinition[] = [
+const RAW_WALK_OF_FAME_STARS: WalkStarDefinition[] = [
   {
     id: 'cf_fernanda_torres',
     albumNumber: 1,
@@ -2801,7 +2830,7 @@ export const WALK_OF_FAME_STARS: WalkStarDefinition[] = [
     knownFor: 'Corra! (🎬✍️🏆) • Nós (🎬✍️) • Não! Não Olhe! (🎬✍️) • A Lenda de Candyman (✍️) • Wendell & Wild (✍️)',
     quote: 'Transformou uma xícara de chá mexida com colherzinha no som mais aterrorizante da história do cinema moderno!',
     rpgTitle: 'Visionário da Nova Era',
-    secretFact: 'Com "Corra!" (2017), Jordan Peele tornou-se o PRIMEIRO roteirista negro da história a vencer o Oscar de Melhor Roteiro Original — além de ter sido indicado no mesmo ano como Melhor Diretor e Melhor Filme logo em sua estreia na direção! Com apenas 6 filmes creditados entre direção e roteiro, ele inaugura a classe especial Estrela em Ascensão (Rank X): todo o dossiê já vem liberado e a figurinha exclusiva desbloqueia aos 80%!',
+    secretFact: 'Com "Corra!" (2017), Jordan Peele tornou-se o PRIMEIRO roteirista negro da história a vencer o Oscar de Melhor Roteiro Original — além de ter sido indicado no mesmo ano como Melhor Diretor e Melhor Filme logo em sua estreia na direção! Com teto enxuto de 6 filmes, ele inaugura a classe especial Estrela em Ascensão: evolui em 3 degraus progressivos — Rank X (40%), Rank X+ (80%) e Rank X++ (100%)!',
     directorObsessions: [
       {
         icon: '🪞',
@@ -2822,7 +2851,7 @@ export const WALK_OF_FAME_STARS: WalkStarDefinition[] = [
     curiosities: [
       'Vindo da comédia ("Key & Peele"), chocou Hollywood ao provar que terror social e comédia têm exatamente o mesmo segredo: timing perfeito de suspense.',
       'Dirigiu e roteirizou sozinho (🎬✍️) a trinca autoral "Corra!" (2017), "Nós" (2019) e "Não! Não Olhe!" (2022), além de assinar o roteiro (✍️) de "A Lenda de Candyman", "Wendell & Wild" e "Keanu".',
-      'Por ter até 7 filmes dirigidos/escritos no cinema, integra a classe especial Rank X (Estrela em Ascensão): apenas a figurinha exclusiva e o Show de Cartazes aguardam os 80%, enquanto o restante do dossiê já fica liberado!',
+      'Por ter teto enxuto de até 7 filmes dirigidos/escritos no cinema, integra a classe especial Estrela em Ascensão: desbloqueia Figurinha + marco 40% em Rank X (40%), Manias & Obra-Prima em Rank X+ (80%) e Cânone Total em Rank X++ (100%)!',
     ],
   },
   {
@@ -4609,6 +4638,116 @@ export const WALK_OF_FAME_STARS: WalkStarDefinition[] = [
     ],
   },
 ];
+
+/**
+ * Calibração oficial de tetos por artista/cineasta (respeita teatro/TV, filmografia enxuta e cortes de Rank X).
+ */
+export const WALK_STAR_CEILING_OVERRIDES: Record<string, number> = {
+  // Alameda Brasil (9)
+  cf_paulo_gustavo: 8,
+  cf_fernanda_torres: 10,
+  cf_fernanda_montenegro: 12,
+  cf_lazaro_ramos: 12,
+  cf_selton_mello: 12,
+  cf_leandro_hassum: 12,
+  cf_alice_braga: 15,
+  cf_rodrigo_santoro: 15,
+  cf_wagner_moura: 15,
+
+  // Hollywood Boulevard (calibrados para 10 / 12 / 15; veteranos permanecem em 20)
+  cf_heath_ledger: 10,
+  cf_chadwick_boseman: 10,
+  cf_jim_parsons: 10,
+  cf_brad_renfro: 10,
+  cf_lupita_nyongo: 10,
+  cf_daniel_kaluuya: 10,
+  cf_blake_lively: 10,
+  cf_anya_taylor_joy: 12,
+  cf_elizabeth_olsen: 12,
+  cf_jacob_tremblay: 12,
+  cf_andrew_garfield: 12,
+  cf_tobey_maguire: 12,
+  cf_pedro_pascal: 12,
+  cf_bill_skarsgard: 12,
+  cf_song_kang_ho: 12,
+  cf_lee_byung_hun: 12,
+  cf_margot_robbie: 15,
+  cf_timothee_chalamet: 15,
+  cf_emma_stone: 15,
+  cf_leonardo_dicaprio: 15,
+  cf_will_smith: 15,
+  cf_robert_pattinson: 15,
+  cf_chris_hemsworth: 15,
+  cf_milla_jovovich: 15,
+  cf_tom_cruise: 15,
+  cf_jim_carrey: 15,
+  cf_mads_mikkelsen: 15,
+  cf_natalie_portman: 20,
+  cf_christian_bale: 20,
+  cf_kate_winslet: 20,
+  cf_scarlett_johansson: 20,
+  cf_benedict_cumberbatch: 20,
+  cf_ryan_reynolds: 20,
+  cf_johnny_depp: 20,
+  cf_toni_collette: 20,
+  cf_robert_downey_jr: 20,
+  cf_ethan_hawke: 20,
+  cf_keanu_reeves: 20,
+  cf_nicolas_cage: 20,
+  cf_morgan_freeman: 20,
+  cf_samuel_l_jackson: 20,
+
+  // Casais (8)
+  cf_marco_pigossi_calvani: 6,
+  cf_harris_burtka: 10,
+  cf_zendaya_holland: 12,
+  cf_paulson_taylor: 12,
+  cf_emily_blunt_krasinski: 12,
+  cf_kirsten_dunst_plemons: 15,
+  cf_casal_warren: 15,
+  cf_reynolds_lively: 15,
+
+  // Elencos & Duplas (11)
+  cf_stranger_things_kids: 8,
+  cf_supernatural_trio: 8,
+  cf_god_of_war: 10,
+  cf_realeza_novelas_br: 10,
+  cf_irmaos_phoenix: 12,
+  cf_gael_diego: 12,
+  cf_watanabe_sanada: 12,
+  cf_grande_volta_por_cima: 15,
+  cf_quarteto_irlanda: 15,
+  cf_stellan_renate: 15,
+  cf_lendas_femininas_ouro: 15,
+
+  // Diretores & Roteiristas calibrados (demais permanecem na régua padrão 8/12)
+  cf_jordan_peele: 6,
+  cf_ari_aster: 6,
+  cf_stephen_daldry: 6,
+  cf_joaquim_dos_santos: 6,
+  cf_lee_cronin: 6,
+  cf_stephen_chbosky: 6,
+  cf_andy_muschietti: 6,
+  cf_andrei_tarkovsky: 8,
+  cf_marco_dutra: 8,
+  cf_kleber_mendonca_filho: 8,
+  cf_fernando_meirelles: 10,
+  cf_walter_salles: 10,
+  cf_todd_phillips: 10,
+  cf_hirokazu_koreeda: 10,
+};
+
+export const WALK_OF_FAME_STARS: WalkStarDefinition[] = RAW_WALK_OF_FAME_STARS.map((star) => {
+  const calibratedCeiling = WALK_STAR_CEILING_OVERRIDES[star.id] ?? star.ceilingOverride;
+  const isRisingDirector =
+    star.kind === 'director' &&
+    Boolean(star.isNewEraVisionary || (typeof calibratedCeiling === 'number' && calibratedCeiling <= 7));
+  return {
+    ...star,
+    ...(typeof calibratedCeiling === 'number' ? { ceilingOverride: calibratedCeiling } : {}),
+    ...(isRisingDirector ? { isNewEraVisionary: true } : {}),
+  };
+});
 
 const CURATED_CACHE_BY_ID = new Map<string, WalkCuratedMovieReq[]>();
 

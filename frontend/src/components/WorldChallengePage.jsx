@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { triggerTrophyBatch } from './PS5TrophyToastContainer';
 import {
@@ -30,7 +30,13 @@ import {
   AlertCircle,
   ArrowRightLeft,
   RotateCcw,
-  Check
+  Check,
+  Clock,
+  Volume2,
+  VolumeX,
+  Shield,
+  Flame,
+  Sparkles
 } from 'lucide-react';
 import { UN_COUNTRIES_195, HISTORICAL_TERRITORIES } from '../data/unCountries195';
 import {
@@ -38,8 +44,17 @@ import {
   RARITY_RANK_WEIGHT,
   RARITY_TIER_CONFIG,
   getRarityMeta,
-  getCountryRarityTier
+  getCountryRarityTier,
+  resolveValidIsoFlagCode
 } from '../data/countryRarityTiers';
+import {
+  MAP_TIMELINES,
+  computeTimelineStats
+} from '../data/mapTimelinesConfig';
+import {
+  playMapTimelineTransitionSound,
+  stopAllTrophyAudio
+} from '../utils/trophyAudio';
 import TacticalWorldMap from './TacticalWorldMap';
 import CountryInspectionDrawer from './CountryInspectionDrawer';
 import HistoricalTerritoriesDrawer from './HistoricalTerritoriesDrawer';
@@ -57,6 +72,30 @@ const cleanStr = (str) =>
     : '';
 
 const resolvePosterUrl = resolveBackendAssetUrl;
+
+function renderTerritoryFlag(
+  territory,
+  imgClassName = 'w-4 h-3 object-cover rounded-[2px] shrink-0'
+) {
+  const raw = resolveValidIsoFlagCode(territory?.flagCode, territory?.code);
+  if (raw) {
+    return (
+      <img
+        src={`https://flagcdn.com/w40/${raw}.png`}
+        alt={territory?.name || ''}
+        className={imgClassName}
+        onError={(e) => {
+          e.currentTarget.style.display = 'none';
+        }}
+      />
+    );
+  }
+  return (
+    <span className="text-[11px] leading-none shrink-0">
+      {territory?.badgeIcon || (territory?.code === 'hist_su' ? '☭' : '⏳')}
+    </span>
+  );
+}
 
 // Patentes / Ranks de Explorador Cinematográfico (Estilo RPG / War Room)
 function getExplorerRank(conqueredCount) {
@@ -161,27 +200,28 @@ function buildOfflineChallengePayload(movies = [], localState = {}) {
 
     rawCountries.forEach((rawName) => {
       const cleaned = cleanStr(rawName);
-      const u = unLookup.get(cleaned);
-      if (u && !seen.has(u)) {
-        seen.add(u);
-        const uDef = unByCode.get(u);
+      const h = histLookup.get(cleaned);
+      if (h && !seen.has(h)) {
+        seen.add(h);
+        const hDef = histByCode.get(h);
         coproductionCountries.push({
-          code: u,
-          name: uDef.name,
-          flagCode: u,
-          isHistorical: false,
-          rarityTier: uDef.rarityTier
+          code: h,
+          name: hDef.name,
+          flagCode: hDef.flagCode || null,
+          isHistorical: true,
+          rarityTier: 'relic'
         });
       } else {
-        const h = histLookup.get(cleaned);
-        if (h && !seen.has(h)) {
-          seen.add(h);
-          const hDef = histByCode.get(h);
+        const u = unLookup.get(cleaned);
+        if (u && !seen.has(u)) {
+          seen.add(u);
+          const uDef = unByCode.get(u);
           coproductionCountries.push({
-            code: h,
-            name: hDef.name,
-            flagCode: hDef.flagCode || null,
-            isHistorical: true
+            code: u,
+            name: uDef.name,
+            flagCode: u,
+            isHistorical: false,
+            rarityTier: uDef.rarityTier
           });
         }
       }
@@ -287,15 +327,19 @@ function buildOfflineChallengePayload(movies = [], localState = {}) {
     }
 
     if (champion) champIdByCode.set(h.code, champion.movie_id);
+    const wish = wishlists[h.code] || null;
+    const status = champion ? 'conquered' : wish ? 'wishlist' : 'unconquered';
 
     return {
       ...h,
-      status: champion ? 'conquered' : 'unconquered',
+      rarityTier: 'relic',
+      status,
       selectionMode,
       champion,
       candidates: cands,
       totalCandidates: cands.length,
-      borderDisputes: []
+      borderDisputes: [],
+      wishlist: wish
     };
   });
 
@@ -328,7 +372,9 @@ function buildOfflineChallengePayload(movies = [], localState = {}) {
   });
 
   const conqueredCount = countriesResult.filter((c) => c.status === 'conquered').length;
-  const wishlistCount = countriesResult.filter((c) => Boolean(c.wishlist)).length;
+  const wishlistCount =
+    countriesResult.filter((c) => Boolean(c.wishlist)).length +
+    historicalCountries.filter((h) => Boolean(h.wishlist)).length;
   const ratedChamps = countriesResult.filter((c) => c.champion && c.champion.user_rating > 0);
   const avgChampionRating =
     ratedChamps.length > 0
@@ -352,18 +398,29 @@ function buildOfflineChallengePayload(movies = [], localState = {}) {
 
   const rarityStats = {};
   RARITY_ORDER.forEach((tier) => {
-    const inTier = countriesResult.filter((c) => c.rarityTier === tier);
-    const conq = inTier.filter((c) => c.status === 'conquered').length;
-    rarityStats[tier] = {
-      conquered: conq,
-      total: inTier.length,
-      percentage: inTier.length > 0 ? Math.round((conq / inTier.length) * 100) : 0
-    };
+    if (tier === 'relic') {
+      const conq = historicalCountries.filter((h) => h.status === 'conquered').length;
+      const tot = historicalCountries.length;
+      rarityStats.relic = {
+        conquered: conq,
+        total: tot,
+        percentage: tot > 0 ? Math.round((conq / tot) * 100) : 0
+      };
+    } else {
+      const inTier = countriesResult.filter((c) => c.rarityTier === tier);
+      const conq = inTier.filter((c) => c.status === 'conquered').length;
+      rarityStats[tier] = {
+        conquered: conq,
+        total: inTier.length,
+        percentage: inTier.length > 0 ? Math.round((conq / inTier.length) * 100) : 0
+      };
+    }
   });
 
   return {
     summary: {
       totalCountries: 195,
+      totalRelics: historicalCountries.length,
       conqueredCount,
       unconqueredCount: 195 - conqueredCount,
       wishlistCount,
@@ -390,15 +447,35 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
   // Controles de Visão e Filtros do HUD
   const [viewMode, setViewMode] = useState('map'); // 'map' | 'cards'
   const [selectedContinent, setSelectedContinent] = useState('Todos');
-  const [rarityFilter, setRarityFilter] = useState('all'); // 'all' | 'common' | 'rare' | 'epic' | 'legendary' | 'mythic'
+  const [rarityFilter, setRarityFilter] = useState('all'); // 'all' | 'common' | 'rare' | 'epic' | 'legendary' | 'relic' | 'mythic'
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'conquered' | 'fog' | 'pending' | 'wishlist'
   const [coprodValidationFilter, setCoprodValidationFilter] = useState('pending'); // 'pending' | 'validated' | 'all'
   const [searchQuery, setSearchQuery] = useState('');
   const [cardSortBy, setCardSortBy] = useState('conquered_first');
 
+  // Máquina do Tempo Cartográfica (Linhas do Tempo no Mapa)
+  const [mapTimelineMode, setMapTimelineMode] = useState('modern'); // 'modern' | 'ww2' | 'cold_war' | 'pioneers' | 'relic_radar'
+  const [timelineWarpKey, setTimelineWarpKey] = useState(0);
+  const timelineAudioPlayedRef = useRef(false);
+
   // Gavetas de Inspeção e Territórios Perdidos
   const [selectedCountryCode, setSelectedCountryCode] = useState(null);
   const [isHistoricalOpen, setIsHistoricalOpen] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (timelineAudioPlayedRef.current) {
+        stopAllTrophyAudio();
+      }
+    };
+  }, []);
+
+  const handleSelectMapTimeline = useCallback((timelineId) => {
+    setMapTimelineMode(timelineId);
+    setTimelineWarpKey((prev) => prev + 1);
+    timelineAudioPlayedRef.current = true;
+    playMapTimelineTransitionSound(timelineId);
+  }, []);
 
   const showToast = useCallback((text) => {
     setToastMessage(text);
@@ -434,7 +511,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
     loadChallenge();
   }, [loadChallenge]);
 
-  // País (ou território histórico) atualmente aberto no Drawer — derivado ao vivo!
+  // País (ou território Relíquia) atualmente aberto no Drawer — derivado ao vivo!
   const activeInspectedCountry = useMemo(() => {
     if (!selectedCountryCode || !challengeData) return null;
     const fromUn = challengeData.countries?.find((c) => c.code === selectedCountryCode);
@@ -443,12 +520,33 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
     return fromHist || null;
   }, [selectedCountryCode, challengeData]);
 
-  // Filtragem inteligente dos 195 países (Continente + Raridade RPG + Status + Busca)
+  // Base unificada dos 195 Países da ONU + Territórios Relíquia para Cartas e Busca
+  const allAtlasTerritories = useMemo(() => {
+    if (!challengeData) return [];
+    const unList = challengeData.countries || [];
+    const relicList = (challengeData.historicalCountries || []).map((h) => ({
+      ...h,
+      rarityTier: h.rarityTier || 'relic'
+    }));
+    return [...unList, ...relicList];
+  }, [challengeData]);
+
+  const activeTimelineStats = useMemo(() => {
+    if (!challengeData || mapTimelineMode === 'modern') return null;
+    return computeTimelineStats(mapTimelineMode, challengeData, challengeData.catalogMovies || []);
+  }, [mapTimelineMode, challengeData]);
+
+  const pioneerActiveCodes = useMemo(() => {
+    if (mapTimelineMode !== 'pioneers') return null;
+    return activeTimelineStats?.activeCountryCodes || null;
+  }, [mapTimelineMode, activeTimelineStats]);
+
+  // Filtragem inteligente (195 ONU + Relíquias: Continente + Raridade RPG + Status + Busca)
   const filteredCountries = useMemo(() => {
-    if (!challengeData?.countries) return [];
+    if (!allAtlasTerritories.length) return [];
     const q = cleanStr(searchQuery);
 
-    const list = challengeData.countries.filter((c) => {
+    const list = allAtlasTerritories.filter((c) => {
       if (selectedContinent !== 'Todos' && c.continent !== selectedContinent) return false;
       const cTier = c.rarityTier || getCountryRarityTier(c.code);
       if (rarityFilter !== 'all' && cTier !== rarityFilter) return false;
@@ -461,7 +559,8 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
         const matchCountry =
           cleanStr(c.name).includes(q) ||
           cleanStr(c.code).includes(q) ||
-          cleanStr(c.iso3).includes(q);
+          cleanStr(c.iso3).includes(q) ||
+          cleanStr(c.era).includes(q);
         const matchChampion =
           c.champion &&
           (cleanStr(c.champion.title).includes(q) ||
@@ -519,7 +618,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
       }
       return a.name.localeCompare(b.name, 'pt-BR');
     });
-  }, [challengeData, selectedContinent, rarityFilter, statusFilter, searchQuery, cardSortBy]);
+  }, [allAtlasTerritories, selectedContinent, rarityFilter, statusFilter, searchQuery, cardSortBy]);
 
   // Conjunto de países destacados no Mapa Tático quando há busca/filtro ativo
   const visibleCodesSet = useMemo(() => {
@@ -659,7 +758,9 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
       }
 
       const prevSaved = JSON.parse(localStorage.getItem('world_challenge_195_offline') || '{}');
-      const prevXp = calculateClientXpStatus(movies, null, prevSaved);
+      const { evaluateTrophiesClientSide } = await import('../utils/trophyEngineClient');
+      const offlineTrophies = evaluateTrophiesClientSide(movies)?.trophies || [];
+      const prevXp = calculateClientXpStatus(movies, offlineTrophies, prevSaved);
       const saved = JSON.parse(localStorage.getItem('world_challenge_195_offline') || '{}');
       saved.picks = saved.picks || {};
       saved.origins = saved.origins || {};
@@ -675,7 +776,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
         delete saved.picks[targetCountry.code];
       }
       localStorage.setItem('world_challenge_195_offline', JSON.stringify(saved));
-      const nextXp = calculateClientXpStatus(movies, null, saved);
+      const nextXp = calculateClientXpStatus(movies, offlineTrophies, saved);
       triggerXPGainToast(computeXpGainEvent(prevXp, nextXp), nextXp);
       setChallengeData(buildOfflineChallengePayload(movies, saved));
       showToast(`Representante de ${targetCountry.name} atualizado!`);
@@ -711,7 +812,9 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
       }
 
       const prevSaved = JSON.parse(localStorage.getItem('world_challenge_195_offline') || '{}');
-      const prevXp = calculateClientXpStatus(movies, null, prevSaved);
+      const { evaluateTrophiesClientSide } = await import('../utils/trophyEngineClient');
+      const offlineTrophies = evaluateTrophiesClientSide(movies)?.trophies || [];
+      const prevXp = calculateClientXpStatus(movies, offlineTrophies, prevSaved);
       const saved = JSON.parse(localStorage.getItem('world_challenge_195_offline') || '{}');
       saved.origins = saved.origins || {};
       saved.picks = saved.picks || {};
@@ -723,7 +826,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
       if (targetCountryCode) saved.origins[movieObj.movie_id] = targetCountryCode;
       else delete saved.origins[movieObj.movie_id];
       localStorage.setItem('world_challenge_195_offline', JSON.stringify(saved));
-      const nextXp = calculateClientXpStatus(movies, null, saved);
+      const nextXp = calculateClientXpStatus(movies, offlineTrophies, saved);
       triggerXPGainToast(computeXpGainEvent(prevXp, nextXp), nextXp);
       setChallengeData(buildOfflineChallengePayload(movies, saved));
       showToast('País Primário do filme atualizado!');
@@ -880,15 +983,15 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
             <button
               type="button"
               onClick={() => setIsHistoricalOpen(true)}
-              className="bg-zinc-900/90 hover:bg-amber-500/15 border border-amber-500/35 hover:border-amber-400 text-amber-300 px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-2.5 shadow-lg"
+              className="bg-zinc-900/90 hover:bg-teal-500/15 border border-teal-400/45 hover:border-teal-300 text-teal-200 px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-2.5 shadow-lg"
             >
-              <History className="w-4 h-4 text-amber-400 shrink-0" />
+              <History className="w-4 h-4 text-teal-300 shrink-0" />
               <div className="flex flex-col items-start leading-tight">
                 <span className="text-[10px] font-black uppercase tracking-widest">
-                  Territórios Perdidos / Históricos
+                  ⏳ Arquivo de Relíquias (+225 XP)
                 </span>
                 <span className="text-[10px] text-zinc-400 font-semibold">
-                  {summary.historicalConqueredCount} relíquias ativas ({historicalTotalCount} arquivos)
+                  {summary.historicalConqueredCount} / {historicalTotalCount} relíquias ativas
                 </span>
               </div>
             </button>
@@ -905,6 +1008,11 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
               <span className="text-xs font-bold text-zinc-400">
                 • Restam {summary.unconqueredCount} em Névoa de Guerra
               </span>
+              {summary.historicalConqueredCount > 0 && (
+                <span className="text-[11px] font-black text-teal-300 bg-teal-500/15 border border-teal-400/35 px-2 py-0.5 rounded-lg">
+                  + ⏳ {summary.historicalConqueredCount} Relíquias
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-3">
@@ -1006,7 +1114,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
             </div>
           </div>
 
-          {/* Sub-linha B: Filtro pelos 5 Tiers de Raridade RPG do País */}
+          {/* Sub-linha B: Filtro pelos 6 Tiers de Raridade RPG (inclui ⏳ Relíquia) */}
           <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
             <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mr-1">
               Raridade RPG:
@@ -1020,7 +1128,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                   : 'bg-zinc-950/70 text-zinc-400 border-zinc-800 hover:text-zinc-200'
               }`}
             >
-              Todas (195)
+              Todas ({195 + historicalTotalCount})
             </button>
 
             {RARITY_ORDER.map((tierKey) => {
@@ -1031,7 +1139,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                 serverStat && serverStat.total > 0
                   ? serverStat
                   : (() => {
-                      const list = (challengeData?.countries || []).filter(
+                      const list = allAtlasTerritories.filter(
                         (c) => (c.rarityTier || getCountryRarityTier(c.code)) === tierKey
                       );
                       return {
@@ -1049,11 +1157,17 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                   className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-all cursor-pointer flex items-center gap-1.5 ${
                     isSelected
                       ? cfg.badge
-                      : `${cfg.softBadge} opacity-80 hover:opacity-100`
+                      : `${cfg.softBadge} opacity-85 hover:opacity-100`
                   }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${cfg.dotClass}`} />
-                  <span>{tierKey === 'mythic' ? `🔥 ${cfg.label}` : cfg.label}</span>
+                  <span>
+                    {tierKey === 'mythic'
+                      ? `🔥 ${cfg.label}`
+                      : tierKey === 'relic'
+                        ? `⏳ ${cfg.label}`
+                        : cfg.label}
+                  </span>
                   <span className="font-mono text-[9px] opacity-90">
                     {stat.conquered}/{stat.total}
                   </span>
@@ -1066,15 +1180,21 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-1">
             <div className="flex flex-wrap items-center gap-1.5">
               {[
-                { id: 'all', label: `Todos (${challengeData?.summary?.totalCountries || 195})` },
-                { id: 'conquered', label: `Conquistados (${challengeData?.summary?.conqueredCount || 0})` },
-                { id: 'fog', label: `Névoa (${challengeData?.summary?.unconqueredCount || 0})` },
+                { id: 'all', label: `Todos (${allAtlasTerritories.length || 195})` },
+                {
+                  id: 'conquered',
+                  label: `Conquistados (${allAtlasTerritories.filter((c) => c.status === 'conquered').length})`
+                },
+                {
+                  id: 'fog',
+                  label: `Névoa (${allAtlasTerritories.filter((c) => c.status !== 'conquered' && !c.wishlist).length})`
+                },
                 {
                   id: 'pending',
                   label: `⚠️ Coprod. Pendentes (${coprodStats.pending})`,
                   highlight: coprodStats.pending > 0
                 },
-                { id: 'wishlist', label: `Alvos (${challengeData?.summary?.wishlistCount || 0})` }
+                { id: 'wishlist', label: `Alvos (${summary.wishlistCount || 0})` }
               ].map((st) => (
                 <button
                   key={st.id}
@@ -1107,7 +1227,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Filtrar país, sigla ou filme campeão..."
+                  placeholder="Filtrar país, relíquia ou filme..."
                   className="w-full bg-zinc-900/90 border border-zinc-800 focus:border-amber-500/60 rounded-xl py-1.5 pl-8 pr-7 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none"
                 />
                 {searchQuery && (
@@ -1142,12 +1262,274 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
       </section>
 
       {/* ========================================================================
-       * B. VISÃO 1: MODO MAPA-MÚNDI TÁTICO (FOG OF WAR + ZOOM NOS BOTÕES)
+       * B. VISÃO 1: MODO MAPA-MÚNDI TÁTICO + MÁQUINA DO TEMPO CARTOGRÁFICA
        * ======================================================================== */}
       {viewMode === 'map' ? (
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-4">
+          {/* Console de Viagem no Tempo / Linhas do Tempo do Mapa */}
+          <div className="rounded-2xl border border-zinc-800/90 bg-gradient-to-r from-[#0a101d] via-zinc-950 to-[#0e101c] p-3.5 flex flex-col gap-3 shadow-lg">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-500/15 border border-teal-400/40 text-teal-300 text-[10px] font-black uppercase tracking-widest">
+                  <Clock className="w-3.5 h-3.5" />
+                  Máquina do Tempo Cartográfica
+                </span>
+                <span className="text-[11px] text-zinc-400 hidden sm:inline">
+                  Viaje pelas épocas históricas do mapa com transição sonora sincronizada
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => stopAllTrophyAudio()}
+                title="Silenciar música/efeito da viagem temporal atual"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-[10px] font-bold uppercase tracking-wider text-zinc-300 cursor-pointer transition-all"
+              >
+                <VolumeX className="w-3 h-3 text-zinc-400" />
+                <span>Parar Áudio</span>
+              </button>
+            </div>
+
+            {/* 5 Botões das Linhas do Tempo */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+              {MAP_TIMELINES.map((tl) => {
+                const isActive = mapTimelineMode === tl.id;
+                const activeClasses = {
+                  amber: 'bg-amber-500/20 border-amber-400 text-amber-200 shadow-[0_0_20px_rgba(245,158,11,0.22)]',
+                  rose: 'bg-rose-500/20 border-rose-400 text-rose-200 shadow-[0_0_20px_rgba(244,63,94,0.25)]',
+                  cyan: 'bg-cyan-500/20 border-cyan-400 text-cyan-200 shadow-[0_0_20px_rgba(34,211,238,0.22)]',
+                  yellow: 'bg-yellow-500/20 border-yellow-400 text-yellow-200 shadow-[0_0_20px_rgba(234,179,8,0.22)]',
+                  teal: 'bg-teal-500/20 border-teal-400 text-teal-200 shadow-[0_0_20px_rgba(45,212,191,0.25)]'
+                }[tl.accentColor];
+
+                return (
+                  <button
+                    key={tl.id}
+                    type="button"
+                    onClick={() => handleSelectMapTimeline(tl.id)}
+                    title={tl.description}
+                    className={`rounded-xl border p-2.5 text-left transition-all cursor-pointer flex flex-col gap-1 ${
+                      isActive
+                        ? activeClasses
+                        : 'bg-zinc-900/70 hover:bg-zinc-900 border-zinc-800 text-zinc-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-base leading-none">{tl.icon}</span>
+                      <span className="text-[9px] font-mono font-black uppercase px-1.5 py-0.5 rounded bg-black/40 border border-white/10 opacity-85">
+                        {tl.eraTag}
+                      </span>
+                    </div>
+                    <div className="text-[11px] font-black leading-tight truncate mt-0.5">
+                      {tl.shortLabel}
+                    </div>
+                    <div className="text-[9px] opacity-75 flex items-center gap-1 truncate">
+                      <Volume2 className="w-2.5 h-2.5 shrink-0" />
+                      <span>{tl.soundHint}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Painel Ao Vivo da Campanha Selecionada */}
+            {mapTimelineMode === 'ww2' && activeTimelineStats && (
+              <div className="rounded-xl bg-rose-950/20 border border-rose-500/35 p-3.5 flex flex-col gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-xs font-black uppercase tracking-wider text-rose-200 flex items-center gap-2">
+                    <Swords className="w-4 h-4 text-rose-400" />
+                    Campanha Segunda Guerra (1939–1945) — Aliados vs. Eixo
+                  </div>
+                  <span className="text-[10px] font-mono font-bold bg-zinc-950/80 border border-zinc-800 text-amber-300 px-2.5 py-0.5 rounded-lg">
+                    🎞️ Safra 1939–1945 no Catálogo: {activeTimelineStats.warEraCount} filmes
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* Barra Aliados */}
+                  <div className="bg-zinc-950/80 border border-sky-500/30 rounded-xl p-3 flex flex-col gap-2">
+                    <div className="flex items-center justify-between text-xs font-black">
+                      <span className="text-sky-300 flex items-center gap-1.5">
+                        <Shield className="w-3.5 h-3.5 text-sky-400" /> Frente dos Aliados
+                      </span>
+                      <span className="font-mono text-sky-200">
+                        {activeTimelineStats.alliesCount} / 30+ filmes{' '}
+                        {activeTimelineStats.alliesCount >= 30 ? '✅' : ''}
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full bg-zinc-900 overflow-hidden border border-zinc-800">
+                      <div
+                        className="h-full bg-gradient-to-r from-sky-500 to-emerald-400 rounded-full transition-all"
+                        style={{
+                          width: `${Math.min(100, Math.round((activeTimelineStats.alliesCount / 30) * 100))}%`
+                        }}
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-1 pt-0.5">
+                      {activeTimelineStats.alliesChecklist.map((a) => (
+                        <span
+                          key={a.key}
+                          className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+                            a.conquered
+                              ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                              : 'bg-zinc-900 border-zinc-800 text-zinc-500'
+                          }`}
+                        >
+                          {a.conquered ? '✓' : '○'} {a.label} ({a.count})
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Barra Eixo */}
+                  <div className="bg-zinc-950/80 border border-rose-500/30 rounded-xl p-3 flex flex-col gap-2">
+                    <div className="flex items-center justify-between text-xs font-black">
+                      <span className="text-rose-300 flex items-center gap-1.5">
+                        <Flame className="w-3.5 h-3.5 text-rose-400" /> Potências do Eixo
+                      </span>
+                      <span className="font-mono text-rose-200">
+                        {activeTimelineStats.axisCount} / 50 filmes (Meta 70)
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full bg-zinc-900 overflow-hidden border border-zinc-800">
+                      <div
+                        className="h-full bg-gradient-to-r from-rose-600 to-amber-400 rounded-full transition-all"
+                        style={{
+                          width: `${Math.min(100, Math.round((activeTimelineStats.axisCount / 50) * 100))}%`
+                        }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-400">
+                      Alemanha + Japão + Itália ({activeTimelineStats.axisPrincipalCount} filmes) e
+                      nações alinhadas. Clique na URSS no mapa para inspecionar a Frente Oriental!
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {mapTimelineMode === 'cold_war' && activeTimelineStats && (
+              <div className="rounded-xl bg-cyan-950/20 border border-cyan-500/35 p-3.5 flex flex-col gap-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-xs font-black uppercase tracking-wider text-cyan-200 flex items-center gap-2">
+                    <span>❄️ Guerra Fria &amp; Cortina de Ferro (1949–1991)</span>
+                    <span className="text-[10px] font-mono bg-teal-500/20 border border-teal-400/40 text-teal-200 px-2 py-0.5 rounded-full">
+                      {activeTimelineStats.relicsConquered}/5 Relíquias da Era
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-[10px] font-bold">
+                    <span className="text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded">
+                      OTAN / Oeste: {activeTimelineStats.natoMoviesCount} filmes
+                    </span>
+                    <span className="text-orange-300 bg-orange-500/10 border border-orange-500/30 px-2 py-0.5 rounded">
+                      Bloco Leste: {activeTimelineStats.warsawMoviesCount} filmes
+                    </span>
+                    <span className="text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded">
+                      Lançados 1949–1991: {activeTimelineStats.coldWarEraCount}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {activeTimelineStats.relicsStatus.map((r) => (
+                    <button
+                      key={r.code}
+                      type="button"
+                      onClick={() => setSelectedCountryCode(r.code)}
+                      className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-all cursor-pointer flex items-center gap-1.5 ${
+                        r.conquered
+                          ? 'bg-teal-500/20 border-teal-400/60 text-teal-200 hover:bg-teal-500/30'
+                          : 'bg-zinc-950/80 border-zinc-800 text-zinc-400 hover:border-teal-500/40 hover:text-zinc-200'
+                      }`}
+                    >
+                      <span>{r.conquered ? '✅' : '⏳'}</span>
+                      <span>{r.name}</span>
+                      <span className="font-mono text-[9px] opacity-80">({r.count})</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {mapTimelineMode === 'pioneers' && activeTimelineStats && (
+              <div className="rounded-xl bg-yellow-950/20 border border-yellow-500/35 p-3.5 flex flex-col gap-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-xs font-black uppercase tracking-wider text-yellow-200 flex items-center gap-2">
+                    <span>🕯️ Era dos Pioneiros &amp; Clássicos (Pré-1950)</span>
+                    <span className="text-[10px] font-mono bg-amber-500/20 border border-amber-400/40 text-amber-200 px-2 py-0.5 rounded-full">
+                      {activeTimelineStats.classicCount} clássicos no catálogo
+                    </span>
+                  </div>
+                  {activeTimelineStats.earliestMovie && (
+                    <span className="text-[10px] font-bold text-amber-300 bg-zinc-950/80 border border-amber-500/35 px-2.5 py-0.5 rounded-lg">
+                      🎞️ Mais Antigo: {activeTimelineStats.earliestMovie.title} (
+                      {activeTimelineStats.earliestMovie.release_year})
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {activeTimelineStats.cradlesStatus.map((cr) => (
+                    <span
+                      key={cr.key}
+                      className={`text-[10px] font-bold px-2 py-1 rounded-lg border ${
+                        cr.conquered
+                          ? 'bg-amber-500/20 border-amber-400/50 text-amber-200'
+                          : 'bg-zinc-950/75 border-zinc-800 text-zinc-500'
+                      }`}
+                    >
+                      {cr.conquered ? '🎞️' : '○'} {cr.label} ({cr.count})
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {mapTimelineMode === 'relic_radar' && activeTimelineStats && (
+              <div className="rounded-xl bg-teal-950/20 border border-teal-400/40 p-3.5 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-col gap-0.5">
+                  <div className="text-xs font-black uppercase tracking-wider text-teal-200 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-teal-300" />
+                    Lente Multiverso Ativa — Caça às 30 Relíquias &amp; 18 Míticos
+                  </div>
+                  <p className="text-[11px] text-zinc-400">
+                    Os 177 países comuns estão apagados para você localizar rápido Hong Kong, Macau,
+                    Groenlândia, Ilhas Faroé, Tibete, Curdistão e os microestados Míticos no globo.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRarityFilter('relic');
+                      setViewMode('cards');
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 border border-teal-400/50 text-teal-200 text-[10px] font-black uppercase tracking-wider cursor-pointer"
+                  >
+                    ⏳ Relíquias: {activeTimelineStats.relicsConquered}/{activeTimelineStats.relicsTotal} →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRarityFilter('mythic');
+                      setViewMode('cards');
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-400/50 text-rose-200 text-[10px] font-black uppercase tracking-wider cursor-pointer"
+                  >
+                    💎 Míticos: {activeTimelineStats.mythicsConquered}/{activeTimelineStats.mythicsTotal} →
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           <TacticalWorldMap
             countries={challengeData?.countries || []}
+            historicalCountries={challengeData?.historicalCountries || []}
+            pioneerActiveCodes={pioneerActiveCodes}
+            mapTimelineMode={mapTimelineMode}
+            timelineWarpKey={timelineWarpKey}
             selectedContinent={selectedContinent}
             visibleCodesSet={visibleCodesSet}
             onSelectCountry={(countryObj) => setSelectedCountryCode(countryObj.code)}
@@ -1195,11 +1577,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between gap-1">
                             <div className="flex items-center gap-1.5 min-w-0">
-                              <img
-                                src={`https://flagcdn.com/w40/${c.code}.png`}
-                                alt={c.name}
-                                className="w-4 h-3 object-cover rounded-[2px] shrink-0"
-                              />
+                              {renderTerritoryFlag(c)}
                               <span className="text-[10px] font-black uppercase tracking-wider text-zinc-200 truncate">
                                 {c.name}
                               </span>
@@ -1207,6 +1585,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                             <span
                               className={`text-[8px] font-black uppercase px-1.5 py-0.2 rounded border shrink-0 ${rMeta.softBadge}`}
                             >
+                              {rMeta.key === 'relic' ? '⏳ ' : ''}
                               {rMeta.label}
                             </span>
                           </div>
@@ -1265,11 +1644,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                       className="flex items-center justify-between gap-2.5 p-2 rounded-xl bg-amber-500/5 hover:bg-amber-500/15 border border-amber-500/25 text-left transition-all cursor-pointer"
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <img
-                          src={`https://flagcdn.com/w40/${c.code}.png`}
-                          alt={c.name}
-                          className="w-5 h-3.5 object-cover rounded-[2px] shrink-0"
-                        />
+                        {renderTerritoryFlag(c, 'w-5 h-3.5 object-cover rounded-[2px] shrink-0')}
                         <div className="min-w-0">
                           <div className="text-[11px] font-black text-zinc-100 truncate">
                             {c.name}
@@ -1471,9 +1846,9 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                               Alocado em:
                             </span>
                             <span className="text-zinc-200 font-black flex items-center gap-1.5 truncate ml-1">
-                              {currentCountryCode && (
+                              {resolveValidIsoFlagCode(currentCountryCode) && (
                                 <img
-                                  src={`https://flagcdn.com/w40/${currentCountryCode.toLowerCase()}.png`}
+                                  src={`https://flagcdn.com/w40/${resolveValidIsoFlagCode(currentCountryCode)}.png`}
                                   alt={currentCountryName || ''}
                                   className="w-4 h-2.5 object-cover rounded-[2px]"
                                   onError={(e) => {
@@ -1538,9 +1913,9 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                                 }`}
                               >
                                 <div className="flex items-center gap-1.5 min-w-0">
-                                  {cp.flagCode && (
+                                  {resolveValidIsoFlagCode(cp.flagCode, cp.code) && (
                                     <img
-                                      src={`https://flagcdn.com/w40/${cp.flagCode.toLowerCase()}.png`}
+                                      src={`https://flagcdn.com/w40/${resolveValidIsoFlagCode(cp.flagCode, cp.code)}.png`}
                                       alt={cp.name}
                                       className="w-4 h-3 object-cover rounded-[2px] shrink-0"
                                       onError={(e) => {
@@ -1583,10 +1958,10 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
           <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-2 px-1">
             <span className="text-xs font-black uppercase tracking-widest text-zinc-400">
-              Exibindo {filteredCountries.length} de 195 Cartas de Território
+              Exibindo {filteredCountries.length} de {allAtlasTerritories.length || 195} Cartas de Território
             </span>
 
-            {/* Legenda dos 5 Tiers de Raridade do País */}
+            {/* Legenda dos 6 Tiers de Raridade (inclui ⏳ Relíquia) */}
             <div className="flex flex-wrap items-center gap-3 text-[10px] font-black uppercase tracking-wider">
               <span className="text-emerald-400 flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-400" /> Comum
@@ -1599,6 +1974,9 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
               </span>
               <span className="text-amber-400 flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-amber-400" /> Lendário
+              </span>
+              <span className="text-teal-300 flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" /> Relíquia ({historicalTotalCount})
               </span>
               <span className="text-rose-400 flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" /> Mítico (18)
@@ -1621,7 +1999,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                 }}
                 className="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 text-xs font-black uppercase tracking-wider cursor-pointer"
               >
-                Mostrar Todos os 195 Países
+                Mostrar Todas as Cartas ({allAtlasTerritories.length || 195})
               </button>
             </div>
           ) : (
@@ -1630,6 +2008,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                 const isConquered = country.status === 'conquered' && Boolean(country.champion);
                 const rarity = getRarityMeta(country.rarityTier || country.code);
                 const isMythic = rarity.key === 'mythic';
+                const isRelic = rarity.key === 'relic';
 
                 if (isConquered) {
                   const champ = country.champion;
@@ -1643,9 +2022,12 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                       onClick={() => setSelectedCountryCode(country.code)}
                       className={`group relative h-80 rounded-2xl border-2 overflow-hidden bg-zinc-950 text-left flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 cursor-pointer ${rarity.border} ${rarity.glow}`}
                     >
-                      {/* Efeito de brilho superior especial para países MÍTICOS */}
+                      {/* Efeito de brilho superior especial para MÍTICOS e RELÍQUIAS */}
                       {isMythic && (
                         <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-500 via-amber-300 to-rose-500 z-20" />
+                      )}
+                      {isRelic && (
+                        <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal-400 via-cyan-200 to-amber-300 z-20" />
                       )}
 
                       {/* Pôster de Fundo com Vinheta Escura */}
@@ -1663,16 +2045,12 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/75 to-zinc-950/25" />
 
-                      {/* Topo da Carta: Bandeira + Selo de Raridade do PAÍS */}
+                      {/* Topo da Carta: Bandeira + Selo de Raridade */}
                       <div className="relative z-10 p-3 flex items-start justify-between gap-2">
                         <div className="flex items-center gap-1.5 bg-zinc-950/85 backdrop-blur-md border border-zinc-700/80 px-2 py-1 rounded-lg">
-                          <img
-                            src={`https://flagcdn.com/w40/${country.code}.png`}
-                            alt={country.name}
-                            className="w-4 h-3 object-cover rounded-[2px]"
-                          />
+                          {renderTerritoryFlag(country)}
                           <span className="font-mono text-[10px] font-black text-zinc-200">
-                            {country.iso3}
+                            {country.iso3 || country.code.toUpperCase()}
                           </span>
                         </div>
 
@@ -1680,7 +2058,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                           <span
                             className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border shadow ${rarity.badge}`}
                           >
-                            {isMythic ? `🔥 ${rarity.label}` : rarity.label}
+                            {isMythic ? `🔥 ${rarity.label}` : isRelic ? `⏳ ${rarity.label}` : rarity.label}
                           </span>
                           {champ.originMode === 'manual' && (
                             <span className="text-[8px] font-black uppercase bg-emerald-950/90 text-emerald-300 border border-emerald-400/60 px-1.5 py-0.5 rounded flex items-center gap-0.5 shadow">
@@ -1695,7 +2073,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                           {(country.totalCandidates ?? country.candidates?.length ?? 0) > 0 && (
                             <span
                               className="inline-flex items-center gap-1 rounded-md bg-black/80 border border-white/15 font-mono font-bold text-zinc-100 backdrop-blur-md text-[10px] px-1.5 py-0.5 shadow"
-                              title={`${country.totalCandidates ?? country.candidates?.length} filme(s) neste país no Desafio 195`}
+                              title={`${country.totalCandidates ?? country.candidates?.length} filme(s) neste território`}
                             >
                               <Film className="w-2.5 h-2.5 text-cyan-300" />
                               {country.totalCandidates ?? country.candidates?.length}
@@ -1704,7 +2082,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                         </div>
                       </div>
 
-                      {/* Rodapé da Carta: País + Badge Interno de Nota + Filme Campeão + Coproduções */}
+                      {/* Rodapé da Carta */}
                       <div className="relative z-10 p-3.5 flex flex-col gap-1.5">
                         <div className="flex items-center justify-between gap-2">
                           <span
@@ -1713,7 +2091,6 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                             {country.name}
                           </span>
 
-                          {/* Nota do filme mantida exclusivamente como badge interno de pontuação */}
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-zinc-700 bg-zinc-950/90 text-amber-300 text-[11px] font-black backdrop-blur-md shrink-0">
                             <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                             {Number(champ.user_rating || 0).toFixed(1)}
@@ -1727,8 +2104,8 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                         <div className="flex items-center justify-between text-[10px] text-zinc-300 font-semibold pt-0.5 border-t border-white/10">
                           <span className="truncate">
                             {coprodCount > 1
-                              ? `Coprod. (${coprodCount} países)`
-                              : champ.directors?.[0] || country.continent}
+                              ? `Coprod. (${coprodCount} territórios)`
+                              : champ.directors?.[0] || country.era || country.continent}
                           </span>
                           <span className="font-mono text-zinc-400 shrink-0 ml-1">
                             {champ.release_year || ''}
@@ -1739,7 +2116,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                   );
                 }
 
-                /* Carta Não Conquistada (Silhueta Escura / Terra Incógnita com Selo de Raridade do País) */
+                /* Carta Não Conquistada (Silhueta Escura / Relíquia Selada / Terra Incógnita) */
                 const hasWish = Boolean(country.wishlist);
 
                 return (
@@ -1752,32 +2129,33 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                         ? 'bg-gradient-to-b from-amber-950/20 via-zinc-950 to-zinc-950 border-amber-500/45 hover:border-amber-400'
                         : isMythic
                           ? `bg-gradient-to-b from-rose-950/25 via-zinc-950 to-zinc-950 ${rarity.lockedBorder}`
-                          : `bg-zinc-950/75 hover:bg-zinc-900/60 ${rarity.lockedBorder}`
+                          : isRelic
+                            ? `bg-gradient-to-b from-teal-950/25 via-zinc-950 to-zinc-950 ${rarity.lockedBorder}`
+                            : `bg-zinc-950/75 hover:bg-zinc-900/60 ${rarity.lockedBorder}`
                     }`}
                   >
-                    {/* Topo: Bandeira Desaturada + Selo de Raridade da Nação */}
+                    {/* Topo: Bandeira Desaturada + Selo de Raridade */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-1.5 bg-zinc-900/90 border border-zinc-800 px-2 py-1 rounded-lg">
-                        <img
-                          src={`https://flagcdn.com/w40/${country.code}.png`}
-                          alt={country.name}
-                          className={`w-4 h-3 object-cover rounded-[2px] ${
-                            hasWish ? 'opacity-85' : 'grayscale opacity-40 group-hover:opacity-75'
-                          }`}
-                        />
+                        {renderTerritoryFlag(
+                          country,
+                          `w-4 h-3 object-cover rounded-[2px] shrink-0 ${
+                            hasWish ? 'opacity-85' : 'grayscale opacity-45 group-hover:opacity-80'
+                          }`
+                        )}
                         <span className="font-mono text-[10px] font-bold text-zinc-500">
-                          {country.iso3}
+                          {country.iso3 || country.code.toUpperCase()}
                         </span>
                       </div>
 
                       <span
                         className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${rarity.lockedBadge}`}
                       >
-                        {isMythic ? `🔥 ${rarity.label}` : rarity.label}
+                        {isMythic ? `🔥 ${rarity.label}` : isRelic ? `⏳ ${rarity.label}` : rarity.label}
                       </span>
                     </div>
 
-                    {/* Centro: Silhueta Misteriosa, Coprodução Reivindicável ou Poster do Alvo */}
+                    {/* Centro: Silhueta Misteriosa, Relíquia Selada ou Poster do Alvo */}
                     <div className="my-auto flex flex-col items-center justify-center text-center px-2 gap-2">
                       {hasWish ? (
                         <>
@@ -1802,13 +2180,15 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                             className={`w-12 h-12 rounded-2xl border flex items-center justify-center transition-colors ${
                               isMythic
                                 ? 'bg-rose-950/40 border-rose-500/30 text-rose-400/80 group-hover:text-rose-300'
-                                : 'bg-zinc-900/90 border-zinc-800 text-zinc-700 group-hover:text-amber-400 group-hover:border-amber-500/30'
+                                : isRelic
+                                  ? 'bg-teal-950/40 border-teal-500/35 text-teal-400/85 group-hover:text-teal-300'
+                                  : 'bg-zinc-900/90 border-zinc-800 text-zinc-700 group-hover:text-amber-400 group-hover:border-amber-500/30'
                             }`}
                           >
-                            <Lock className="w-5 h-5" />
+                            {isRelic ? <Clock className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
                           </div>
                           <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600 group-hover:text-zinc-400">
-                            Terra Incógnita
+                            {isRelic ? 'Relíquia (+225 XP)' : 'Terra Incógnita'}
                           </span>
                         </>
                       )}
@@ -1819,9 +2199,9 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
                       <span className="text-xs font-black uppercase tracking-wide text-zinc-300 group-hover:text-zinc-100 truncate">
                         {country.name}
                       </span>
-                      <div className="flex items-center justify-between text-[10px] text-zinc-500">
-                        <span>{country.continent}</span>
-                        <span className="text-amber-400/80 opacity-0 group-hover:opacity-100 font-bold transition-opacity">
+                      <div className="flex items-center justify-between text-[10px] text-zinc-500 gap-1">
+                        <span className="truncate">{country.era || country.continent}</span>
+                        <span className="text-amber-400/80 opacity-0 group-hover:opacity-100 font-bold transition-opacity shrink-0">
                           Inspecionar →
                         </span>
                       </div>

@@ -22,7 +22,6 @@ import { triggerPS5TrophyToast, TIER_THEMES } from '../components/PS5TrophyToast
 import TrophyChecklistModal from '../components/TrophyChecklistModal';
 import TrophyTestPanelModal from '../components/TrophyTestPanelModal';
 import { TrophyCardBadges, CATEGORY_BADGE_CONFIG, getCleanTrophyTitle } from '../components/TrophyBadges';
-import { evaluateTrophiesClientSide } from '../utils/trophyEngineClient';
 import { dispatchXpStatusUpdate, TROPHY_XP_BY_TIER } from '../utils/xpSystem';
 import { API_BASE_URL } from '../utils/apiConfig';
 const STORAGE_KEY_DISPLAY_COUNT = 'cinecatalog_trophies_per_row';
@@ -65,6 +64,34 @@ function LastMovieProgressPill({ lastAct, compact = false }) {
   );
 }
 
+function RankPipsBar({ trophy, compact = false }) {
+  if (trophy?.kind !== 'rank' || !Array.isArray(trophy.ranks) || trophy.ranks.length === 0) return null;
+  return (
+    <div className={`flex items-center gap-1 ${compact ? 'mt-1' : 'mt-1.5 flex-wrap'}`}>
+      {trophy.ranks.map((rk) => {
+        const rkTheme = TIER_THEMES[String(rk.tier || 'bronze').toLowerCase()] || TIER_THEMES.bronze;
+        const done = Boolean(rk.is_unlocked);
+        return (
+          <span
+            key={rk.id}
+            title={`${rkTheme.name} (meta ${rk.target_value}): ${rk.progress_current}/${rk.progress_target}${done ? ' ✓' : ''}`}
+            className={`inline-flex items-center gap-0.5 rounded border font-mono font-black transition-all ${
+              compact ? 'text-[8px] px-1 py-0.5' : 'text-[9px] px-1.5 py-0.5'
+            } ${
+              done
+                ? `${rkTheme.badgeBg} ${rkTheme.border}`
+                : 'bg-zinc-900/70 text-zinc-500 border-zinc-800/80 opacity-65'
+            }`}
+          >
+            <span>{rkTheme.symbol}</span>
+            {!compact && <span>{rk.target_value}</span>}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 export const CATEGORY_NAMES = {
   volta_ao_mundo: 'Volta ao Mundo',
   dna_cinefilo: 'DNA Cinéfilo',
@@ -73,14 +100,16 @@ export const CATEGORY_NAMES = {
   mafia_hollywood: 'A Máfia de Hollywood',
   tribunal_critica: 'Tribunal da Crítica',
   ritual_cinefilo: 'O Ritual do Cinéfilo',
-  sessao_secreta: 'Sessão Secreta',
 };
+
+const VISIBLE_BATCH_SIZE = 48;
 
 export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [localOverrides, setLocalOverrides] = useState({});
+  const [visibleLimit, setVisibleLimit] = useState(VISIBLE_BATCH_SIZE);
 
   // Filtros de Categoria, Tier, Status e Busca
   const [selectedCategory, setSelectedCategory] = useState('all'); // 'all', 'volta_ao_mundo', 'dna_cinefilo', 'anatomia_cinema', 'data_limite', 'mafia_hollywood', etc.
@@ -130,12 +159,12 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
     setMuted(next);
   };
 
-  const loadTrophies = useCallback(async (isInitial = false) => {
+  const loadTrophies = useCallback(async (isInitial = false, forceRefresh = false) => {
     setLoading(true);
     setError(null);
     try {
       try {
-        const res = await axios.get(`${API_BASE_URL}/trophies`);
+        const res = await axios.get(`${API_BASE_URL}/trophies${forceRefresh ? '?refresh=1' : ''}`);
         if (res.data?.success && res.data?.data) {
           setData(res.data.data);
           if (res.data.data.xpStatus) {
@@ -160,8 +189,9 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
         console.warn('[TrophiesPage] Backend offline ou indisponível, avaliando troféus via motor client-side local:', err.message);
       }
 
-      // Fallback: Avaliação local inteligente a partir do catálogo
+      // Fallback: Avaliação local inteligente a partir do catálogo (lazy-loaded)
       try {
+        const { evaluateTrophiesClientSide } = await import('../utils/trophyEngineClient');
         const clientResult = evaluateTrophiesClientSide(movies, localOverrides);
         setData(clientResult);
       } catch (clientErr) {
@@ -178,6 +208,31 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
   }, [loadTrophies]);
 
   const allTrophies = data?.trophies || [];
+
+  // Reseta paginação incremental quando os filtros mudam
+  useEffect(() => {
+    setVisibleLimit(VISIBLE_BATCH_SIZE);
+  }, [selectedCategory, onlyMultiCategory, selectedTier, selectedStatus, searchQuery, sortBy]);
+
+  // Contagens por categoria em uma única passagem
+  const categoryCounts = useMemo(() => {
+    const counts = {
+      volta_ao_mundo: 0,
+      dna_cinefilo: 0,
+      anatomia_cinema: 0,
+      data_limite: 0,
+      mafia_hollywood: 0,
+      tribunal_critica: 0,
+      ritual_cinefilo: 0,
+    };
+    for (const t of allTrophies) {
+      const cats = Array.isArray(t.categories) && t.categories.length > 0 ? t.categories : [t.category];
+      for (const c of cats) {
+        if (counts[c] !== undefined) counts[c] += 1;
+      }
+    }
+    return counts;
+  }, [allTrophies]);
 
   // Filtragem dinâmica pela Categoria selecionada e Toggle Multicategoria
   const categoryTrophies = useMemo(() => {
@@ -197,25 +252,53 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
     return list;
   }, [allTrophies, selectedCategory, onlyMultiCategory]);
 
-  // Estatísticas por Tier reativas à Categoria selecionada
-  const activeTierStats = useMemo(() => {
+  // Estatísticas por Tier e Geral em 1 passagem (expande Troféus de Rank em seus 5 patamares/conquistas)
+  const { activeTierStats, activeOverallStats } = useMemo(() => {
     const stats = {};
     TIER_ORDER.forEach((tierKey) => {
-      const list = categoryTrophies.filter((t) => t.tier === tierKey);
-      const unlocked = list.filter((t) => t.is_unlocked).length;
-      const total = list.length;
-      const percentage = total > 0 ? Math.round((unlocked / total) * 100) : 0;
-      stats[tierKey] = { total, unlocked, percentage };
+      stats[tierKey] = { total: 0, unlocked: 0, percentage: 0 };
     });
-    return stats;
-  }, [categoryTrophies]);
 
-  // Estatísticas Gerais reativas à Categoria selecionada
-  const activeOverallStats = useMemo(() => {
-    const total = categoryTrophies.length;
-    const unlocked = categoryTrophies.filter((t) => t.is_unlocked).length;
-    const percentage = total > 0 ? Math.round((unlocked / total) * 100) : 0;
-    return { total, unlocked, percentage };
+    let totalConquests = 0;
+    let unlockedConquests = 0;
+
+    for (const t of categoryTrophies) {
+      if (t.kind === 'rank' && Array.isArray(t.ranks) && t.ranks.length > 0) {
+        for (const r of t.ranks) {
+          const rkTier = String(r.tier || 'bronze').toLowerCase();
+          if (stats[rkTier]) {
+            stats[rkTier].total += 1;
+            if (r.is_unlocked) stats[rkTier].unlocked += 1;
+          }
+          totalConquests += 1;
+          if (r.is_unlocked) unlockedConquests += 1;
+        }
+      } else {
+        const tr = String(t.tier || 'bronze').toLowerCase();
+        if (stats[tr]) {
+          stats[tr].total += 1;
+          if (t.is_unlocked) stats[tr].unlocked += 1;
+        }
+        totalConquests += 1;
+        if (t.is_unlocked) unlockedConquests += 1;
+      }
+    }
+
+    TIER_ORDER.forEach((tierKey) => {
+      const b = stats[tierKey];
+      b.percentage = b.total > 0 ? Math.round((b.unlocked / b.total) * 100) : 0;
+    });
+
+    const overallPct = totalConquests > 0 ? Math.round((unlockedConquests / totalConquests) * 100) : 0;
+    return {
+      activeTierStats: stats,
+      activeOverallStats: {
+        total: totalConquests,
+        unlocked: unlockedConquests,
+        percentage: overallPct,
+        cardsCount: categoryTrophies.length,
+      },
+    };
   }, [categoryTrophies]);
 
   const lastActivityMap = useMemo(() => {
@@ -231,55 +314,81 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
     return map;
   }, [data]);
 
-  // Filtragem final e Ordenação Obrigatória PS5
+  // Filtragem final e Ordenação Obrigatória PS5 (com suporte a Troféus de Rank)
   const filteredTrophies = useMemo(() => {
+    const hasUnlockedDisplay = (t) => {
+      if (t.kind === 'rank' && Array.isArray(t.ranks)) {
+        if (selectedTier !== 'all') {
+          return t.ranks.some((r) => r.tier === selectedTier && r.is_unlocked);
+        }
+        return (t.unlocked_ranks_count || 0) > 0;
+      }
+      return Boolean(t.is_unlocked);
+    };
+
+    const effectiveTier = (t) =>
+      t.kind === 'rank'
+        ? String(t.highest_unlocked_tier || (selectedTier !== 'all' ? selectedTier : t.tier || 'bronze')).toLowerCase()
+        : String(t.tier || 'bronze').toLowerCase();
+
     let list = [...categoryTrophies];
 
-    // Filtro por Tier
     if (selectedTier !== 'all') {
-      list = list.filter((t) => t.tier === selectedTier);
+      list = list.filter((t) => {
+        if (t.kind === 'rank' && Array.isArray(t.ranks)) {
+          return t.ranks.some((r) => r.tier === selectedTier);
+        }
+        return t.tier === selectedTier;
+      });
     }
 
-    // Filtro por Status
     if (selectedStatus === 'unlocked') {
-      list = list.filter((t) => t.is_unlocked);
+      list = list.filter((t) => hasUnlockedDisplay(t));
     } else if (selectedStatus === 'in_progress') {
-      list = list.filter((t) => !t.is_unlocked && t.progress_current > 0);
+      list = list.filter((t) => {
+        if (t.kind === 'rank' && Array.isArray(t.ranks)) {
+          if (selectedTier !== 'all') {
+            const step = t.ranks.find((r) => r.tier === selectedTier);
+            return step && !step.is_unlocked && step.progress_current > 0;
+          }
+          return !t.is_unlocked && ((t.unlocked_ranks_count || 0) > 0 || t.progress_current > 0);
+        }
+        return !t.is_unlocked && t.progress_current > 0;
+      });
     } else if (selectedStatus === 'locked') {
-      list = list.filter((t) => !t.is_unlocked && t.progress_current === 0);
+      list = list.filter((t) => {
+        if (t.kind === 'rank' && Array.isArray(t.ranks)) {
+          if (selectedTier !== 'all') {
+            const step = t.ranks.find((r) => r.tier === selectedTier);
+            return step && !step.is_unlocked && (step.progress_current === 0 || (t.unlocked_ranks_count || 0) === 0);
+          }
+          return !t.is_unlocked && t.progress_current === 0 && (t.unlocked_ranks_count || 0) === 0;
+        }
+        return !t.is_unlocked && t.progress_current === 0;
+      });
     }
 
-    // Busca textual inteligente (título, descrição, tags, países, itens de checklist)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter((t) => {
         const titleMatch = t.title?.toLowerCase().includes(q);
         const descMatch = t.description?.toLowerCase().includes(q);
+        const keywordsMatch = t.search_keywords?.toLowerCase().includes(q);
+        const rankMatch =
+          Array.isArray(t.ranks) &&
+          t.ranks.some((r) => r.title?.toLowerCase().includes(q) || r.description?.toLowerCase().includes(q));
         const tagMatch =
           t.target_metadata?.tag?.toLowerCase().includes(q) ||
           (Array.isArray(t.target_metadata?.tags) &&
-            t.target_metadata.tags.some((tg) => tg.toLowerCase().includes(q))) ||
-          (Array.isArray(t.target_metadata?.tagPool) &&
-            t.target_metadata.tagPool.some((tg) => tg.toLowerCase().includes(q)));
+            t.target_metadata.tags.some((tg) => tg.toLowerCase().includes(q)));
         const countryMatch =
           t.target_metadata?.country?.toLowerCase().includes(q) ||
+          t.target_metadata?.countryName?.toLowerCase().includes(q) ||
           t.target_metadata?.continent?.toLowerCase().includes(q);
-        const checklistMatch = t.checklist?.some((c) =>
-          c.name?.toLowerCase().includes(q) || c.movie_title?.toLowerCase().includes(q)
-        );
-        return titleMatch || descMatch || tagMatch || countryMatch || checklistMatch;
+        return titleMatch || descMatch || keywordsMatch || rankMatch || tagMatch || countryMatch;
       });
     }
 
-    // =========================================================================
-    // SISTEMA DE ORDENAÇÃO SELECIONÁVEL
-    // 1. [ 🕒 Mais Recentes ]: Desbloqueados por unlocked_at DESC (desempate: Raridade DESC); depois Bloqueados por % DESC
-    // 2. [ 🆕 Recém-Criados ]: Troféus adicionados mais recentemente no catálogo (sort_order DESC)
-    // 3. [ 🎬 Último Filme ]: Somente troféus que ganharam progresso ou desbloquearam no último cadastro
-    // 4. [ 💎 Mais Raros ]: Desbloqueados (Raridade DESC) -> Bloqueados (Raridade DESC priorizando maior progresso)
-    // 5. [ 🎯 Maior Progresso ]: Bloqueados com progresso no topo (% DESC) -> Bloqueados 0% -> Conquistados
-    // 6. [ 🔤 A-Z ]: Ordem alfabética pelo título limpo do troféu
-    // =========================================================================
     const TIER_WEIGHT = {
       platinum: 6,
       mythic: 5,
@@ -318,23 +427,18 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
     }
 
     if (sortBy === 'az') {
-      list.sort((a, b) => {
-        const titleA = getCleanTrophyTitle(a.title);
-        const titleB = getCleanTrophyTitle(b.title);
-        return titleA.localeCompare(titleB, 'pt');
-      });
+      list.sort((a, b) =>
+        getCleanTrophyTitle(a.title).localeCompare(getCleanTrophyTitle(b.title), 'pt-BR')
+      );
       return list;
     }
 
     if (sortBy === 'progress') {
-      // 1. Bloqueados com progresso (> 0%)
-      // 2. Bloqueados sem progresso (0%)
-      // 3. Conquistados
       const getProgressBucket = (t) => {
         if (!t.is_unlocked) {
           const pct = Number(t.progress_percentage) || 0;
           const cur = Number(t.progress_current) || 0;
-          return pct > 0 || cur > 0 ? 1 : 2;
+          return pct > 0 || cur > 0 || (t.unlocked_ranks_count || 0) > 0 ? 1 : 2;
         }
         return 3;
       };
@@ -345,111 +449,86 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
         if (bA !== bB) return bA - bB;
 
         if (bA === 1) {
-          // Bloqueados com progresso: Maior % primeiro
           const pctDiff = (Number(b.progress_percentage) || 0) - (Number(a.progress_percentage) || 0);
           if (pctDiff !== 0) return pctDiff;
-
           const curDiff = (Number(b.progress_current) || 0) - (Number(a.progress_current) || 0);
           if (curDiff !== 0) return curDiff;
-
-          const tierDiff = (TIER_WEIGHT[b.tier?.toLowerCase()] || 0) - (TIER_WEIGHT[a.tier?.toLowerCase()] || 0);
+          const tierDiff = (TIER_WEIGHT[effectiveTier(b)] || 0) - (TIER_WEIGHT[effectiveTier(a)] || 0);
           if (tierDiff !== 0) return tierDiff;
-
           return (a.sort_order || 0) - (b.sort_order || 0);
         }
 
         if (bA === 2) {
-          // Bloqueados 0%: Mais raros primeiro
-          const tierDiff = (TIER_WEIGHT[b.tier?.toLowerCase()] || 0) - (TIER_WEIGHT[a.tier?.toLowerCase()] || 0);
+          const tierDiff = (TIER_WEIGHT[effectiveTier(b)] || 0) - (TIER_WEIGHT[effectiveTier(a)] || 0);
           if (tierDiff !== 0) return tierDiff;
-
           return (a.sort_order || 0) - (b.sort_order || 0);
         }
 
-        // Conquistados: Mais recente primeiro, desempate por raridade
         const tA = a.unlocked_at ? new Date(a.unlocked_at).getTime() : 0;
         const tB = b.unlocked_at ? new Date(b.unlocked_at).getTime() : 0;
         if (tB !== tA) return tB - tA;
-
-        const tierDiff = (TIER_WEIGHT[b.tier?.toLowerCase()] || 0) - (TIER_WEIGHT[a.tier?.toLowerCase()] || 0);
+        const tierDiff = (TIER_WEIGHT[effectiveTier(b)] || 0) - (TIER_WEIGHT[effectiveTier(a)] || 0);
         if (tierDiff !== 0) return tierDiff;
-
         return (a.sort_order || 0) - (b.sort_order || 0);
       });
       return list;
     }
 
     if (sortBy === 'rarity') {
-      // 1. Conquistados: Raridade Platina -> Bronze (desempate: mais recente)
-      // 2. Bloqueados: Raridade Platina -> Bronze (desempate: maior progresso)
       list.sort((a, b) => {
-        const unlA = a.is_unlocked ? 1 : 2;
-        const unlB = b.is_unlocked ? 1 : 2;
+        const unlA = hasUnlockedDisplay(a) ? 1 : 2;
+        const unlB = hasUnlockedDisplay(b) ? 1 : 2;
         if (unlA !== unlB) return unlA - unlB;
 
-        // Desempate por Raridade Decrescente
-        const tierDiff = (TIER_WEIGHT[b.tier?.toLowerCase()] || 0) - (TIER_WEIGHT[a.tier?.toLowerCase()] || 0);
+        const tierDiff = (TIER_WEIGHT[effectiveTier(b)] || 0) - (TIER_WEIGHT[effectiveTier(a)] || 0);
         if (tierDiff !== 0) return tierDiff;
 
         if (unlA === 1) {
-          // Entre conquistados da mesma raridade: conquista mais recente primeiro
           const tA = a.unlocked_at ? new Date(a.unlocked_at).getTime() : 0;
           const tB = b.unlocked_at ? new Date(b.unlocked_at).getTime() : 0;
           if (tB !== tA) return tB - tA;
-
           return (a.sort_order || 0) - (b.sort_order || 0);
         }
 
-        // Entre bloqueados da mesma raridade: mais próximo de concluir primeiro
         const pctDiff = (Number(b.progress_percentage) || 0) - (Number(a.progress_percentage) || 0);
         if (pctDiff !== 0) return pctDiff;
-
         const curDiff = (Number(b.progress_current) || 0) - (Number(a.progress_current) || 0);
         if (curDiff !== 0) return curDiff;
-
         return (a.sort_order || 0) - (b.sort_order || 0);
       });
       return list;
     }
 
-    // Padrão: sortBy === 'recent' (Mais Recentes)
-    // 1º Grupo (Conquistados): Desbloqueados por Data Recente DESC
-    // Desempate (mesma data/timestamp): Raridade Decrescente (Platina > Mítico > Ouro > Épico > Prata > Bronze)
-    // 2º Grupo (Bloqueados): Maior Progresso (% DESC) e depois Raridade
     list.sort((a, b) => {
-      const unlA = a.is_unlocked ? 1 : 2;
-      const unlB = b.is_unlocked ? 1 : 2;
+      const unlA = hasUnlockedDisplay(a) ? 1 : 2;
+      const unlB = hasUnlockedDisplay(b) ? 1 : 2;
       if (unlA !== unlB) return unlA - unlB;
 
       if (unlA === 1) {
-        // Conquistados: Data de desbloqueio mais recente primeiro
         const tA = a.unlocked_at ? new Date(a.unlocked_at).getTime() : 0;
         const tB = b.unlocked_at ? new Date(b.unlocked_at).getTime() : 0;
         if (tB !== tA) return tB - tA;
-
-        // Critério de Desempate: Raridade Decrescente
-        const tierDiff = (TIER_WEIGHT[b.tier?.toLowerCase()] || 0) - (TIER_WEIGHT[a.tier?.toLowerCase()] || 0);
+        const tierDiff = (TIER_WEIGHT[effectiveTier(b)] || 0) - (TIER_WEIGHT[effectiveTier(a)] || 0);
         if (tierDiff !== 0) return tierDiff;
-
         return (a.sort_order || 0) - (b.sort_order || 0);
       }
 
-      // Bloqueados: Maior Progresso (% DESC)
       const pctDiff = (Number(b.progress_percentage) || 0) - (Number(a.progress_percentage) || 0);
       if (pctDiff !== 0) return pctDiff;
-
       const curDiff = (Number(b.progress_current) || 0) - (Number(a.progress_current) || 0);
       if (curDiff !== 0) return curDiff;
-
-      // Desempate: Raridade Decrescente
-      const tierDiff = (TIER_WEIGHT[b.tier?.toLowerCase()] || 0) - (TIER_WEIGHT[a.tier?.toLowerCase()] || 0);
+      const tierDiff = (TIER_WEIGHT[effectiveTier(b)] || 0) - (TIER_WEIGHT[effectiveTier(a)] || 0);
       if (tierDiff !== 0) return tierDiff;
-
       return (a.sort_order || 0) - (b.sort_order || 0);
     });
 
     return list;
   }, [categoryTrophies, selectedTier, selectedStatus, searchQuery, sortBy, lastActivityMap]);
+
+  const visibleTrophies = useMemo(
+    () => filteredTrophies.slice(0, visibleLimit),
+    [filteredTrophies, visibleLimit]
+  );
 
   return (
     <div className="w-full flex flex-col gap-6 animate-fadeIn pb-16">
@@ -523,7 +602,7 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
 
               <button
                 type="button"
-                onClick={() => loadTrophies(false)}
+                onClick={() => loadTrophies(false, true)}
                 disabled={loading}
                 className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors cursor-pointer"
                 title="Recarregar Troféus"
@@ -600,67 +679,26 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
                   {onlyMultiCategory
                     ? '🔥 Multicategoria'
                     : selectedCategory === 'all'
-                    ? '🌟 Visão Geral (9 Categorias)'
+                    ? '🌟 Visão Geral (7 Categorias)'
                     : CATEGORY_NAMES[selectedCategory] || selectedCategory}
                 </span>
                 <span className="text-zinc-600">•</span>
                 <span className="text-zinc-300 font-mono font-semibold">
-                  {categoryTrophies.length} troféus
+                  {categoryTrophies.length} cards
                 </span>
               </div>
             </div>
 
-            {/* Grid Harmônico 3x3 das 9 Categorias Temáticas */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {/* Grid das 7 Categorias Temáticas Oficiais */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
-                {
-                  id: 'volta_ao_mundo',
-                  label: 'Volta ao Mundo',
-                  icon: '🌍',
-                  count: allTrophies.filter((t) => (t.categories || [t.category]).includes('volta_ao_mundo')).length,
-                },
-                {
-                  id: 'dna_cinefilo',
-                  label: 'DNA Cinéfilo',
-                  icon: '🧬',
-                  count: allTrophies.filter((t) => (t.categories || [t.category]).includes('dna_cinefilo')).length,
-                },
-                {
-                  id: 'anatomia_cinema',
-                  label: 'Anatomia do Cinema',
-                  icon: '🎬',
-                  count: allTrophies.filter((t) => (t.categories || [t.category]).includes('anatomia_cinema')).length,
-                },
-                {
-                  id: 'data_limite',
-                  label: 'Data Limite',
-                  icon: '📅',
-                  count: allTrophies.filter((t) => (t.categories || [t.category]).includes('data_limite')).length,
-                },
-                {
-                  id: 'mafia_hollywood',
-                  label: 'A Máfia de Hollywood',
-                  icon: '🕴️',
-                  count: allTrophies.filter((t) => (t.categories || [t.category]).includes('mafia_hollywood')).length,
-                },
-                {
-                  id: 'tribunal_critica',
-                  label: 'Tribunal da Crítica',
-                  icon: '⚖️',
-                  count: allTrophies.filter((t) => (t.categories || [t.category]).includes('tribunal_critica')).length,
-                },
-                {
-                  id: 'ritual_cinefilo',
-                  label: 'O Ritual do Cinéfilo',
-                  icon: '🍿',
-                  count: allTrophies.filter((t) => (t.categories || [t.category]).includes('ritual_cinefilo')).length,
-                },
-                {
-                  id: 'sessao_secreta',
-                  label: 'Sessão Secreta',
-                  icon: '🕵️‍♂️',
-                  count: allTrophies.filter((t) => (t.categories || [t.category]).includes('sessao_secreta')).length,
-                },
+                { id: 'volta_ao_mundo', label: 'Volta ao Mundo', icon: '🌍', count: categoryCounts.volta_ao_mundo },
+                { id: 'dna_cinefilo', label: 'DNA Cinéfilo', icon: '🧬', count: categoryCounts.dna_cinefilo },
+                { id: 'anatomia_cinema', label: 'Anatomia do Cinema', icon: '🎬', count: categoryCounts.anatomia_cinema },
+                { id: 'data_limite', label: 'Data Limite', icon: '📅', count: categoryCounts.data_limite },
+                { id: 'mafia_hollywood', label: 'A Máfia de Hollywood', icon: '🕴️', count: categoryCounts.mafia_hollywood },
+                { id: 'tribunal_critica', label: 'Tribunal da Crítica', icon: '⚖️', count: categoryCounts.tribunal_critica },
+                { id: 'ritual_cinefilo', label: 'O Ritual do Cinéfilo', icon: '🍿', count: categoryCounts.ritual_cinefilo },
               ].map((cat) => {
                 const isSelected = selectedCategory === cat.id && !onlyMultiCategory;
                 return (
@@ -700,10 +738,7 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
             {TIER_ORDER.map((tierKey) => {
               const theme = TIER_THEMES[tierKey];
               const st = activeTierStats[tierKey] || { total: 0, unlocked: 0, percentage: 0 };
-              const isNoPlat =
-                (selectedCategory === 'data_limite' ||
-                  selectedCategory === 'sessao_secreta') &&
-                tierKey === 'platinum';
+              const isNoPlat = selectedCategory === 'data_limite' && tierKey === 'platinum';
 
               return (
                 <div
@@ -774,32 +809,28 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
                       ? 'Progresso Tribunal da Crítica (Notas, Agregadores & Reviews)'
                       : selectedCategory === 'ritual_cinefilo'
                       ? 'Progresso O Ritual do Cinéfilo (Plataformas, Áudio, Duração & Anos)'
-                      : selectedCategory === 'sessao_secreta'
-                      ? 'Progresso Sessão Secreta (Listas Temáticas, Tropos & Desafios)'
                       : 'Progresso Geral (Todas as Categorias)'}
                   </span>
                   <span className="text-[11px] font-bold text-amber-400 font-mono">
-                    ({activeOverallStats.unlocked} / {activeOverallStats.total} Troféus)
+                    ({activeOverallStats.unlocked} / {activeOverallStats.total} Conquistas • {categoryTrophies.length} Cards)
                   </span>
                 </div>
                 <p className="text-[11px] text-zinc-400">
                   {selectedCategory === 'volta_ao_mundo'
-                    ? 'Desbloqueie todos os troféus da Volta ao Mundo para obter a Platina Definitiva.'
+                    ? 'Desbloqueie todos os troféus e ranks da Volta ao Mundo para obter a Platina Definitiva.'
                     : selectedCategory === 'dna_cinefilo'
-                    ? 'Desbloqueie todos os troféus de tags para obter a Platina Arquivista Supremo.'
+                    ? 'Desbloqueie todos os troféus e ranks de tags para obter a Platina Arquivista Supremo.'
                     : selectedCategory === 'anatomia_cinema'
-                    ? 'Desbloqueie todos os troféus de gêneros para obter a Platina O Mestre Supremo dos Gêneros.'
+                    ? 'Desbloqueie todos os troféus e ranks de gêneros para obter a Platina O Mestre Supremo dos Gêneros.'
                     : selectedCategory === 'data_limite'
                     ? 'Categoria Sazonal por Mês Assistido. Não possui troféu de Platina.'
                     : selectedCategory === 'mafia_hollywood'
-                    ? 'Desbloqueie todos os troféus da Máfia de Hollywood para obter a Platina O Poderoso Chefão dos Estúdios.'
+                    ? 'Desbloqueie todos os troféus e ranks da Máfia de Hollywood para obter a Platina O Poderoso Chefão dos Estúdios.'
                     : selectedCategory === 'tribunal_critica'
-                    ? 'Desbloqueie todos os troféus do Tribunal da Crítica para obter a Platina O Juiz Final do Cinema.'
+                    ? 'Desbloqueie todos os troféus e ranks do Tribunal da Crítica para obter a Platina O Juiz Final do Cinema.'
                     : selectedCategory === 'ritual_cinefilo'
-                    ? 'Desbloqueie todos os troféus de O Ritual do Cinéfilo para obter a Platina O Mestre da Cabine de Projeção.'
-                    : selectedCategory === 'sessao_secreta'
-                    ? 'Categoria de Listas Temáticas, Tropos Pop e Desafios Cult. Não possui troféu de Platina.'
-                    : 'Desafios geográficos, tags, gêneros, franquias, diretores, plataformas e críticas.'}
+                    ? 'Desbloqueie todos os troféus e ranks de O Ritual do Cinéfilo para obter a Platina O Mestre da Cabine de Projeção.'
+                    : 'Desafios geográficos, tags, gêneros, franquias, diretores, plataformas, notas críticas e troféus evolutivos de Rank.'}
                 </p>
               </div>
             </div>
@@ -841,7 +872,7 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
           {['platinum', 'mythic', 'gold', 'epic', 'silver', 'bronze'].map((tr) => {
             const theme = TIER_THEMES[tr];
             const isSelected = selectedTier === tr;
-            const count = categoryTrophies.filter((t) => t.tier === tr).length;
+            const count = activeTierStats[tr]?.total ?? 0;
 
             return (
               <button
@@ -1013,6 +1044,7 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
           </button>
         </div>
       ) : (
+        <>
         <div
           className={
             displayCount === 10
@@ -1024,12 +1056,24 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
               : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4'
           }
         >
-          {filteredTrophies.map((trophy) => {
-            const tierKey = String(trophy.tier || 'bronze').toLowerCase();
+          {visibleTrophies.map((trophy) => {
+            const isRankCard = trophy.kind === 'rank' && Array.isArray(trophy.ranks);
+            const hasAnyRankUnlocked = isRankCard && (trophy.unlocked_ranks_count || 0) > 0;
+            const tierKey = isRankCard
+              ? String(
+                  trophy.highest_unlocked_tier ||
+                    (selectedTier !== 'all' ? selectedTier : trophy.ranks?.[0]?.tier || 'bronze')
+                ).toLowerCase()
+              : String(trophy.tier || 'bronze').toLowerCase();
             const theme = TIER_THEMES[tierKey] || TIER_THEMES.bronze;
-            const isUnlocked = Boolean(trophy.is_unlocked);
+            const isUnlocked = isRankCard ? hasAnyRankUnlocked : Boolean(trophy.is_unlocked);
+            const activeStep = isRankCard
+              ? trophy.ranks.find((r) => !r.is_unlocked) || trophy.ranks[trophy.ranks.length - 1]
+              : null;
             const cleanTitle = getCleanTrophyTitle(trophy.title);
-            const xpReward = TROPHY_XP_BY_TIER[tierKey] || 15;
+            const xpReward = isRankCard
+              ? TROPHY_XP_BY_TIER[String(activeStep?.tier || tierKey).toLowerCase()] || 15
+              : TROPHY_XP_BY_TIER[tierKey] || 15;
             const curProg = Math.min(trophy.progress_current || 0, trophy.progress_target || 1);
             const pctProg = Math.min(100, trophy.progress_percentage || 0);
             const lastAct = lastActivityMap.get(trophy.id) || null;
@@ -1345,6 +1389,7 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
                       <p className="text-[11px] text-zinc-400 line-clamp-2 mt-0.5 leading-snug">
                         {trophy.description}
                       </p>
+                      <RankPipsBar trophy={trophy} compact />
                     </div>
                   </div>
 
@@ -1377,7 +1422,11 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
                     </div>
 
                     <div className="flex items-center justify-between text-[10px] text-zinc-500 group-hover:text-zinc-300 transition-colors">
-                      <span>{trophy.checklist?.length || 0} item(ns)</span>
+                      <span>
+                        {isRankCard
+                          ? `Rank ${trophy.unlocked_ranks_count || 0}/${trophy.ranks.length} • Teto ${trophy.target_value}`
+                          : 'Abrir checklist'}
+                      </span>
                       <span className="flex items-center gap-0.5 font-bold text-amber-400/90 group-hover:text-amber-300">
                         Detalhes <ChevronRight className="w-3 h-3" />
                       </span>
@@ -1437,7 +1486,7 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
                     <TrophyCardBadges
                       trophy={trophy}
                       theme={theme}
-                      isUnlocked={isUnlocked}
+                      isUnlocked={Boolean(trophy.is_unlocked)}
                       unlockedDateStr={unlockedDateStr}
                     />
 
@@ -1447,6 +1496,7 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
                     <p className="text-xs text-zinc-400 line-clamp-2 mt-0.5 leading-relaxed">
                       {trophy.description}
                     </p>
+                    <RankPipsBar trophy={trophy} />
                   </div>
                 </div>
 
@@ -1457,7 +1507,11 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
                   )}
                   <div className="flex items-center justify-between text-[11px] font-mono">
                     <span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">
-                      {isUnlocked ? 'Requisitos Cumpridos' : 'Progresso Atual'}
+                      {trophy.is_unlocked
+                        ? 'Requisitos Cumpridos'
+                        : isRankCard
+                          ? `Próximo Rank (${TIER_THEMES[String(activeStep?.tier || 'bronze').toLowerCase()]?.name || ''})`
+                          : 'Progresso Atual'}
                     </span>
                     <span className="font-bold text-zinc-300">
                       {curProg} / {trophy.progress_target}{' '}
@@ -1485,7 +1539,11 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
 
                   <div className="flex items-center justify-between mt-1 text-[11px] text-zinc-500 group-hover:text-zinc-300 transition-colors">
                     <div className="flex items-center gap-2">
-                      <span>{trophy.checklist?.length || 0} item(ns) no checklist</span>
+                      <span>
+                        {isRankCard
+                          ? `Rank ${trophy.unlocked_ranks_count || 0}/${trophy.ranks.length} • Teto ${trophy.target_value}`
+                          : 'Checklist completo no card'}
+                      </span>
                       <span className="text-[10px] font-mono font-bold text-amber-400/90 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">
                         +{xpReward} XP
                       </span>
@@ -1499,6 +1557,26 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
             );
           })}
         </div>
+        {filteredTrophies.length > visibleLimit && (
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => setVisibleLimit((prev) => prev + VISIBLE_BATCH_SIZE)}
+              className="px-5 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-black tracking-wide transition-all cursor-pointer shadow-lg"
+            >
+              Mostrar mais troféus (+{Math.min(VISIBLE_BATCH_SIZE, filteredTrophies.length - visibleLimit)} • exibindo{' '}
+              {visibleTrophies.length} de {filteredTrophies.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setVisibleLimit(filteredTrophies.length)}
+              className="px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-bold transition-all cursor-pointer"
+            >
+              Mostrar todos ({filteredTrophies.length})
+            </button>
+          </div>
+        )}
+        </>
       )}
 
       {/* =========================================================================

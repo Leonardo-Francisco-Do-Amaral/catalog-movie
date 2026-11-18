@@ -113,17 +113,24 @@ export interface ChallengeCountryEntry {
 
 export interface HistoricalCountryEntry {
   code: string;
-  flagCode?: string;
+  iso3?: string;
+  flagCode?: string | null;
+  badgeIcon?: string;
   name: string;
+  continent?: ContinentName;
+  lat?: number;
+  lon?: number;
   era: string;
   description: string;
   isSpecialTerritory?: boolean;
-  status: 'conquered' | 'unconquered';
+  rarityTier: CountryRarityTier;
+  status: 'conquered' | 'wishlist' | 'unconquered';
   selectionMode: 'manual' | 'auto' | null;
   champion: ChallengeMovieItem | null;
   candidates: ChallengeMovieItem[];
   totalCandidates: number;
   borderDisputes: BorderDisputeItem[];
+  wishlist: ChallengeWishlistItem | null;
 }
 
 function cleanStr(str: string | null | undefined): string {
@@ -136,7 +143,7 @@ function cleanStr(str: string | null | undefined): string {
     .trim();
 }
 
-// Índices rápidos para os 195 países e territórios históricos
+// Índices rápidos para os 195 países e territórios Relíquia (Históricos + Especiais)
 const unByCode = new Map(UN_COUNTRIES_195.map((c) => [c.code, c]));
 const histByCode = new Map(HISTORICAL_TERRITORIES.map((h) => [h.code, h]));
 
@@ -155,58 +162,36 @@ for (const c of UN_COUNTRIES_195) {
 const histLookupMap = new Map<string, string>(); // alias limpo -> hist.code
 for (const h of HISTORICAL_TERRITORIES) {
   histLookupMap.set(cleanStr(h.code), h.code);
+  if (h.iso3) histLookupMap.set(cleanStr(h.iso3), h.code);
   histLookupMap.set(cleanStr(h.name), h.code);
   for (const al of h.aliases) {
     histLookupMap.set(cleanStr(al), h.code);
   }
 }
 
-const SPECIAL_CINEMA_TERRITORIES: Record<
-  string,
-  { code: string; flagCode: string; name: string; description: string }
-> = {
-  'hong kong': {
-    code: 'spec_hk',
-    flagCode: 'hk',
-    name: 'Hong Kong',
-    description: 'Região Administrativa Especial com tradição cinematográfica própria (Action/New Wave de HK).',
-  },
-  taiwan: {
-    code: 'spec_tw',
-    flagCode: 'tw',
-    name: 'Taiwan',
-    description: 'Polo histórico do Novo Cinema Taiwanês (Edward Yang, Hou Hsiao-hsien, Ang Lee).',
-  },
-  'porto rico': {
-    code: 'spec_pr',
-    flagCode: 'pr',
-    name: 'Porto Rico',
-    description: 'Território caribenho não-incorporado listado separadamente em bases cinematográficas.',
-  },
-  'puerto rico': {
-    code: 'spec_pr',
-    flagCode: 'pr',
-    name: 'Porto Rico',
-    description: 'Território caribenho não-incorporado listado separadamente em bases cinematográficas.',
-  },
-  kosovo: {
-    code: 'spec_xk',
-    flagCode: 'xk',
-    name: 'Kosovo',
-    description: 'Território balcânico parcialmente reconhecido fora da lista de 195 assentos da ONU.',
-  },
-};
-
 const dynamicExtraTerritories = new Map<
   string,
-  { code: string; flagCode?: string; name: string; era: string; description: string; isSpecialTerritory?: boolean }
+  {
+    code: string;
+    iso3?: string;
+    flagCode?: string | null;
+    badgeIcon?: string;
+    name: string;
+    continent?: ContinentName;
+    lat?: number;
+    lon?: number;
+    era: string;
+    description: string;
+    isSpecialTerritory?: boolean;
+    rarityTier: CountryRarityTier;
+  }
 >();
 
 export function resolveTerritoryDescriptor(rawCountry: string): CoproductionCountryRef | null {
   const cleaned = cleanStr(rawCountry);
   if (!cleaned || cleaned === 'desconhecido') return null;
 
-  // 1. Verifica Territórios Históricos / Extintos
+  // 1. Verifica Territórios Relíquia (Históricos Extintos + Especiais Fora da ONU)
   const histCode = histLookupMap.get(cleaned);
   if (histCode) {
     const hDef = histByCode.get(histCode)!;
@@ -215,6 +200,7 @@ export function resolveTerritoryDescriptor(rawCountry: string): CoproductionCoun
       name: hDef.name,
       flagCode: hDef.flagCode || null,
       isHistorical: true,
+      rarityTier: 'relic',
     };
   }
 
@@ -231,32 +217,17 @@ export function resolveTerritoryDescriptor(rawCountry: string): CoproductionCoun
     };
   }
 
-  // 3. Verifica Territórios Especiais / Fora da ONU (ex.: Hong Kong, Taiwan)
-  const spec = SPECIAL_CINEMA_TERRITORIES[cleaned];
-  if (spec) {
-    dynamicExtraTerritories.set(spec.code, {
-      code: spec.code,
-      flagCode: spec.flagCode,
-      name: spec.name,
-      era: 'Território Autônomo / Não-ONU',
-      description: spec.description,
-      isSpecialTerritory: true,
-    });
-    return {
-      code: spec.code,
-      name: spec.name,
-      flagCode: spec.flagCode,
-      isHistorical: true,
-    };
-  }
-
+  // 3. Fallback dinâmico caso algum território novo inédito apareça na API
   const dynCode = `extra_${cleaned.replace(/[^a-z0-9]/g, '_').slice(0, 10)}`;
   if (!dynamicExtraTerritories.has(dynCode)) {
     dynamicExtraTerritories.set(dynCode, {
       code: dynCode,
+      iso3: cleaned.slice(0, 3).toUpperCase(),
       name: rawCountry.trim(),
-      era: 'Arquivo Histórico / Especial',
+      era: 'Arquivo Especial • Fora da ONU',
       description: 'Território listado no catálogo fora das 195 fronteiras atuais da ONU.',
+      isSpecialTerritory: true,
+      rarityTier: 'relic',
     });
   }
   return {
@@ -264,6 +235,7 @@ export function resolveTerritoryDescriptor(rawCountry: string): CoproductionCoun
     name: rawCountry.trim(),
     flagCode: null,
     isHistorical: true,
+    rarityTier: 'relic',
   };
 }
 
@@ -522,6 +494,7 @@ export async function buildWorldChallengePayload() {
           name: target.name,
           flagCode: target.flagCode || null,
           isHistorical: true,
+          rarityTier: 'relic',
         });
       }
     }
@@ -626,7 +599,7 @@ export async function buildWorldChallengePayload() {
   });
 
   const combinedHistoricalDefs = [
-    ...HISTORICAL_TERRITORIES.map((h) => ({ ...h, isSpecialTerritory: false })),
+    ...HISTORICAL_TERRITORIES,
     ...Array.from(dynamicExtraTerritories.values()),
   ];
 
@@ -650,19 +623,33 @@ export async function buildWorldChallengePayload() {
       championMovieIdByTerritory.set(hDef.code, champion.movie_id);
     }
 
+    const wishlist = pick?.wishlist || null;
+    const status: 'conquered' | 'wishlist' | 'unconquered' = champion
+      ? 'conquered'
+      : wishlist
+        ? 'wishlist'
+        : 'unconquered';
+
     return {
       code: hDef.code,
+      iso3: hDef.iso3 || hDef.code.toUpperCase().slice(0, 3),
       flagCode: hDef.flagCode,
+      badgeIcon: hDef.badgeIcon,
       name: hDef.name,
+      continent: hDef.continent,
+      lat: hDef.lat,
+      lon: hDef.lon,
       era: hDef.era,
       description: hDef.description,
       isSpecialTerritory: Boolean(hDef.isSpecialTerritory),
-      status: champion ? 'conquered' : 'unconquered',
+      rarityTier: hDef.rarityTier || 'relic',
+      status,
       selectionMode,
       champion,
       candidates: sortedCandidates,
       totalCandidates: sortedCandidates.length,
       borderDisputes: [],
+      wishlist,
     };
   });
 
@@ -699,9 +686,12 @@ export async function buildWorldChallengePayload() {
   // Estatísticas globais do HUD + Progresso por Continente + Progresso por Raridade RPG
   const conqueredList = countriesResult.filter((c) => c.status === 'conquered');
   const conqueredCount = conqueredList.length;
-  const wishlistCount = countriesResult.filter((c) => c.status === 'wishlist').length;
+  const wishlistCount =
+    countriesResult.filter((c) => c.status === 'wishlist').length +
+    historicalCountries.filter((h) => h.status === 'wishlist').length;
   const manualPicksCount =
     countriesResult.filter((c) => c.selectionMode === 'manual').length +
+    historicalCountries.filter((h) => h.selectionMode === 'manual').length +
     Array.from(allMoviesMap.values()).filter((m) => m.originMode === 'manual').length;
 
   const ratingSum = conqueredList.reduce((acc, c) => acc + (c.champion?.user_rating || 0), 0);
@@ -721,27 +711,38 @@ export async function buildWorldChallengePayload() {
     };
   }
 
-  const rarityOrder: CountryRarityTier[] = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+  const rarityOrder: CountryRarityTier[] = ['common', 'rare', 'epic', 'legendary', 'relic', 'mythic'];
   const rarityStats: Record<CountryRarityTier, { total: number; conquered: number; percentage: number }> = {
     common: { total: 0, conquered: 0, percentage: 0 },
     rare: { total: 0, conquered: 0, percentage: 0 },
     epic: { total: 0, conquered: 0, percentage: 0 },
     legendary: { total: 0, conquered: 0, percentage: 0 },
+    relic: { total: 0, conquered: 0, percentage: 0 },
     mythic: { total: 0, conquered: 0, percentage: 0 },
   };
 
   for (const tier of rarityOrder) {
-    const inTier = countriesResult.filter((c) => c.rarityTier === tier);
-    const conqInTier = inTier.filter((c) => c.status === 'conquered').length;
-    rarityStats[tier] = {
-      total: inTier.length,
-      conquered: conqInTier,
-      percentage: inTier.length > 0 ? Math.round((conqInTier / inTier.length) * 100) : 0,
-    };
+    if (tier === 'relic') {
+      const conqRelics = historicalCountries.filter((h) => h.status === 'conquered').length;
+      const totRelics = historicalCountries.length;
+      rarityStats.relic = {
+        total: totRelics,
+        conquered: conqRelics,
+        percentage: totRelics > 0 ? Math.round((conqRelics / totRelics) * 100) : 0,
+      };
+    } else {
+      const inTier = countriesResult.filter((c) => c.rarityTier === tier);
+      const conqInTier = inTier.filter((c) => c.status === 'conquered').length;
+      rarityStats[tier] = {
+        total: inTier.length,
+        conquered: conqInTier,
+        percentage: inTier.length > 0 ? Math.round((conqInTier / inTier.length) * 100) : 0,
+      };
+    }
   }
 
   const historicalConqueredCount = historicalCountries.filter(
-    (h) => !h.isSpecialTerritory && h.status === 'conquered'
+    (h) => h.status === 'conquered'
   ).length;
 
   const catalogMovies = Array.from(allMoviesMap.values()).sort(compareChallengeCandidates);
@@ -749,6 +750,7 @@ export async function buildWorldChallengePayload() {
   return {
     summary: {
       totalCountries: 195,
+      totalRelics: historicalCountries.length,
       conqueredCount,
       unconqueredCount: 195 - conqueredCount,
       wishlistCount,
