@@ -86,10 +86,23 @@ export default function TrophyChecklistModal({ trophy, onClose }) {
   const totalItems = checklistItems.length;
   const ranksList = activeTrophy.kind === 'rank' && Array.isArray(activeTrophy.ranks) ? activeTrophy.ranks : [];
 
+  const formatShortDate = (iso) => {
+    if (!iso) return null;
+    try {
+      return new Date(iso).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+    } catch {
+      return null;
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-fadeIn">
       <div
-        className={`relative w-full max-w-2xl max-h-[90vh] bg-zinc-950/95 border ${theme.border} rounded-3xl p-5 sm:p-7 shadow-[0_25px_60px_rgba(0,0,0,0.95)] flex flex-col gap-5 overflow-hidden ${theme.glow}`}
+        className={`relative w-full max-w-3xl max-h-[90vh] bg-gradient-to-b from-zinc-900/95 via-zinc-950/98 to-zinc-950 border ${theme.border} rounded-3xl p-5 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.95)] flex flex-col gap-4 overflow-hidden ${theme.glow}`}
       >
         {/* Glow de fundo */}
         <div
@@ -98,15 +111,15 @@ export default function TrophyChecklistModal({ trophy, onClose }) {
         />
 
         {/* Cabeçalho do Modal */}
-        <div className="flex items-start justify-between gap-4 border-b border-zinc-800/80 pb-4 relative z-10">
-          <div className="flex items-center gap-3.5 min-w-0">
-            {/* Ícone Estilo PS5 */}
+        <div className="flex items-start justify-between gap-4 border-b border-zinc-800/80 pb-4 relative z-10 shrink-0">
+          <div className="flex items-center gap-4 min-w-0">
+            {/* Ícone Estilo PS5 Ampliado */}
             <div
-              className={`w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-2xl bg-gradient-to-br ${theme.iconBg} border ${theme.border} flex items-center justify-center text-3xl sm:text-4xl shadow-inner relative`}
+              className={`w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-2xl bg-gradient-to-br ${theme.iconBg} border-2 ${theme.border} flex items-center justify-center text-4xl sm:text-5xl shadow-xl relative`}
             >
               <span>{activeTrophy.icon || theme.symbol}</span>
               {isUnlocked && (
-                <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-slate-950 rounded-full p-0.5 shadow-md">
+                <div className="absolute -bottom-1.5 -right-1.5 bg-emerald-500 text-slate-950 rounded-full p-1 shadow-md border border-zinc-950">
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
               )}
@@ -120,10 +133,10 @@ export default function TrophyChecklistModal({ trophy, onClose }) {
                 unlockedDateStr={formattedDate}
               />
 
-              <h3 className="text-base sm:text-lg font-black text-zinc-100 tracking-tight leading-snug">
+              <h3 className="text-base sm:text-xl font-black text-zinc-100 tracking-tight leading-snug mt-0.5">
                 {cleanTitle}
               </h3>
-              <p className="text-xs sm:text-sm text-zinc-400 mt-0.5 leading-relaxed">
+              <p className="text-xs sm:text-sm text-zinc-400 mt-1 leading-relaxed">
                 {activeTrophy.description}
               </p>
             </div>
@@ -132,14 +145,14 @@ export default function TrophyChecklistModal({ trophy, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/80 transition-colors cursor-pointer shrink-0"
+            className="p-2 rounded-xl text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/80 transition-colors cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Barra de Progresso Real */}
-        <div className="bg-zinc-900/80 border border-zinc-800/80 rounded-2xl p-4 flex flex-col gap-2 relative z-10">
+        <div className="bg-zinc-900/75 border border-zinc-800/80 rounded-2xl p-3.5 sm:p-4 flex flex-col gap-2 relative z-10 shrink-0">
           <div className="flex items-center justify-between text-xs font-bold">
             <span className="text-zinc-400 uppercase tracking-wider text-[11px]">
               {ranksList.length > 0 ? 'Próximo Marco de Rank' : 'Progresso no Banco de Dados'}
@@ -164,35 +177,74 @@ export default function TrophyChecklistModal({ trophy, onClose }) {
           </div>
         </div>
 
-        {/* Trilha de 5 Ranks (para troféus evolutivos) */}
+        {/* Trilha de 5 Ranks (sem corte de texto e com data exata de finalização por Rank) */}
         {ranksList.length > 0 && (
-          <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-3.5 flex flex-col gap-2 relative z-10">
+          <div className="bg-zinc-900/55 border border-zinc-800/80 rounded-2xl p-3.5 flex flex-col gap-2.5 relative z-10 shrink-0">
             <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-wider text-zinc-400">
               <span>Trilha de Ranks ({activeTrophy.unlocked_ranks_count || 0}/{ranksList.length})</span>
-              <span className="text-amber-400">Teto: {activeTrophy.target_value}</span>
+              <span className="text-amber-400 font-mono">Teto: {activeTrophy.target_value}</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+            <div className="flex flex-col gap-1.5 max-h-[28vh] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-700">
               {ranksList.map((rk) => {
                 const rkTheme = TIER_THEMES[String(rk.tier || 'bronze').toLowerCase()] || TIER_THEMES.bronze;
                 const rkDone = Boolean(rk.is_unlocked);
+                const rkDate = rkDone ? formatShortDate(rk.unlocked_at) : null;
+                const rkPct = Math.min(100, Number(rk.progress_percentage) || 0);
                 return (
                   <div
                     key={rk.id}
-                    className={`rounded-xl p-2 border flex flex-col gap-1 transition-all ${
+                    className={`rounded-xl px-3 py-2 border flex items-center justify-between gap-3 transition-all ${
                       rkDone
-                        ? `bg-zinc-950/90 ${rkTheme.border} ${rkTheme.glow}`
-                        : 'bg-zinc-950/50 border-zinc-800/70 opacity-75'
+                        ? `bg-zinc-950/90 ${rkTheme.border} shadow-sm`
+                        : 'bg-zinc-950/45 border-zinc-800/70 opacity-85'
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-1 text-[10px] font-black">
-                      <span>{rkTheme.symbol} {rkTheme.name}</span>
-                      <span className="font-mono text-zinc-300">
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <span
+                        className={`w-8 h-8 shrink-0 rounded-lg border flex items-center justify-center text-lg ${
+                          rkDone ? `${rkTheme.badgeBg} ${rkTheme.border}` : 'bg-zinc-900 border-zinc-800 grayscale opacity-60'
+                        }`}
+                      >
+                        {rkTheme.symbol}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className="text-[10px] font-black uppercase tracking-wider"
+                            style={{ color: rkTheme.color }}
+                          >
+                            {rkTheme.name}
+                          </span>
+                          <span className="text-xs font-bold text-zinc-100 leading-snug">
+                            {getCleanTrophyTitle(rk.title)}
+                          </span>
+                        </div>
+                        <div className="w-full h-1 bg-zinc-900 rounded-full overflow-hidden mt-1">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${rkPct}%`,
+                              backgroundColor: rkDone ? rkTheme.color : '#71717a',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-end shrink-0 gap-0.5">
+                      <span className="text-[11px] font-mono font-bold text-zinc-200">
                         {rk.progress_current}/{rk.progress_target}
                       </span>
+                      {rkDone ? (
+                        <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-1.5 py-0.5 rounded">
+                          ✓ {rkDate || 'Conquistado'}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-semibold text-zinc-500">
+                          🔒 Pendente
+                        </span>
+                      )}
                     </div>
-                    <p className="text-[10px] font-bold text-zinc-200 leading-tight line-clamp-2" title={rk.title}>
-                      {getCleanTrophyTitle(rk.title)}
-                    </p>
                   </div>
                 );
               })}

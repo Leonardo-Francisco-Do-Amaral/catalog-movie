@@ -10,7 +10,6 @@ import {
   VolumeX,
   Settings,
   RefreshCw,
-  Sparkles,
   ChevronRight,
   Shield,
   Layers,
@@ -64,26 +63,42 @@ function LastMovieProgressPill({ lastAct, compact = false }) {
   );
 }
 
+function formatShortDate(iso) {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  } catch {
+    return null;
+  }
+}
+
 function RankPipsBar({ trophy, compact = false }) {
   if (trophy?.kind !== 'rank' || !Array.isArray(trophy.ranks) || trophy.ranks.length === 0) return null;
   return (
-    <div className={`flex items-center gap-1 ${compact ? 'mt-1' : 'mt-1.5 flex-wrap'}`}>
+    <div className={`flex items-center gap-1 ${compact ? 'mt-1.5 flex-wrap' : 'mt-2 flex-wrap'}`}>
       {trophy.ranks.map((rk) => {
         const rkTheme = TIER_THEMES[String(rk.tier || 'bronze').toLowerCase()] || TIER_THEMES.bronze;
         const done = Boolean(rk.is_unlocked);
+        const dateStr = done ? formatShortDate(rk.unlocked_at) : null;
         return (
           <span
             key={rk.id}
-            title={`${rkTheme.name} (meta ${rk.target_value}): ${rk.progress_current}/${rk.progress_target}${done ? ' ✓' : ''}`}
-            className={`inline-flex items-center gap-0.5 rounded border font-mono font-black transition-all ${
-              compact ? 'text-[8px] px-1 py-0.5' : 'text-[9px] px-1.5 py-0.5'
+            title={`${rkTheme.name} (meta ${rk.target_value}): ${rk.progress_current}/${rk.progress_target}${
+              done ? ` • Finalizado em ${dateStr || 'Data salva'}` : ' • Pendente'
+            }`}
+            className={`inline-flex items-center gap-1 rounded-lg border font-mono font-black transition-all ${
+              compact ? 'text-[9px] px-1.5 py-0.5' : 'text-[10px] px-2 py-0.5'
             } ${
               done
-                ? `${rkTheme.badgeBg} ${rkTheme.border}`
-                : 'bg-zinc-900/70 text-zinc-500 border-zinc-800/80 opacity-65'
+                ? `${rkTheme.badgeBg} ${rkTheme.border} shadow-sm`
+                : 'bg-zinc-900/75 text-zinc-500 border-zinc-800/80 opacity-70'
             }`}
           >
-            <span>{rkTheme.symbol}</span>
+            <span className={compact ? 'text-[11px] leading-none' : 'text-xs leading-none'}>{rkTheme.symbol}</span>
             {!compact && <span>{rk.target_value}</span>}
           </span>
         );
@@ -104,7 +119,7 @@ export const CATEGORY_NAMES = {
 
 const VISIBLE_BATCH_SIZE = 48;
 
-export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
+export default function TrophiesPage({ movies = [] }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -207,7 +222,7 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
     loadTrophies(true);
   }, [loadTrophies]);
 
-  const allTrophies = data?.trophies || [];
+  const allTrophies = useMemo(() => data?.trophies || [], [data]);
 
   // Reseta paginação incremental quando os filtros mudam
   useEffect(() => {
@@ -543,40 +558,28 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
         <div className="relative z-10 flex flex-col gap-6">
           {/* Top Bar do Header: Título + Controles de Som & Testes */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/80 pb-5">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400/20 via-zinc-800 to-zinc-900 border border-amber-500/30 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/5">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400/25 via-amber-500/10 to-zinc-900 border border-amber-400/40 flex items-center justify-center text-3xl shadow-lg shadow-amber-500/10">
                 🏆
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider bg-zinc-900/90 px-2.5 py-0.5 rounded-md border border-zinc-800 font-mono">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-bold text-amber-300 uppercase tracking-wider bg-amber-500/10 px-2.5 py-0.5 rounded-md border border-amber-500/30 font-mono">
                     {onlyMultiCategory
-                      ? `MULTICATEGORIA • ${categoryTrophies.length} TROFÉUS`
+                      ? `MULTICATEGORIA • ${categoryTrophies.length} CARDS`
                       : selectedCategory === 'all'
-                      ? `TODAS AS CATEGORIAS • ${allTrophies.length} TROFÉUS`
-                      : `${(CATEGORY_NAMES[selectedCategory] || selectedCategory).toUpperCase()} • ${categoryTrophies.length} TROFÉUS`}
+                      ? `TODAS AS CATEGORIAS • ${allTrophies.length} CARDS`
+                      : `${(CATEGORY_NAMES[selectedCategory] || selectedCategory).toUpperCase()} • ${categoryTrophies.length} CARDS`}
                   </span>
                 </div>
-                <h1 className="text-xl sm:text-2xl font-black text-zinc-100 tracking-tight mt-0.5">
-                  Sala de Troféus & Conquistas
+                <h1 className="text-xl sm:text-2xl font-black text-zinc-100 tracking-tight mt-1">
+                  Sala de Troféus &amp; Conquistas
                 </h1>
               </div>
             </div>
 
-            {/* Ações Rápidas: Lab Calçada da Fama + Som Mute + Painel de Testes */}
+            {/* Ações Rápidas: Som Mute + Painel de Testes + Sync */}
             <div className="flex items-center gap-2.5 flex-wrap">
-              {onOpenWalkOfFame && (
-                <button
-                  type="button"
-                  onClick={onOpenWalkOfFame}
-                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/15 hover:from-amber-500/30 hover:to-yellow-500/25 border border-amber-400/55 text-amber-200 text-xs font-black transition-all cursor-pointer shadow-[0_0_16px_rgba(245,158,11,0.2)]"
-                  title="Abrir Laboratório Visual da Calçada da Fama (3 Modos)"
-                >
-                  <Sparkles className="w-4 h-4 text-amber-300" />
-                  <span>📖 Álbum Calçada da Fama</span>
-                </button>
-              )}
-
               <button
                 type="button"
                 onClick={handleToggleMute}
@@ -613,67 +616,36 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
           </div>
 
           {/* =========================================================================
-              PAINEL DE CATEGORIAS E MODOS GLOBAIS
+              PAINEL DE CATEGORIAS (GRADE SIMÉTRICA 4x2) E MODO MULTICATEGORIA
              ========================================================================= */}
           <div className="flex flex-col gap-3.5 border-b border-zinc-800/80 pb-4">
-            {/* Topo do Painel: Modos Globais (Todas as Conquistas / Apenas Multicategoria) + Status Ativo */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* Modo Global: Todas as Conquistas */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedCategory('all');
-                    setOnlyMultiCategory(false);
-                    setSelectedTier('all');
-                  }}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer border shadow-sm ${
-                    selectedCategory === 'all' && !onlyMultiCategory
-                      ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.25)] scale-[1.02]'
-                      : 'bg-zinc-900/80 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700 hover:bg-zinc-800/50'
+              <button
+                type="button"
+                onClick={() => {
+                  setOnlyMultiCategory((prev) => !prev);
+                  setSelectedTier('all');
+                }}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer border shadow-sm self-start ${
+                  onlyMultiCategory
+                    ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-rose-600 border-amber-300 text-white shadow-[0_0_25px_rgba(249,115,22,0.45)] scale-[1.02]'
+                    : 'bg-zinc-900/80 border-orange-500/30 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500'
+                }`}
+                title="Filtrar troféus que combinam 2 ou mais categorias simultâneas (Multicategoria / Crossovers)"
+              >
+                <Flame className={`w-4 h-4 ${onlyMultiCategory ? 'animate-bounce text-yellow-200' : 'text-orange-400'}`} />
+                <span>Apenas Multicategoria</span>
+                <span
+                  className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
+                    onlyMultiCategory ? 'bg-black/40 text-white' : 'bg-orange-500/20 text-orange-300'
                   }`}
                 >
-                  <span className="text-base select-none">🌟</span>
-                  <span>Todas as Conquistas</span>
-                  <span
-                    className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
-                      selectedCategory === 'all' && !onlyMultiCategory
-                        ? 'bg-amber-500/30 text-amber-200 border border-amber-500/40'
-                        : 'bg-zinc-800 text-zinc-400'
-                    }`}
-                  >
-                    {allTrophies.length}
-                  </span>
-                </button>
-
-                {/* Modo Especial: Apenas Multicategoria */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOnlyMultiCategory((prev) => !prev);
-                    setSelectedTier('all');
-                  }}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer border shadow-sm ${
-                    onlyMultiCategory
-                      ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-rose-600 border-amber-300 text-white shadow-[0_0_25px_rgba(249,115,22,0.45)] scale-[1.02]'
-                      : 'bg-zinc-900/80 border-orange-500/30 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500'
-                  }`}
-                  title="Filtrar troféus que combinam 2 ou mais categorias simultâneas (Multicategoria / Crossovers)"
-                >
-                  <Flame className={`w-4 h-4 ${onlyMultiCategory ? 'animate-bounce text-yellow-200' : 'text-orange-400'}`} />
-                  <span>Apenas Multicategoria</span>
-                  <span
-                    className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
-                      onlyMultiCategory ? 'bg-black/40 text-white' : 'bg-orange-500/20 text-orange-300'
-                    }`}
-                  >
-                    {allTrophies.filter((t) => (t.categories || [t.category]).length >= 2).length}
-                  </span>
-                </button>
-              </div>
+                  {allTrophies.filter((t) => (t.categories || [t.category]).length >= 2).length}
+                </span>
+              </button>
 
               {/* Indicador de Visualização Atual */}
-              <div className="flex items-center gap-2 self-start sm:self-center px-3 py-1.5 rounded-xl bg-zinc-900/50 border border-zinc-800/80 text-[11px] text-zinc-400 font-medium">
+              <div className="flex items-center gap-2 self-start sm:self-center px-3 py-1.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 text-[11px] text-zinc-400 font-medium">
                 <span className="text-zinc-500">Exibindo:</span>
                 <span className="text-amber-400 font-bold font-mono">
                   {onlyMultiCategory
@@ -689,9 +661,10 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
               </div>
             </div>
 
-            {/* Grid das 7 Categorias Temáticas Oficiais */}
+            {/* Grid Simétrico 4x2: Todas + 7 Categorias Oficiais */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
+                { id: 'all', label: 'Todas as Categorias', icon: '🌟', count: allTrophies.length },
                 { id: 'volta_ao_mundo', label: 'Volta ao Mundo', icon: '🌍', count: categoryCounts.volta_ao_mundo },
                 { id: 'dna_cinefilo', label: 'DNA Cinéfilo', icon: '🧬', count: categoryCounts.dna_cinefilo },
                 { id: 'anatomia_cinema', label: 'Anatomia do Cinema', icon: '🎬', count: categoryCounts.anatomia_cinema },
@@ -1085,14 +1058,12 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
                 ? [trophy.category]
                 : ['volta_ao_mundo'];
 
-            // Formatação de data
-            const unlockedDateStr = trophy.unlocked_at
-              ? new Date(trophy.unlocked_at).toLocaleDateString('pt-BR', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                })
-              : null;
+            // Data de conquista (para Rank, prioriza a data do último patamar conquistado)
+            const latestRankUnlocked =
+              isRankCard && Array.isArray(trophy.ranks)
+                ? [...trophy.ranks].reverse().find((r) => r.is_unlocked && r.unlocked_at)
+                : null;
+            const unlockedDateStr = formatShortDate(latestRankUnlocked?.unlocked_at || trophy.unlocked_at);
 
             // =====================================================================
             // MODO 10 POR LINHA: MOSAICO ULTRA-COMPACTO PSN
@@ -1102,11 +1073,13 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
                 <div
                   key={trophy.id}
                   onClick={() => setInspectingTrophy(trophy)}
-                  title={`${cleanTitle} (${theme.name} • +${xpReward} XP)\n${trophy.description}\nProgresso: ${curProg}/${trophy.progress_target} (${pctProg}%)`}
+                  title={`${cleanTitle} (${theme.name} • +${xpReward} XP)\n${trophy.description}\nProgresso: ${curProg}/${trophy.progress_target} (${pctProg}%)${
+                    unlockedDateStr ? `\nConquistado em: ${unlockedDateStr}` : ''
+                  }`}
                   className={`relative overflow-hidden rounded-xl border p-2.5 transition-all duration-200 cursor-pointer flex flex-col justify-between group ${
                     isUnlocked
-                      ? `bg-zinc-950/90 ${theme.border} hover:scale-[1.03] hover:shadow-lg ${theme.glow}`
-                      : 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/40 opacity-90'
+                      ? `bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 ${theme.border} hover:scale-[1.03] hover:shadow-lg ${theme.glow}`
+                      : 'bg-zinc-950/75 border-zinc-800/85 hover:border-zinc-700 hover:bg-zinc-900/50 opacity-95'
                   }`}
                 >
                   {isUnlocked && (
@@ -1117,14 +1090,14 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
                   )}
 
                   <div className="relative z-10">
-                    {/* Topo: Ícone + Tier/Categorias */}
+                    {/* Topo: Ícone Ampliado + Tier/Categorias */}
                     <div className="flex items-center justify-between gap-1.5 mb-2">
                       <div
-                        className={`shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br ${theme.iconBg} border ${
+                        className={`shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br ${theme.iconBg} border ${
                           isUnlocked ? theme.border : 'border-zinc-800'
-                        } flex items-center justify-center text-base shadow-inner relative`}
+                        } flex items-center justify-center text-2xl shadow-inner relative`}
                       >
-                        <span className={isUnlocked ? '' : 'grayscale opacity-60'}>
+                        <span className={isUnlocked ? '' : 'grayscale opacity-70'}>
                           {trophy.icon || theme.symbol}
                         </span>
                         {isUnlocked ? (
@@ -1133,7 +1106,7 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
                           </div>
                         ) : (
                           <div className="absolute -bottom-1 -right-1 bg-zinc-900 text-zinc-500 rounded-full p-[1px] border border-zinc-700">
-                            <Lock className="w-2 h-2" />
+                            <Lock className="w-2.5 h-2.5" />
                           </div>
                         )}
                       </div>
@@ -1196,10 +1169,10 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
                   key={trophy.id}
                   onClick={() => setInspectingTrophy(trophy)}
                   title={`${cleanTitle} (+${xpReward} XP) — ${trophy.description}`}
-                  className={`relative overflow-hidden rounded-xl border p-3 transition-all duration-200 cursor-pointer flex flex-col justify-between group ${
+                  className={`relative overflow-hidden rounded-2xl border p-3 transition-all duration-200 cursor-pointer flex flex-col justify-between group ${
                     isUnlocked
-                      ? `bg-zinc-950/90 ${theme.border} hover:scale-[1.02] hover:shadow-lg ${theme.glow}`
-                      : 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/40 opacity-90'
+                      ? `bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 ${theme.border} hover:scale-[1.02] hover:shadow-lg ${theme.glow}`
+                      : 'bg-zinc-950/75 border-zinc-800/85 hover:border-zinc-700 hover:bg-zinc-900/50 opacity-95'
                   }`}
                 >
                   {isUnlocked && (
@@ -1210,19 +1183,19 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
                   )}
 
                   <div className="relative z-10">
-                    {/* Topo: Ícone + Badges Compactas */}
-                    <div className="flex items-start justify-between gap-2 mb-2">
+                    {/* Topo: Ícone Ampliado + Badges Compactas */}
+                    <div className="flex items-start justify-between gap-2 mb-2.5">
                       <div
-                        className={`shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br ${theme.iconBg} border ${
+                        className={`shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br ${theme.iconBg} border ${
                           isUnlocked ? theme.border : 'border-zinc-800'
-                        } flex items-center justify-center text-lg shadow-inner relative`}
+                        } flex items-center justify-center text-2xl shadow-inner relative`}
                       >
-                        <span className={isUnlocked ? '' : 'grayscale opacity-60'}>
+                        <span className={isUnlocked ? '' : 'grayscale opacity-70'}>
                           {trophy.icon || theme.symbol}
                         </span>
                         {isUnlocked ? (
                           <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-slate-950 rounded-full p-0.5 shadow">
-                            <CheckCircle2 className="w-2.5 h-2.5" />
+                            <CheckCircle2 className="w-3 h-3" />
                           </div>
                         ) : (
                           <div className="absolute -bottom-1 -right-1 bg-zinc-900 text-zinc-500 rounded-full p-0.5 border border-zinc-700">
@@ -1314,10 +1287,10 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
                 <div
                   key={trophy.id}
                   onClick={() => setInspectingTrophy(trophy)}
-                  className={`relative overflow-hidden rounded-2xl border p-3.5 transition-all duration-300 cursor-pointer flex flex-col justify-between group ${
+                  className={`relative overflow-hidden rounded-2xl border p-4 transition-all duration-300 cursor-pointer flex flex-col justify-between group ${
                     isUnlocked
-                      ? `bg-zinc-950/90 ${theme.border} hover:scale-[1.015] hover:shadow-xl ${theme.glow}`
-                      : 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/40 opacity-90'
+                      ? `bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 ${theme.border} hover:scale-[1.015] hover:shadow-xl ${theme.glow}`
+                      : 'bg-zinc-950/75 border-zinc-800/85 hover:border-zinc-700 hover:bg-zinc-900/50 opacity-95'
                   }`}
                 >
                   {isUnlocked && (
@@ -1327,22 +1300,22 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
                     />
                   )}
 
-                  <div className="flex items-start gap-2.5 relative z-10">
+                  <div className="flex items-start gap-3 relative z-10">
                     <div
-                      className={`shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br ${theme.iconBg} border ${
+                      className={`shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br ${theme.iconBg} border-2 ${
                         isUnlocked ? theme.border : 'border-zinc-800'
-                      } flex items-center justify-center text-xl shadow-inner relative group-hover:scale-105 transition-transform`}
+                      } flex items-center justify-center text-3xl shadow-inner relative group-hover:scale-105 transition-transform`}
                     >
-                      <span className={isUnlocked ? '' : 'grayscale opacity-60'}>
+                      <span className={isUnlocked ? '' : 'grayscale opacity-70'}>
                         {trophy.icon || theme.symbol}
                       </span>
                       {isUnlocked ? (
-                        <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-slate-950 rounded-full p-0.5 shadow-md">
-                          <CheckCircle2 className="w-3 h-3" />
+                        <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-slate-950 rounded-full p-0.5 shadow-md border border-zinc-950">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
                         </div>
                       ) : (
                         <div className="absolute -bottom-1 -right-1 bg-zinc-900 text-zinc-500 rounded-full p-0.5 border border-zinc-700">
-                          <Lock className="w-2.5 h-2.5" />
+                          <Lock className="w-3 h-3" />
                         </div>
                       )}
                     </div>
@@ -1443,38 +1416,38 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
               <div
                 key={trophy.id}
                 onClick={() => setInspectingTrophy(trophy)}
-                className={`relative overflow-hidden rounded-2xl border p-4.5 transition-all duration-300 cursor-pointer flex flex-col justify-between group ${
+                className={`relative overflow-hidden rounded-2xl border p-5 transition-all duration-300 cursor-pointer flex flex-col justify-between group ${
                   isUnlocked
-                    ? `bg-zinc-950/90 ${theme.border} hover:scale-[1.015] hover:shadow-xl ${theme.glow}`
-                    : 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/40 opacity-90'
+                    ? `bg-gradient-to-b from-zinc-900/95 via-zinc-950/95 to-zinc-950 ${theme.border} hover:scale-[1.015] hover:shadow-xl ${theme.glow}`
+                    : 'bg-zinc-950/75 border-zinc-800/85 hover:border-zinc-700 hover:bg-zinc-900/50 opacity-95'
                 }`}
               >
                 {/* Glow de fundo se desbloqueado */}
                 {isUnlocked && (
                   <div
-                    className="absolute -top-12 -right-12 w-40 h-40 rounded-full blur-3xl opacity-15 pointer-events-none"
+                    className="absolute -top-12 -right-12 w-44 h-44 rounded-full blur-3xl opacity-20 pointer-events-none"
                     style={{ backgroundColor: theme.accentColor }}
                   />
                 )}
 
-                {/* Linha Superior: Ícone + Título + Status */}
-                <div className="flex items-start gap-3.5 relative z-10">
-                  {/* Ícone Estilo PS5 */}
+                {/* Linha Superior: Ícone Ampliado + Título + Status */}
+                <div className="flex items-start gap-4 relative z-10">
+                  {/* Ícone Estilo PS5 Ampliado */}
                   <div
-                    className={`shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br ${theme.iconBg} border ${
+                    className={`shrink-0 w-16 h-16 sm:w-[70px] sm:h-[70px] rounded-2xl bg-gradient-to-br ${theme.iconBg} border-2 ${
                       isUnlocked ? theme.border : 'border-zinc-800'
-                    } flex items-center justify-center text-2xl shadow-inner relative group-hover:scale-105 transition-transform`}
+                    } flex items-center justify-center text-4xl sm:text-[42px] shadow-lg relative group-hover:scale-105 transition-transform`}
                   >
-                    <span className={isUnlocked ? '' : 'grayscale opacity-60'}>
+                    <span className={isUnlocked ? 'drop-shadow' : 'grayscale opacity-70'}>
                       {trophy.icon || theme.symbol}
                     </span>
                     {isUnlocked && (
-                      <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-slate-950 rounded-full p-0.5 shadow-md">
+                      <div className="absolute -bottom-1.5 -right-1.5 bg-emerald-500 text-slate-950 rounded-full p-1 shadow-md border border-zinc-950">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                       </div>
                     )}
                     {!isUnlocked && (
-                      <div className="absolute -bottom-1 -right-1 bg-zinc-900 text-zinc-500 rounded-full p-0.5 border border-zinc-700">
+                      <div className="absolute -bottom-1.5 -right-1.5 bg-zinc-900 text-zinc-500 rounded-full p-1 border border-zinc-700">
                         <Lock className="w-3 h-3" />
                       </div>
                     )}
@@ -1490,7 +1463,7 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
                       unlockedDateStr={unlockedDateStr}
                     />
 
-                    <h4 className="text-sm font-black text-zinc-100 tracking-tight group-hover:text-amber-400 transition-colors line-clamp-1">
+                    <h4 className="text-[15px] font-black text-zinc-100 tracking-tight group-hover:text-amber-400 transition-colors line-clamp-1 mt-0.5">
                       {cleanTitle}
                     </h4>
                     <p className="text-xs text-zinc-400 line-clamp-2 mt-0.5 leading-relaxed">
@@ -1506,12 +1479,19 @@ export default function TrophiesPage({ movies = [], onOpenWalkOfFame }) {
                     <LastMovieProgressPill lastAct={lastAct} />
                   )}
                   <div className="flex items-center justify-between text-[11px] font-mono">
-                    <span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">
-                      {trophy.is_unlocked
-                        ? 'Requisitos Cumpridos'
-                        : isRankCard
-                          ? `Próximo Rank (${TIER_THEMES[String(activeStep?.tier || 'bronze').toLowerCase()]?.name || ''})`
-                          : 'Progresso Atual'}
+                    <span className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] flex items-center gap-1.5 flex-wrap">
+                      <span>
+                        {trophy.is_unlocked
+                          ? 'Requisitos Cumpridos'
+                          : isRankCard
+                            ? `Próximo Rank (${TIER_THEMES[String(activeStep?.tier || 'bronze').toLowerCase()]?.name || ''})`
+                            : 'Progresso Atual'}
+                      </span>
+                      {isRankCard && !trophy.is_unlocked && hasAnyRankUnlocked && unlockedDateStr && (
+                        <span className="text-[10px] text-emerald-400/90 normal-case font-semibold">
+                          • Último Rank: {unlockedDateStr}
+                        </span>
+                      )}
                     </span>
                     <span className="font-bold text-zinc-300">
                       {curProg} / {trophy.progress_target}{' '}
