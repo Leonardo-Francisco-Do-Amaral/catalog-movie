@@ -997,7 +997,7 @@ export default function WalkOfFamePage({
                     ? `CALÇADA DA FAMA • DIRETORES & ROTEIRISTAS #001–#${String(stars.length || 47).padStart(3, '0')}`
                     : isDubladoresPage
                     ? `CALÇADA DA FAMA • DUBLADORES #001–#${String(stars.length || 20).padStart(3, '0')}`
-                    : `CALÇADA DA FAMA • ATORES, CASAIS & ELENCOS #001–#${String(stars.length || 69).padStart(3, '0')}`}
+                    : `CALÇADA DA FAMA • ATORES, CASAIS & ELENCOS #001–#${String(stars.length || 67).padStart(3, '0')}`}
                 </span>
                 {isDubladoresPage ? (
                   <span className="text-[10px] font-mono text-zinc-400">
@@ -1389,7 +1389,7 @@ export default function WalkOfFamePage({
                 <option value="progress">Ordenar: Maior %</option>
                 <option value="watched">Ordenar: Mais Filmes</option>
                 <option value="album">
-                  Ordenar: Nº Álbum (#001–#{String(stars.length || (isDirectorsPage ? 47 : isDubladoresPage ? 20 : 69)).padStart(3, '0')})
+                  Ordenar: Nº Álbum (#001–#{String(stars.length || (isDirectorsPage ? 47 : isDubladoresPage ? 20 : 67)).padStart(3, '0')})
                 </option>
                 <option value="az">Ordenar: A–Z</option>
               </select>

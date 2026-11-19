@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import axios from 'axios';
 import TopNavbar from '../components/TopNavbar';
 import MovieCard from '../components/MovieCard';
 import MovieFormModal from '../components/MovieFormModal';
-import SpreadsheetImportModal from '../components/SpreadsheetImportModal';
-import AnalyticsDashboard from '../components/AnalyticsDashboard';
-import WorldChallengePage from '../components/WorldChallengePage';
-import TimeMachinePage from '../components/TimeMachinePage';
-import TrophiesPage from './TrophiesPage';
-import UniverseCodexPage from './UniverseCodexPage';
-import WalkOfFamePage from './WalkOfFamePage';
+const SpreadsheetImportModal = React.lazy(() => import('../components/SpreadsheetImportModal'));
+const AnalyticsDashboard = React.lazy(() => import('../components/AnalyticsDashboard'));
+const WorldChallengePage = React.lazy(() => import('../components/WorldChallengePage'));
+const TimeMachinePage = React.lazy(() => import('../components/TimeMachinePage'));
+const TrophiesPage = React.lazy(() => import('./TrophiesPage'));
+const UniverseCodexPage = React.lazy(() => import('./UniverseCodexPage'));
+const WalkOfFamePage = React.lazy(() => import('./WalkOfFamePage'));
 import WalkOfFamePackToast from '../components/WalkOfFamePackToast';
 import PS5TrophyToastContainer, { triggerPS5TrophyToast, triggerTrophyBatch } from '../components/PS5TrophyToastContainer';
 import TimeMachineToastContainer from '../components/TimeMachineToastContainer';
@@ -1280,61 +1280,79 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
             <RefreshCw className="w-8 h-8 text-amber-500 animate-spin" />
             <span className="text-zinc-500 text-sm font-semibold tracking-wider uppercase">Carregando Catálogo...</span>
           </div>
-        ) : activeTab === 'analytics' ? (
-          <AnalyticsDashboard
-            movies={allMovies}
-            xpStatus={xpStatus}
-            onNavigateTab={handleNavigateTab}
-          />
-        ) : activeTab === 'challenge' ? (
-          <WorldChallengePage
-            movies={allMovies}
-            onOpenAddMovieForCountry={(_countryName, wishTitle) => {
-              setEditingMovie(null);
-              setInitialReleaseYear('');
-              setReviewSearchQuery(wishTitle || '');
-              setIsFormOpen(true);
-            }}
-          />
-        ) : activeTab === 'trophies' ? (
-          <TrophiesPage
-            movies={allMovies}
-            onOpenWalkOfFame={() => handleNavigateTab('walk_of_fame', 'actors')}
-          />
-        ) : activeTab === 'walk_of_fame' ? (
-          <WalkOfFamePage
-            key={walkOfFameRefreshKey}
-            initialScope={walkOfFameScope}
-            onScopeChange={setWalkOfFameScope}
-            onPacksChanged={handleWalkOfFamePacksChanged}
-            onOpenAddMovieForStar={(title, year) => {
-              setEditingMovie(null);
-              setInitialReleaseYear(year ? String(year) : '');
-              setReviewSearchQuery(title || '');
-              setIsFormOpen(true);
-            }}
-          />
-        ) : activeTab === 'universes' ? (
-          <UniverseCodexPage
-            navbarSearchQuery={searchQuery}
-            onOpenAddMovieForUniverse={(movieTitle, releaseYear) => {
-              setEditingMovie(null);
-              setInitialReleaseYear(releaseYear ? String(releaseYear) : '');
-              setReviewSearchQuery(movieTitle || '');
-              setIsFormOpen(true);
-            }}
-          />
-        ) : activeTab === 'time_machine' ? (
-          <TimeMachinePage
-            movies={allMovies}
-            navbarSearchQuery={searchQuery}
-            onOpenAddMovieForYear={(yearNumber, wishTitle) => {
-              setEditingMovie(null);
-              setInitialReleaseYear(yearNumber ? String(yearNumber) : '');
-              setReviewSearchQuery(wishTitle || '');
-              setIsFormOpen(true);
-            }}
-          />
+        ) : activeTab === 'analytics' ||
+          activeTab === 'challenge' ||
+          activeTab === 'trophies' ||
+          activeTab === 'walk_of_fame' ||
+          activeTab === 'universes' ||
+          activeTab === 'time_machine' ? (
+          <Suspense
+            fallback={
+              <div className="flex-grow min-h-[55vh] flex flex-col items-center justify-center gap-3">
+                <RefreshCw className="w-7 h-7 text-amber-400 animate-spin" />
+                <span className="text-zinc-500 text-xs font-black uppercase tracking-widest">
+                  Carregando módulo...
+                </span>
+              </div>
+            }
+          >
+            {activeTab === 'analytics' ? (
+              <AnalyticsDashboard
+                movies={allMovies}
+                xpStatus={xpStatus}
+                onNavigateTab={handleNavigateTab}
+              />
+            ) : activeTab === 'challenge' ? (
+              <WorldChallengePage
+                movies={allMovies}
+                onOpenAddMovieForCountry={(_countryName, wishTitle) => {
+                  setEditingMovie(null);
+                  setInitialReleaseYear('');
+                  setReviewSearchQuery(wishTitle || '');
+                  setIsFormOpen(true);
+                }}
+              />
+            ) : activeTab === 'trophies' ? (
+              <TrophiesPage
+                movies={allMovies}
+                onOpenWalkOfFame={() => handleNavigateTab('walk_of_fame', 'actors')}
+              />
+            ) : activeTab === 'walk_of_fame' ? (
+              <WalkOfFamePage
+                key={walkOfFameRefreshKey}
+                initialScope={walkOfFameScope}
+                onScopeChange={setWalkOfFameScope}
+                onPacksChanged={handleWalkOfFamePacksChanged}
+                onOpenAddMovieForStar={(title, year) => {
+                  setEditingMovie(null);
+                  setInitialReleaseYear(year ? String(year) : '');
+                  setReviewSearchQuery(title || '');
+                  setIsFormOpen(true);
+                }}
+              />
+            ) : activeTab === 'universes' ? (
+              <UniverseCodexPage
+                navbarSearchQuery={searchQuery}
+                onOpenAddMovieForUniverse={(movieTitle, releaseYear) => {
+                  setEditingMovie(null);
+                  setInitialReleaseYear(releaseYear ? String(releaseYear) : '');
+                  setReviewSearchQuery(movieTitle || '');
+                  setIsFormOpen(true);
+                }}
+              />
+            ) : (
+              <TimeMachinePage
+                movies={allMovies}
+                navbarSearchQuery={searchQuery}
+                onOpenAddMovieForYear={(yearNumber, wishTitle) => {
+                  setEditingMovie(null);
+                  setInitialReleaseYear(yearNumber ? String(yearNumber) : '');
+                  setReviewSearchQuery(wishTitle || '');
+                  setIsFormOpen(true);
+                }}
+              />
+            )}
+          </Suspense>
         ) : (
           /* Grelha Dinâmica Principal (Resultados de Busca / Todos os Filmes - 5 por linha no Desktop) */
           <div className="flex flex-col gap-6">
@@ -1500,32 +1518,36 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
       </main>
 
       {/* Modal de Importação de Planilha (.csv / .xlsx) */}
-      <SpreadsheetImportModal
-        isOpen={isImportOpen}
-        onClose={() => setIsImportOpen(false)}
-        onImportComplete={async () => {
-          const prevXp = xpStatusRef.current;
-          const loaded = await fetchData({ runTrophyScan: false });
-          await fetchWalkOfFamePacks();
-          const nextXp = await checkTrophyUnlocks(loaded, true, { shouldEvaluate: true });
-          if (prevXp && nextXp) {
-            const gain = computeXpGainEvent(prevXp, nextXp);
-            if (gain) {
-              if (Array.isArray(gain.timeMachineUnlocks) && gain.timeMachineUnlocks.length > 0) {
-                triggerTimeMachineUnlock(gain.timeMachineUnlocks.slice(0, 4));
+      {isImportOpen && (
+        <Suspense fallback={null}>
+          <SpreadsheetImportModal
+            isOpen={isImportOpen}
+            onClose={() => setIsImportOpen(false)}
+            onImportComplete={async () => {
+              const prevXp = xpStatusRef.current;
+              const loaded = await fetchData({ runTrophyScan: false });
+              await fetchWalkOfFamePacks();
+              const nextXp = await checkTrophyUnlocks(loaded, true, { shouldEvaluate: true });
+              if (prevXp && nextXp) {
+                const gain = computeXpGainEvent(prevXp, nextXp);
+                if (gain) {
+                  if (Array.isArray(gain.timeMachineUnlocks) && gain.timeMachineUnlocks.length > 0) {
+                    triggerTimeMachineUnlock(gain.timeMachineUnlocks.slice(0, 4));
+                  }
+                  triggerXPGainToast(gain, nextXp);
+                }
               }
-              triggerXPGainToast(gain, nextXp);
-            }
-          }
-        }}
-        reviewedMovieIds={reviewedMovieIds}
-        onReviewMovie={(movieToReview, rawTitle) => {
-          setEditingMovie(movieToReview);
-          setInitialReleaseYear('');
-          setReviewSearchQuery(rawTitle || movieToReview?.title || '');
-          setIsFormOpen(true);
-        }}
-      />
+            }}
+            reviewedMovieIds={reviewedMovieIds}
+            onReviewMovie={(movieToReview, rawTitle) => {
+              setEditingMovie(movieToReview);
+              setInitialReleaseYear('');
+              setReviewSearchQuery(rawTitle || movieToReview?.title || '');
+              setIsFormOpen(true);
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* Modal Unificado de Cadastro e Edição */}
       <MovieFormModal

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Shuffle, Trophy, RotateCcw, Sparkles, Eye } from 'lucide-react';
+import { X, Shuffle, Trophy, RotateCcw, Eye } from 'lucide-react';
 import { resolveWalkMediaUrl } from '../utils/walkOfFameStickers';
 import {
   playDirectorCardFlipSound,

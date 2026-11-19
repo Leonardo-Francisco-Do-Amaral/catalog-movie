@@ -730,7 +730,7 @@ function computeRule(def, index) {
         const h = index.historicalCountriesMap.get(String(code).toLowerCase());
         const ok = h?.status === 'conquered';
         if (ok) conq++;
-        checklist.push({ code, name: h?.name || code, flag: h?.flagCode || null, required: 1, current: ok ? 1 : 0, conquered: ok, movie_title: h?.champion?.title || null });
+        checklist.push({ code, name: h?.name || code, flag: h?.flagCode || null, badge_icon: h?.badgeIcon || null, required: 1, current: ok ? 1 : 0, conquered: ok, movie_title: h?.champion?.title || null });
       }
       return { rawCount: conq, progressCurrent: Math.min(conq, minC), progressTarget: minC, isMet: conq >= minC, checklist };
     }
@@ -846,20 +846,32 @@ function computeRule(def, index) {
     case 'tag_or_month': return buildSlots((index.moviesByMonth.get(Number(meta.month)) || []).filter((m) => (meta.tags || []).some((t) => hasTag(m, t))), pt, () => 'Tag', 'Mês');
     case 'tag_and_tag_or_month': return buildSlots((index.moviesByTag.get(cleanTag(meta.tag)) || []).filter((m) => hasTag(m, meta.orTag) || inMonth(m, Number(meta.orMonth) || 12)), pt, () => meta.tag, meta.tag);
     case 'all_12_months_coverage': {
+      const monthTarget = Number(def.target_value) || 15;
       const monthCounts = [];
-      let cov = 0;
-      const minPM = Number(meta.minPerMonth) || 1;
       for (let mo = 1; mo <= 12; mo++) {
         const list = index.moviesByMonth.get(mo) || [];
         monthCounts.push(list.length);
-        if (list.length >= minPM) cov++;
-        checklist.push({ id: `m_${mo}`, name: MONTH_NAMES[mo], required: minPM, current: Math.min(list.length, minPM), conquered: list.length >= minPM, movie_title: list[0]?.title || null });
+        checklist.push({
+          id: `m_${mo}`,
+          name: MONTH_NAMES[mo],
+          required: monthTarget,
+          current: Math.min(list.length, monthTarget),
+          conquered: list.length >= monthTarget,
+          movie_title: list[0]?.title || null,
+          movie_year: list[0]?.releaseYear || null,
+          poster_url: list[0]?.posterUrl || null,
+          extra_info:
+            list.length >= monthTarget
+              ? `${list.length}/${monthTarget} filmes neste mês ✓`
+              : `${list.length}/${monthTarget} filmes neste mês (faltam ${monthTarget - list.length})`,
+        });
       }
-      return { rawCount: monthCounts.length ? Math.min(...monthCounts) : 0, progressCurrent: cov, progressTarget: 12, isMet: cov >= 12, checklist, monthCounts };
+      const minMonthCount = monthCounts.length ? Math.min(...monthCounts) : 0;
+      return { rawCount: minMonthCount, progressCurrent: minMonthCount, progressTarget: monthTarget, isMet: minMonthCount >= monthTarget, checklist, monthCounts };
     }
     case 'tag_decades_checklist': {
       const cands = index.moviesByTag.get(cleanTag(meta.tag || 'Bruxo')) || [];
-      const decs = meta.decades || [1960, 1970, 1980, 1990, 2000, 2010, 2020, 2030];
+      const decs = meta.decades || [1960, 1970, 1980, 1990, 2000, 2010, 2020];
       let cov = 0;
       for (const d of decs) {
         const m = cands.find((x) => x.releaseYear !== null && x.releaseYear >= d && x.releaseYear <= d + 9);
@@ -1098,8 +1110,117 @@ function computeRule(def, index) {
       for (const fn of checks) if (index.movies.some(fn)) c++;
       return { rawCount: c, progressCurrent: c, progressTarget: 16, isMet: c >= 16, checklist: [] };
     }
+    case 'alan_turing_chronicle': {
+      const globalReq = Number(meta.requiredGlobalCount) || 8;
+      const globalMovies = index.movies.filter((m) => hasGenre(m, 'Ficção Científica') && hasTag(m, 'Personagem LGBT'));
+      const globalMet = globalMovies.length >= globalReq;
+      let countMet = globalMet ? 1 : 0;
+      checklist.push({
+        id: 'turing_global_scifi_lgbt',
+        name: `Meta Global: Conquistar ${globalReq} filmes de Ficção Científica com a tag "Personagem LGBT"`,
+        required: globalReq,
+        current: Math.min(globalReq, globalMovies.length),
+        conquered: globalMet,
+        movie_title: globalMovies[0]?.title || null,
+        extra_info: `${globalMovies.length}/${globalReq} filmes no catálogo`,
+      });
+      const milestones = [
+        { id: 'marco_01', name: 'Marco 01 — Sherborne & Christopher (1920 a 1940)', ruleDesc: '1920–1940 + tags "Colégio/Escola" e "Personagem LGBT"', context: 'O despertar matemático no colégio interno e o primeiro amor/amizade profunda com Christopher Morcom, que marcou toda a sua vida.', match: (m) => m.releaseYear !== null && m.releaseYear >= 1920 && m.releaseYear <= 1940 && hasTag(m, 'Colegio/Escola') && hasTag(m, 'Personagem LGBT') },
+        { id: 'marco_02', name: 'Marco 02 — A Máquina Universal (1920 a 1940)', ruleDesc: '1920–1940 + gênero "Drama" ou "Ficção Científica"', context: 'Em 1936, Turing publica "On Computable Numbers", criando o conceito teórico da Máquina de Turing.', match: (m) => m.releaseYear !== null && m.releaseYear >= 1920 && m.releaseYear <= 1940 && (hasGenre(m, 'Drama') || hasGenre(m, 'Ficção Científica')) },
+        { id: 'marco_03', name: 'Marco 03 — Bletchley Park e o Código Enigma (1930 a 1940)', ruleDesc: '1930–1940 + Reino Unido ou Alemanha', context: 'Lidera a equipe secreta em Bletchley Park e projeta a máquina Bombe para decifrar a Enigma alemã.', match: (m) => m.releaseYear !== null && m.releaseYear >= 1930 && m.releaseYear <= 1940 && (hasCountry(m, 'gb') || hasCountry(m, 'de')) },
+        { id: 'marco_04', name: 'Marco 04 — Os Anos de Guerra e o Silêncio (1940 a 1949)', ruleDesc: '1940–1949 + gênero "Drama"', context: 'Seu trabalho encurtou a guerra e salvou milhões de vidas, permanecendo sob sigilo oficial.', match: (m) => m.releaseYear !== null && m.releaseYear >= 1940 && m.releaseYear <= 1949 && hasGenre(m, 'Drama') },
+        { id: 'marco_05', name: 'Marco 05 — O Teste de Turing (1950)', ruleDesc: 'Ano 1950 + gênero "Ficção Científica"', context: 'Publica o artigo com o famoso Jogo da Imitação (Teste de Turing), base da Inteligência Artificial.', match: (m) => m.releaseYear === 1950 && hasGenre(m, 'Ficção Científica') },
+        { id: 'marco_06', name: 'Marco 06 — O Julgamento Injusto (1952)', ruleDesc: 'Ano 1952 + tag "Preconceito"', context: 'Condenado pela justiça britânica por sua homossexualidade e submetido à castração química.', match: (m) => m.releaseYear === 1952 && hasTag(m, 'Preconceito') },
+        { id: 'marco_07', name: 'Marco 07 — A Maçã Envenenada (1954)', ruleDesc: 'Ano 1954 + gênero "Animação"', context: 'Sua morte trágica aos 41 anos por envenenamento por cianeto, encontrado com uma maçã mordida ao lado da cama.', match: (m) => m.releaseYear === 1954 && hasGenre(m, 'Animação') },
+        { id: 'marco_08', name: 'Marco 08 — Perdão depois da morte: será que resolve? (2013)', ruleDesc: 'Ano 2013 + Reino Unido', context: 'A Rainha Elizabeth II concede o perdão real póstumo oficial pela perseguição de 1952.', match: (m) => m.releaseYear === 2013 && hasCountry(m, 'gb') },
+      ];
+      for (const ms of milestones) {
+        const matched = index.movies.find(ms.match);
+        if (matched) countMet++;
+        checklist.push({ id: ms.id, name: ms.name, required: 1, current: matched ? 1 : 0, conquered: Boolean(matched), movie_title: matched?.title || null, movie_year: matched?.releaseYear || null, poster_url: matched?.posterUrl || null, rule_desc: ms.context, extra_info: matched ? `${ms.ruleDesc} • Cumprida` : `Pendente • ${ms.ruleDesc}` });
+      }
+      return { rawCount: countMet, progressCurrent: countMet, progressTarget: 9, isMet: countMet >= 9, checklist };
+    }
+    case 'memorial_luto_cycles': {
+      const tributes = [
+        { id: 'mem_01_vo_delha', name: '1. Vó "Delha" Adélia (2012)', ruleLabel: 'Brasil • Ano 2012 • Gênero Comédia', homage: 'Eu amava muito a minha vó — ela tinha um coração enorme, onde cabiam todos os seus netos, bisnetos, filhos e filhas, a família inteira. Rezava por todos, pensava em todos. Essa eu saberia exatamente o que gostaria de ver na TV: um bom filme de comédia ou o "bonitão" do Silvio Santos. Será que, se o céu existir, ela já o encontrou pessoalmente?', match: (m) => hasCountry(m, 'br') && m.releaseYear === 2012 && hasGenre(m, 'Comédia') },
+        { id: 'mem_02_vo', name: '2. Vô (2016)', ruleLabel: 'Ano 2016 • Gênero Ação', homage: 'Um homem do seu tempo, com seus problemas, trabalhador e sofrido com o peso da vida — mas, no final do dia, uma boa pessoa ao seu modo de ser e dentro da sua perspectiva do que era ser "bom".', match: (m) => m.releaseYear === 2016 && hasGenre(m, 'Ação') },
+        { id: 'mem_03_vo_nena', name: '3. Vó "Nena" Umbelina (2022)', ruleLabel: 'Ano 2022 • Tag "Religião"', homage: 'Aquela que morou na minha casa por quase 8 anos. Sinto falta do amor, do carinho e de ser chamado de "lindo da avó". Espero que ela esteja bem, onde quer que esteja.', match: (m) => m.releaseYear === 2022 && hasTag(m, 'Religião') },
+        { id: 'mem_04_tio_galo', name: '4. Tio "Galo" Onofre (2022)', ruleLabel: 'Ano 2022 • Gênero Animação', homage: 'Uma pessoa trabalhadora e carinhosa à sua maneira. Infelizmente o Parkinson tirou seus gestos, mas nunca o seu sorriso, a sua felicidade e a sua vontade de beber 😉. Acredito que adoraria assistir a uma animação com seus sobrinhos, mesmo que não fosse muito do estilo dele.', match: (m) => m.releaseYear === 2022 && hasGenre(m, 'Animação') },
+        { id: 'mem_05_tio_agnaldo', name: '5. Tio Agnaldo (2023)', ruleLabel: 'Ano 2023 • Gênero Curta', homage: 'Uma pessoa bondosa à sua maneira, que me amava o máximo que podia, com um coração enorme e sempre acompanhado do seu radinho de pilha e um cigarro. Como não tinha paciência para ver filmes longos — só se a protagonista fosse bonita ou se fosse um jogo de futebol rsrs —, um curta é a medida perfeita.', match: (m) => m.releaseYear === 2023 && hasGenre(m, 'Curta') },
+      ];
+      const counts = [];
+      for (const tr of tributes) {
+        const matches = index.movies.filter(tr.match);
+        counts.push(matches.length);
+        const previewTitles = matches.length > 0 ? matches.map((m) => m.title).join(' • ') : null;
+        checklist.push({
+          id: tr.id,
+          name: tr.name,
+          required: 5,
+          current: Math.min(matches.length, 5),
+          conquered: matches.length >= 5,
+          movie_title: previewTitles,
+          poster_url: matches[0]?.posterUrl || null,
+          rule_desc: tr.homage,
+          rule_label: tr.ruleLabel,
+          total_matched: matches.length,
+          matched_movies: matches.map((m) => ({
+            title: m.title,
+            year: m.releaseYear ?? null,
+            poster_url: m.posterUrl || null,
+            rating: m.ur ?? null,
+            month_seen: m.monthSeen ?? null,
+            year_seen: m.yearSeen ?? null,
+          })),
+          extra_info: `${tr.ruleLabel} • ${matches.length}/5 ciclos base${matches.length > 5 ? ` (+${matches.length - 5} extra ★)` : ''}`,
+        });
+      }
+      const completeCycles = counts.length ? Math.min(...counts) : 0;
+      return { rawCount: completeCycles, progressCurrent: completeCycles, progressTarget: 5, isMet: completeCycles >= 5, checklist, quotaRawCounts: counts };
+    }
     default: return { rawCount: 0, progressCurrent: 0, progressTarget: pt, isMet: false, checklist: [] };
   }
+}
+
+function computeClientInfiniteStars(def, raw, isFullyUnlocked, cardOverride, testExtraStarsOverride) {
+  const isFiniteCap = Boolean(def.target_metadata?.finiteCap) || def.target_type === 'conquered_countries_count';
+  if (isFiniteCap) {
+    return { isFiniteCap: true, extraStars: 0, starStep: 0, starCurr: 0, starTarget: 0, starPct: 0 };
+  }
+  const steps = Array.isArray(def.ranks) ? def.ranks : [];
+  const mythicTarget = Number(steps[steps.length - 1]?.target_value ?? def.target_value) || 1;
+  let starStep = Math.max(1, Math.round(mythicTarget * 0.2));
+
+  if (testExtraStarsOverride !== null && testExtraStarsOverride !== undefined) {
+    return { isFiniteCap: false, extraStars: Math.max(0, Math.floor(Number(testExtraStarsOverride) || 0)), starStep, starCurr: 0, starTarget: starStep, starPct: 0 };
+  }
+  if (!isFullyUnlocked || cardOverride === false) {
+    return { isFiniteCap: false, extraStars: 0, starStep, starCurr: 0, starTarget: starStep, starPct: 0 };
+  }
+  if (def.target_type === 'memorial_luto_cycles' && Array.isArray(raw.quotaRawCounts) && raw.quotaRawCounts.length > 0) {
+    starStep = 1;
+    const extraStars = Math.max(0, raw.rawCount - mythicTarget);
+    const nextGoal = mythicTarget + extraStars + 1;
+    const ready = raw.quotaRawCounts.filter((c) => c >= nextGoal).length;
+    const tot = raw.quotaRawCounts.length;
+    return { isFiniteCap: false, extraStars, starStep, starCurr: ready, starTarget: tot, starPct: tot > 0 ? Math.min(100, Math.round((ready / tot) * 100)) : 0 };
+  }
+  if ((def.target_type === 'genre_quotas' || def.target_type === 'tag_checklist_quota') && Array.isArray(raw.quotaRawCounts) && raw.quotaRawCounts.length > 0) {
+    const nQ = raw.quotaRawCounts.length;
+    const mythicPer = Math.max(1, Math.floor(mythicTarget / nQ));
+    const perBucket = Math.max(1, Math.round((mythicTarget * 0.2) / nQ));
+    starStep = perBucket * nQ;
+    const minEx = Math.min(...raw.quotaRawCounts.map((c) => Math.max(0, c - mythicPer)));
+    const extraStars = Math.floor(minEx / perBucket);
+    const baseEach = mythicPer + extraStars * perBucket;
+    const starCurr = raw.quotaRawCounts.reduce((acc, c) => acc + Math.min(perBucket, Math.max(0, c - baseEach)), 0);
+    return { isFiniteCap: false, extraStars, starStep, starCurr, starTarget: starStep, starPct: starStep > 0 ? Math.min(100, Math.round((starCurr / starStep) * 100)) : 0 };
+  }
+  const excess = Math.max(0, raw.rawCount - mythicTarget);
+  const extraStars = Math.floor(excess / starStep);
+  const starCurr = excess % starStep;
+  return { isFiniteCap: false, extraStars, starStep, starCurr, starTarget: starStep, starPct: starStep > 0 ? Math.min(100, Math.round((starCurr / starStep) * 100)) : 0 };
 }
 
 export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, previousTrophies = []) {
@@ -1116,7 +1237,11 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
     const categories = def.categories || [def.category];
 
     if (def.kind === 'rank' && Array.isArray(def.ranks)) {
-      const cardOverride = testOverrides[def.id] !== undefined ? testOverrides[def.id] : prev?.test_override ?? null;
+      const starOverrideKey = `__stars__${def.id}`;
+      const testExtraStarsOverride = testOverrides[starOverrideKey] !== undefined ? testOverrides[starOverrideKey] : prev?.test_extra_stars ?? null;
+      const cardOverrideRaw = testOverrides[def.id] !== undefined ? testOverrides[def.id] : prev?.test_override ?? null;
+      const cardOverride = testExtraStarsOverride !== null && testExtraStarsOverride > 0 && cardOverrideRaw !== false ? true : cardOverrideRaw;
+
       let unlockedCount = 0;
       let highestTier = null;
       const ranks = def.ranks.map((step) => {
@@ -1125,11 +1250,7 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
         let stepCurrent = Math.min(raw.rawCount, stepTarget);
         let stepMet = raw.rawCount >= stepTarget;
 
-        if (def.target_type === 'all_12_months_coverage' && Array.isArray(raw.monthCounts)) {
-          stepTarget = 12;
-          stepCurrent = raw.monthCounts.filter((c) => c >= step.target_value).length;
-          stepMet = stepCurrent >= 12;
-        } else if ((def.target_type === 'genre_quotas' || def.target_type === 'tag_checklist_quota') && Array.isArray(raw.quotaRawCounts)) {
+        if ((def.target_type === 'genre_quotas' || def.target_type === 'tag_checklist_quota') && Array.isArray(raw.quotaRawCounts)) {
           const n = raw.quotaRawCounts.length || 2;
           const per = Math.max(1, Math.floor(step.target_value / n));
           stepTarget = per * n;
@@ -1151,12 +1272,14 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
         };
       });
 
+      const isFullyUnlocked = unlockedCount >= ranks.length;
+      const starMetrics = computeClientInfiniteStars(def, raw, isFullyUnlocked, cardOverride, testExtraStarsOverride);
       const active = ranks.find((r) => !r.is_unlocked) || ranks[ranks.length - 1];
       cards.push({
         ...def,
         categories,
         search_keywords: [def.title, def.description, ...ranks.map((r) => `${r.title} ${r.description}`)].join(' '),
-        is_unlocked: unlockedCount >= ranks.length,
+        is_unlocked: isFullyUnlocked,
         unlocked_at: unlockedCount > 0 ? nowIso : null,
         test_override: cardOverride,
         is_new: false,
@@ -1166,6 +1289,13 @@ export function evaluateTrophiesClientSide(movies = [], testOverrides = {}, prev
         ranks,
         unlocked_ranks_count: unlockedCount,
         highest_unlocked_tier: highestTier,
+        extra_stars: starMetrics.extraStars,
+        star_step: starMetrics.starStep,
+        star_progress_current: starMetrics.starCurr,
+        star_progress_target: starMetrics.starTarget,
+        star_progress_percentage: starMetrics.starPct,
+        test_extra_stars: testExtraStarsOverride,
+        is_finite_cap: starMetrics.isFiniteCap,
         checklist: raw.checklist,
       });
     } else {

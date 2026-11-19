@@ -131,7 +131,9 @@ export const TROPHY_DEFINITIONS = [
     "icon": "🗺️",
     "target_type": "conquered_countries_count",
     "target_value": 195,
-    "target_metadata": {},
+    "target_metadata": {
+      "finiteCap": true
+    },
     "ranks": [
       {
         "id": "vm_rank_countries_195__bronze",
@@ -5634,10 +5636,10 @@ export const TROPHY_DEFINITIONS = [
     ],
     "tier": "mythic",
     "title": "Não me cite a Magia Profunda, Bruxa. Eu estava lá quando ela foi escrita.",
-    "description": "Conquistar pelo menos 1 filme com a tag Bruxo em cada uma das 8 décadas entre 1960s e 2030s (1960s, 1970s, 1980s, 1990s, 2000s, 2010s, 2020s, 2030s) (8 décadas no checklist).",
+    "description": "Conquistar pelo menos 1 filme com a tag Bruxo em cada uma das 7 décadas entre 1960s e 2020s (1960s, 1970s, 1980s, 1990s, 2000s, 2010s, 2020s) (7 décadas no checklist).",
     "icon": "🧙‍♀️",
     "target_type": "tag_decades_checklist",
-    "target_value": 8,
+    "target_value": 7,
     "target_metadata": {
       "tag": "Bruxo",
       "decades": [
@@ -5647,8 +5649,7 @@ export const TROPHY_DEFINITIONS = [
         1990,
         2000,
         2010,
-        2020,
-        2030
+        2020
       ]
     },
     "legacy_ids": [
@@ -13249,6 +13250,264 @@ export const TROPHY_DEFINITIONS = [
       "multi_michael_jackson_ultimate_anthology"
     ],
     "sort_order": 396
+  },
+  {
+    "id": "tc_dna_final_epico_nota_lt6_10",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "tribunal_critica"
+    ],
+    "tier": "epic",
+    "title": "E no finaaalzinhooooo",
+    "description": "Conquistar 10 filmes com a tag Final Epico e Minha Nota menor que 6.000 (10 filmes).",
+    "icon": "🫠",
+    "target_type": "tag_max_rating_count",
+    "target_value": 10,
+    "target_metadata": {
+      "tag": "Final Epico",
+      "maxRating": 6000,
+      "isHybrid": true
+    },
+    "legacy_ids": [],
+    "sort_order": 397
+  },
+  {
+    "id": "dna_life_is_strange_1",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "silver",
+    "title": "Life is Strange",
+    "description": "Conquistar 1 filme com as tags Viagem no Tempo e Colegio/Escola ao mesmo tempo (1 filme).",
+    "icon": "🦋",
+    "target_type": "tag_double_and",
+    "target_value": 1,
+    "target_metadata": {
+      "tags": [
+        "Viagem no Tempo",
+        "Colegio/Escola"
+      ],
+      "tagMode": "double_and"
+    },
+    "legacy_ids": [],
+    "sort_order": 398
+  },
+  {
+    "id": "multi_alan_turing_legacy_9",
+    "kind": "unique",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo",
+      "anatomia_cinema",
+      "volta_ao_mundo"
+    ],
+    "tier": "mythic",
+    "title": "Vida e Morte de Alan Turing: O Pai da Computação",
+    "description": "Conquistar 8 filmes com o gênero Ficção Científica e a tag \"Personagem LGBT\" + o checklist cronológico de 8 marcos da vida e do legado de Alan Turing (9 marcos no total). (Esse site só existe por ele, obrigado!)",
+    "icon": "💻",
+    "target_type": "alan_turing_chronicle",
+    "target_value": 9,
+    "target_metadata": {
+      "isHybrid": true,
+      "totalMilestones": 8,
+      "requiredGlobalCount": 8
+    },
+    "legacy_ids": [],
+    "sort_order": 399
+  },
+  {
+    "id": "multi_rank_memorial_luto",
+    "kind": "rank",
+    "category": "anatomia_cinema",
+    "categories": [
+      "anatomia_cinema",
+      "volta_ao_mundo",
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "O que é o luto, se não o amor que perdura?",
+    "description": "Para aqueles que se foram, mas sempre serão lembrados em nossas vidas e em nossos corações. Checklist repetível de 5 homenagens em ciclos completos até o teto 5 (25 filmes).",
+    "icon": "🕯️",
+    "target_type": "memorial_luto_cycles",
+    "target_value": 5,
+    "target_metadata": {
+      "isHybrid": true,
+      "isSpecialMemorial": true,
+      "cycleSize": 5
+    },
+    "ranks": [
+      {
+        "id": "multi_rank_memorial_luto__bronze",
+        "tier": "bronze",
+        "target_value": 1,
+        "title": "1º Ciclo de Memória Eterna (5 filmes • 1/5)",
+        "description": "1º Ciclo Completo (1 filme de cada uma das 5 homenagens = 5 filmes): acende a primeira chama para cada história querida."
+      },
+      {
+        "id": "multi_rank_memorial_luto__silver",
+        "tier": "silver",
+        "target_value": 2,
+        "title": "2º Ciclo de Memória Eterna (10 filmes • 2/5)",
+        "description": "2º Ciclo Completo (2 filmes distintos de cada homenagem = 10 filmes): a saudade transformada em tradição viva no catálogo."
+      },
+      {
+        "id": "multi_rank_memorial_luto__epic",
+        "tier": "epic",
+        "target_value": 3,
+        "title": "3º Ciclo de Memória Eterna (15 filmes • 3/5)",
+        "description": "3º Ciclo Completo (3 filmes distintos de cada homenagem = 15 filmes): três voltas completas de carinho que atravessam gerações."
+      },
+      {
+        "id": "multi_rank_memorial_luto__gold",
+        "tier": "gold",
+        "target_value": 4,
+        "title": "4º Ciclo de Memória Eterna (20 filmes • 4/5)",
+        "description": "4º Ciclo Completo (4 filmes distintos de cada homenagem = 20 filmes): quase no topo sagrado, celebrando cada memória com filmes novos."
+      },
+      {
+        "id": "multi_rank_memorial_luto__mythic",
+        "tier": "mythic",
+        "target_value": 5,
+        "title": "5º Ciclo de Memória Eterna (25 filmes • 5/5)",
+        "description": "5º Ciclo Completo (5 filmes distintos de cada homenagem = 25 filmes): Teto Mítico concluído! A partir daqui, cada novo ciclo completo rende +1 ★ infinita."
+      }
+    ],
+    "legacy_ids": [],
+    "sort_order": 400
+  },
+  {
+    "id": "dna_rank_young_hearts",
+    "kind": "rank",
+    "category": "dna_cinefilo",
+    "categories": [
+      "dna_cinefilo"
+    ],
+    "tier": "mythic",
+    "title": "Young Hearts",
+    "description": "Conquistar filmes com as tags Colegio/Escola e Personagem LGBT ao mesmo tempo (teto 20 para o Mítico).",
+    "icon": "💗",
+    "target_type": "tag_double_and",
+    "target_value": 20,
+    "target_metadata": {
+      "tags": [
+        "Colegio/Escola",
+        "Personagem LGBT"
+      ],
+      "tagMode": "double_and"
+    },
+    "ranks": [
+      {
+        "id": "dna_rank_young_hearts__bronze",
+        "tier": "bronze",
+        "target_value": 2,
+        "title": "Primeiras Descobertas no Pátio (2 filmes)",
+        "description": "Conquistar filmes com as tags Colegio/Escola e Personagem LGBT ao mesmo tempo. (Rank Bronze: meta 2)."
+      },
+      {
+        "id": "dna_rank_young_hearts__silver",
+        "tier": "silver",
+        "target_value": 5,
+        "title": "Bilhete Dobrado no Armário (5 filmes)",
+        "description": "Conquistar filmes com as tags Colegio/Escola e Personagem LGBT ao mesmo tempo. (Rank Prata: meta 5)."
+      },
+      {
+        "id": "dna_rank_young_hearts__epic",
+        "tier": "epic",
+        "target_value": 10,
+        "title": "Pedalando Sem Medo Depois da Aula (10 filmes)",
+        "description": "Conquistar filmes com as tags Colegio/Escola e Personagem LGBT ao mesmo tempo. (Rank Épico: meta 10)."
+      },
+      {
+        "id": "dna_rank_young_hearts__gold",
+        "tier": "gold",
+        "target_value": 15,
+        "title": "Formatura das Histórias Reais (15 filmes)",
+        "description": "Conquistar filmes com as tags Colegio/Escola e Personagem LGBT ao mesmo tempo. (Rank Ouro: meta 15)."
+      },
+      {
+        "id": "dna_rank_young_hearts__mythic",
+        "tier": "mythic",
+        "target_value": 20,
+        "title": "Young Hearts Eternos (20 filmes)",
+        "description": "Conquistar filmes com as tags Colegio/Escola e Personagem LGBT ao mesmo tempo. (Rank Mítico: meta 20)."
+      }
+    ],
+    "legacy_ids": [],
+    "sort_order": 401
+  },
+  {
+    "id": "vm_cold_war_5_extinct",
+    "kind": "unique",
+    "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
+    "tier": "mythic",
+    "title": "Fantasmas da Cortina de Ferro: As 5 Nações Extintas",
+    "description": "Conquistar no Desafio 195 (país de origem único) todas as 5 nações extintas da Guerra Fria: União Soviética, Alemanha Ocidental, Alemanha Oriental, Tchecoslováquia e Iugoslávia (5 territórios).",
+    "icon": "🕰️",
+    "target_type": "historical_territories_list",
+    "target_value": 5,
+    "target_metadata": {
+      "territoryCodes": [
+        "hist_su",
+        "hist_de_w",
+        "hist_dd",
+        "hist_cs",
+        "hist_yu"
+      ],
+      "minCount": 5
+    },
+    "legacy_ids": [],
+    "sort_order": 402
+  },
+  {
+    "id": "vm_all_23_non_un_territories",
+    "kind": "unique",
+    "category": "volta_ao_mundo",
+    "categories": [
+      "volta_ao_mundo"
+    ],
+    "tier": "mythic",
+    "title": "Sem Cadeira na ONU, Mas Soberanos na Minha Tela",
+    "description": "Conquistar no Desafio 195 (país de origem único) todos os 23 territórios autônomos e especiais fora da ONU: Hong Kong, Taiwan, Macau, Groenlândia, Porto Rico, Kosovo, Ilhas Faroé, Tibete, Curdistão, Polinésia Francesa, Nova Caledônia, Martinica, Guadalupe, Ilha da Reunião, Curaçao, Aruba, Ilha de Man, Saara Ocidental, Bermudas, Gibraltar, Ilhas Cook, Guam e Antártida (23 territórios).",
+    "icon": "🛂",
+    "target_type": "historical_territories_list",
+    "target_value": 23,
+    "target_metadata": {
+      "territoryCodes": [
+        "spec_hk",
+        "spec_tw",
+        "spec_mo",
+        "spec_gl",
+        "spec_pr",
+        "spec_xk",
+        "spec_fo",
+        "spec_tb",
+        "spec_ku",
+        "spec_pf",
+        "spec_nc",
+        "spec_mq",
+        "spec_gp",
+        "spec_re",
+        "spec_cw",
+        "spec_aw",
+        "spec_im",
+        "spec_eh",
+        "spec_bm",
+        "spec_gi",
+        "spec_ck",
+        "spec_gu",
+        "spec_aq"
+      ],
+      "minCount": 23
+    },
+    "legacy_ids": [],
+    "sort_order": 403
   }
 ];
 export const CLIENT_TROPHY_DEFINITIONS = TROPHY_DEFINITIONS;

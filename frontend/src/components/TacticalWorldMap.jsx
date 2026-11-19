@@ -106,31 +106,149 @@ const MICROSTATE_CODES = new Set([
 
 const TIMELINE_WARP_THEMES = {
   modern: {
-    ring: 'border-amber-400/70 shadow-[inset_0_0_90px_rgba(245,158,11,0.35)]',
-    bg: 'from-amber-500/20 via-violet-900/20 to-cyan-500/20',
-    badge: '⌛ FENDA TEMPORAL • ERA ATUAL'
+    ring: 'border-amber-400/75 shadow-[inset_0_0_95px_rgba(245,158,11,0.38)]',
+    bg: 'from-amber-500/20 via-violet-950/35 to-cyan-500/20',
+    badge: '⌛ ZA WARUDO! • ERA ATUAL',
+    sublabel: 'Ponteiros em reverso • Retornando ao Atlas Moderno',
+    durationMs: 2500,
+    styleKind: 'za_warudo',
   },
   ww2: {
-    ring: 'border-rose-500/80 shadow-[inset_0_0_110px_rgba(244,63,94,0.45)]',
-    bg: 'from-amber-500/25 via-rose-900/35 to-black/40',
-    badge: '⚔️ ZA WARUDO! • 2ª GUERRA (1939–1945)'
+    ring: 'border-rose-500/85 shadow-[inset_0_0_115px_rgba(244,63,94,0.45)]',
+    bg: 'from-amber-500/25 via-rose-950/40 to-black/50',
+    badge: '⚔️ ZA WARUDO! • 2ª GUERRA (1939–1945)',
+    sublabel: 'Relógios girando para trás • Fronteiras da Grande Guerra',
+    durationMs: 2500,
+    styleKind: 'za_warudo',
   },
   cold_war: {
-    ring: 'border-cyan-400/80 shadow-[inset_0_0_110px_rgba(34,211,238,0.4)]',
-    bg: 'from-cyan-500/25 via-red-900/25 to-slate-950/40',
-    badge: '❄️ OCARINA DO TEMPO • GUERRA FRIA (1949–1991)'
+    ring: 'border-cyan-400/75 shadow-[inset_0_0_110px_rgba(34,211,238,0.32)]',
+    bg: 'from-cyan-500/18 via-emerald-950/28 to-slate-950/45',
+    badge: '❄️ OCARINA DO TEMPO • GUERRA FRIA (1949–1991)',
+    sublabel: '♫ Melodia dos Ventos • Folhas e notas no compasso da história',
+    durationMs: 3600,
+    styleKind: 'ocarina',
   },
   pioneers: {
     ring: 'border-yellow-500/75 shadow-[inset_0_0_100px_rgba(234,179,8,0.35)]',
-    bg: 'from-amber-900/35 via-stone-800/35 to-black/40',
-    badge: '🕯️ ROLO CLÁSSICO • ERA PIONEIRA (1895–1949)'
+    bg: 'from-amber-900/35 via-stone-900/40 to-black/50',
+    badge: '🕯️ ROLO CLÁSSICO 35MM • ERA PIONEIRA (1895–1949)',
+    sublabel: 'Projetor aceso • Voltando aos primórdios da Sétima Arte',
+    durationMs: 2700,
+    styleKind: 'pioneers',
   },
   relic_radar: {
-    ring: 'border-teal-400/85 shadow-[inset_0_0_120px_rgba(45,212,191,0.45)]',
-    bg: 'from-teal-500/25 via-indigo-900/35 to-rose-500/20',
-    badge: '🌌 MULTIVERSO • RADAR RELÍQUIAS & MÍTICOS'
+    ring: 'border-teal-400/85 shadow-[inset_0_0_120px_rgba(45,212,191,0.4)]',
+    bg: 'from-teal-500/22 via-indigo-950/38 to-rose-500/20',
+    badge: '🌌 MULTIVERSO • RADAR RELÍQUIAS & MÍTICOS',
+    sublabel: 'Varredura temporal ativa • Rastreando 30 Relíquias + 18 Míticos',
+    durationMs: 2600,
+    styleKind: 'radar',
   }
 };
+
+const ZA_WARUDO_CLOCKS = [
+  { id: 'c_center', left: '50%', top: '50%', size: 230, delay: '0s', dur: '1.8s', opacity: 0.28, center: true },
+  { id: 'c_tl', left: '16%', top: '24%', size: 88, delay: '0.08s', dur: '1.35s', opacity: 0.72 },
+  { id: 'c_tr', left: '84%', top: '22%', size: 96, delay: '0.14s', dur: '1.5s', opacity: 0.68 },
+  { id: 'c_ml', left: '11%', top: '66%', size: 68, delay: '0.2s', dur: '1.2s', opacity: 0.58 },
+  { id: 'c_mr', left: '88%', top: '68%', size: 74, delay: '0.16s', dur: '1.3s', opacity: 0.62 },
+  { id: 'c_bc', left: '34%', top: '80%', size: 62, delay: '0.12s', dur: '1.15s', opacity: 0.55 },
+  { id: 'c_br', left: '68%', top: '79%', size: 66, delay: '0.22s', dur: '1.25s', opacity: 0.56 },
+];
+
+const OCARINA_LEAVES = [
+  { id: 'lf1', startLeft: '6%', startTop: '72%', dur: '3.2s', delay: '0s', size: 22, color: '#34d399' },
+  { id: 'lf2', startLeft: '14%', startTop: '45%', dur: '3.4s', delay: '0.2s', size: 18, color: '#67e8f9' },
+  { id: 'lf3', startLeft: '24%', startTop: '82%', dur: '3.1s', delay: '0.35s', size: 24, color: '#5eead4' },
+  { id: 'lf4', startLeft: '36%', startTop: '60%', dur: '3.5s', delay: '0.1s', size: 16, color: '#a7f3d0' },
+  { id: 'lf5', startLeft: '48%', startTop: '84%', dur: '3.3s', delay: '0.45s', size: 20, color: '#6ee7b7' },
+  { id: 'lf6', startLeft: '58%', startTop: '34%', dur: '3.1s', delay: '0.15s', size: 19, color: '#38bdf8' },
+  { id: 'lf7', startLeft: '68%', startTop: '78%', dur: '3.4s', delay: '0.3s', size: 23, color: '#34d399' },
+  { id: 'lf8', startLeft: '78%', startTop: '54%', dur: '3.0s', delay: '0.5s', size: 17, color: '#67e8f9' },
+  { id: 'lf9', startLeft: '8%', startTop: '28%', dur: '3.5s', delay: '0.4s', size: 15, color: '#a7f3d0' },
+  { id: 'lf10', startLeft: '44%', startTop: '24%', dur: '3.2s', delay: '0.25s', size: 20, color: '#2dd4bf' },
+];
+
+const OCARINA_NOTES = [
+  { id: 'n1', glyph: '♪', left: '15%', top: '72%', dur: '3.0s', delay: '0.05s', size: 22, color: 'text-cyan-300' },
+  { id: 'n2', glyph: '♫', left: '28%', top: '65%', dur: '3.3s', delay: '0.3s', size: 26, color: 'text-emerald-300' },
+  { id: 'n3', glyph: '♬', left: '42%', top: '76%', dur: '3.1s', delay: '0.18s', size: 24, color: 'text-sky-300' },
+  { id: 'n4', glyph: '♪', left: '57%', top: '74%', dur: '3.4s', delay: '0.42s', size: 21, color: 'text-teal-200' },
+  { id: 'n5', glyph: '♫', left: '72%', top: '68%', dur: '3.2s', delay: '0.22s', size: 27, color: 'text-cyan-200' },
+  { id: 'n6', glyph: '♬', left: '84%', top: '72%', dur: '3.0s', delay: '0.48s', size: 22, color: 'text-emerald-200' },
+  { id: 'n7', glyph: '♪', left: '34%', top: '38%', dur: '2.9s', delay: '0.65s', size: 19, color: 'text-sky-200' },
+  { id: 'n8', glyph: '♫', left: '64%', top: '34%', dur: '3.1s', delay: '0.55s', size: 20, color: 'text-emerald-300' },
+];
+
+function RetroClockDial({ clock, accentColor = '#fbbf24' }) {
+  const { size, opacity, center } = clock;
+  const ticks = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
+  return (
+    <div
+      className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
+      style={{
+        left: clock.left,
+        top: clock.top,
+        width: size,
+        height: size,
+        opacity,
+        animation: `${center ? 'warpClockPop' : 'warpClockFloat'} ${clock.dur} ease-out ${clock.delay} both`,
+      }}
+    >
+      <svg viewBox="0 0 120 120" className="w-full h-full drop-shadow-[0_0_16px_rgba(251,191,36,0.45)]">
+        {/* Aro externo girando para trás */}
+        <g style={{ transformOrigin: '60px 60px', animation: `warpGearRev ${clock.dur} cubic-bezier(0.22,0.85,0.36,1) ${clock.delay} infinite` }}>
+          <circle cx="60" cy="60" r="54" fill="rgba(9,9,11,0.48)" stroke={accentColor} strokeWidth="2.5" strokeDasharray="8 5" />
+          <circle cx="60" cy="60" r="46" fill="none" stroke={accentColor} strokeOpacity="0.45" strokeWidth="1.2" />
+          {ticks.map((deg) => (
+            <line
+              key={deg}
+              x1="60"
+              y1="14"
+              x2="60"
+              y2="20"
+              stroke={accentColor}
+              strokeWidth={deg % 90 === 0 ? '2.6' : '1.4'}
+              strokeLinecap="round"
+              transform={`rotate(${deg} 60 60)`}
+            />
+          ))}
+        </g>
+
+        {/* Ponteiro das horas girando para trás */}
+        <line
+          x1="60"
+          y1="60"
+          x2="60"
+          y2="34"
+          stroke="#fda4af"
+          strokeWidth="3.6"
+          strokeLinecap="round"
+          style={{
+            transformOrigin: '60px 60px',
+            animation: `warpClockHandSlowRev ${clock.dur} cubic-bezier(0.2,0.9,0.3,1) ${clock.delay} infinite`,
+          }}
+        />
+        {/* Ponteiro dos minutos girando rápido para trás */}
+        <line
+          x1="60"
+          y1="62"
+          x2="60"
+          y2="20"
+          stroke="#fef08a"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          style={{
+            transformOrigin: '60px 60px',
+            animation: `warpClockHandFastRev ${clock.dur} cubic-bezier(0.18,0.88,0.28,1) ${clock.delay} infinite`,
+          }}
+        />
+        <circle cx="60" cy="60" r="4.5" fill={accentColor} />
+      </svg>
+    </div>
+  );
+}
 
 export default function TacticalWorldMap({
   countries = [],
@@ -159,11 +277,12 @@ export default function TacticalWorldMap({
     startCy: 305
   });
 
-  // Dispara pulso visual da Fenda Temporal quando troca a linha do tempo
+  // Dispara pulso visual da Fenda Temporal quando troca a linha do tempo (sincronizado com a música!)
   useEffect(() => {
     if (!timelineWarpKey) return undefined;
     setIsWarping(true);
-    const t = setTimeout(() => setIsWarping(false), 1050);
+    const themeDur = TIMELINE_WARP_THEMES[mapTimelineMode]?.durationMs || 2400;
+    const t = setTimeout(() => setIsWarping(false), themeDur);
     return () => clearTimeout(t);
   }, [timelineWarpKey, mapTimelineMode]);
 
@@ -756,13 +875,212 @@ export default function TacticalWorldMap({
         </button>
       </div>
 
-      {/* Overlay de Pulso da Fenda Temporal (sincronizado com a música da linha do tempo!) */}
+      {/* Overlay Animado Temático por Era (Za Warudo / Ocarina do Tempo / 35mm / Radar) */}
       {isWarping && (
         <div
-          className={`pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-gradient-to-br ${warpTheme.bg} border-4 ${warpTheme.ring} backdrop-blur-[1.5px] animate-pulse`}
+          key={`warp-${mapTimelineMode}-${timelineWarpKey}`}
+          className={`pointer-events-none absolute inset-0 z-30 flex items-center justify-center overflow-hidden bg-gradient-to-br ${warpTheme.bg} border-4 ${warpTheme.ring} backdrop-blur-[1.5px]`}
+          style={{ animation: `warpFadeEnvelope ${(warpTheme.durationMs || 2500) / 1000}s ease-in-out forwards` }}
         >
-          <div className="px-5 py-2.5 rounded-2xl bg-zinc-950/90 border border-white/25 shadow-[0_0_50px_rgba(0,0,0,0.95)] text-xs sm:text-sm font-black uppercase tracking-[0.22em] text-white">
-            {warpTheme.badge}
+          <style>{`
+            @keyframes warpFadeEnvelope {
+              0% { opacity: 0; }
+              12% { opacity: 1; }
+              80% { opacity: 1; }
+              100% { opacity: 0; }
+            }
+            @keyframes warpShockRing {
+              0% { transform: translate(-50%, -50%) scale(0.18); opacity: 0.95; }
+              65% { opacity: 0.55; }
+              100% { transform: translate(-50%, -50%) scale(2.6); opacity: 0; }
+            }
+            @keyframes warpClockHandFastRev {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(-1080deg); }
+            }
+            @keyframes warpClockHandSlowRev {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(-360deg); }
+            }
+            @keyframes warpGearRev {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(-180deg); }
+            }
+            @keyframes warpClockPop {
+              0% { transform: translate(-50%, -50%) scale(0.45); opacity: 0; }
+              20% { transform: translate(-50%, -50%) scale(1.06); opacity: 0.35; }
+              100% { transform: translate(-50%, -50%) scale(0.96); opacity: 0.16; }
+            }
+            @keyframes warpClockFloat {
+              0% { transform: translate(-50%, -50%) scale(0.5) rotate(12deg); opacity: 0; }
+              20% { transform: translate(-50%, -50%) scale(1.04) rotate(-4deg); opacity: 0.85; }
+              85% { transform: translate(-50%, -50%) scale(1) rotate(-14deg); opacity: 0.7; }
+              100% { transform: translate(-50%, -50%) scale(0.85) rotate(-24deg); opacity: 0; }
+            }
+            @keyframes warpOcarinaLeaf {
+              0% { transform: translate3d(-40px, 24px, 0) rotate(-35deg) scale(0.75); opacity: 0; }
+              18% { opacity: 0.9; }
+              55% { transform: translate3d(130px, -22px, 0) rotate(18deg) scale(1.05); opacity: 0.85; }
+              100% { transform: translate3d(290px, -64px, 0) rotate(72deg) scale(0.8); opacity: 0; }
+            }
+            @keyframes warpOcarinaNoteFloat {
+              0% { transform: translate3d(0, 26px, 0) scale(0.7); opacity: 0; }
+              22% { transform: translate3d(18px, -10px, 0) scale(1.08); opacity: 0.95; }
+              65% { transform: translate3d(-16px, -64px, 0) scale(1.0); opacity: 0.85; }
+              100% { transform: translate3d(14px, -118px, 0) scale(0.82); opacity: 0; }
+            }
+            @keyframes warpOcarinaHaloSpin {
+              0% { transform: translate(-50%, -50%) rotate(0deg) scale(0.86); opacity: 0.25; }
+              50% { transform: translate(-50%, -50%) rotate(180deg) scale(1.05); opacity: 0.55; }
+              100% { transform: translate(-50%, -50%) rotate(360deg) scale(0.95); opacity: 0.2; }
+            }
+            @keyframes warpPioneerSpin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+            @keyframes warpRadarSweep {
+              0% { transform: translate(-50%, -50%) rotate(0deg); }
+              100% { transform: translate(-50%, -50%) rotate(360deg); }
+            }
+          `}</style>
+
+          {/* 1. ZA WARUDO: Múltiplos Relógios Girando Para Trás + Onda de Choque Temporal */}
+          {warpTheme.styleKind === 'za_warudo' && (
+            <>
+              <div
+                className={`absolute left-1/2 top-1/2 w-56 h-56 rounded-full border-4 ${
+                  mapTimelineMode === 'ww2' ? 'border-rose-400/80' : 'border-amber-300/80'
+                }`}
+                style={{ animation: 'warpShockRing 1.35s cubic-bezier(0.16,1,0.3,1) forwards' }}
+              />
+              <div
+                className="absolute left-1/2 top-1/2 w-56 h-56 rounded-full border-2 border-violet-400/70"
+                style={{ animation: 'warpShockRing 1.75s cubic-bezier(0.16,1,0.3,1) 0.14s forwards' }}
+              />
+              {ZA_WARUDO_CLOCKS.map((clk) => (
+                <RetroClockDial
+                  key={clk.id}
+                  clock={clk}
+                  accentColor={mapTimelineMode === 'ww2' ? '#fb7185' : '#fbbf24'}
+                />
+              ))}
+            </>
+          )}
+
+          {/* 2. OCARINA DO TEMPO: Ventos Suaves, Folhas Mágicas e Notas Musicais */}
+          {warpTheme.styleKind === 'ocarina' && (
+            <>
+              {/* Halo etéreo suave ao centro */}
+              <div
+                className="pointer-events-none absolute left-1/2 top-1/2 w-72 h-72 rounded-full border border-cyan-300/35 bg-radial from-emerald-400/15 via-cyan-400/5 to-transparent"
+                style={{ animation: 'warpOcarinaHaloSpin 3.5s ease-in-out infinite' }}
+              >
+                <svg viewBox="0 0 100 100" className="w-full h-full opacity-40">
+                  <polygon points="50,14 68,46 32,46" fill="none" stroke="#34d399" strokeWidth="1.2" />
+                  <polygon points="32,46 50,78 14,78" fill="none" stroke="#67e8f9" strokeWidth="1.2" />
+                  <polygon points="68,46 86,78 50,78" fill="none" stroke="#67e8f9" strokeWidth="1.2" />
+                </svg>
+              </div>
+
+              {/* Folhas sopradas pela brisa */}
+              {OCARINA_LEAVES.map((lf) => (
+                <svg
+                  key={lf.id}
+                  viewBox="0 0 32 32"
+                  className="pointer-events-none absolute drop-shadow-[0_0_10px_rgba(52,211,153,0.6)]"
+                  style={{
+                    left: lf.startLeft,
+                    top: lf.startTop,
+                    width: lf.size,
+                    height: lf.size,
+                    animation: `warpOcarinaLeaf ${lf.dur} ease-in-out ${lf.delay} both`,
+                  }}
+                >
+                  <path
+                    d="M5 24C6 12 15 5 27 5C27 17 20 26 8 27C6.8 27 5.8 25.8 5 24Z"
+                    fill={lf.color}
+                    fillOpacity="0.82"
+                  />
+                  <path d="M6 25C13 18 19 12 26 6" stroke="#ecfeff" strokeWidth="1.3" strokeLinecap="round" fill="none" />
+                </svg>
+              ))}
+
+              {/* Notas musicais subindo em ondas suaves */}
+              {OCARINA_NOTES.map((nt) => (
+                <span
+                  key={nt.id}
+                  className={`pointer-events-none absolute font-serif font-black select-none drop-shadow-[0_0_12px_rgba(34,211,238,0.85)] ${nt.color}`}
+                  style={{
+                    left: nt.left,
+                    top: nt.top,
+                    fontSize: nt.size,
+                    animation: `warpOcarinaNoteFloat ${nt.dur} ease-in-out ${nt.delay} both`,
+                  }}
+                >
+                  {nt.glyph}
+                </span>
+              ))}
+            </>
+          )}
+
+          {/* 3. ERA DOS PIONEIROS: Rolos de Cinema 35mm Girando + Frame Clássico */}
+          {warpTheme.styleKind === 'pioneers' && (
+            <>
+              <div className="pointer-events-none absolute inset-4 border-2 border-dashed border-amber-400/35 rounded-xl" />
+              {['left-10 top-12', 'right-10 bottom-12'].map((pos, i) => (
+                <svg
+                  key={pos}
+                  viewBox="0 0 100 100"
+                  className={`pointer-events-none absolute ${pos} w-20 h-20 opacity-45 text-amber-300`}
+                  style={{ animation: `warpPioneerSpin ${2.2 + i * 0.4}s linear infinite` }}
+                >
+                  <circle cx="50" cy="50" r="44" fill="rgba(24,24,27,0.65)" stroke="currentColor" strokeWidth="3" />
+                  <circle cx="50" cy="50" r="10" fill="currentColor" />
+                  {[0, 72, 144, 216, 288].map((a) => (
+                    <circle
+                      key={a}
+                      cx="50"
+                      cy="24"
+                      r="8"
+                      fill="#09090b"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      transform={`rotate(${a} 50 50)`}
+                    />
+                  ))}
+                </svg>
+              ))}
+            </>
+          )}
+
+          {/* 4. RADAR RELÍQUIAS & MÍTICOS: Varredura Sonar 360° */}
+          {warpTheme.styleKind === 'radar' && (
+            <>
+              <div
+                className="pointer-events-none absolute left-1/2 top-1/2 w-[520px] h-[520px] rounded-full opacity-45"
+                style={{
+                  background:
+                    'conic-gradient(from 0deg, rgba(45,212,191,0.5) 0deg, rgba(45,212,191,0.08) 55deg, transparent 90deg, transparent 360deg)',
+                  animation: 'warpRadarSweep 1.8s linear infinite',
+                }}
+              />
+              <div
+                className="pointer-events-none absolute left-1/2 top-1/2 w-52 h-52 rounded-full border-2 border-teal-300/70"
+                style={{ animation: 'warpShockRing 1.6s ease-out infinite' }}
+              />
+            </>
+          )}
+
+          {/* Badge Central da Linha do Tempo */}
+          <div className="relative z-10 px-6 py-3 rounded-2xl bg-zinc-950/90 border border-white/25 shadow-[0_0_50px_rgba(0,0,0,0.95)] text-center flex flex-col items-center gap-1 max-w-[90%]">
+            <div className="text-xs sm:text-sm font-black uppercase tracking-[0.2em] text-white">
+              {warpTheme.badge}
+            </div>
+            {warpTheme.sublabel && (
+              <div className="text-[10px] sm:text-[11px] font-mono text-zinc-300/90 tracking-wide">
+                {warpTheme.sublabel}
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -206,6 +206,10 @@ export async function ensureWalkOfFameTables(): Promise<void> {
     `).catch(() => {});
   }
 
+  // Limpa figurinhas solo removidas do catálogo oficial (cobertas pelo casal Trollagem de Ouro)
+  await query(`DELETE FROM walk_of_fame_packs WHERE star_id IN ('cf_ryan_reynolds', 'cf_blake_lively')`).catch(() => {});
+  await query(`DELETE FROM walk_of_fame_album_state WHERE star_id IN ('cf_ryan_reynolds', 'cf_blake_lively')`).catch(() => {});
+
   walkTablesEnsured = true;
 }
 

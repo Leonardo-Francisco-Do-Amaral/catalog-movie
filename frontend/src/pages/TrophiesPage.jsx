@@ -5,22 +5,23 @@ import {
   Search,
   Lock,
   CheckCircle2,
-  SlidersHorizontal,
   Volume2,
   VolumeX,
   Settings,
   RefreshCw,
   ChevronRight,
-  Shield,
-  Layers,
-  Flame,
-  Award
 } from 'lucide-react';
 import { isAudioMuted, toggleAudioMute } from '../utils/trophyAudio';
 import { triggerPS5TrophyToast, TIER_THEMES } from '../components/PS5TrophyToastContainer';
 import TrophyChecklistModal from '../components/TrophyChecklistModal';
 import TrophyTestPanelModal from '../components/TrophyTestPanelModal';
-import { TrophyCardBadges, CATEGORY_BADGE_CONFIG, getCleanTrophyTitle } from '../components/TrophyBadges';
+import {
+  TrophyCardBadges,
+  CATEGORY_BADGE_CONFIG,
+  getCleanTrophyTitle,
+  INFINITE_STAR_VISUAL,
+  InfiniteStarsRow,
+} from '../components/TrophyBadges';
 import { dispatchXpStatusUpdate, TROPHY_XP_BY_TIER } from '../utils/xpSystem';
 import { API_BASE_URL } from '../utils/apiConfig';
 const STORAGE_KEY_DISPLAY_COUNT = 'cinecatalog_trophies_per_row';
@@ -76,6 +77,53 @@ function formatShortDate(iso) {
   }
 }
 
+function resolveProgressForTier(t, selectedTier) {
+  if (t?.kind === 'rank' && selectedTier === 'infinite') {
+    const extraStars = Math.max(0, Number(t.extra_stars) || 0);
+    return {
+      isTargetUnlocked: extraStars > 0,
+      unlockedAt: t?.unlocked_at || null,
+      cur: Number(t?.star_progress_current) || 0,
+      tgt: Number(t?.star_progress_target) || Number(t?.star_step) || 1,
+      pct: Number(t?.star_progress_percentage) || 0,
+      targetTier: 'mythic',
+      isSpecificRankStep: false,
+      extraStars,
+    };
+  }
+
+  if (t?.kind === 'rank' && Array.isArray(t.ranks) && selectedTier !== 'all') {
+    const step = t.ranks.find((r) => String(r.tier || '').toLowerCase() === selectedTier);
+    if (step) {
+      return {
+        isTargetUnlocked: Boolean(step.is_unlocked),
+        unlockedAt: step.unlocked_at || null,
+        cur: Number(step.progress_current) || 0,
+        tgt: Number(step.progress_target) || step.target_value || 1,
+        pct: Number(step.progress_percentage) || 0,
+        targetTier: String(step.tier || selectedTier).toLowerCase(),
+        isSpecificRankStep: true,
+      };
+    }
+  }
+
+  let unlockedAt = t?.unlocked_at || null;
+  if (t?.kind === 'rank' && Array.isArray(t.ranks)) {
+    const latest = [...t.ranks].reverse().find((r) => r.is_unlocked && r.unlocked_at);
+    if (latest?.unlocked_at) unlockedAt = latest.unlocked_at;
+  }
+
+  return {
+    isTargetUnlocked: Boolean(t?.is_unlocked),
+    unlockedAt,
+    cur: Number(t?.progress_current) || 0,
+    tgt: Number(t?.progress_target) || 1,
+    pct: Number(t?.progress_percentage) || 0,
+    targetTier: String(t?.highest_unlocked_tier || t?.tier || 'bronze').toLowerCase(),
+    isSpecificRankStep: false,
+  };
+}
+
 function RankPipsBar({ trophy, compact = false }) {
   if (trophy?.kind !== 'rank' || !Array.isArray(trophy.ranks) || trophy.ranks.length === 0) return null;
   return (
@@ -122,13 +170,14 @@ const VISIBLE_BATCH_SIZE = 48;
 export default function TrophiesPage({ movies = [] }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [localOverrides, setLocalOverrides] = useState({});
+  const [_error, setError] = useState(null);
+  const [localOverrides] = useState({});
   const [visibleLimit, setVisibleLimit] = useState(VISIBLE_BATCH_SIZE);
 
   // Filtros de Categoria, Tier, Status e Busca
   const [selectedCategory, setSelectedCategory] = useState('all'); // 'all', 'volta_ao_mundo', 'dna_cinefilo', 'anatomia_cinema', 'data_limite', 'mafia_hollywood', etc.
   const [onlyMultiCategory, setOnlyMultiCategory] = useState(false);
+  const [selectedKind, setSelectedKind] = useState('all'); // 'all', 'rank', 'unique'
   const [selectedTier, setSelectedTier] = useState('all'); // 'all', 'bronze', 'silver', 'epic', 'gold', 'mythic', 'platinum'
   const [selectedStatus, setSelectedStatus] = useState('all'); // 'all', 'unlocked', 'in_progress', 'locked'
   const [searchQuery, setSearchQuery] = useState('');
@@ -227,7 +276,7 @@ export default function TrophiesPage({ movies = [] }) {
   // Reseta paginação incremental quando os filtros mudam
   useEffect(() => {
     setVisibleLimit(VISIBLE_BATCH_SIZE);
-  }, [selectedCategory, onlyMultiCategory, selectedTier, selectedStatus, searchQuery, sortBy]);
+  }, [selectedCategory, onlyMultiCategory, selectedKind, selectedTier, selectedStatus, searchQuery, sortBy]);
 
   // Contagens por categoria em uma única passagem
   const categoryCounts = useMemo(() => {
@@ -267,23 +316,64 @@ export default function TrophiesPage({ movies = [] }) {
     return list;
   }, [allTrophies, selectedCategory, onlyMultiCategory]);
 
-  // Estatísticas por Tier e Geral em 1 passagem (expande Troféus de Rank em seus 5 patamares/conquistas)
-  const { activeTierStats, activeOverallStats } = useMemo(() => {
+  // Divisão de visualização entre Troféus de Rank e Troféus Únicos
+  // (Troféu Especial "O que é o luto..." aparece tanto em Rank quanto em Únicos)
+  const { kindCounts, scopedTrophies } = useMemo(() => {
+    const isSpecialHybrid = (t) => Boolean(t?.target_metadata?.isSpecialMemorial);
+    let rankCount = 0;
+    let uniqueCount = 0;
+    for (const t of categoryTrophies) {
+      if (t.kind === 'rank') rankCount += 1;
+      if (t.kind !== 'rank' || isSpecialHybrid(t)) uniqueCount += 1;
+    }
+    const list =
+      selectedKind === 'rank'
+        ? categoryTrophies.filter((t) => t.kind === 'rank')
+        : selectedKind === 'unique'
+          ? categoryTrophies.filter((t) => t.kind !== 'rank' || isSpecialHybrid(t))
+          : categoryTrophies;
+    return {
+      kindCounts: { all: categoryTrophies.length, rank: rankCount, unique: uniqueCount },
+      scopedTrophies: list,
+    };
+  }, [categoryTrophies, selectedKind]);
+
+  // Estatísticas por Tier (com quebra Rank vs Único) e Infinitos em 1 passagem
+  const { activeTierStats, activeOverallStats, infiniteStats } = useMemo(() => {
     const stats = {};
     TIER_ORDER.forEach((tierKey) => {
-      stats[tierKey] = { total: 0, unlocked: 0, percentage: 0 };
+      stats[tierKey] = {
+        total: 0,
+        unlocked: 0,
+        percentage: 0,
+        rankTotal: 0,
+        rankUnlocked: 0,
+        uniqueTotal: 0,
+        uniqueUnlocked: 0,
+      };
     });
 
     let totalConquests = 0;
     let unlockedConquests = 0;
+    let infCards = 0;
+    let infStarsTotal = 0;
 
-    for (const t of categoryTrophies) {
+    for (const t of scopedTrophies) {
       if (t.kind === 'rank' && Array.isArray(t.ranks) && t.ranks.length > 0) {
+        const stars = Math.max(0, Number(t.extra_stars) || 0);
+        if (stars > 0) {
+          infCards += 1;
+          infStarsTotal += stars;
+        }
         for (const r of t.ranks) {
           const rkTier = String(r.tier || 'bronze').toLowerCase();
           if (stats[rkTier]) {
             stats[rkTier].total += 1;
-            if (r.is_unlocked) stats[rkTier].unlocked += 1;
+            stats[rkTier].rankTotal += 1;
+            if (r.is_unlocked) {
+              stats[rkTier].unlocked += 1;
+              stats[rkTier].rankUnlocked += 1;
+            }
           }
           totalConquests += 1;
           if (r.is_unlocked) unlockedConquests += 1;
@@ -292,7 +382,11 @@ export default function TrophiesPage({ movies = [] }) {
         const tr = String(t.tier || 'bronze').toLowerCase();
         if (stats[tr]) {
           stats[tr].total += 1;
-          if (t.is_unlocked) stats[tr].unlocked += 1;
+          stats[tr].uniqueTotal += 1;
+          if (t.is_unlocked) {
+            stats[tr].unlocked += 1;
+            stats[tr].uniqueUnlocked += 1;
+          }
         }
         totalConquests += 1;
         if (t.is_unlocked) unlockedConquests += 1;
@@ -311,10 +405,14 @@ export default function TrophiesPage({ movies = [] }) {
         total: totalConquests,
         unlocked: unlockedConquests,
         percentage: overallPct,
-        cardsCount: categoryTrophies.length,
+        cardsCount: scopedTrophies.length,
+      },
+      infiniteStats: {
+        cardsCount: infCards,
+        starsTotal: infStarsTotal,
       },
     };
-  }, [categoryTrophies]);
+  }, [scopedTrophies]);
 
   const lastActivityMap = useMemo(() => {
     const map = new Map();
@@ -333,22 +431,32 @@ export default function TrophiesPage({ movies = [] }) {
   const filteredTrophies = useMemo(() => {
     const hasUnlockedDisplay = (t) => {
       if (t.kind === 'rank' && Array.isArray(t.ranks)) {
+        if (selectedTier === 'infinite') {
+          return (Number(t.extra_stars) || 0) > 0;
+        }
         if (selectedTier !== 'all') {
           return t.ranks.some((r) => r.tier === selectedTier && r.is_unlocked);
         }
         return (t.unlocked_ranks_count || 0) > 0;
       }
+      if (selectedTier === 'infinite') return false;
       return Boolean(t.is_unlocked);
     };
 
     const effectiveTier = (t) =>
       t.kind === 'rank'
-        ? String(t.highest_unlocked_tier || (selectedTier !== 'all' ? selectedTier : t.tier || 'bronze')).toLowerCase()
+        ? String(
+            selectedTier !== 'all' && selectedTier !== 'infinite'
+              ? selectedTier
+              : t.highest_unlocked_tier || t.tier || 'bronze'
+          ).toLowerCase()
         : String(t.tier || 'bronze').toLowerCase();
 
-    let list = [...categoryTrophies];
+    let list = [...scopedTrophies];
 
-    if (selectedTier !== 'all') {
+    if (selectedTier === 'infinite') {
+      list = list.filter((t) => t.kind === 'rank' && (Number(t.extra_stars) || 0) > 0);
+    } else if (selectedTier !== 'all') {
       list = list.filter((t) => {
         if (t.kind === 'rank' && Array.isArray(t.ranks)) {
           return t.ranks.some((r) => r.tier === selectedTier);
@@ -361,10 +469,13 @@ export default function TrophiesPage({ movies = [] }) {
       list = list.filter((t) => hasUnlockedDisplay(t));
     } else if (selectedStatus === 'in_progress') {
       list = list.filter((t) => {
+        if (selectedTier === 'infinite') {
+          return (Number(t.extra_stars) || 0) > 0 && (Number(t.star_progress_current) || 0) > 0;
+        }
         if (t.kind === 'rank' && Array.isArray(t.ranks)) {
           if (selectedTier !== 'all') {
             const step = t.ranks.find((r) => r.tier === selectedTier);
-            return step && !step.is_unlocked && step.progress_current > 0;
+            return step && !step.is_unlocked && (Number(step.progress_current) || 0) > 0;
           }
           return !t.is_unlocked && ((t.unlocked_ranks_count || 0) > 0 || t.progress_current > 0);
         }
@@ -372,10 +483,11 @@ export default function TrophiesPage({ movies = [] }) {
       });
     } else if (selectedStatus === 'locked') {
       list = list.filter((t) => {
+        if (selectedTier === 'infinite') return false;
         if (t.kind === 'rank' && Array.isArray(t.ranks)) {
           if (selectedTier !== 'all') {
             const step = t.ranks.find((r) => r.tier === selectedTier);
-            return step && !step.is_unlocked && (step.progress_current === 0 || (t.unlocked_ranks_count || 0) === 0);
+            return step && !step.is_unlocked && (Number(step.progress_current) || 0) === 0;
           }
           return !t.is_unlocked && t.progress_current === 0 && (t.unlocked_ranks_count || 0) === 0;
         }
@@ -449,38 +561,54 @@ export default function TrophiesPage({ movies = [] }) {
     }
 
     if (sortBy === 'progress') {
-      const getProgressBucket = (t) => {
-        if (!t.is_unlocked) {
-          const pct = Number(t.progress_percentage) || 0;
-          const cur = Number(t.progress_current) || 0;
-          return pct > 0 || cur > 0 || (t.unlocked_ranks_count || 0) > 0 ? 1 : 2;
+      if (selectedTier === 'infinite') {
+        list.sort((a, b) => {
+          const starsDiff = (Number(b.extra_stars) || 0) - (Number(a.extra_stars) || 0);
+          if (starsDiff !== 0) return starsDiff;
+          const pctDiff = (Number(b.star_progress_percentage) || 0) - (Number(a.star_progress_percentage) || 0);
+          if (pctDiff !== 0) return pctDiff;
+          const curDiff = (Number(b.star_progress_current) || 0) - (Number(a.star_progress_current) || 0);
+          if (curDiff !== 0) return curDiff;
+          return (a.sort_order || 0) - (b.sort_order || 0);
+        });
+        return list;
+      }
+
+      const getProgressMeta = (t) => {
+        const p = resolveProgressForTier(t, selectedTier);
+        let bucket = 3;
+        if (!p.isTargetUnlocked) {
+          const hasAnyProg = p.pct > 0 || p.cur > 0 || (selectedTier === 'all' && (t.unlocked_ranks_count || 0) > 0);
+          bucket = hasAnyProg ? 1 : 2;
         }
-        return 3;
+        return { bucket, ...p };
       };
 
       list.sort((a, b) => {
-        const bA = getProgressBucket(a);
-        const bB = getProgressBucket(b);
-        if (bA !== bB) return bA - bB;
+        const mA = getProgressMeta(a);
+        const mB = getProgressMeta(b);
+        if (mA.bucket !== mB.bucket) return mA.bucket - mB.bucket;
 
-        if (bA === 1) {
-          const pctDiff = (Number(b.progress_percentage) || 0) - (Number(a.progress_percentage) || 0);
+        if (mA.bucket === 1) {
+          const pctDiff = mB.pct - mA.pct;
           if (pctDiff !== 0) return pctDiff;
-          const curDiff = (Number(b.progress_current) || 0) - (Number(a.progress_current) || 0);
+          const curDiff = mB.cur - mA.cur;
           if (curDiff !== 0) return curDiff;
           const tierDiff = (TIER_WEIGHT[effectiveTier(b)] || 0) - (TIER_WEIGHT[effectiveTier(a)] || 0);
           if (tierDiff !== 0) return tierDiff;
           return (a.sort_order || 0) - (b.sort_order || 0);
         }
 
-        if (bA === 2) {
+        if (mA.bucket === 2) {
           const tierDiff = (TIER_WEIGHT[effectiveTier(b)] || 0) - (TIER_WEIGHT[effectiveTier(a)] || 0);
           if (tierDiff !== 0) return tierDiff;
           return (a.sort_order || 0) - (b.sort_order || 0);
         }
 
-        const tA = a.unlocked_at ? new Date(a.unlocked_at).getTime() : 0;
-        const tB = b.unlocked_at ? new Date(b.unlocked_at).getTime() : 0;
+        const starsDiff = (Number(b.extra_stars) || 0) - (Number(a.extra_stars) || 0);
+        if (starsDiff !== 0) return starsDiff;
+        const tA = mA.unlockedAt ? new Date(mA.unlockedAt).getTime() : 0;
+        const tB = mB.unlockedAt ? new Date(mB.unlockedAt).getTime() : 0;
         if (tB !== tA) return tB - tA;
         const tierDiff = (TIER_WEIGHT[effectiveTier(b)] || 0) - (TIER_WEIGHT[effectiveTier(a)] || 0);
         if (tierDiff !== 0) return tierDiff;
@@ -490,6 +618,17 @@ export default function TrophiesPage({ movies = [] }) {
     }
 
     if (sortBy === 'rarity') {
+      if (selectedTier === 'infinite') {
+        list.sort((a, b) => {
+          const starsDiff = (Number(b.extra_stars) || 0) - (Number(a.extra_stars) || 0);
+          if (starsDiff !== 0) return starsDiff;
+          const pctDiff = (Number(b.star_progress_percentage) || 0) - (Number(a.star_progress_percentage) || 0);
+          if (pctDiff !== 0) return pctDiff;
+          return (a.sort_order || 0) - (b.sort_order || 0);
+        });
+        return list;
+      }
+
       list.sort((a, b) => {
         const unlA = hasUnlockedDisplay(a) ? 1 : 2;
         const unlB = hasUnlockedDisplay(b) ? 1 : 2;
@@ -498,16 +637,19 @@ export default function TrophiesPage({ movies = [] }) {
         const tierDiff = (TIER_WEIGHT[effectiveTier(b)] || 0) - (TIER_WEIGHT[effectiveTier(a)] || 0);
         if (tierDiff !== 0) return tierDiff;
 
+        const pA = resolveProgressForTier(a, selectedTier);
+        const pB = resolveProgressForTier(b, selectedTier);
+
         if (unlA === 1) {
-          const tA = a.unlocked_at ? new Date(a.unlocked_at).getTime() : 0;
-          const tB = b.unlocked_at ? new Date(b.unlocked_at).getTime() : 0;
+          const tA = pA.unlockedAt ? new Date(pA.unlockedAt).getTime() : 0;
+          const tB = pB.unlockedAt ? new Date(pB.unlockedAt).getTime() : 0;
           if (tB !== tA) return tB - tA;
           return (a.sort_order || 0) - (b.sort_order || 0);
         }
 
-        const pctDiff = (Number(b.progress_percentage) || 0) - (Number(a.progress_percentage) || 0);
+        const pctDiff = pB.pct - pA.pct;
         if (pctDiff !== 0) return pctDiff;
-        const curDiff = (Number(b.progress_current) || 0) - (Number(a.progress_current) || 0);
+        const curDiff = pB.cur - pA.cur;
         if (curDiff !== 0) return curDiff;
         return (a.sort_order || 0) - (b.sort_order || 0);
       });
@@ -519,18 +661,21 @@ export default function TrophiesPage({ movies = [] }) {
       const unlB = hasUnlockedDisplay(b) ? 1 : 2;
       if (unlA !== unlB) return unlA - unlB;
 
+      const pA = resolveProgressForTier(a, selectedTier);
+      const pB = resolveProgressForTier(b, selectedTier);
+
       if (unlA === 1) {
-        const tA = a.unlocked_at ? new Date(a.unlocked_at).getTime() : 0;
-        const tB = b.unlocked_at ? new Date(b.unlocked_at).getTime() : 0;
+        const tA = pA.unlockedAt ? new Date(pA.unlockedAt).getTime() : 0;
+        const tB = pB.unlockedAt ? new Date(pB.unlockedAt).getTime() : 0;
         if (tB !== tA) return tB - tA;
         const tierDiff = (TIER_WEIGHT[effectiveTier(b)] || 0) - (TIER_WEIGHT[effectiveTier(a)] || 0);
         if (tierDiff !== 0) return tierDiff;
         return (a.sort_order || 0) - (b.sort_order || 0);
       }
 
-      const pctDiff = (Number(b.progress_percentage) || 0) - (Number(a.progress_percentage) || 0);
+      const pctDiff = pB.pct - pA.pct;
       if (pctDiff !== 0) return pctDiff;
-      const curDiff = (Number(b.progress_current) || 0) - (Number(a.progress_current) || 0);
+      const curDiff = pB.cur - pA.cur;
       if (curDiff !== 0) return curDiff;
       const tierDiff = (TIER_WEIGHT[effectiveTier(b)] || 0) - (TIER_WEIGHT[effectiveTier(a)] || 0);
       if (tierDiff !== 0) return tierDiff;
@@ -538,7 +683,7 @@ export default function TrophiesPage({ movies = [] }) {
     });
 
     return list;
-  }, [categoryTrophies, selectedTier, selectedStatus, searchQuery, sortBy, lastActivityMap]);
+  }, [scopedTrophies, selectedTier, selectedStatus, searchQuery, sortBy, lastActivityMap]);
 
   const visibleTrophies = useMemo(
     () => filteredTrophies.slice(0, visibleLimit),
@@ -656,7 +801,7 @@ export default function TrophiesPage({ movies = [] }) {
                 </span>
                 <span className="text-zinc-600">•</span>
                 <span className="text-zinc-300 font-mono font-semibold">
-                  {categoryTrophies.length} cards
+                  {scopedTrophies.length} cards
                 </span>
               </div>
             </div>
@@ -752,6 +897,16 @@ export default function TrophiesPage({ movies = [] }) {
                       }}
                     />
                   </div>
+
+                  {/* Divisão Rank vs Único por Raridade */}
+                  <div className="flex items-center justify-between gap-1 text-[9.5px] font-mono text-zinc-400 mt-2 pt-1.5 border-t border-zinc-800/75">
+                    <span title={`Troféus de Rank nesta raridade: ${st.rankUnlocked} de ${st.rankTotal}`}>
+                      📈 <strong className="text-zinc-200">{isNoPlat ? '—' : st.rankUnlocked}</strong>/{isNoPlat ? '0' : st.rankTotal}
+                    </span>
+                    <span title={`Troféus Únicos nesta raridade: ${st.uniqueUnlocked} de ${st.uniqueTotal}`}>
+                      ⭐ <strong className="text-zinc-200">{isNoPlat ? '—' : st.uniqueUnlocked}</strong>/{isNoPlat ? '0' : st.uniqueTotal}
+                    </span>
+                  </div>
                 </div>
               );
             })}
@@ -785,7 +940,7 @@ export default function TrophiesPage({ movies = [] }) {
                       : 'Progresso Geral (Todas as Categorias)'}
                   </span>
                   <span className="text-[11px] font-bold text-amber-400 font-mono">
-                    ({activeOverallStats.unlocked} / {activeOverallStats.total} Conquistas • {categoryTrophies.length} Cards)
+                    ({activeOverallStats.unlocked} / {activeOverallStats.total} Conquistas • {scopedTrophies.length} Cards)
                   </span>
                 </div>
                 <p className="text-[11px] text-zinc-400">
@@ -839,7 +994,25 @@ export default function TrophiesPage({ movies = [] }) {
                 : 'text-zinc-400 hover:text-zinc-200 bg-zinc-900/60 border border-zinc-800/80'
             }`}
           >
-            Todos ({categoryTrophies.length})
+            Todos ({scopedTrophies.length})
+          </button>
+
+          {/* Pill Especial: Troféus em Modo Infinito (com Estrelas ★) */}
+          <button
+            type="button"
+            onClick={() => setSelectedTier(selectedTier === 'infinite' ? 'all' : 'infinite')}
+            title={`${infiniteStats.cardsCount} troféus em progresso infinito • ${infiniteStats.starsTotal}★ acumuladas (+${infiniteStats.starsTotal * 55} XP)`}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer border ${
+              selectedTier === 'infinite'
+                ? `${INFINITE_STAR_VISUAL.badgeBg} font-black ring-1 ring-cyan-400/50`
+                : 'border-cyan-500/35 bg-cyan-950/25 text-cyan-200 hover:text-white hover:border-cyan-400/60'
+            }`}
+          >
+            <span>🌟</span>
+            <span>Infinito</span>
+            <span className="text-[10px] font-mono opacity-85">
+              ({infiniteStats.cardsCount} • {infiniteStats.starsTotal}★)
+            </span>
           </button>
 
           {['platinum', 'mythic', 'gold', 'epic', 'silver', 'bronze'].map((tr) => {
@@ -867,9 +1040,38 @@ export default function TrophiesPage({ movies = [] }) {
           })}
         </div>
 
-        {/* Linha 2: Ferramentas (Exibir por Linha, Filtro de Status e Busca Rápida) */}
+        {/* Linha 2: Ferramentas (Divisão Rank/Únicos, Exibir por Linha, Status, Ordenação e Busca Rápida) */}
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 pt-2 border-t border-zinc-800/60">
           <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Divisão da Sala: Troféus de Rank vs Troféus Únicos */}
+            <div className="flex items-center gap-1 bg-zinc-900/80 border border-zinc-800 rounded-xl p-1 shrink-0">
+              {[
+                { id: 'all', label: 'Todos', count: kindCounts.all },
+                { id: 'rank', label: '📈 Rank', count: kindCounts.rank },
+                { id: 'unique', label: '⭐ Únicos', count: kindCounts.unique },
+              ].map((kd) => (
+                <button
+                  key={kd.id}
+                  type="button"
+                  onClick={() => setSelectedKind(kd.id)}
+                  className={`px-2.5 py-1 text-[11px] font-black rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                    selectedKind === kd.id
+                      ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow-sm shadow-amber-500/30'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/70'
+                  }`}
+                >
+                  <span>{kd.label}</span>
+                  <span
+                    className={`text-[10px] font-mono ${
+                      selectedKind === kd.id ? 'text-slate-900/80' : 'text-zinc-500'
+                    }`}
+                  >
+                    ({kd.count})
+                  </span>
+                </button>
+              ))}
+            </div>
+
             {/* Seletor de Quantidade de Troféus por Linha */}
             <div className="flex items-center gap-1 bg-zinc-900/80 border border-zinc-800 rounded-xl p-1 shrink-0">
               <span className="px-2 text-[10px] font-black uppercase tracking-wider text-zinc-500 select-none">
@@ -1007,6 +1209,7 @@ export default function TrophiesPage({ movies = [] }) {
                 setSelectedCategory('all');
                 setOnlyMultiCategory(false);
               }
+              setSelectedKind('all');
               setSelectedTier('all');
               setSelectedStatus('all');
               setSearchQuery('');
@@ -1032,23 +1235,62 @@ export default function TrophiesPage({ movies = [] }) {
           {visibleTrophies.map((trophy) => {
             const isRankCard = trophy.kind === 'rank' && Array.isArray(trophy.ranks);
             const hasAnyRankUnlocked = isRankCard && (trophy.unlocked_ranks_count || 0) > 0;
+            const extraStars = isRankCard ? Math.max(0, Number(trophy.extra_stars) || 0) : 0;
+            const isInfiniteCard = isRankCard && extraStars > 0;
+            const useInfiniteVisual =
+              isInfiniteCard &&
+              (selectedTier === 'all' || selectedTier === 'mythic' || selectedTier === 'infinite');
+
             const tierKey = isRankCard
               ? String(
-                  trophy.highest_unlocked_tier ||
-                    (selectedTier !== 'all' ? selectedTier : trophy.ranks?.[0]?.tier || 'bronze')
+                  selectedTier !== 'all' && selectedTier !== 'infinite'
+                    ? selectedTier
+                    : trophy.highest_unlocked_tier || trophy.ranks?.[0]?.tier || 'bronze'
                 ).toLowerCase()
               : String(trophy.tier || 'bronze').toLowerCase();
-            const theme = TIER_THEMES[tierKey] || TIER_THEMES.bronze;
-            const isUnlocked = isRankCard ? hasAnyRankUnlocked : Boolean(trophy.is_unlocked);
+            const baseTheme = TIER_THEMES[tierKey] || TIER_THEMES.bronze;
+            const theme = useInfiniteVisual ? INFINITE_STAR_VISUAL : baseTheme;
+            const tierProgress = resolveProgressForTier(trophy, selectedTier);
+            const isUnlocked =
+              isRankCard && selectedTier === 'infinite'
+                ? isInfiniteCard
+                : isRankCard && selectedTier !== 'all'
+                ? tierProgress.isTargetUnlocked
+                : isRankCard
+                ? hasAnyRankUnlocked
+                : Boolean(trophy.is_unlocked);
             const activeStep = isRankCard
-              ? trophy.ranks.find((r) => !r.is_unlocked) || trophy.ranks[trophy.ranks.length - 1]
+              ? selectedTier !== 'all' && selectedTier !== 'infinite'
+                ? trophy.ranks.find((r) => String(r.tier || '').toLowerCase() === selectedTier)
+                : trophy.ranks.find((r) => !r.is_unlocked) || trophy.ranks[trophy.ranks.length - 1]
               : null;
             const cleanTitle = getCleanTrophyTitle(trophy.title);
             const xpReward = isRankCard
               ? TROPHY_XP_BY_TIER[String(activeStep?.tier || tierKey).toLowerCase()] || 15
               : TROPHY_XP_BY_TIER[tierKey] || 15;
-            const curProg = Math.min(trophy.progress_current || 0, trophy.progress_target || 1);
-            const pctProg = Math.min(100, trophy.progress_percentage || 0);
+
+            const isTrackingInfiniteProgress =
+              (selectedTier === 'all' || selectedTier === 'infinite') &&
+              isRankCard &&
+              trophy.is_unlocked &&
+              !trophy.is_finite_cap &&
+              (trophy.star_step || 0) > 0;
+
+            const curProg = isTrackingInfiniteProgress
+              ? Number(trophy.star_progress_current) || 0
+              : tierProgress.isSpecificRankStep
+              ? Math.min(tierProgress.cur, tierProgress.tgt)
+              : Math.min(trophy.progress_current || 0, trophy.progress_target || 1);
+            const tgtProg = isTrackingInfiniteProgress
+              ? Number(trophy.star_progress_target) || trophy.star_step || 1
+              : tierProgress.isSpecificRankStep
+              ? tierProgress.tgt
+              : trophy.progress_target || 1;
+            const pctProg = isTrackingInfiniteProgress
+              ? Math.min(100, Number(trophy.star_progress_percentage) || 0)
+              : tierProgress.isSpecificRankStep
+              ? Math.min(100, tierProgress.pct)
+              : Math.min(100, trophy.progress_percentage || 0);
             const lastAct = lastActivityMap.get(trophy.id) || null;
 
             const cats =
@@ -1058,12 +1300,8 @@ export default function TrophiesPage({ movies = [] }) {
                 ? [trophy.category]
                 : ['volta_ao_mundo'];
 
-            // Data de conquista (para Rank, prioriza a data do último patamar conquistado)
-            const latestRankUnlocked =
-              isRankCard && Array.isArray(trophy.ranks)
-                ? [...trophy.ranks].reverse().find((r) => r.is_unlocked && r.unlocked_at)
-                : null;
-            const unlockedDateStr = formatShortDate(latestRankUnlocked?.unlocked_at || trophy.unlocked_at);
+            // Data de conquista (para Rank, respeita o tier filtrado ou último patamar concluído)
+            const unlockedDateStr = formatShortDate(tierProgress.unlockedAt || trophy.unlocked_at);
 
             // =====================================================================
             // MODO 10 POR LINHA: MOSAICO ULTRA-COMPACTO PSN
@@ -1073,11 +1311,13 @@ export default function TrophiesPage({ movies = [] }) {
                 <div
                   key={trophy.id}
                   onClick={() => setInspectingTrophy(trophy)}
-                  title={`${cleanTitle} (${theme.name} • +${xpReward} XP)\n${trophy.description}\nProgresso: ${curProg}/${trophy.progress_target} (${pctProg}%)${
+                  title={`${cleanTitle} (${useInfiniteVisual ? `Infinito • ${extraStars}★` : baseTheme.name} • +${xpReward} XP)\n${trophy.description}\nProgresso: ${curProg}/${tgtProg} (${pctProg}%)${
                     unlockedDateStr ? `\nConquistado em: ${unlockedDateStr}` : ''
                   }`}
                   className={`relative overflow-hidden rounded-xl border p-2.5 transition-all duration-200 cursor-pointer flex flex-col justify-between group ${
-                    isUnlocked
+                    useInfiniteVisual
+                      ? `bg-gradient-to-b from-cyan-950/35 via-zinc-900/95 to-zinc-950 ${INFINITE_STAR_VISUAL.border} hover:scale-[1.03] hover:shadow-lg ${INFINITE_STAR_VISUAL.glow}`
+                      : isUnlocked
                       ? `bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 ${theme.border} hover:scale-[1.03] hover:shadow-lg ${theme.glow}`
                       : 'bg-zinc-950/75 border-zinc-800/85 hover:border-zinc-700 hover:bg-zinc-900/50 opacity-95'
                   }`}
@@ -1112,11 +1352,15 @@ export default function TrophiesPage({ movies = [] }) {
                       </div>
 
                       <div className="flex flex-col items-end gap-0.5 min-w-0">
-                        <span
-                          className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded border leading-none ${theme.badgeBg}`}
-                        >
-                          {theme.symbol}
-                        </span>
+                        {isInfiniteCard ? (
+                          <InfiniteStarsRow count={extraStars} compact maxVisible={3} />
+                        ) : (
+                          <span
+                            className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded border leading-none ${theme.badgeBg}`}
+                          >
+                            {theme.symbol}
+                          </span>
+                        )}
                         <div className="flex items-center gap-0.5 text-[10px] leading-none">
                           {cats.map((ck) => (
                             <span key={ck} title={CATEGORY_BADGE_CONFIG[ck]?.label || ck}>
@@ -1140,7 +1384,7 @@ export default function TrophiesPage({ movies = [] }) {
                     )}
                     <div className="flex items-center justify-between text-[9px] font-mono">
                       <span className="font-bold text-zinc-300">
-                        {curProg}/{trophy.progress_target}
+                        {isTrackingInfiniteProgress ? `★${extraStars + 1}: ${curProg}/${tgtProg}` : `${curProg}/${tgtProg}`}
                       </span>
                       <span className={isUnlocked ? 'text-emerald-400 font-bold' : 'text-zinc-500'}>
                         {pctProg}%
@@ -1148,10 +1392,16 @@ export default function TrophiesPage({ movies = [] }) {
                     </div>
                     <div className="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/80">
                       <div
-                        className="h-full rounded-full transition-all duration-500"
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          isTrackingInfiniteProgress ? 'bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-amber-300' : ''
+                        }`}
                         style={{
                           width: `${pctProg}%`,
-                          backgroundColor: isUnlocked ? theme.accentColor : '#71717a',
+                          backgroundColor: isTrackingInfiniteProgress
+                            ? undefined
+                            : isUnlocked
+                            ? theme.accentColor
+                            : '#71717a',
                         }}
                       />
                     </div>
@@ -1170,7 +1420,9 @@ export default function TrophiesPage({ movies = [] }) {
                   onClick={() => setInspectingTrophy(trophy)}
                   title={`${cleanTitle} (+${xpReward} XP) — ${trophy.description}`}
                   className={`relative overflow-hidden rounded-2xl border p-3 transition-all duration-200 cursor-pointer flex flex-col justify-between group ${
-                    isUnlocked
+                    useInfiniteVisual
+                      ? `bg-gradient-to-b from-cyan-950/35 via-zinc-900/95 to-zinc-950 ${INFINITE_STAR_VISUAL.border} hover:scale-[1.02] hover:shadow-lg ${INFINITE_STAR_VISUAL.glow}`
+                      : isUnlocked
                       ? `bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 ${theme.border} hover:scale-[1.02] hover:shadow-lg ${theme.glow}`
                       : 'bg-zinc-950/75 border-zinc-800/85 hover:border-zinc-700 hover:bg-zinc-900/50 opacity-95'
                   }`}
@@ -1235,6 +1487,11 @@ export default function TrophiesPage({ movies = [] }) {
                     <p className="text-[10px] text-zinc-400 line-clamp-2 mt-1 leading-relaxed">
                       {trophy.description}
                     </p>
+                    {isInfiniteCard && (
+                      <div className="mt-1.5">
+                        <InfiniteStarsRow count={extraStars} compact />
+                      </div>
+                    )}
                   </div>
 
                   {/* Rodapé: Status + Progresso */}
@@ -1245,31 +1502,41 @@ export default function TrophiesPage({ movies = [] }) {
                     <div className="flex items-center justify-between text-[10px] font-mono">
                       <span
                         className={
-                          isUnlocked
+                          isTrackingInfiniteProgress
+                            ? 'text-cyan-300 font-bold text-[9px]'
+                            : isUnlocked
                             ? 'text-emerald-400 font-bold text-[9px]'
                             : curProg > 0
                             ? 'text-amber-400 font-bold text-[9px]'
                             : 'text-zinc-500 text-[9px]'
                         }
                       >
-                        {isUnlocked
+                        {isTrackingInfiniteProgress
+                          ? `Rumo ★${extraStars + 1}`
+                          : isUnlocked
                           ? unlockedDateStr || 'Conquistado'
                           : curProg > 0
                           ? 'Em Progresso'
                           : `+${xpReward} XP`}
                       </span>
                       <span className="font-bold text-zinc-300">
-                        {curProg}/{trophy.progress_target}{' '}
+                        {curProg}/{tgtProg}{' '}
                         <span className="text-zinc-500">({pctProg}%)</span>
                       </span>
                     </div>
 
                     <div className="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/80">
                       <div
-                        className="h-full rounded-full transition-all duration-500"
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          isTrackingInfiniteProgress ? 'bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-amber-300' : ''
+                        }`}
                         style={{
                           width: `${pctProg}%`,
-                          backgroundColor: isUnlocked ? theme.accentColor : '#71717a',
+                          backgroundColor: isTrackingInfiniteProgress
+                            ? undefined
+                            : isUnlocked
+                            ? theme.accentColor
+                            : '#71717a',
                           boxShadow: isUnlocked ? `0 0 8px ${theme.accentColor}80` : 'none',
                         }}
                       />
@@ -1288,7 +1555,9 @@ export default function TrophiesPage({ movies = [] }) {
                   key={trophy.id}
                   onClick={() => setInspectingTrophy(trophy)}
                   className={`relative overflow-hidden rounded-2xl border p-4 transition-all duration-300 cursor-pointer flex flex-col justify-between group ${
-                    isUnlocked
+                    useInfiniteVisual
+                      ? `bg-gradient-to-b from-cyan-950/35 via-zinc-900/95 to-zinc-950 ${INFINITE_STAR_VISUAL.border} hover:scale-[1.015] hover:shadow-xl ${INFINITE_STAR_VISUAL.glow}`
+                      : isUnlocked
                       ? `bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 ${theme.border} hover:scale-[1.015] hover:shadow-xl ${theme.glow}`
                       : 'bg-zinc-950/75 border-zinc-800/85 hover:border-zinc-700 hover:bg-zinc-900/50 opacity-95'
                   }`}
@@ -1362,6 +1631,14 @@ export default function TrophiesPage({ movies = [] }) {
                       <p className="text-[11px] text-zinc-400 line-clamp-2 mt-0.5 leading-snug">
                         {trophy.description}
                       </p>
+                      {isInfiniteCard && (
+                        <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                          <InfiniteStarsRow count={extraStars} compact />
+                          <span className="text-[9px] font-black uppercase text-cyan-300 tracking-wider">
+                            Infinito (+{extraStars * 55} XP)
+                          </span>
+                        </div>
+                      )}
                       <RankPipsBar trophy={trophy} compact />
                     </div>
                   </div>
@@ -1371,9 +1648,11 @@ export default function TrophiesPage({ movies = [] }) {
                       <LastMovieProgressPill lastAct={lastAct} />
                     )}
                     <div className="flex items-center justify-between text-[10px] font-mono">
-                      <span className="text-amber-400/90 font-bold">+{xpReward} XP</span>
+                      <span className={isTrackingInfiniteProgress ? 'text-cyan-300 font-bold' : 'text-amber-400/90 font-bold'}>
+                        {isTrackingInfiniteProgress ? `Rumo ★${extraStars + 1}` : `+${xpReward} XP`}
+                      </span>
                       <span className="font-bold text-zinc-300">
-                        {curProg} / {trophy.progress_target}{' '}
+                        {curProg} / {tgtProg}{' '}
                         {trophy.target_metadata?.curatedCount && (
                           <span className="text-[10px] text-amber-400 font-normal">
                             (Lista com {trophy.target_metadata.curatedCount}){' '}
@@ -1385,10 +1664,16 @@ export default function TrophiesPage({ movies = [] }) {
 
                     <div className="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/80">
                       <div
-                        className="h-full rounded-full transition-all duration-500"
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          isTrackingInfiniteProgress ? 'bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-amber-300' : ''
+                        }`}
                         style={{
                           width: `${pctProg}%`,
-                          backgroundColor: isUnlocked ? theme.accentColor : '#71717a',
+                          backgroundColor: isTrackingInfiniteProgress
+                            ? undefined
+                            : isUnlocked
+                            ? theme.accentColor
+                            : '#71717a',
                           boxShadow: isUnlocked ? `0 0 8px ${theme.accentColor}80` : 'none',
                         }}
                       />
@@ -1397,7 +1682,9 @@ export default function TrophiesPage({ movies = [] }) {
                     <div className="flex items-center justify-between text-[10px] text-zinc-500 group-hover:text-zinc-300 transition-colors">
                       <span>
                         {isRankCard
-                          ? `Rank ${trophy.unlocked_ranks_count || 0}/${trophy.ranks.length} • Teto ${trophy.target_value}`
+                          ? isInfiniteCard
+                            ? `Rank ${trophy.unlocked_ranks_count || 0}/${trophy.ranks.length} • ${extraStars}★`
+                            : `Rank ${trophy.unlocked_ranks_count || 0}/${trophy.ranks.length} • Teto ${trophy.target_value}`
                           : 'Abrir checklist'}
                       </span>
                       <span className="flex items-center gap-0.5 font-bold text-amber-400/90 group-hover:text-amber-300">
@@ -1417,7 +1704,9 @@ export default function TrophiesPage({ movies = [] }) {
                 key={trophy.id}
                 onClick={() => setInspectingTrophy(trophy)}
                 className={`relative overflow-hidden rounded-2xl border p-5 transition-all duration-300 cursor-pointer flex flex-col justify-between group ${
-                  isUnlocked
+                  useInfiniteVisual
+                    ? `bg-gradient-to-b from-cyan-950/35 via-zinc-900/95 to-zinc-950 ${INFINITE_STAR_VISUAL.border} hover:scale-[1.015] hover:shadow-xl ${INFINITE_STAR_VISUAL.glow}`
+                    : isUnlocked
                     ? `bg-gradient-to-b from-zinc-900/95 via-zinc-950/95 to-zinc-950 ${theme.border} hover:scale-[1.015] hover:shadow-xl ${theme.glow}`
                     : 'bg-zinc-950/75 border-zinc-800/85 hover:border-zinc-700 hover:bg-zinc-900/50 opacity-95'
                 }`}
@@ -1459,7 +1748,9 @@ export default function TrophiesPage({ movies = [] }) {
                     <TrophyCardBadges
                       trophy={trophy}
                       theme={theme}
-                      isUnlocked={Boolean(trophy.is_unlocked)}
+                      isUnlocked={Boolean(
+                        isRankCard && selectedTier !== 'all' ? tierProgress.isTargetUnlocked : trophy.is_unlocked
+                      )}
                       unlockedDateStr={unlockedDateStr}
                     />
 
@@ -1480,12 +1771,20 @@ export default function TrophiesPage({ movies = [] }) {
                   )}
                   <div className="flex items-center justify-between text-[11px] font-mono">
                     <span className="text-zinc-400 font-bold uppercase tracking-wider text-[10px] flex items-center gap-1.5 flex-wrap">
-                      <span>
-                        {trophy.is_unlocked
-                          ? 'Requisitos Cumpridos'
+                      <span className={isTrackingInfiniteProgress ? 'text-cyan-300' : ''}>
+                        {isTrackingInfiniteProgress
+                          ? `🌟 Rumo à Estrela ★${extraStars + 1}`
+                          : tierProgress.isSpecificRankStep
+                          ? tierProgress.isTargetUnlocked
+                            ? `Rank ${baseTheme.name} Conquistado`
+                            : `Meta Rank ${baseTheme.name}`
+                          : trophy.is_unlocked
+                          ? trophy.is_finite_cap
+                            ? '🏆 Teto Máximo Definitivo'
+                            : 'Requisitos Cumpridos'
                           : isRankCard
-                            ? `Próximo Rank (${TIER_THEMES[String(activeStep?.tier || 'bronze').toLowerCase()]?.name || ''})`
-                            : 'Progresso Atual'}
+                          ? `Próximo Rank (${TIER_THEMES[String(activeStep?.tier || 'bronze').toLowerCase()]?.name || ''})`
+                          : 'Progresso Atual'}
                       </span>
                       {isRankCard && !trophy.is_unlocked && hasAnyRankUnlocked && unlockedDateStr && (
                         <span className="text-[10px] text-emerald-400/90 normal-case font-semibold">
@@ -1494,7 +1793,7 @@ export default function TrophiesPage({ movies = [] }) {
                       )}
                     </span>
                     <span className="font-bold text-zinc-300">
-                      {curProg} / {trophy.progress_target}{' '}
+                      {curProg} / {tgtProg}{' '}
                       {trophy.target_metadata?.curatedCount && (
                         <span className="text-[11px] text-amber-400 font-normal">
                           (Lista com {trophy.target_metadata.curatedCount} filmes){' '}
@@ -1508,20 +1807,30 @@ export default function TrophiesPage({ movies = [] }) {
 
                   <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/80 p-0.5">
                     <div
-                      className="h-full rounded-full transition-all duration-500"
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        isTrackingInfiniteProgress ? 'bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-amber-300' : ''
+                      }`}
                       style={{
                         width: `${pctProg}%`,
-                        backgroundColor: isUnlocked ? theme.accentColor : '#71717a',
+                        backgroundColor: isTrackingInfiniteProgress
+                          ? undefined
+                          : isUnlocked
+                          ? theme.accentColor
+                          : '#71717a',
                         boxShadow: isUnlocked ? `0 0 10px ${theme.accentColor}80` : 'none',
                       }}
                     />
                   </div>
 
                   <div className="flex items-center justify-between mt-1 text-[11px] text-zinc-500 group-hover:text-zinc-300 transition-colors">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span>
                         {isRankCard
-                          ? `Rank ${trophy.unlocked_ranks_count || 0}/${trophy.ranks.length} • Teto ${trophy.target_value}`
+                          ? isInfiniteCard
+                            ? `Rank ${trophy.unlocked_ranks_count || 0}/${trophy.ranks.length} • ${extraStars}★ (+${extraStars * 55} XP)`
+                            : trophy.is_finite_cap
+                            ? `Rank ${trophy.unlocked_ranks_count || 0}/${trophy.ranks.length} • Teto 195`
+                            : `Rank ${trophy.unlocked_ranks_count || 0}/${trophy.ranks.length} • Teto ${trophy.target_value} (+${trophy.star_step || Math.max(1, Math.round(trophy.target_value * 0.2))}/★)`
                           : 'Checklist completo no card'}
                       </span>
                       <span className="text-[10px] font-mono font-bold text-amber-400/90 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">

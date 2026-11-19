@@ -93,7 +93,7 @@ function normalizeRanksStateArray(rawRanksState: unknown, def?: TrophyDefinition
   const byId = new Map<string, any>(arr.filter((x) => x?.id).map((x) => [String(x.id), x]));
   return def.ranks.map((step) => {
     const saved = byId.get(step.id) || {};
-    const stepTarget = saved.progress_target ?? (def.target_type === 'all_12_months_coverage' ? 12 : step.target_value);
+    const stepTarget = saved.progress_target ?? step.target_value;
     const stepCurrent = saved.progress_current ?? 0;
     return {
       id: step.id,
@@ -172,6 +172,12 @@ export async function ensureTrophyTables(): Promise<void> {
   `);
 
   await query(`ALTER TABLE user_trophies ADD COLUMN IF NOT EXISTS ranks_state JSONB NOT NULL DEFAULT '[]'::jsonb;`);
+  await query(`ALTER TABLE user_trophies ADD COLUMN IF NOT EXISTS extra_stars INT NOT NULL DEFAULT 0;`);
+  await query(`ALTER TABLE user_trophies ADD COLUMN IF NOT EXISTS star_step INT NOT NULL DEFAULT 0;`);
+  await query(`ALTER TABLE user_trophies ADD COLUMN IF NOT EXISTS star_progress_current INT NOT NULL DEFAULT 0;`);
+  await query(`ALTER TABLE user_trophies ADD COLUMN IF NOT EXISTS star_progress_target INT NOT NULL DEFAULT 0;`);
+  await query(`ALTER TABLE user_trophies ADD COLUMN IF NOT EXISTS star_progress_percentage INT NOT NULL DEFAULT 0;`);
+  await query(`ALTER TABLE user_trophies ADD COLUMN IF NOT EXISTS test_extra_stars INT DEFAULT NULL;`);
 
   await query(`
     CREATE TABLE IF NOT EXISTS trophy_last_activity (
@@ -203,7 +209,8 @@ export async function seedTrophies(force = false): Promise<void> {
       SELECT
         COUNT(*)::int AS total_cnt,
         COUNT(*) FILTER (WHERE kind = 'rank')::int AS rank_cnt,
-        BOOL_OR(id = 'vm_historical_relics_extinct') AS has_new_id
+        BOOL_OR(id = 'multi_rank_memorial_luto' AND target_metadata @> '{"isSpecialMemorial": true}')
+          AND BOOL_OR(id = 'tc_magia_profunda_bruxa_decadas' AND target_value = 7) AS has_new_id
       FROM trophies
     `);
     const row = checkRes.rows[0];
@@ -307,8 +314,7 @@ export async function seedTrophies(force = false): Promise<void> {
             test_override: prevStep?.test_override ?? legacyStepOld?.test_override ?? null,
             is_new: prevStep?.is_new ?? false,
             progress_current: prevStep?.progress_current ?? 0,
-            progress_target:
-              prevStep?.progress_target ?? (def.target_type === 'all_12_months_coverage' ? 12 : step.target_value),
+            progress_target: prevStep?.progress_target ?? step.target_value,
             progress_percentage: prevStep?.progress_percentage ?? 0,
           };
         });
@@ -488,7 +494,8 @@ export async function getCachedTrophiesSummary(): Promise<TrophiesSummaryRespons
         t.id, t.kind, t.category, t.categories, t.tier, t.title, t.description, t.icon,
         t.target_type, t.target_value, t.target_metadata, t.ranks_config, t.search_keywords, t.sort_order,
         ut.is_unlocked, ut.unlocked_at, ut.test_override, ut.is_new,
-        ut.progress_current, ut.progress_target, ut.progress_percentage, ut.ranks_state, ut.updated_at
+        ut.progress_current, ut.progress_target, ut.progress_percentage, ut.ranks_state, ut.updated_at,
+        ut.extra_stars, ut.star_step, ut.star_progress_current, ut.star_progress_target, ut.star_progress_percentage, ut.test_extra_stars
       FROM trophies t
       LEFT JOIN user_trophies ut ON ut.trophy_id = t.id
       ORDER BY t.sort_order ASC
@@ -496,11 +503,20 @@ export async function getCachedTrophiesSummary(): Promise<TrophiesSummaryRespons
     fetchLastActivity(),
   ]);
 
-  // Se houver muitos cards desatualizados (ex: nunca avaliados ainda e há filmes no catálogo), roda 1 avaliação inicial
+  // Se houver muitos cards desatualizados (ou migração de Rank Infinito / Cinéfilo Sem Férias pendente), roda 1 avaliação inicial
   const anyMissingState = rowsRes.rows.some((r: any) => r.progress_target === null || r.progress_target === undefined);
+  const needsSemanticMigration = rowsRes.rows.some(
+    (r: any) =>
+      (r.id === 'dl_rank_todos_12_meses' && Number(r.progress_target) === 12) ||
+      (r.kind === 'rank' &&
+        !r.target_metadata?.finiteCap &&
+        r.target_type !== 'conquered_countries_count' &&
+        Number(r.star_step || 0) === 0)
+  );
   const needsInitialEval =
     rowsRes.rows.length !== TROPHY_DEFINITIONS.length ||
     anyMissingState ||
+    needsSemanticMigration ||
     (rowsRes.rows.every((r: any) => !r.is_unlocked && Number(r.progress_current) === 0) &&
       (await query(`SELECT EXISTS(SELECT 1 FROM movies LIMIT 1) AS has_movies`)).rows[0]?.has_movies);
 
@@ -545,6 +561,9 @@ export async function getCachedTrophiesSummary(): Promise<TrophiesSummaryRespons
         }
       }
 
+      const isFiniteCap =
+        Boolean(r.target_metadata?.finiteCap) || r.target_type === 'conquered_countries_count';
+
       cards.push({
         id: r.id,
         kind: 'rank',
@@ -569,6 +588,13 @@ export async function getCachedTrophiesSummary(): Promise<TrophiesSummaryRespons
         ranks,
         unlocked_ranks_count: unlockedRanks,
         highest_unlocked_tier: highestTier,
+        extra_stars: Number(r.extra_stars) || 0,
+        star_step: Number(r.star_step) || 0,
+        star_progress_current: Number(r.star_progress_current) || 0,
+        star_progress_target: Number(r.star_progress_target) || 0,
+        star_progress_percentage: Number(r.star_progress_percentage) || 0,
+        test_extra_stars: r.test_extra_stars ?? null,
+        is_finite_cap: isFiniteCap,
         checklist: [],
       });
     } else {
@@ -655,7 +681,8 @@ export async function evaluateTrophies(
   const [prevRes, worldData] = await Promise.all([
     query(`
       SELECT trophy_id, is_unlocked, unlocked_at, test_override, is_new,
-             progress_current, progress_target, progress_percentage, ranks_state
+             progress_current, progress_target, progress_percentage, ranks_state,
+             extra_stars, star_step, star_progress_current, star_progress_target, star_progress_percentage, test_extra_stars
       FROM user_trophies
     `),
     options.existingWorldData ? Promise.resolve(options.existingWorldData) : buildWorldChallengePayload(),
@@ -673,6 +700,12 @@ export async function evaluateTrophies(
       progress_target: Number(r.progress_target) || 1,
       progress_percentage: Number(r.progress_percentage) || 0,
       ranks_state: r.ranks_state,
+      extra_stars: Number(r.extra_stars) || 0,
+      star_step: Number(r.star_step) || 0,
+      star_progress_current: Number(r.star_progress_current) || 0,
+      star_progress_target: Number(r.star_progress_target) || 0,
+      star_progress_percentage: Number(r.star_progress_percentage) || 0,
+      test_extra_stars: r.test_extra_stars ?? null,
     });
     prevRanksSerialized.set(r.trophy_id, JSON.stringify(r.ranks_state || []));
   }
@@ -696,11 +729,21 @@ export async function evaluateTrophies(
     const chProgTarg: number[] = [];
     const chProgPct: number[] = [];
     const chRanksStateJson: string[] = [];
+    const chExtraStars: number[] = [];
+    const chStarStep: number[] = [];
+    const chStarProgCurr: number[] = [];
+    const chStarProgTarg: number[] = [];
+    const chStarProgPct: number[] = [];
 
     for (const card of evalRes.cards) {
       const prev = prevStates.get(card.id);
       const nextRanksJson = JSON.stringify(card.ranks || []);
       const prevRanksJson = prevRanksSerialized.get(card.id) || '[]';
+      const nextExtraStars = Number(card.extra_stars) || 0;
+      const nextStarStep = Number(card.star_step) || 0;
+      const nextStarCurr = Number(card.star_progress_current) || 0;
+      const nextStarTarg = Number(card.star_progress_target) || 0;
+      const nextStarPct = Number(card.star_progress_percentage) || 0;
 
       const changed =
         !prev ||
@@ -710,6 +753,11 @@ export async function evaluateTrophies(
         prev.progress_current !== card.progress_current ||
         prev.progress_target !== card.progress_target ||
         prev.progress_percentage !== card.progress_percentage ||
+        (prev.extra_stars || 0) !== nextExtraStars ||
+        (prev.star_step || 0) !== nextStarStep ||
+        (prev.star_progress_current || 0) !== nextStarCurr ||
+        (prev.star_progress_target || 0) !== nextStarTarg ||
+        (prev.star_progress_percentage || 0) !== nextStarPct ||
         prevRanksJson !== nextRanksJson;
 
       if (changed) {
@@ -721,6 +769,11 @@ export async function evaluateTrophies(
         chProgTarg.push(card.progress_target);
         chProgPct.push(card.progress_percentage);
         chRanksStateJson.push(nextRanksJson);
+        chExtraStars.push(nextExtraStars);
+        chStarStep.push(nextStarStep);
+        chStarProgCurr.push(nextStarCurr);
+        chStarProgTarg.push(nextStarTarg);
+        chStarProgPct.push(nextStarPct);
       }
     }
 
@@ -736,19 +789,40 @@ export async function evaluateTrophies(
           progress_target = v.progress_target,
           progress_percentage = v.progress_percentage,
           ranks_state = v.ranks_state,
+          extra_stars = v.extra_stars,
+          star_step = v.star_step,
+          star_progress_current = v.star_progress_current,
+          star_progress_target = v.star_progress_target,
+          star_progress_percentage = v.star_progress_percentage,
           updated_at = CURRENT_TIMESTAMP
         FROM (
           SELECT * FROM UNNEST(
             $1::text[], $2::boolean[], $3::timestamptz[], $4::boolean[],
-            $5::int[], $6::int[], $7::int[], $8::jsonb[]
+            $5::int[], $6::int[], $7::int[], $8::jsonb[],
+            $9::int[], $10::int[], $11::int[], $12::int[], $13::int[]
           ) AS t(
             trophy_id, is_unlocked, unlocked_at, is_new,
-            progress_current, progress_target, progress_percentage, ranks_state
+            progress_current, progress_target, progress_percentage, ranks_state,
+            extra_stars, star_step, star_progress_current, star_progress_target, star_progress_percentage
           )
         ) AS v
         WHERE ut.trophy_id = v.trophy_id
         `,
-        [chIds, chUnlocked, chUnlockedAt, chIsNew, chProgCurr, chProgTarg, chProgPct, chRanksStateJson]
+        [
+          chIds,
+          chUnlocked,
+          chUnlockedAt,
+          chIsNew,
+          chProgCurr,
+          chProgTarg,
+          chProgPct,
+          chRanksStateJson,
+          chExtraStars,
+          chStarStep,
+          chStarProgCurr,
+          chStarProgTarg,
+          chStarProgPct,
+        ]
       );
     }
 
@@ -842,7 +916,8 @@ export async function getTrophyChecklistById(trophyId: string): Promise<Evaluate
     buildWorldChallengePayload(),
     query(
       `SELECT trophy_id, is_unlocked, unlocked_at, test_override, is_new,
-              progress_current, progress_target, progress_percentage, ranks_state
+              progress_current, progress_target, progress_percentage, ranks_state,
+              extra_stars, star_step, star_progress_current, star_progress_target, star_progress_percentage, test_extra_stars
        FROM user_trophies`
     ),
   ]);
@@ -858,6 +933,12 @@ export async function getTrophyChecklistById(trophyId: string): Promise<Evaluate
       progress_target: Number(r.progress_target) || 1,
       progress_percentage: Number(r.progress_percentage) || 0,
       ranks_state: r.ranks_state,
+      extra_stars: Number(r.extra_stars) || 0,
+      star_step: Number(r.star_step) || 0,
+      star_progress_current: Number(r.star_progress_current) || 0,
+      star_progress_target: Number(r.star_progress_target) || 0,
+      star_progress_percentage: Number(r.star_progress_percentage) || 0,
+      test_extra_stars: r.test_extra_stars ?? null,
     });
   }
 
@@ -937,7 +1018,11 @@ export async function acknowledgeNewTrophies(trophyIds?: string[]): Promise<void
  * Applies or clears a manual QA override (`true` / `false` / `null`) on either a trophy card
  * or a specific rank step (`cardId__tier`).
  */
-export async function setTrophyTestOverride(trophyId: string, overrideState: boolean | null): Promise<void> {
+export async function setTrophyTestOverride(
+  trophyId: string,
+  overrideState: boolean | null,
+  extraStarsOverride?: number | null
+): Promise<void> {
   await seedTrophies(false);
   const rawId = String(trophyId);
 
@@ -967,20 +1052,31 @@ export async function setTrophyTestOverride(trophyId: string, overrideState: boo
   // Card completo (único, platina ou card rank inteiro)
   const def = TROPHY_DEF_MAP.get(rawId);
   if (def?.kind === 'rank') {
-    const res = await query(`SELECT ranks_state FROM user_trophies WHERE trophy_id = $1`, [rawId]);
+    const res = await query(`SELECT ranks_state, test_extra_stars FROM user_trophies WHERE trophy_id = $1`, [rawId]);
     const currentRanks = normalizeRanksStateArray(res.rows[0]?.ranks_state, def);
+    const nextExtraStarsOverride =
+      extraStarsOverride !== undefined
+        ? extraStarsOverride
+        : overrideState === false
+          ? null
+          : res.rows[0]?.test_extra_stars ?? null;
+    const effectiveUnlock =
+      nextExtraStarsOverride !== null && nextExtraStarsOverride > 0 && overrideState !== false
+        ? true
+        : overrideState;
+
     const nextRanks = currentRanks.map((r) => ({
       ...r,
-      test_override: overrideState,
-      is_unlocked: overrideState === null ? r.is_unlocked : overrideState,
+      test_override: effectiveUnlock,
+      is_unlocked: effectiveUnlock === null ? r.is_unlocked : effectiveUnlock,
       unlocked_at:
-        overrideState === true ? r.unlocked_at || new Date().toISOString() : overrideState === false ? null : r.unlocked_at,
+        effectiveUnlock === true ? r.unlocked_at || new Date().toISOString() : effectiveUnlock === false ? null : r.unlocked_at,
     }));
     await query(
       `UPDATE user_trophies
-       SET test_override = $2, ranks_state = $3::jsonb, updated_at = CURRENT_TIMESTAMP
+       SET test_override = $2, test_extra_stars = $3, ranks_state = $4::jsonb, updated_at = CURRENT_TIMESTAMP
        WHERE trophy_id = $1`,
-      [rawId, overrideState, JSON.stringify(nextRanks)]
+      [rawId, effectiveUnlock, nextExtraStarsOverride, JSON.stringify(nextRanks)]
     );
     return;
   }
@@ -999,6 +1095,7 @@ export async function resetAllTrophyOverrides(): Promise<void> {
   await query(`
     UPDATE user_trophies
     SET test_override = NULL,
+        test_extra_stars = NULL,
         ranks_state = COALESCE(
           (SELECT jsonb_agg(elem || '{"test_override": null}'::jsonb)
            FROM jsonb_array_elements(COALESCE(ranks_state, '[]'::jsonb)) AS elem),

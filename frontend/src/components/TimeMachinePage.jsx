@@ -17,10 +17,6 @@ import {
   ArrowUpDown,
   FlaskConical,
   Zap,
-  Calendar,
-  TrendingUp,
-  Layers,
-  LayoutGrid,
 } from 'lucide-react';
 import {
   MIN_TIME_MACHINE_YEAR,

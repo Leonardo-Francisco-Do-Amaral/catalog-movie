@@ -8,7 +8,7 @@ export default function MovieRow({ title, movies = [], onEdit }) {
   // Função para rolar o carrossel horizontalmente
   const handleScroll = (direction) => {
     if (rowRef.current) {
-      const { scrollLeft, clientWidth } = rowRef.current;
+      const { clientWidth } = rowRef.current;
       // Define a distância a rolar baseada no tamanho da tela
       const scrollAmount = direction === 'left' 
         ? -clientWidth * 0.75 

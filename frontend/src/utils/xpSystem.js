@@ -49,6 +49,7 @@ export const TROPHY_XP_BY_TIER = {
   mythic: 105,
   platinum: 1000,
 };
+export const TROPHY_XP_PER_EXTRA_STAR = 55;
 
 export const COUNTRY_XP_BY_RARITY = {
   common: 30,
@@ -221,12 +222,32 @@ export const LEVEL_TITLE_RANGES = [
   { minLevel: 85, maxLevel: 89, title: 'A Cadeira do Sofá Já Tem o Formato do Seu Corpo' },
   { minLevel: 90, maxLevel: 94, title: 'Chefe Final da Máfia de Hollywood' },
   { minLevel: 95, maxLevel: 99, title: 'Platinador Supremo da PSN Cinematográfica' },
-  { minLevel: 100, maxLevel: null, title: 'A Entidade Absoluta do Cinema (Zerou a Vida Social!)' },
+  { minLevel: 100, maxLevel: 104, title: 'A Entidade Absoluta do Cinema (Zerou a Vida Social!)' },
+  { minLevel: 105, maxLevel: 109, title: 'Já Dá Pra Pedir Pensão Alimentícia pro Letterboxd' },
+  { minLevel: 110, maxLevel: 114, title: 'Assistiu até o Making Of dos Créditos de Figurante' },
+  { minLevel: 115, maxLevel: 119, title: 'O Algoritmo do Streaming Pede Dicas Pra Você' },
+  { minLevel: 120, maxLevel: 124, title: 'Sobreviveu a Três "Baseado em Fatos Reais" num Sábado' },
+  { minLevel: 125, maxLevel: 129, title: 'O Martin Scorsese Te Mandou Áudio de 4 Minutos Discordando' },
+  { minLevel: 130, maxLevel: 134, title: 'Donatário Vitalício da Poltrona K-14 do IMAX' },
+  { minLevel: 135, maxLevel: 139, title: 'Já Viu Mais Trailers que o Projecionista do Shopping' },
+  { minLevel: 140, maxLevel: 144, title: 'Dá Nota com 3 Casas Decimais Até pra Propaganda do Detran' },
+  { minLevel: 145, maxLevel: 149, title: 'A Wikipédia Consulta Sua Planilha Antes de Editar Filmografia' },
+  { minLevel: 150, maxLevel: 154, title: 'Conseguiu Achar Filme Bom na Coreia do Norte Sem VPN' },
+  { minLevel: 155, maxLevel: 159, title: 'Fiscal Oficial de Roteiro Furado & Microfone no Boom' },
+  { minLevel: 160, maxLevel: 164, title: 'Christopher Nolan Ligou Pedindo Explicação do Seu Final' },
+  { minLevel: 165, maxLevel: 169, title: 'Maratonou Nicolas Cage Sem Pular os Direto-pra-DVD' },
+  { minLevel: 170, maxLevel: 174, title: 'O Óculos 3D Já Faz Parte da Sua Estrutura Óssea' },
+  { minLevel: 175, maxLevel: 179, title: 'Tem Mais Estrela Infinita que a Via Láctea no Quarto' },
+  { minLevel: 180, maxLevel: 184, title: 'A A24 Já Mandou Boleto de Sócio-Torcedor' },
+  { minLevel: 185, maxLevel: 189, title: 'Desbloqueou Filmes que Só Existiam em VHS de Locadora' },
+  { minLevel: 190, maxLevel: 194, title: 'Seu Controle Remoto Aposentou e Pediu Recolhimento do INSS' },
+  { minLevel: 195, maxLevel: 199, title: 'Patrimônio Histórico Tombado da Sétima Arte (e do Sofá)' },
+  { minLevel: 200, maxLevel: null, title: 'Lenda Cósmica Nível 200: O Próprio Cinema Te Pede Autógrafo!' },
 ];
 
 export function getLevelTitle(level) {
   const safeLevel = Math.max(1, Math.floor(level || 1));
-  if (safeLevel >= 100) {
+  if (safeLevel >= 200) {
     return LEVEL_TITLE_RANGES[LEVEL_TITLE_RANGES.length - 1].title;
   }
   const found = LEVEL_TITLE_RANGES.find(
@@ -237,7 +258,7 @@ export function getLevelTitle(level) {
 
 export function getNextTitleMilestone(level) {
   const safeLevel = Math.max(1, Math.floor(level || 1));
-  if (safeLevel >= 100) return null;
+  if (safeLevel >= 200) return null;
   const nextMilestoneLevel = safeLevel < 5 ? 5 : Math.floor(safeLevel / 5) * 5 + 5;
   return {
     level: nextMilestoneLevel,
@@ -530,10 +551,13 @@ export function calculateClientXpStatus(movies = [], trophiesOverride = null, lo
   const unlockedIds = {};
   let trophiesXp = 0;
   let totalUnlocked = 0;
+  let extraStarsCount = 0;
 
   trophiesList.forEach((t) => {
     const isRankCard = t.kind === 'rank' || (Array.isArray(t.ranks) && t.ranks.length > 0);
     if (isRankCard && Array.isArray(t.ranks) && t.ranks.length > 0) {
+      const cardExtraStars = Math.max(0, Number(t.extra_stars) || 0);
+      if (cardExtraStars > 0) extraStarsCount += cardExtraStars;
       t.ranks.forEach((r) => {
         const tier = String(r.tier || 'bronze').toLowerCase();
         if (!byTier[tier]) return;
@@ -571,6 +595,9 @@ export function calculateClientXpStatus(movies = [], trophiesOverride = null, lo
     }
   });
 
+  const extraStarsXp = extraStarsCount * TROPHY_XP_PER_EXTRA_STAR;
+  trophiesXp += extraStarsXp;
+
   const timeMachineSummary = computeClientTimeMachineXpSummary(uniqueMovies);
   const totalXp = moviesXp + countriesXp + trophiesXp + timeMachineSummary.totalXp;
   const levelInfo = calculateLevelFromXp(totalXp);
@@ -598,6 +625,9 @@ export function calculateClientXpStatus(movies = [], trophiesOverride = null, lo
         totalAvailable: trophiesList.length,
         unlockedIds,
         byTier,
+        extraStarsCount,
+        xpPerExtraStar: TROPHY_XP_PER_EXTRA_STAR,
+        extraStarsXp,
         totalXp: trophiesXp,
       },
       timeMachine: timeMachineSummary,
@@ -787,6 +817,20 @@ export function computeXpGainEvent(prev, next) {
           rarityOrTier: tr,
         });
       }
+    });
+  }
+
+  const prevStars = Number(prev.sources?.trophies?.extraStarsCount || 0);
+  const nextStars = Number(next.sources?.trophies?.extraStarsCount || 0);
+  const starDiff = Math.max(0, nextStars - prevStars);
+  if (starDiff > 0) {
+    const starXp = starDiff * TROPHY_XP_PER_EXTRA_STAR;
+    tags.push({
+      type: 'trophy_star',
+      icon: '🌟',
+      label: starDiff === 1 ? `+${starXp} XP Estrela Infinita` : `+${starXp.toLocaleString('pt-BR')} XP ${starDiff} Estrelas Infinitas`,
+      xp: starXp,
+      rarityOrTier: 'infinite',
     });
   }
 
@@ -1095,6 +1139,8 @@ export function mergeXpGainEvents(baseEvent, incomingEvent) {
       } else if (inTag.type === 'trophy') {
         const tierName = inTag.rarityOrTier ? TROPHY_TIER_META[inTag.rarityOrTier]?.label || inTag.rarityOrTier : 'Troféu';
         label = `+${sumXp.toLocaleString('pt-BR')} XP Troféus ${tierName}`;
+      } else if (inTag.type === 'trophy_star') {
+        label = `+${sumXp.toLocaleString('pt-BR')} XP Estrelas Infinitas`;
       } else if (inTag.type === 'country') {
         label = `+${sumXp.toLocaleString('pt-BR')} XP Países Desafio 195`;
       } else if (inTag.type === 'time_machine') {

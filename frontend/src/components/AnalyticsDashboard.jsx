@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { getCountryIsoFromName } from './InteractiveGlobe3D';
 import TrophyChecklistModal from './TrophyChecklistModal';
+import { InfiniteStarsRow } from './TrophyBadges';
 import {
   TROPHY_XP_BY_TIER,
   TROPHY_TIER_META,
@@ -1164,7 +1165,7 @@ export default function AnalyticsDashboard({
                   <div
                     style={{ width: `${pctTrophiesXp}%` }}
                     className="h-full bg-purple-500 rounded-l-full transition-all"
-                    title={`Troféus PS5: ${trophiesXp} XP (${pctTrophiesXp}%)`}
+                    title={`Troféus: ${trophiesXp} XP (${pctTrophiesXp}%)`}
                   />
                   <div
                     style={{ width: `${pctMoviesXp}%` }}
@@ -1198,7 +1199,7 @@ export default function AnalyticsDashboard({
                   <div className="flex items-center justify-between rounded-xl bg-zinc-950/90 border border-purple-500/30 px-3 py-2">
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
-                      <span className="text-xs font-bold text-zinc-200">🏆 Troféus PS5</span>
+                      <span className="text-xs font-bold text-zinc-200">🏆 Troféus</span>
                     </div>
                     <span className="text-xs font-mono font-black text-purple-300">
                       +{trophiesXp.toLocaleString('pt-BR')} XP ({pctTrophiesXp}%)
@@ -1318,16 +1319,23 @@ export default function AnalyticsDashboard({
 
           {/* DETALHAMENTO PROFUNDO DOS SUBSISTEMAS DE XP */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {/* Subsistema 1: Troféus PS5 por Tier */}
+            {/* Subsistema 1: Troféus por Tier + Estrelas Infinitas */}
             <div className="rounded-3xl bg-zinc-950/90 border border-purple-500/30 p-5 flex flex-col justify-between gap-4">
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
                   <div>
                     <span className="text-[10px] font-black uppercase tracking-widest text-purple-400">
-                      Sistema de Conquistas PS5
+                      Sistema de Conquistas
                     </span>
-                    <h3 className="text-base font-black text-white">
-                      🏆 {xpSources.trophies?.totalUnlocked || 0} / {xpSources.trophies?.totalAvailable || 0} Troféus
+                    <h3 className="text-base font-black text-white flex items-center gap-2 flex-wrap">
+                      <span>
+                        🏆 {xpSources.trophies?.totalUnlocked || 0} / {xpSources.trophies?.totalAvailable || 0} Troféus
+                      </span>
+                      {(xpSources.trophies?.extraStarsCount || 0) > 0 && (
+                        <span className="text-xs font-mono font-black text-cyan-300 bg-cyan-500/15 border border-cyan-400/35 px-2 py-0.5 rounded-lg">
+                          + {xpSources.trophies.extraStarsCount}★ Infinitos
+                        </span>
+                      )}
                     </h3>
                   </div>
                   <span className="text-xs font-mono font-black px-2.5 py-1 rounded-xl bg-purple-500/20 border border-purple-400/40 text-purple-200">
@@ -1362,6 +1370,31 @@ export default function AnalyticsDashboard({
                       </div>
                     );
                   })}
+
+                  {/* Troféus Infinitos (Estrelas Extras ★) */}
+                  {(() => {
+                    const extraStarsCount = Number(xpSources.trophies?.extraStarsCount) || 0;
+                    const extraStarsXp = Number(xpSources.trophies?.extraStarsXp) || 0;
+                    return (
+                      <div className="rounded-xl bg-gradient-to-r from-cyan-950/35 via-fuchsia-950/25 to-zinc-900/75 border border-cyan-400/35 px-3 py-2 flex flex-col gap-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-black text-cyan-300">
+                            🌟 Infinito <span className="text-[10px] text-cyan-400/80">(55 XP / ★)</span>
+                          </span>
+                          <span className="font-mono font-bold text-zinc-200">
+                            {extraStarsCount}★/∞{' '}
+                            <span className="text-amber-300 ml-1">+{extraStarsXp} XP</span>
+                          </span>
+                        </div>
+                        <div className="w-full h-1.5 rounded-full bg-zinc-950 overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-amber-300 rounded-full transition-all duration-500"
+                            style={{ width: `${extraStarsCount > 0 ? 100 : 0}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -1868,7 +1901,7 @@ export default function AnalyticsDashboard({
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/40">
-                          Classe #{activeDisplayClass.orderIndex || 11} de {characterClass.totalClassesCount || 16} • {activeDisplayClass.unlockPts} pts
+                          Classe #{activeDisplayClass.orderIndex || 11} de {characterClass.totalClassesCount || 20} • {activeDisplayClass.unlockPts} pts
                         </span>
                         {activeDisplayClass.isCustomEquipped ? (
                           <span className="text-[10px] font-mono font-bold text-amber-300 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/40">
@@ -1886,9 +1919,14 @@ export default function AnalyticsDashboard({
                     </div>
                   </div>
 
-                  <span className="text-xs font-mono font-black px-3 py-1.5 rounded-xl bg-zinc-900 border border-amber-400/35 text-amber-300 shrink-0">
-                    {totalStatPoints} pts
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                    {(activeDisplayClass.classStars || 0) > 0 && (
+                      <InfiniteStarsRow count={activeDisplayClass.classStars} compact maxVisible={5} />
+                    )}
+                    <span className="text-xs font-mono font-black px-3 py-1.5 rounded-xl bg-zinc-900 border border-amber-400/35 text-amber-300">
+                      {totalStatPoints} pts
+                    </span>
+                  </div>
                 </div>
 
                 {/* Subtítulo / Título de Honra */}
@@ -1969,7 +2007,7 @@ export default function AnalyticsDashboard({
                     <div>
                       <span className="text-amber-300 font-black block">Trilha Lendária Completa!</span>
                       <span className="text-zinc-400 text-[11px] block">
-                        Você desbloqueou todas as 16 classes cinematográficas da jornada!
+                        Você desbloqueou todas as {characterClass.totalClassesCount || 20} classes cinematográficas da jornada!
                       </span>
                     </div>
                   </div>
@@ -1978,18 +2016,39 @@ export default function AnalyticsDashboard({
 
               {/* Barra de Pontos Totais de Atributo + Acesso ao Grimório */}
               <div className="relative z-10 pt-2 border-t border-zinc-800/80 flex flex-col gap-2">
-                <div className="flex items-center justify-between text-[11px] font-mono">
+                <div className="flex items-center justify-between text-[11px] font-mono gap-2 flex-wrap">
                   <span className="text-zinc-400 font-bold">
                     Pontos Totais de Atributo Investidos:
                   </span>
-                  <span className="text-amber-300 font-black">
-                    {totalStatPoints} / {activeDisplayClass.maxPossibleStats} pts ({activeDisplayClass.statsProgressPct}%)
+                  <span className="text-amber-300 font-black flex items-center gap-2">
+                    {(activeDisplayClass.classStars || 0) > 0 ? (
+                      <>
+                        <span>
+                          Ciclo {activeDisplayClass.classCycleScore} / {activeDisplayClass.maxPossibleStats} ({activeDisplayClass.classCyclePct}%)
+                        </span>
+                        <span className="text-cyan-300">• Total: {totalStatPoints} pts</span>
+                      </>
+                    ) : (
+                      <span>
+                        {totalStatPoints} / {activeDisplayClass.maxPossibleStats} pts ({activeDisplayClass.statsProgressPct}%)
+                      </span>
+                    )}
                   </span>
                 </div>
                 <div className="w-full h-2 rounded-full bg-zinc-950 overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-amber-500 via-purple-400 to-cyan-400 rounded-full transition-all duration-700"
-                    style={{ width: `${activeDisplayClass.statsProgressPct}%` }}
+                    className={`h-full rounded-full transition-all duration-700 ${
+                      (activeDisplayClass.classStars || 0) > 0
+                        ? 'bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-amber-300'
+                        : 'bg-gradient-to-r from-amber-500 via-purple-400 to-cyan-400'
+                    }`}
+                    style={{
+                      width: `${
+                        (activeDisplayClass.classStars || 0) > 0
+                          ? activeDisplayClass.classCyclePct
+                          : activeDisplayClass.statsProgressPct
+                      }%`,
+                    }}
                   />
                 </div>
 
@@ -1999,7 +2058,7 @@ export default function AnalyticsDashboard({
                   className="w-full py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-amber-500/40 text-xs font-black uppercase tracking-wider text-amber-200 hover:text-amber-100 flex items-center justify-center gap-2 cursor-pointer transition-all shadow-md group mt-1"
                 >
                   <BookOpen className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
-                  <span>📖 Grimório Completo das 16 Classes Cinéfilas</span>
+                  <span>📖 Grimório Completo das {characterClass.totalClassesCount || 20} Classes Cinéfilas</span>
                 </button>
               </div>
             </div>
@@ -2038,7 +2097,11 @@ export default function AnalyticsDashboard({
                 {rpgAttributes.map((attr) => (
                   <div
                     key={attr.key}
-                    className="rounded-2xl bg-zinc-900/70 border border-zinc-800/80 p-3 flex flex-col gap-1.5 hover:border-zinc-700 transition-all"
+                    className={`rounded-2xl p-3 flex flex-col gap-1.5 transition-all ${
+                      (attr.stars || 0) > 0
+                        ? 'bg-zinc-900/85 border border-cyan-400/45 shadow-[0_0_16px_rgba(34,211,238,0.12)] hover:border-cyan-300/70'
+                        : 'bg-zinc-900/70 border border-zinc-800/80 hover:border-zinc-700'
+                    }`}
                   >
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2 min-w-0">
@@ -2062,6 +2125,12 @@ export default function AnalyticsDashboard({
                         <span className="font-mono text-sm font-black text-white">
                           {attr.score} <span className="text-[10px] text-zinc-500 font-normal">/ 99</span>
                         </span>
+                        {(attr.stars || 0) > 0 && (
+                          <span className="text-[10px] font-mono text-cyan-300 font-bold" title="Pontuação real acumulada sem reset">
+                            ({attr.rawScore} pts)
+                          </span>
+                        )}
+                        <InfiniteStarsRow count={attr.stars || 0} compact maxVisible={4} />
                         <span className={`text-[10px] font-black px-2 py-0.5 rounded border ${attr.color}`}>
                           {attr.grade}
                         </span>
@@ -2072,7 +2141,7 @@ export default function AnalyticsDashboard({
                     <div className="w-full h-1.5 rounded-full bg-zinc-950 overflow-hidden">
                       <div
                         className={`h-full rounded-full bg-gradient-to-r ${attr.barColor || 'from-amber-400 to-yellow-300'}`}
-                        style={{ width: `${Math.min(100, Math.max(2, attr.score))}%` }}
+                        style={{ width: `${attr.barPct ?? Math.min(100, Math.max(2, attr.score))}%` }}
                       />
                     </div>
 
@@ -3338,7 +3407,7 @@ export default function AnalyticsDashboard({
                 </div>
                 <div>
                   <h2 className="text-lg font-black text-white flex items-center gap-2">
-                    Trilha das 16 Classes Cinéfilas
+                    Trilha das {characterClass.totalClassesCount || 20} Classes Cinéfilas
                   </h2>
                   <p className="text-xs text-zinc-400">
                     Desbloqueie novas classes acumulando pontos de atributo na sua jornada. Você pode equipar qualquer classe já conquistada!
@@ -3378,12 +3447,12 @@ export default function AnalyticsDashboard({
                   </button>
                 )}
                 <span className="font-mono text-zinc-400">
-                  <strong className="text-amber-300">{characterClass.unlockedClassesCount || 11}</strong> / {characterClass.totalClassesCount || 16} Desbloqueadas
+                  <strong className="text-amber-300">{characterClass.unlockedClassesCount || 11}</strong> / {characterClass.totalClassesCount || 20} Desbloqueadas
                 </span>
               </div>
             </div>
 
-            {/* Conteúdo do Grimório (Grid das 16 Classes em Ordem de Desbloqueio) */}
+            {/* Conteúdo do Grimório (Grid das 20 Classes em Ordem de Desbloqueio) */}
             <div className="p-4 sm:p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4">
               {(characterClass.allClasses || [])
                 .filter((cls) => {
@@ -3508,7 +3577,7 @@ export default function AnalyticsDashboard({
                     Como Ganhar Cada Ponto de Atributo?
                   </h2>
                   <p className="text-xs text-zinc-400">
-                    Regras e métricas oficiais que calculam sua pontuação (0 a 99 em cada atributo)
+                    Regras e métricas oficiais que calculam sua pontuação (0–99 por ciclo + ★ infinitas)
                   </p>
                 </div>
               </div>
@@ -3530,8 +3599,8 @@ export default function AnalyticsDashboard({
                     <span className="text-xs font-black text-amber-300 flex items-center gap-1.5">
                       <span>⚡</span> AGI • Vigor de Tela (Agilidade)
                     </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-300">
-                      Máx 99 pts
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-cyan-300">
+                      Ciclo 0–99 + ★
                     </span>
                   </div>
                   <p className="text-xs text-zinc-300 leading-relaxed">
@@ -3550,8 +3619,8 @@ export default function AnalyticsDashboard({
                     <span className="text-xs font-black text-cyan-300 flex items-center gap-1.5">
                       <span>🧠</span> INT • Sabedoria Temporal (Inteligência)
                     </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-300">
-                      Máx 99 pts
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-cyan-300">
+                      Ciclo 0–99 + ★
                     </span>
                   </div>
                   <p className="text-xs text-zinc-300 leading-relaxed">
@@ -3571,8 +3640,8 @@ export default function AnalyticsDashboard({
                     <span className="text-xs font-black text-emerald-300 flex items-center gap-1.5">
                       <span>🌍</span> DES • Diplomacia Global (Destreza)
                     </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-300">
-                      Máx 99 pts
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-cyan-300">
+                      Ciclo 0–99 + ★
                     </span>
                   </div>
                   <p className="text-xs text-zinc-300 leading-relaxed">
@@ -3590,8 +3659,8 @@ export default function AnalyticsDashboard({
                     <span className="text-xs font-black text-rose-300 flex items-center gap-1.5">
                       <span>🎯</span> SOR • Olhar Clínico (Sorte / Precisão)
                     </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-300">
-                      Máx 99 pts
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-cyan-300">
+                      Ciclo 0–99 + ★
                     </span>
                   </div>
                   <p className="text-xs text-zinc-300 leading-relaxed">
@@ -3607,10 +3676,10 @@ export default function AnalyticsDashboard({
                 <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800 p-4 flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black text-purple-300 flex items-center gap-1.5">
-                      <span>🛡️</span> VIT • Caça-Troféus PS5 (Vitalidade)
+                      <span>🛡️</span> VIT • Caça-Troféus (Vitalidade)
                     </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-300">
-                      Máx 99 pts
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-cyan-300">
+                      Ciclo 0–99 + ★
                     </span>
                   </div>
                   <p className="text-xs text-zinc-300 leading-relaxed">
@@ -3620,6 +3689,7 @@ export default function AnalyticsDashboard({
                     <div>• 🥉 Bronze: <strong>+0.2 VIT</strong> | 🥈 Prata: <strong>+0.4 VIT</strong></div>
                     <div>• 🔮 Épico: <strong>+0.6 VIT</strong> | 🥇 Ouro: <strong>+0.8 VIT</strong></div>
                     <div>• 💎 Mítico: <strong>+1.0 VIT</strong> | 🏆 Platina: <strong>+3.0 VIT</strong></div>
+                    <div>• 🌟 Estrela Infinita (★): <strong>+0.5 VIT por ★</strong></div>
                   </div>
                 </div>
 
@@ -3629,8 +3699,8 @@ export default function AnalyticsDashboard({
                     <span className="text-xs font-black text-yellow-300 flex items-center gap-1.5">
                       <span>👑</span> FOR • Prestígio Áureo (Força)
                     </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-300">
-                      Máx 99 pts
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-cyan-300">
+                      Ciclo 0–99 + ★
                     </span>
                   </div>
                   <p className="text-xs text-zinc-300 leading-relaxed">
@@ -3648,8 +3718,8 @@ export default function AnalyticsDashboard({
                     <span className="text-xs font-black text-rose-300 flex items-center gap-1.5">
                       <span>🌟</span> CAR • Aura de Estrela (Carisma)
                     </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-300">
-                      Máx 99 pts
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-cyan-300">
+                      Ciclo 0–99 + ★
                     </span>
                   </div>
                   <p className="text-xs text-zinc-300 leading-relaxed">
@@ -3667,9 +3737,9 @@ export default function AnalyticsDashboard({
               {/* Box de Resumo da Progressão */}
               <div className="rounded-2xl bg-gradient-to-r from-amber-500/15 via-purple-500/15 to-cyan-500/15 border border-amber-500/35 p-4 text-xs text-zinc-200 leading-relaxed">
                 <span className="font-black text-amber-300 uppercase tracking-wider block mb-1">
-                  🌟 O que a soma total de pontos desbloqueia?
+                  🌟 Ranks Infinitos e Soma Total de Pontos
                 </span>
-                A soma dos seus 7 atributos (máximo de 693 pontos) destrava progressivamente todas as <strong>16 Classes Cinéfilas</strong> na sua Trilha Linear!
+                A soma real dos seus 7 atributos continua subindo sem parar para desbloquear as <strong>{characterClass.totalClassesCount || 20} Classes Cinéfilas</strong>! Ao atingir <strong>100 pts</strong> em um atributo (além do SS++ / 99), você ganha uma <strong>Estrela Infinita (★)</strong>, a barra reinicia do <strong>0 ao 99</strong> para subir novamente do C ao SS++, e sua pontuação total acumulada continua sendo somada! Passando de <strong>693 pts</strong> totais, a sua Classe também conquista Estrelas de Prestígio.
               </div>
             </div>
 

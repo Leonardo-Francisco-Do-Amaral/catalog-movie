@@ -36,6 +36,9 @@ function getTagBadgeStyle(tag) {
   if (tag.type === 'time_decade') {
     return 'bg-amber-500/25 text-amber-100 border-amber-300/65 shadow-[0_0_12px_rgba(245,158,11,0.25)]';
   }
+  if (tag.type === 'trophy_star') {
+    return 'bg-gradient-to-r from-cyan-500/25 via-fuchsia-500/20 to-amber-500/25 text-cyan-100 border-cyan-300/70 shadow-[0_0_12px_rgba(34,211,238,0.28)]';
+  }
   if (tag.type === 'trophy') {
     switch (tag.rarityOrTier) {
       case 'platinum':

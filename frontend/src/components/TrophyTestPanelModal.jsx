@@ -179,6 +179,67 @@ export default function TrophyTestPanelModal({
     triggerPS5TrophyToast(item);
   };
 
+  const simulateInfiniteStarToast = (starNumber = 3, withProgressAndXp = false) => {
+    const trophyUnlock = {
+      id: `sim_inf_star_${starNumber}_${Date.now()}`,
+      card_id: 'vm_rank_brasil',
+      tier: 'mythic',
+      category: 'volta_ao_mundo',
+      title: `É do Brasil! • ★${starNumber} Infinito`,
+      description: `Progressão Infinita! Alcançou ${starNumber} estrela${starNumber === 1 ? '' : 's'} além do Rank Mítico (+55 XP).`,
+      icon: '🇧🇷',
+      is_extra_star: true,
+      extra_star_number: starNumber,
+      star_xp: 55,
+    };
+
+    if (withProgressAndXp) {
+      triggerTrophyBatch({
+        unlocked: [trophyUnlock],
+        progressed: [
+          {
+            id: `sim_inf_prog_${Date.now()}`,
+            category: 'dna_cinefilo',
+            tier: 'mythic',
+            title: `Final Épico (★2)`,
+            description: 'Rumo à próxima Estrela Infinita (20% além do teto Mítico).',
+            icon: '🔥',
+            currentCount: 16,
+            targetCount: 20,
+            previousPercentage: 75,
+            progress_percentage: 80,
+            increasedBy: 1,
+            is_infinite_star: true,
+          },
+        ],
+      });
+      triggerXPGainToast({
+        gainedXp: 65,
+        prevTotalXp: 7300,
+        nextTotalXp: 7365,
+        prevLevel: 21,
+        newLevel: 21,
+        prevPercentage: 42,
+        newPercentage: 58,
+        leveledUp: false,
+        levelsGained: 0,
+        prevTitle: 'Quantas Armadilhas Você Fez para Chegar Aqui?',
+        newTitle: 'Quantas Armadilhas Você Fez para Chegar Aqui?',
+        titleChanged: false,
+        xpInCurrentLevel: 233,
+        xpNeededForNextLevel: 400,
+        xpRemaining: 167,
+        tags: [
+          { type: 'movie', icon: '🎬', label: '+10 XP Filme', xp: 10 },
+          { type: 'trophy_star', icon: '🌟', label: '+55 XP Estrela Infinita', xp: 55, rarityOrTier: 'infinite' },
+        ],
+      });
+      return;
+    }
+
+    triggerPS5TrophyToast(trophyUnlock);
+  };
+
   const simulateCollectibleToast = () => {
     triggerPS5ProgressToast({
       id: 'sim_collectible_47_50',
@@ -910,27 +971,46 @@ export default function TrophyTestPanelModal({
     });
   };
 
-  const handleTestOverride = async (overrideState) => {
+  const handleTestOverride = async (overrideState, overrideExtraStars = undefined) => {
     if (!selectedTrophyId) return;
     setLoading(true);
     setMessage(null);
     try {
-      const res = await axios.post(`${API_BASE_URL}/trophies/test/override`, {
+      const payload = {
         trophyId: selectedTrophyId,
         overrideState,
-      });
+        ...(overrideExtraStars !== undefined ? { overrideExtraStars } : {}),
+      };
+      const res = await axios.post(`${API_BASE_URL}/trophies/test/override`, payload);
       if (res.data?.success) {
         setMessage({
           type: 'success',
-          text: `Status do troféu atualizado para: ${
-            overrideState === true
-              ? 'Desbloqueado (Teste)'
-              : overrideState === false
-                ? 'Bloqueado (Teste)'
-                : 'Automático'
-          }`,
+          text:
+            overrideExtraStars !== undefined
+              ? overrideExtraStars === null
+                ? 'Estrelas infinitas restauradas ao cálculo automático!'
+                : `Estrelas Infinitas do card forçadas para ${overrideExtraStars}★ (+${overrideExtraStars * 55} XP)!`
+              : `Status do troféu atualizado para: ${
+                  overrideState === true
+                    ? 'Desbloqueado (Teste)'
+                    : overrideState === false
+                      ? 'Bloqueado (Teste)'
+                      : 'Automático'
+                }`,
         });
-        if (overrideState === true) {
+        if (overrideExtraStars !== undefined && overrideExtraStars > 0) {
+          const t = trophies.find((x) => x.id === selectedTrophyId);
+          if (t) {
+            triggerPS5TrophyToast({
+              ...t,
+              tier: 'mythic',
+              title: `${t.title} • ★${overrideExtraStars} Infinito`,
+              is_extra_star: true,
+              extra_star_number: overrideExtraStars,
+              star_xp: overrideExtraStars * 55,
+            });
+          }
+        } else if (overrideState === true) {
           const t = trophies.find((x) => x.id === selectedTrophyId);
           if (t) triggerPS5TrophyToast(t);
         }
@@ -945,19 +1025,37 @@ export default function TrophyTestPanelModal({
     } catch {
       try {
         const { evaluateTrophiesClientSide } = await import('../utils/trophyEngineClient');
-        const localOverrides = { [selectedTrophyId]: overrideState };
-        const localData = evaluateTrophiesClientSide(movies, localOverrides);
+        const localOverrides = {
+          ...(overrideState !== undefined ? { [selectedTrophyId]: overrideState } : {}),
+          ...(overrideExtraStars !== undefined ? { [`__stars__${selectedTrophyId}`]: overrideExtraStars } : {}),
+        };
+        const localData = evaluateTrophiesClientSide(movies, localOverrides, trophies);
         setMessage({
           type: 'success',
-          text: `[Modo Local] Status atualizado: ${
-            overrideState === true
-              ? 'Desbloqueado (Teste)'
-              : overrideState === false
-                ? 'Bloqueado (Teste)'
-                : 'Automático'
-          }`,
+          text:
+            overrideExtraStars !== undefined
+              ? `[Modo Local] Estrelas ajustadas para: ${overrideExtraStars ?? 'Automático'}`
+              : `[Modo Local] Status atualizado: ${
+                  overrideState === true
+                    ? 'Desbloqueado (Teste)'
+                    : overrideState === false
+                      ? 'Bloqueado (Teste)'
+                      : 'Automático'
+                }`,
         });
-        if (overrideState === true) {
+        if (overrideExtraStars !== undefined && overrideExtraStars > 0) {
+          const t = trophies.find((x) => x.id === selectedTrophyId);
+          if (t) {
+            triggerPS5TrophyToast({
+              ...t,
+              tier: 'mythic',
+              title: `${t.title} • ★${overrideExtraStars} Infinito`,
+              is_extra_star: true,
+              extra_star_number: overrideExtraStars,
+              star_xp: overrideExtraStars * 55,
+            });
+          }
+        } else if (overrideState === true) {
           let toastTarget = trophies.find((x) => x.id === selectedTrophyId);
           if (!toastTarget) {
             for (const c of trophies) {
@@ -1068,7 +1166,7 @@ export default function TrophyTestPanelModal({
                 Painel de Testes & Homologação
               </h3>
               <p className="text-xs text-zinc-400">
-                Toasts PS5, HUD Colecionável (47/50), tempo de tela e testes de troféus.
+                Toasts de Troféus, HUD Colecionável (47/50), tempo de tela e testes de troféus.
               </p>
             </div>
           </div>
@@ -1152,7 +1250,7 @@ export default function TrophyTestPanelModal({
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
               <span>🎯</span>
-              <span>1. Simulação de Progresso & Colecionáveis PS5</span>
+              <span>1. Simulação de Progresso &amp; Colecionáveis</span>
             </span>
             <button
               type="button"
@@ -1202,7 +1300,7 @@ export default function TrophyTestPanelModal({
               <div className="flex items-center gap-2 text-left">
                 <span className="text-base">💎</span>
                 <div>
-                  <div className="text-[11px] leading-tight text-rose-300">Mítico + Prata (Leva PS5)</div>
+                  <div className="text-[11px] leading-tight text-rose-300">Mítico + Prata (Combo)</div>
                   <div className="text-[9px] font-mono text-zinc-300 lowercase">troféu em cima + 4 prog. embaixo • som por troféu</div>
                 </div>
               </div>
@@ -1229,6 +1327,26 @@ export default function TrophyTestPanelModal({
             })}
           </div>
 
+          {/* Testes da Mecânica Infinita (Estrelas ★ + Som Exclusivo + +55 XP) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
+            <button
+              type="button"
+              onClick={() => simulateInfiniteStarToast(3, false)}
+              className="p-2 rounded-xl border border-cyan-400/65 bg-gradient-to-r from-cyan-500/20 via-fuchsia-500/15 to-amber-500/20 hover:brightness-110 text-cyan-100 text-[11px] font-black flex items-center justify-between cursor-pointer transition-all"
+            >
+              <span>🌟 Toast Estrela Infinita (★★★ • Som ★)</span>
+              <Play className="w-3.5 h-3.5 shrink-0 text-amber-300" />
+            </button>
+            <button
+              type="button"
+              onClick={() => simulateInfiniteStarToast(7, true)}
+              className="p-2 rounded-xl border border-fuchsia-400/60 bg-gradient-to-r from-fuchsia-500/20 via-cyan-500/15 to-amber-500/20 hover:brightness-110 text-fuchsia-100 text-[11px] font-black flex items-center justify-between cursor-pointer transition-all"
+            >
+              <span>✨ Combo ★7 (+55 XP + Prog. Infinito)</span>
+              <Play className="w-3.5 h-3.5 shrink-0 text-cyan-300" />
+            </button>
+          </div>
+
           {/* Botão de Sequência Completa: Troféus -> Máquina do Tempo -> Barra de XP */}
           <div className="pt-2 border-t border-zinc-800/60 mt-1 flex flex-col gap-2">
             {/* NOVO: Sequência Tripla Oficial */}
@@ -1244,7 +1362,7 @@ export default function TrophyTestPanelModal({
                     Combo Triplo: Troféus → Máquina do Tempo → Barra de XP
                   </div>
                   <div className="text-[10px] font-mono text-zinc-300 font-normal">
-                    1º Troféus PS5 somem → 2º Portal 1985 abre/fecha → 3º Barra +165 XP!
+                    1º Troféus somem → 2º Portal 1985 abre/fecha → 3º Barra +165 XP!
                   </div>
                 </div>
               </div>
@@ -1831,6 +1949,41 @@ export default function TrophyTestPanelModal({
               Restaurar Auto
             </button>
           </div>
+
+          {/* Simular Estrelas Infinitas direto no card Rank selecionado (para inspecionar no Grid & Modal + XP) */}
+          {(() => {
+            const selCard = trophies.find((t) => t.id === selectedTrophyId);
+            if (!selCard || selCard.kind !== 'rank' || selCard.is_finite_cap) return null;
+            const curStars = selCard.extra_stars || 0;
+            return (
+              <div className="bg-cyan-950/25 border border-cyan-500/35 rounded-xl p-2.5 flex items-center justify-between gap-2 flex-wrap">
+                <span className="text-[10px] font-black uppercase tracking-wider text-cyan-200">
+                  🌟 Testar Estrelas Infinitas neste Rank (Atual: {curStars}★):
+                </span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[1, 3, 6, 8].map((nStars) => (
+                    <button
+                      key={nStars}
+                      type="button"
+                      disabled={loading}
+                      onClick={() => handleTestOverride(true, nStars)}
+                      className="px-2 py-1 rounded-lg border border-cyan-400/50 bg-cyan-500/15 hover:bg-cyan-500/30 text-cyan-100 text-[10px] font-black font-mono cursor-pointer transition-all"
+                    >
+                      ★{nStars}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => handleTestOverride(null, null)}
+                    className="px-2 py-1 rounded-lg border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-[10px] font-bold cursor-pointer transition-all"
+                  >
+                    Auto ★
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* SEÇÃO 4: Sincronização Geral e Reset */}

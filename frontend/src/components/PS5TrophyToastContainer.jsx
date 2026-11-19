@@ -5,7 +5,7 @@ import {
   playCollectibleChimeSound,
 } from '../utils/trophyAudio';
 import { notifyTrophiesStarted, notifyTrophiesCleared } from '../utils/xpSystem';
-import { getCleanTrophyTitle } from './TrophyBadges';
+import { getCleanTrophyTitle, INFINITE_STAR_VISUAL, InfiniteStarsRow } from './TrophyBadges';
 
 export const CATEGORY_LABELS = {
   volta_ao_mundo: 'Volta ao Mundo',
@@ -105,7 +105,12 @@ export function getTrophyPriority(item) {
   if (!item || !item.trophy) return 0;
   const isUnlock = item.type === 'unlock';
   const tierKey = String(item.trophy.tier || 'bronze').toLowerCase();
-  const tierWeight = TIER_DIFFICULTY_WEIGHT[tierKey] || 10;
+  const isExtraStar = Boolean(
+    item.trophy.is_extra_star || tierKey === 'infinite' || Number(item.trophy.extra_star_number || 0) > 0
+  );
+  const tierWeight = isExtraStar
+    ? Math.max(TIER_DIFFICULTY_WEIGHT[tierKey] || 50, 55)
+    : TIER_DIFFICULTY_WEIGHT[tierKey] || 10;
 
   if (isUnlock) {
     return 1000 + tierWeight;
@@ -218,8 +223,14 @@ function PS5ToastCard({ toast, onRemove, settings }) {
   const { trophy, toastId, type } = toast;
   const isProgress = type === 'progress';
   const tierKey = String(trophy.tier || 'bronze').toLowerCase();
-  const theme = TIER_THEMES[tierKey] || TIER_THEMES.bronze;
+  const isExtraStar = Boolean(
+    trophy.is_extra_star || tierKey === 'infinite' || Number(trophy.extra_star_number || 0) > 0
+  );
+  const isInfiniteProgress = Boolean(isProgress && trophy.is_infinite_star);
+  const baseTheme = TIER_THEMES[tierKey] || TIER_THEMES.bronze;
+  const theme = isExtraStar ? INFINITE_STAR_VISUAL : baseTheme;
   const isPlatinum = tierKey === 'platinum' || tierKey === 'platina';
+  const starCount = Math.max(0, Number(trophy.extra_star_number || trophy.extra_stars || 0));
 
   const cleanTitle = getCleanTrophyTitle(trophy.title);
   const categoryLabel =
@@ -382,7 +393,7 @@ function PS5ToastCard({ toast, onRemove, settings }) {
               {isProgress ? (
                 <>
                   <span className="text-[8.5px] uppercase font-black tracking-widest px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
-                    <span>PROGRESSO</span>
+                    <span>{isInfiniteProgress ? '🌟 RUMO ★' : 'PROGRESSO'}</span>
                     <span className="font-mono text-[9px] text-amber-200 font-black">+{incBy}</span>
                   </span>
                   <span
@@ -390,6 +401,15 @@ function PS5ToastCard({ toast, onRemove, settings }) {
                   >
                     {theme.symbol} {theme.name}
                   </span>
+                </>
+              ) : isExtraStar ? (
+                <>
+                  <span
+                    className={`text-[9.5px] uppercase font-black tracking-widest px-2 py-0.5 rounded-md border ${INFINITE_STAR_VISUAL.badgeBg}`}
+                  >
+                    🌟 Mítico Infinito
+                  </span>
+                  {starCount > 0 && <InfiniteStarsRow count={starCount} compact />}
                 </>
               ) : (
                 <span
@@ -404,8 +424,8 @@ function PS5ToastCard({ toast, onRemove, settings }) {
               </span>
 
               {!isProgress && (
-                <span className="text-[9.5px] uppercase font-black text-emerald-400 tracking-wider flex items-center gap-0.5">
-                  <CheckCircle2 className="w-3 h-3" /> Conquistado!
+                <span className={`text-[9.5px] uppercase font-black tracking-wider flex items-center gap-0.5 ${isExtraStar ? 'text-cyan-300' : 'text-emerald-400'}`}>
+                  <CheckCircle2 className="w-3 h-3" /> {isExtraStar ? `+${trophy.star_xp || 55} XP!` : 'Conquistado!'}
                 </span>
               )}
               {trophy.isGhost && (

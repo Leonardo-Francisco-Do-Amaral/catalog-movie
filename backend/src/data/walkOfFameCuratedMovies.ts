@@ -8120,21 +8120,6 @@ export const WALK_OF_FAME_CURATED_MOVIES: Record<string, WalkCuratedMovieReq[]> 
     { "name": "A Fuga das Galinhas: A Ameaça dos Nuggets (2023)", "patterns": ["a ameaca dos nuggets", "a ameaça dos nuggets", "dawn of the nugget"], "year": 2023, "character": "Ginger" }
   ],
 
-  "cf_blake_lively": [
-    { "name": "Deadpool & Wolverine (2024)", "patterns": ["deadpool & wolverine", "deadpool e wolverine"], "year": 2024, "character": "Lady Deadpool (Wanda Wilson)" },
-    { "name": "A Incrível História de Adaline (2015)", "patterns": ["historia de adaline", "história de adaline", "the age of adaline"], "year": 2015, "character": "Adaline Bowman" },
-    { "name": "Águas Rasas (2016)", "patterns": ["aguas rasas", "águas rasas", "the shallows"], "year": 2016, "character": "Nancy Adams" },
-    { "name": "Um Pequeno Favor (2018)", "patterns": ["um pequeno favor", "a simple favor"], "year": 2018, "exclude": ["outro pequeno favor", "another simple favor"], "character": "Emily Nelson" },
-    { "name": "Atração Perigosa (2010)", "patterns": ["atracao perigosa", "atração perigosa", "the town"], "year": 2010, "character": "Kristina \"Kris\" Coughlin" },
-    { "name": "Lanterna Verde (2011)", "patterns": ["lanterna verde", "green lantern"], "year": 2011, "character": "Carol Ferris" },
-    { "name": "Café Society (2016)", "patterns": ["cafe society", "café society"], "year": 2016, "character": "Veronica Hayes" },
-    { "name": "É Assim que Acaba (2024)", "patterns": ["e assim que acaba", "é assim que acaba", "it ends with us"], "year": 2024, "character": "Lily Bloom" },
-    { "name": "Selvagens (2012)", "patterns": ["selvagens", "savages"], "year": 2012, "character": "Ophelia \"O\" Sage" },
-    { "name": "Quatro Amigas e um Jeans Viajante (2005)", "patterns": ["jeans viajante", "sisterhood of the traveling pants"], "year": 2005, "character": "Bridget Vreeland" },
-    { "name": "Amigos Imaginários (2024)", "patterns": ["amigos imaginarios", "amigos imaginários", "if"], "year": 2024, "character": "Octocat (voz)" },
-    { "name": "Outro Pequeno Favor (2025)", "patterns": ["outro pequeno favor", "another simple favor"], "year": 2025, "character": "Emily Nelson" }
-  ],
-
   "cf_reynolds_lively": [
     { "name": "Deadpool & Wolverine (2024)", "patterns": ["deadpool & wolverine", "deadpool e wolverine"], "year": 2024, "character": "Wade Wilson & Lady Deadpool", "memberNames": ["Ryan Reynolds", "Blake Lively"] },
     { "name": "Deadpool (2016)", "patterns": ["deadpool"], "year": 2016, "exclude": ["deadpool 2", "wolverine"], "character": "Wade Wilson / Deadpool", "memberNames": ["Ryan Reynolds"] },

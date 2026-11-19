@@ -177,7 +177,7 @@ export default function LevelDetailsModal({
                 </span>
               ) : (
                 <span className="text-emerald-400 font-bold">
-                  👑 Patente Máxima Nível 100+ Desbloqueada!
+                  👑 Patente Máxima Nível 200+ Desbloqueada!
                 </span>
               )}
             </div>
@@ -439,7 +439,7 @@ export default function LevelDetailsModal({
                         XP de Troféus (Soma por Tiers)
                       </div>
                       <div className="text-[11px] text-zinc-400">
-                        Bronze (15) • Prata (25) • Épico (40) • Ouro (70) • Mítico (105) • Platina (1.000)
+                        Bronze (15) • Prata (25) • Épico (40) • Ouro (70) • Mítico (105) • Platina (1.000) • Infinito ★ (55)
                       </div>
                     </div>
                   </div>
@@ -470,6 +470,21 @@ export default function LevelDetailsModal({
                     );
                   })}
                 </div>
+
+                {(trophiesSource.extraStarsCount || 0) > 0 && (
+                  <div className="flex items-center justify-between gap-2 rounded-xl border border-cyan-400/45 bg-gradient-to-r from-cyan-950/50 via-fuchsia-950/35 to-amber-950/40 px-3 py-2 text-[11px]">
+                    <div className="flex items-center gap-2 font-black text-cyan-200">
+                      <span>🌟</span>
+                      <span>Estrelas Infinitas dos Troféus de Rank ({trophiesSource.extraStarsCount}★)</span>
+                      <span className="font-mono text-[10px] text-cyan-300/80 font-normal">
+                        • +55 XP cada
+                      </span>
+                    </div>
+                    <span className="font-mono font-black text-amber-200">
+                      +{(trophiesSource.extraStarsXp || 0).toLocaleString('pt-BR')} XP
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Fonte 4: Máquina do Tempo (Anos Conquistados + Relíquias de Décadas) */}

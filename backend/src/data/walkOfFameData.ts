@@ -1462,28 +1462,6 @@ const RAW_WALK_OF_FAME_STARS: WalkStarDefinition[] = [
     ],
   },
   {
-    id: 'cf_ryan_reynolds',
-    albumNumber: 42,
-    name: 'Ryan Reynolds',
-    searchQuery: 'Ryan Reynolds',
-    wikiTitle: 'Ryan_Reynolds',
-    alameda: 'hollywood',
-    kind: 'actor',
-    icon: '⚔️',
-    nationalityCode: 'ca',
-    nationalityLabel: 'Canadá',
-    tagline: 'Quebra a Quarta Parede, Zoa o Próprio Filme do Lanterna Verde e Convenceu o Hugh Jackman a Voltar!',
-    knownFor: 'Deadpool & Wolverine • Free Guy • A Proposta • Enterrado Vivo • Projeto Adam',
-    quote: 'Esforço Máximo! O único mercenário tagarela que vazou o próprio teste de efeitos especiais para forçar o estúdio a fazer Deadpool.',
-    rpgTitle: 'Mercenário da Quarta Parede',
-    secretFact: 'Com o orçamento do primeiro "Deadpool" cortado pelo estúdio em plena produção, Ryan Reynolds tirou dinheiro do próprio bolso para pagar a presença dos roteiristas Rhett Reese e Paul Wernick todos os dias no set — e levou para casa o uniforme original escondido na mochila depois do teste de 2014.',
-    curiosities: [
-      'Transformou a trilogia "Deadpool" na franquia para maiores de 18 anos mais lucrativa da história do cinema, culminando no bilionário "Deadpool & Wolverine" (2024).',
-      'No suspense "Enterrado Vivo" (Buried, 2010), atua sozinho durante 95 minutos inteiros dentro de um caixão de madeira debaixo da terra.',
-      'Fora das telas, é coproprietário do clube de futebol galês Wrexham AFC, que subiu divisões consecutivas e virou série documental premiada.',
-    ],
-  },
-  {
     id: 'cf_guilherme_briggs',
     albumNumber: 4,
     name: 'Guilherme Briggs',
@@ -2378,31 +2356,6 @@ const RAW_WALK_OF_FAME_STARS: WalkStarDefinition[] = [
       'Ke Huy Quan ficou quase 20 anos afastado da atuação trabalhando como coordenador de dublês nos bastidores por falta de papéis para atores asiáticos — e só voltou a atuar após se inspirar em "Podres de Ricos" (onde Michelle Yeoh atuava!).',
       'Michelle Yeoh tornou-se a primeira atriz asiática da história a vencer o Oscar de Melhor Atriz por "Tudo em Todo o Lugar ao Mesmo Tempo" (2022).',
       'Brendan Fraser recebeu 6 minutos de aplausos de pé no Festival de Veneza por "A Baleia" (The Whale, 2022), coroando o "Brenaissance" com o Oscar de Melhor Ator.',
-    ],
-  },
-  {
-    id: 'cf_blake_lively',
-    albumNumber: 60,
-    name: 'Blake Lively',
-    searchQuery: 'Blake Lively',
-    wikiTitle: 'Blake_Lively',
-    alameda: 'hollywood',
-    kind: 'actor',
-    icon: '👠',
-    oscarWins: 0,
-    oscarNominations: 0,
-    nationalityCode: 'us',
-    nationalityLabel: 'Estados Unidos',
-    ceilingOverride: 15,
-    tagline: 'XOXO, Garota do Blog: De Upper East Side e Tubarão em "Águas Rasas" até a Lady Deadpool!',
-    knownFor: 'A Incrível História de Adaline • Águas Rasas • Um Pequeno Favor • Atração Perigosa • Deadpool & Wolverine • É Assim que Acaba',
-    quote: '“Você sabe que me ama. XOXO.” — Especialmente quando sobrevive a um tubarão-branco em cima de uma rocha ou aparece mascarada em "Deadpool & Wolverine".',
-    rpgTitle: 'Rainha Imortal de Upper East Side',
-    secretFact: 'Pouquíssimo tempo depois do nascimento de sua filha, Blake Lively gravou "Águas Rasas" (2016) quase sem dublês passando horas na água em cima de uma pedra minúscula. Em 2024, entrou em segredo absoluto no elenco de "Deadpool & Wolverine" dublando a Lady Deadpool ao lado do marido Ryan Reynolds!',
-    curiosities: [
-      'Protagonizou o sucesso "Um Pequeno Favor" (2018) ao lado de Anna Kendrick e "A Incrível História de Adaline" (2015), além do hit "É Assim que Acaba" (2024).',
-      'Brilhou em papéis dramáticos intensos sob direção de Ben Affleck em "Atração Perigosa" (The Town, 2010) e Woody Allen em "Café Society" (2016).',
-      'Ficou mundialmente famosa como Serena van der Woodsen em "Gossip Girl" e virou ícone de moda nos tapetes vermelhos do Met Gala.',
     ],
   },
   {
@@ -4661,7 +4614,6 @@ export const WALK_STAR_CEILING_OVERRIDES: Record<string, number> = {
   cf_brad_renfro: 10,
   cf_lupita_nyongo: 10,
   cf_daniel_kaluuya: 10,
-  cf_blake_lively: 10,
   cf_anya_taylor_joy: 12,
   cf_elizabeth_olsen: 12,
   cf_jacob_tremblay: 12,
@@ -4687,7 +4639,6 @@ export const WALK_STAR_CEILING_OVERRIDES: Record<string, number> = {
   cf_kate_winslet: 20,
   cf_scarlett_johansson: 20,
   cf_benedict_cumberbatch: 20,
-  cf_ryan_reynolds: 20,
   cf_johnny_depp: 20,
   cf_toni_collette: 20,
   cf_robert_downey_jr: 20,
@@ -4737,13 +4688,19 @@ export const WALK_STAR_CEILING_OVERRIDES: Record<string, number> = {
   cf_hirokazu_koreeda: 10,
 };
 
+const albumScopeSeq = { hollywood: 0, dublador: 0, director: 0 };
+
 export const WALK_OF_FAME_STARS: WalkStarDefinition[] = RAW_WALK_OF_FAME_STARS.map((star) => {
+  const scopeKey =
+    star.kind === 'director' ? 'director' : star.kind === 'dublador' ? 'dublador' : 'hollywood';
+  albumScopeSeq[scopeKey] += 1;
   const calibratedCeiling = WALK_STAR_CEILING_OVERRIDES[star.id] ?? star.ceilingOverride;
   const isRisingDirector =
     star.kind === 'director' &&
     Boolean(star.isNewEraVisionary || (typeof calibratedCeiling === 'number' && calibratedCeiling <= 7));
   return {
     ...star,
+    albumNumber: albumScopeSeq[scopeKey],
     ...(typeof calibratedCeiling === 'number' ? { ceilingOverride: calibratedCeiling } : {}),
     ...(isRisingDirector ? { isNewEraVisionary: true } : {}),
   };

@@ -30,6 +30,7 @@ export type WorldChallengePayload = Awaited<ReturnType<typeof buildWorldChalleng
 export type TimeMachinePayload = Awaited<ReturnType<typeof buildTimeMachinePayload>>;
 
 export const XP_PER_MOVIE = 10;
+export const TROPHY_XP_PER_EXTRA_STAR = 55;
 
 export const TROPHY_XP_BY_TIER: Record<TrophyTier, number> = {
   bronze: 15,
@@ -100,12 +101,32 @@ export const LEVEL_TITLE_RANGES: LevelTitleRange[] = [
   { minLevel: 85, maxLevel: 89, title: 'A Cadeira do Sofá Já Tem o Formato do Seu Corpo' },
   { minLevel: 90, maxLevel: 94, title: 'Chefe Final da Máfia de Hollywood' },
   { minLevel: 95, maxLevel: 99, title: 'Platinador Supremo da PSN Cinematográfica' },
-  { minLevel: 100, maxLevel: null, title: 'A Entidade Absoluta do Cinema (Zerou a Vida Social!)' },
+  { minLevel: 100, maxLevel: 104, title: 'A Entidade Absoluta do Cinema (Zerou a Vida Social!)' },
+  { minLevel: 105, maxLevel: 109, title: 'Já Dá Pra Pedir Pensão Alimentícia pro Letterboxd' },
+  { minLevel: 110, maxLevel: 114, title: 'Assistiu até o Making Of dos Créditos de Figurante' },
+  { minLevel: 115, maxLevel: 119, title: 'O Algoritmo do Streaming Pede Dicas Pra Você' },
+  { minLevel: 120, maxLevel: 124, title: 'Sobreviveu a Três "Baseado em Fatos Reais" num Sábado' },
+  { minLevel: 125, maxLevel: 129, title: 'O Martin Scorsese Te Mandou Áudio de 4 Minutos Discordando' },
+  { minLevel: 130, maxLevel: 134, title: 'Donatário Vitalício da Poltrona K-14 do IMAX' },
+  { minLevel: 135, maxLevel: 139, title: 'Já Viu Mais Trailers que o Projecionista do Shopping' },
+  { minLevel: 140, maxLevel: 144, title: 'Dá Nota com 3 Casas Decimais Até pra Propaganda do Detran' },
+  { minLevel: 145, maxLevel: 149, title: 'A Wikipédia Consulta Sua Planilha Antes de Editar Filmografia' },
+  { minLevel: 150, maxLevel: 154, title: 'Conseguiu Achar Filme Bom na Coreia do Norte Sem VPN' },
+  { minLevel: 155, maxLevel: 159, title: 'Fiscal Oficial de Roteiro Furado & Microfone no Boom' },
+  { minLevel: 160, maxLevel: 164, title: 'Christopher Nolan Ligou Pedindo Explicação do Seu Final' },
+  { minLevel: 165, maxLevel: 169, title: 'Maratonou Nicolas Cage Sem Pular os Direto-pra-DVD' },
+  { minLevel: 170, maxLevel: 174, title: 'O Óculos 3D Já Faz Parte da Sua Estrutura Óssea' },
+  { minLevel: 175, maxLevel: 179, title: 'Tem Mais Estrela Infinita que a Via Láctea no Quarto' },
+  { minLevel: 180, maxLevel: 184, title: 'A A24 Já Mandou Boleto de Sócio-Torcedor' },
+  { minLevel: 185, maxLevel: 189, title: 'Desbloqueou Filmes que Só Existiam em VHS de Locadora' },
+  { minLevel: 190, maxLevel: 194, title: 'Seu Controle Remoto Aposentou e Pediu Recolhimento do INSS' },
+  { minLevel: 195, maxLevel: 199, title: 'Patrimônio Histórico Tombado da Sétima Arte (e do Sofá)' },
+  { minLevel: 200, maxLevel: null, title: 'Lenda Cósmica Nível 200: O Próprio Cinema Te Pede Autógrafo!' },
 ];
 
 export function getLevelTitle(level: number): string {
   const safeLevel = Math.max(1, Math.floor(level || 1));
-  if (safeLevel >= 100) {
+  if (safeLevel >= 200) {
     return LEVEL_TITLE_RANGES[LEVEL_TITLE_RANGES.length - 1].title;
   }
   const found = LEVEL_TITLE_RANGES.find(
@@ -116,7 +137,7 @@ export function getLevelTitle(level: number): string {
 
 export function getNextTitleMilestone(level: number): { level: number; title: string } | null {
   const safeLevel = Math.max(1, Math.floor(level || 1));
-  if (safeLevel >= 100) return null;
+  if (safeLevel >= 200) return null;
   const nextMilestoneLevel = safeLevel < 5 ? 5 : Math.floor(safeLevel / 5) * 5 + 5;
   return {
     level: nextMilestoneLevel,
@@ -207,6 +228,9 @@ export interface UserXpStatus extends LevelProgressInfo {
         TrophyTier,
         { label: string; icon: string; count: number; total: number; xpEach: number; totalXp: number }
       >;
+      extraStarsCount: number;
+      xpPerExtraStar: number;
+      extraStarsXp: number;
       totalXp: number;
     };
     timeMachine: TimeMachineXpSummary;
@@ -220,6 +244,7 @@ export interface XpGainTag {
     | 'movie'
     | 'country'
     | 'trophy'
+    | 'trophy_star'
     | 'time_machine'
     | 'time_decade'
     | 'universe_checkpoint'
@@ -349,8 +374,9 @@ export async function getQuickWalkOfFameXpSummary(): Promise<WalkOfFameXpSummary
     for (const r of res.rows || []) {
       const starId = String(r.star_id || '');
       const def = starMetaById.get(starId);
-      const isDirector = def?.kind === 'director';
-      const isRisingStar = Boolean(isDirector && def?.isNewEraVisionary);
+      if (!def) continue;
+      const isDirector = def.kind === 'director';
+      const isRisingStar = Boolean(isDirector && def.isNewEraVisionary);
       const claimedPct = Math.max(0, Number(r.claimed_xp_pct || 0));
       const claimedExtraStars = Math.max(0, Number(r.claimed_xp_extra_stars || 0));
       const split = computeWalkXpSplit(claimedPct, claimedExtraStars, isDirector, isRisingStar);
@@ -407,7 +433,7 @@ export async function getQuickWalkOfFameXpSummary(): Promise<WalkOfFameXpSummary
 
 export function buildUserXpStatus(
   worldData: WorldChallengePayload,
-  trophiesList: Array<{ id: string; kind?: string; title: string; tier: TrophyTier; is_unlocked: boolean; ranks?: any[] }>,
+  trophiesList: Array<{ id: string; kind?: string; title: string; tier: TrophyTier; is_unlocked: boolean; extra_stars?: number; ranks?: any[] }>,
   universeSummary: UniverseXpSummary = EMPTY_UNIVERSE_XP_SUMMARY,
   walkOfFameSummary: WalkOfFameXpSummary = EMPTY_WALK_OF_FAME_XP_SUMMARY
 ): UserXpStatus {
@@ -504,12 +530,17 @@ export function buildUserXpStatus(
   const unlockedIds: Record<string, { title: string; tier: TrophyTier; xp: number }> = {};
   let trophiesXp = 0;
   let totalUnlocked = 0;
+  let extraStarsCount = 0;
 
   let totalAvailableCount = 0;
 
   for (const t of trophiesList || []) {
     const isRankCard = t.kind === 'rank' || (Array.isArray(t.ranks) && t.ranks.length > 0);
     if (isRankCard && Array.isArray(t.ranks) && t.ranks.length > 0) {
+      const cardExtraStars = Math.max(0, Number(t.extra_stars) || 0);
+      if (cardExtraStars > 0) {
+        extraStarsCount += cardExtraStars;
+      }
       for (const r of t.ranks) {
         const tier = (String(r.tier || 'bronze').toLowerCase() as TrophyTier) || 'bronze';
         if (!byTier[tier]) continue;
@@ -548,6 +579,9 @@ export function buildUserXpStatus(
       };
     }
   }
+
+  const extraStarsXp = extraStarsCount * TROPHY_XP_PER_EXTRA_STAR;
+  trophiesXp += extraStarsXp;
 
   // 4. XP da Máquina do Tempo (Anos Conquistados + Bônus de Décadas Completas)
   const timeMachineSummary = computeTimeMachineXpSummary(worldData.catalogMovies || []);
@@ -590,6 +624,9 @@ export function buildUserXpStatus(
         totalAvailable: totalAvailableCount,
         unlockedIds,
         byTier,
+        extraStarsCount,
+        xpPerExtraStar: TROPHY_XP_PER_EXTRA_STAR,
+        extraStarsXp,
         totalXp: trophiesXp,
       },
       timeMachine: timeMachineSummary,
@@ -850,7 +887,8 @@ export async function getQuickXpSnapshot(
     options.trophiesOverride
       ? Promise.resolve(null)
       : query(`
-          SELECT t.id, t.kind, t.title, t.tier, t.ranks_config, COALESCE(ut.is_unlocked, FALSE) AS is_unlocked, ut.ranks_state
+          SELECT t.id, t.kind, t.title, t.tier, t.ranks_config, COALESCE(ut.is_unlocked, FALSE) AS is_unlocked, ut.ranks_state,
+                 COALESCE(ut.extra_stars, 0) AS extra_stars
           FROM trophies t
           LEFT JOIN user_trophies ut ON ut.trophy_id = t.id
         `),
@@ -866,6 +904,7 @@ export async function getQuickXpSnapshot(
         title: String(r.title || ''),
         tier: (String(r.tier || 'bronze').toLowerCase() as TrophyTier) || 'bronze',
         is_unlocked: Boolean(r.is_unlocked),
+        extra_stars: Number(r.extra_stars) || 0,
         ranks:
           r.kind === 'rank' || (Array.isArray(r.ranks_config) && r.ranks_config.length > 0)
             ? parseRanksForXp(r.ranks_config, r.ranks_state, String(r.title || ''))
@@ -1030,6 +1069,23 @@ export function computeXpGainEvent(
         });
       }
     }
+  }
+
+  const prevExtraTrophyStars = Number(prev.sources.trophies?.extraStarsCount || 0);
+  const nextExtraTrophyStars = Number(next.sources.trophies?.extraStarsCount || 0);
+  const newExtraTrophyStars = Math.max(0, nextExtraTrophyStars - prevExtraTrophyStars);
+  if (newExtraTrophyStars > 0) {
+    const starXp = newExtraTrophyStars * TROPHY_XP_PER_EXTRA_STAR;
+    tags.push({
+      type: 'trophy_star',
+      icon: '🌟',
+      label:
+        newExtraTrophyStars === 1
+          ? `+${starXp} XP Estrela Infinita`
+          : `+${starXp.toLocaleString('pt-BR')} XP ${newExtraTrophyStars} Estrelas Infinitas`,
+      xp: starXp,
+      rarityOrTier: 'infinite',
+    });
   }
 
   // 4.5. Tags do Códice dos Universos (Checkpoints +30 XP, Sagas 100% e Mega-Sagas Míticas)

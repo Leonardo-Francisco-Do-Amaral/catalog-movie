@@ -66,6 +66,8 @@ export function toggleAudioMute() {
 
 const SOUND_PATHS = {
   trophyProgress: '/sounds/trofeus/progresso/26f8b9_sonic_ring_sound_effect.mp3',
+  // Som customizável exclusivo para Estrela Infinita (★) de Rank — se null, usa acorde astral Web Audio API:
+  trophyExtraStar: null,
   trophyByTier: {
     bronze: '/sounds/trofeus/bronze/all-chaos-emeralds-sonic-3-knuckles.mp3',
     silver: '/sounds/trofeus/prata/two-time-respawne-forsaken.mp3',
@@ -225,22 +227,32 @@ export function getSpecificTrophySoundUrl(trophy) {
   return trophy.customSoundUrl || null;
 }
 
+export function isInfiniteStarTrophy(trophy) {
+  if (!trophy) return false;
+  return Boolean(
+    trophy.is_extra_star ||
+      trophy.tier === 'infinite' ||
+      Number(trophy.extra_star_number || 0) > 0
+  );
+}
+
 /**
  * Prioridade única por leva de até 4 cards na tela:
  * 1) Troféu específico com áudio próprio (desbloqueado primeiro, desempatado por raridade)
- * 2) Grau do troféu desbloqueado mais raro da leva (Platina > Mítico > Ouro > Épico > Prata > Bronze)
+ * 2) Grau do troféu desbloqueado mais raro da leva (Platina > Estrela Infinita > Mítico > Ouro > Épico > Prata > Bronze)
  * 3) Som de progresso parcial (1 único som se toda a leva for só progresso)
  */
 export function playTrophyBatchSound(items = []) {
   if (isAudioMuted() || !Array.isArray(items) || items.length === 0) return;
 
+  const weightOf = (trophy) => {
+    const base = TIER_WEIGHT[normalizeTierKey(trophy?.tier)] || 0;
+    return isInfiniteStarTrophy(trophy) ? Math.max(base, 55) : base;
+  };
+
   const unlocked = items
     .filter((item) => item && item.type !== 'progress' && item.trophy)
-    .sort((a, b) => {
-      const wa = TIER_WEIGHT[normalizeTierKey(a.trophy?.tier)] || 0;
-      const wb = TIER_WEIGHT[normalizeTierKey(b.trophy?.tier)] || 0;
-      return wb - wa;
-    });
+    .sort((a, b) => weightOf(b.trophy) - weightOf(a.trophy));
 
   // Prioridade 1: Troféu específico com som cadastrado
   const specificUnlocked = unlocked.find((item) => Boolean(getSpecificTrophySoundUrl(item.trophy)));
@@ -266,14 +278,38 @@ export function playTrophyBatchSound(items = []) {
   playCollectibleChimeSound();
 }
 
+export function playTrophyStarSound() {
+  if (isAudioMuted()) return;
+  if (SOUND_PATHS.trophyExtraStar) {
+    playAudioFile(SOUND_PATHS.trophyExtraStar, {
+      onFallback: playSyntheticTrophyStarSound,
+    });
+    return;
+  }
+  playSyntheticTrophyStarSound();
+}
+
 /**
- * Toca o efeito sonoro de acordo com o Tier da conquista (ou som específico do troféu se existir).
+ * Toca o efeito sonoro de acordo com o Tier da conquista (ou som específico/Estrela Infinita se existir).
  */
 export function playTrophySound(tier = 'bronze', trophy = null) {
   if (isAudioMuted()) return;
   const specificUrl = getSpecificTrophySoundUrl(trophy);
+  if (specificUrl) {
+    playAudioFile(specificUrl, {
+      onFallback: () =>
+        isInfiniteStarTrophy(trophy) ? playSyntheticTrophyStarSound() : playSyntheticTrophySound(normalizeTierKey(tier)),
+    });
+    return;
+  }
+
+  if (isInfiniteStarTrophy(trophy)) {
+    playTrophyStarSound();
+    return;
+  }
+
   const tierKey = normalizeTierKey(tier);
-  const customUrl = specificUrl || SOUND_PATHS.trophyByTier[tierKey];
+  const customUrl = SOUND_PATHS.trophyByTier[tierKey];
 
   if (customUrl) {
     playAudioFile(customUrl, {
@@ -534,6 +570,59 @@ function playSyntheticTrophySound(tier = 'bronze') {
     }
   } catch (err) {
     console.warn('[TrophyAudio] Não foi possível reproduzir som sintético:', err);
+  }
+}
+
+/**
+ * Efeito sonoro astral cristalino exclusivo para Estrela Infinita (★) de Rank (distinto de todos os tiers e do Sonic ring).
+ */
+function playSyntheticTrophyStarSound() {
+  if (isAudioMuted()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+
+    // 1. Pulso sub-astral suave
+    const sub = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    sub.type = 'sine';
+    sub.frequency.setValueAtTime(146.83, now); // D3
+    sub.frequency.exponentialRampToValueAtTime(73.42, now + 0.55);
+    subGain.gain.setValueAtTime(0.001, now);
+    subGain.gain.linearRampToValueAtTime(0.24, now + 0.04);
+    subGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.65);
+    sub.connect(subGain);
+    subGain.connect(ctx.destination);
+    sub.start(now);
+    sub.stop(now + 0.7);
+
+    // 2. Cascata estelar ascendente em quintas cristalinas (D5 -> A5 -> E6 -> B6 -> D7 -> F#7)
+    const starNotes = [
+      { f: 587.33, t: 0.0, d: 0.28, wave: 'triangle' },
+      { f: 880.0, t: 0.07, d: 0.32, wave: 'sine' },
+      { f: 1318.51, t: 0.14, d: 0.38, wave: 'sine' },
+      { f: 1975.53, t: 0.22, d: 0.55, wave: 'sine' },
+      { f: 2349.32, t: 0.3, d: 1.05, wave: 'sine' },
+      { f: 2959.96, t: 0.36, d: 1.15, wave: 'sine' },
+    ];
+
+    starNotes.forEach(({ f, t, d, wave }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = wave;
+      osc.frequency.setValueAtTime(f, now + t);
+      gain.gain.setValueAtTime(0.001, now + t);
+      gain.gain.linearRampToValueAtTime(0.2, now + t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + t + d);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + t);
+      osc.stop(now + t + d + 0.06);
+    });
+  } catch (err) {
+    console.warn('[TrophyAudio] Erro ao reproduzir som de Estrela Infinita:', err);
   }
 }
 

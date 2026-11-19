@@ -53,6 +53,7 @@ export interface TrophyChecklistItem {
   code?: string;
   name: string;
   flag?: string | null;
+  badge_icon?: string | null;
   required: number;
   current: number;
   conquered: boolean;
@@ -61,6 +62,16 @@ export interface TrophyChecklistItem {
   poster_url?: string | null;
   extra_info?: string;
   rule_desc?: string;
+  rule_label?: string;
+  total_matched?: number;
+  matched_movies?: Array<{
+    title: string;
+    year?: number | null;
+    poster_url?: string | null;
+    rating?: number | null;
+    month_seen?: number | null;
+    year_seen?: number | null;
+  }>;
 }
 
 export interface TrophyRankState {

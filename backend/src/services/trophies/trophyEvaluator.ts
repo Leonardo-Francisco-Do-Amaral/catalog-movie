@@ -60,6 +60,13 @@ export interface EvaluatedTrophyCard {
   ranks?: TrophyRankState[];
   unlocked_ranks_count?: number;
   highest_unlocked_tier?: TrophyTier | null;
+  extra_stars?: number;
+  star_step?: number;
+  star_progress_current?: number;
+  star_progress_target?: number;
+  star_progress_percentage?: number;
+  test_extra_stars?: number | null;
+  is_finite_cap?: boolean;
   checklist: TrophyChecklistItem[];
 }
 
@@ -72,6 +79,12 @@ export interface PreviousCardState {
   progress_target: number;
   progress_percentage: number;
   ranks_state?: Record<string, Partial<TrophyRankState>> | TrophyRankState[] | null;
+  extra_stars?: number;
+  star_step?: number;
+  star_progress_current?: number;
+  star_progress_target?: number;
+  star_progress_percentage?: number;
+  test_extra_stars?: number | null;
 }
 
 export interface NewlyUnlockedAchievement {
@@ -86,6 +99,9 @@ export interface NewlyUnlockedAchievement {
   unlocked_at: string;
   is_rank_step?: boolean;
   rank_step_target?: number;
+  is_extra_star?: boolean;
+  extra_star_number?: number;
+  star_xp?: number;
 }
 
 export interface ProgressedTrophy {
@@ -102,6 +118,7 @@ export interface ProgressedTrophy {
   delta: number;
   target_type: string;
   target_metadata: Record<string, any>;
+  is_infinite_star?: boolean;
 }
 
 interface RawRuleResult {
@@ -1295,6 +1312,7 @@ function computeRuleEvaluation(
             code,
             name: hEntry?.name || code.toUpperCase(),
             flag: hEntry?.flagCode || null,
+            badge_icon: hEntry?.badgeIcon || null,
             required: 1,
             current: isConq ? 1 : 0,
             conquered: isConq,
@@ -1811,32 +1829,34 @@ function computeRuleEvaluation(
     }
 
     case 'all_12_months_coverage': {
-      const minPerMonth = Number(meta.minPerMonth) || 1;
+      const monthTarget = Number(def.target_value) || 15;
       const monthCounts: number[] = [];
-      let covered = 0;
       for (let month = 1; month <= 12; month++) {
         const list = index.moviesByMonth.get(month) || [];
         monthCounts.push(list.length);
-        if (list.length >= minPerMonth) covered++;
         if (includeChecklist) {
           checklist.push({
             id: `month_${month}`,
             name: MONTH_NAMES[month],
-            required: minPerMonth,
-            current: Math.min(list.length, minPerMonth),
-            conquered: list.length >= minPerMonth,
+            required: monthTarget,
+            current: Math.min(list.length, monthTarget),
+            conquered: list.length >= monthTarget,
             movie_title: list[0]?.title || null,
             movie_year: list[0]?.releaseYear || null,
             poster_url: list[0]?.posterUrl || null,
-            extra_info: `${list.length} filme(s) neste mês`,
+            extra_info:
+              list.length >= monthTarget
+                ? `${list.length}/${monthTarget} filmes neste mês ✓`
+                : `${list.length}/${monthTarget} filmes neste mês (faltam ${monthTarget - list.length})`,
           });
         }
       }
+      const minMonthCount = monthCounts.length ? Math.min(...monthCounts) : 0;
       return {
-        rawCount: monthCounts.length ? Math.min(...monthCounts) : 0,
-        progressCurrent: covered,
-        progressTarget: 12,
-        isMet: covered >= 12,
+        rawCount: minMonthCount,
+        progressCurrent: minMonthCount,
+        progressTarget: monthTarget,
+        isMet: minMonthCount >= monthTarget,
         checklist,
         monthCounts,
       };
@@ -1846,7 +1866,7 @@ function computeRuleEvaluation(
       const tag = String(meta.tag || 'Bruxo');
       const decades: number[] = Array.isArray(meta.decades)
         ? meta.decades
-        : [1960, 1970, 1980, 1990, 2000, 2010, 2020, 2030];
+        : [1960, 1970, 1980, 1990, 2000, 2010, 2020];
       const candidates = index.moviesByTag.get(cleanTag(tag)) || [];
       progressTarget = decades.length;
       let covered = 0;
@@ -3158,6 +3178,238 @@ function computeRuleEvaluation(
       };
     }
 
+    case 'alan_turing_chronicle': {
+      progressTarget = 9;
+      const globalReq = Number(meta.requiredGlobalCount) || 8;
+      const globalMovies = index.movies.filter(
+        (m) => movieHasGenre(m, 'Ficção Científica') && movieHasTag(m, 'Personagem LGBT')
+      );
+      const globalMet = globalMovies.length >= globalReq;
+      let countMet = globalMet ? 1 : 0;
+
+      if (includeChecklist) {
+        checklist.push({
+          id: 'turing_global_scifi_lgbt',
+          name: `Meta Global: Conquistar ${globalReq} filmes de Ficção Científica com a tag "Personagem LGBT"`,
+          required: globalReq,
+          current: Math.min(globalReq, globalMovies.length),
+          conquered: globalMet,
+          movie_title: globalMovies[0]?.title || null,
+          movie_year: globalMovies[0]?.releaseYear || null,
+          poster_url: globalMovies[0]?.posterUrl || null,
+          extra_info: `${globalMovies.length}/${globalReq} filmes no catálogo`,
+        });
+      }
+
+      const milestones: Array<{
+        id: string;
+        name: string;
+        ruleDesc: string;
+        context: string;
+        match: (m: IndexedMovie) => boolean;
+      }> = [
+        {
+          id: 'marco_01_sherborne_christopher',
+          name: 'Marco 01 — Sherborne & Christopher (1920 a 1940)',
+          ruleDesc: 'Filme gravado entre 1920 e 1940 com as tags "Colégio/Escola" e "Personagem LGBT"',
+          context:
+            'O despertar matemático no colégio interno e o primeiro amor/amizade profunda com Christopher Morcom, que marcou toda a sua vida.',
+          match: (m) =>
+            m.releaseYear !== null &&
+            m.releaseYear >= 1920 &&
+            m.releaseYear <= 1940 &&
+            movieHasTag(m, 'Colegio/Escola') &&
+            movieHasTag(m, 'Personagem LGBT'),
+        },
+        {
+          id: 'marco_02_maquina_universal',
+          name: 'Marco 02 — A Máquina Universal (1920 a 1940)',
+          ruleDesc: 'Filme gravado entre 1920 e 1940 com o gênero "Drama" ou "Ficção Científica"',
+          context:
+            'Em 1936, Turing publica o artigo "On Computable Numbers", criando o conceito teórico da Máquina de Turing — a base de todos os computadores modernos.',
+          match: (m) =>
+            m.releaseYear !== null &&
+            m.releaseYear >= 1920 &&
+            m.releaseYear <= 1940 &&
+            (movieHasGenre(m, 'Drama') || movieHasGenre(m, 'Ficção Científica')),
+        },
+        {
+          id: 'marco_03_bletchley_enigma',
+          name: 'Marco 03 — Bletchley Park e o Código Enigma (1930 a 1940)',
+          ruleDesc: 'Filme gravado entre 1930 e 1940 produzido no Reino Unido ou Alemanha',
+          context:
+            'Com o início da Segunda Guerra Mundial, ele lidera a equipe secreta em Bletchley Park e projeta a máquina Bombe para decifrar as mensagens criptografadas da Enigma alemã.',
+          match: (m) =>
+            m.releaseYear !== null &&
+            m.releaseYear >= 1930 &&
+            m.releaseYear <= 1940 &&
+            (movieHasCountryAll(m, 'gb') || movieHasCountryAll(m, 'de')),
+        },
+        {
+          id: 'marco_04_anos_guerra_silencio',
+          name: 'Marco 04 — Os Anos de Guerra e o Silêncio (1940 a 1949)',
+          ruleDesc: 'Filme gravado entre 1940 e 1949 com o gênero "Drama"',
+          context:
+            'Seu trabalho encurtou a guerra e salvou milhões de vidas, mas permaneceu sob sigilo oficial enquanto ele projetava os primeiros computadores eletrônicos reais.',
+          match: (m) =>
+            m.releaseYear !== null && m.releaseYear >= 1940 && m.releaseYear <= 1949 && movieHasGenre(m, 'Drama'),
+        },
+        {
+          id: 'marco_05_teste_de_turing',
+          name: 'Marco 05 — O Teste de Turing (1950)',
+          ruleDesc: 'Filme de 1950 com o gênero "Ficção Científica"',
+          context:
+            'Ele publica o artigo histórico com a pergunta "Podem as máquinas pensar?", criando o famoso Jogo da Imitação (Teste de Turing) que deu origem à Inteligência Artificial.',
+          match: (m) => m.releaseYear === 1950 && movieHasGenre(m, 'Ficção Científica'),
+        },
+        {
+          id: 'marco_06_julgamento_injusto',
+          name: 'Marco 06 — O Julgamento Injusto (1952)',
+          ruleDesc: 'Filme de 1952 com a tag "Preconceito"',
+          context:
+            'Condenado pela justiça britânica por sua homossexualidade e submetido à castração química pelo próprio Estado que ele ajudou a salvar.',
+          match: (m) => m.releaseYear === 1952 && movieHasTag(m, 'Preconceito'),
+        },
+        {
+          id: 'marco_07_maca_envenenada',
+          name: 'Marco 07 — A Maçã Envenenada (1954)',
+          ruleDesc: 'Filme de 1954 com o gênero "Animação"',
+          context:
+            'Sua morte trágica aos 41 anos por envenenamento por cianeto, encontrado com uma maçã mordida ao lado da cama — ecoando o conto de Branca de Neve.',
+          match: (m) => m.releaseYear === 1954 && movieHasGenre(m, 'Animação'),
+        },
+        {
+          id: 'marco_08_perdao_real',
+          name: 'Marco 08 — Perdão depois da morte: será que resolve? (2013)',
+          ruleDesc: 'Filme de 2013 produzido no Reino Unido',
+          context:
+            'Quase 60 anos após sua morte, a Rainha Elizabeth II concede o perdão real póstumo oficial pela perseguição e condenação injusta de 1952.',
+          match: (m) => m.releaseYear === 2013 && movieHasCountryAll(m, 'gb'),
+        },
+      ];
+
+      for (const ms of milestones) {
+        const matched = index.movies.find(ms.match);
+        if (matched) countMet++;
+        if (includeChecklist) {
+          checklist.push({
+            id: ms.id,
+            name: ms.name,
+            required: 1,
+            current: matched ? 1 : 0,
+            conquered: Boolean(matched),
+            movie_title: matched?.title || null,
+            movie_year: matched?.releaseYear || null,
+            poster_url: matched?.posterUrl || null,
+            flag: matched?.primaryCountryCode195 || null,
+            rule_desc: ms.context,
+            extra_info: matched ? `${ms.ruleDesc} • Cumprida` : `Pendente • ${ms.ruleDesc}`,
+          });
+        }
+      }
+
+      return {
+        rawCount: countMet,
+        progressCurrent: countMet,
+        progressTarget: 9,
+        isMet: countMet >= 9,
+        checklist,
+      };
+    }
+
+    case 'memorial_luto_cycles': {
+      const tributes: Array<{
+        id: string;
+        name: string;
+        ruleLabel: string;
+        homage: string;
+        match: (m: IndexedMovie) => boolean;
+      }> = [
+        {
+          id: 'mem_01_vo_delha',
+          name: '1. Vó "Delha" Adélia (2012)',
+          ruleLabel: 'Brasil • Ano 2012 • Gênero Comédia',
+          homage:
+            'Eu amava muito a minha vó — ela tinha um coração enorme, onde cabiam todos os seus netos, bisnetos, filhos e filhas, a família inteira. Rezava por todos, pensava em todos. Essa eu saberia exatamente o que gostaria de ver na TV: um bom filme de comédia ou o "bonitão" do Silvio Santos. Será que, se o céu existir, ela já o encontrou pessoalmente?',
+          match: (m) => movieHasCountryAll(m, 'br') && m.releaseYear === 2012 && movieHasGenre(m, 'Comédia'),
+        },
+        {
+          id: 'mem_02_vo',
+          name: '2. Vô (2016)',
+          ruleLabel: 'Ano 2016 • Gênero Ação',
+          homage:
+            'Um homem do seu tempo, com seus problemas, trabalhador e sofrido com o peso da vida — mas, no final do dia, uma boa pessoa ao seu modo de ser e dentro da sua perspectiva do que era ser "bom".',
+          match: (m) => m.releaseYear === 2016 && movieHasGenre(m, 'Ação'),
+        },
+        {
+          id: 'mem_03_vo_nena',
+          name: '3. Vó "Nena" Umbelina (2022)',
+          ruleLabel: 'Ano 2022 • Tag "Religião"',
+          homage:
+            'Aquela que morou na minha casa por quase 8 anos. Sinto falta do amor, do carinho e de ser chamado de "lindo da avó". Espero que ela esteja bem, onde quer que esteja.',
+          match: (m) => m.releaseYear === 2022 && movieHasTag(m, 'Religião'),
+        },
+        {
+          id: 'mem_04_tio_galo',
+          name: '4. Tio "Galo" Onofre (2022)',
+          ruleLabel: 'Ano 2022 • Gênero Animação',
+          homage:
+            'Uma pessoa trabalhadora e carinhosa à sua maneira. Infelizmente o Parkinson tirou seus gestos, mas nunca o seu sorriso, a sua felicidade e a sua vontade de beber 😉. Acredito que adoraria assistir a uma animação com seus sobrinhos, mesmo que não fosse muito do estilo dele.',
+          match: (m) => m.releaseYear === 2022 && movieHasGenre(m, 'Animação'),
+        },
+        {
+          id: 'mem_05_tio_agnaldo',
+          name: '5. Tio Agnaldo (2023)',
+          ruleLabel: 'Ano 2023 • Gênero Curta',
+          homage:
+            'Uma pessoa bondosa à sua maneira, que me amava o máximo que podia, com um coração enorme e sempre acompanhado do seu radinho de pilha e um cigarro. Como não tinha paciência para ver filmes longos — só se a protagonista fosse bonita ou se fosse um jogo de futebol rsrs —, um curta é a medida perfeita.',
+          match: (m) => m.releaseYear === 2023 && movieHasGenre(m, 'Curta'),
+        },
+      ];
+
+      const counts: number[] = [];
+      for (const tr of tributes) {
+        const matches = index.movies.filter(tr.match);
+        counts.push(matches.length);
+        if (includeChecklist) {
+          const previewTitles =
+            matches.length > 0 ? matches.map((m) => m.title).join(' • ') : null;
+          checklist.push({
+            id: tr.id,
+            name: tr.name,
+            required: 5,
+            current: Math.min(matches.length, 5),
+            conquered: matches.length >= 5,
+            movie_title: previewTitles,
+            poster_url: matches[0]?.posterUrl || null,
+            flag: matches[0]?.primaryCountryCode195 || null,
+            rule_desc: tr.homage,
+            rule_label: tr.ruleLabel,
+            total_matched: matches.length,
+            matched_movies: matches.map((m) => ({
+              title: m.title,
+              year: m.releaseYear ?? null,
+              poster_url: m.posterUrl || null,
+              rating: m.ur ?? null,
+              month_seen: m.monthSeen ?? null,
+              year_seen: m.yearSeen ?? null,
+            })),
+            extra_info: `${tr.ruleLabel} • ${matches.length}/5 ciclos base${matches.length > 5 ? ` (+${matches.length - 5} extra ★)` : ''}`,
+          });
+        }
+      }
+
+      const completeCycles = counts.length ? Math.min(...counts) : 0;
+      return {
+        rawCount: completeCycles,
+        progressCurrent: completeCycles,
+        progressTarget: 5,
+        isMet: completeCycles >= 5,
+        checklist,
+        quotaRawCounts: counts,
+      };
+    }
+
     default: {
       // Suporta qualquer franchise_movie_list ou futuro checklist por padrões se existir
       if (Array.isArray(meta.movies)) {
@@ -3274,12 +3526,7 @@ function evaluateRankSteps(
     let stepCurrent = Math.min(raw.rawCount, stepTarget);
     let stepMet = raw.rawCount >= stepTarget;
 
-    if (def.target_type === 'all_12_months_coverage' && Array.isArray(raw.monthCounts)) {
-      stepTarget = 12;
-      const covered = raw.monthCounts.filter((c) => c >= step.target_value).length;
-      stepCurrent = covered;
-      stepMet = covered >= 12;
-    } else if (
+    if (
       (def.target_type === 'genre_quotas' || def.target_type === 'tag_checklist_quota') &&
       Array.isArray(raw.quotaRawCounts) &&
       raw.quotaRawCounts.length > 0
@@ -3381,6 +3628,125 @@ function evaluateRankSteps(
   };
 }
 
+export function computeRankInfiniteStars(
+  def: TrophyDefinition,
+  raw: RawRuleResult,
+  isFullyUnlocked: boolean,
+  cardOverride: boolean | null,
+  testExtraStarsOverride: number | null | undefined
+): {
+  isFiniteCap: boolean;
+  extraStars: number;
+  starStep: number;
+  starProgressCurrent: number;
+  starProgressTarget: number;
+  starProgressPercentage: number;
+} {
+  const isFiniteCap =
+    Boolean(def.target_metadata?.finiteCap) || def.target_type === 'conquered_countries_count';
+
+  if (isFiniteCap) {
+    return {
+      isFiniteCap: true,
+      extraStars: 0,
+      starStep: 0,
+      starProgressCurrent: 0,
+      starProgressTarget: 0,
+      starProgressPercentage: 0,
+    };
+  }
+
+  const steps = Array.isArray(def.ranks) ? def.ranks : [];
+  const mythicTarget = Number(steps[steps.length - 1]?.target_value ?? def.target_value) || 1;
+  let starStep = Math.max(1, Math.round(mythicTarget * 0.2));
+
+  if (testExtraStarsOverride !== null && testExtraStarsOverride !== undefined) {
+    const forcedStars = Math.max(0, Math.floor(Number(testExtraStarsOverride) || 0));
+    return {
+      isFiniteCap: false,
+      extraStars: forcedStars,
+      starStep,
+      starProgressCurrent: 0,
+      starProgressTarget: starStep,
+      starProgressPercentage: 0,
+    };
+  }
+
+  if (!isFullyUnlocked || cardOverride === false) {
+    return {
+      isFiniteCap: false,
+      extraStars: 0,
+      starStep,
+      starProgressCurrent: 0,
+      starProgressTarget: starStep,
+      starProgressPercentage: 0,
+    };
+  }
+
+  if (
+    def.target_type === 'memorial_luto_cycles' &&
+    Array.isArray(raw.quotaRawCounts) &&
+    raw.quotaRawCounts.length > 0
+  ) {
+    starStep = 1;
+    const extraStars = Math.max(0, raw.rawCount - mythicTarget);
+    const nextCycleGoal = mythicTarget + extraStars + 1;
+    const readyBuckets = raw.quotaRawCounts.filter((c) => c >= nextCycleGoal).length;
+    const totalBuckets = raw.quotaRawCounts.length;
+    return {
+      isFiniteCap: false,
+      extraStars,
+      starStep,
+      starProgressCurrent: readyBuckets,
+      starProgressTarget: totalBuckets,
+      starProgressPercentage:
+        totalBuckets > 0 ? Math.min(100, Math.round((readyBuckets / totalBuckets) * 100)) : 0,
+    };
+  }
+
+  if (
+    (def.target_type === 'genre_quotas' || def.target_type === 'tag_checklist_quota') &&
+    Array.isArray(raw.quotaRawCounts) &&
+    raw.quotaRawCounts.length > 0
+  ) {
+    const nQuotas = raw.quotaRawCounts.length;
+    const mythicPerQuota = Math.max(1, Math.floor(mythicTarget / nQuotas));
+    const perBucketStar = Math.max(1, Math.round((mythicTarget * 0.2) / nQuotas));
+    starStep = perBucketStar * nQuotas;
+    const minExcessPerBucket = Math.min(
+      ...raw.quotaRawCounts.map((c) => Math.max(0, c - mythicPerQuota))
+    );
+    const extraStars = Math.floor(minExcessPerBucket / perBucketStar);
+    const cycleBaseEach = mythicPerQuota + extraStars * perBucketStar;
+    const starCurr = raw.quotaRawCounts.reduce(
+      (acc, c) => acc + Math.min(perBucketStar, Math.max(0, c - cycleBaseEach)),
+      0
+    );
+    return {
+      isFiniteCap: false,
+      extraStars,
+      starStep,
+      starProgressCurrent: starCurr,
+      starProgressTarget: starStep,
+      starProgressPercentage:
+        starStep > 0 ? Math.min(100, Math.round((starCurr / starStep) * 100)) : 0,
+    };
+  }
+
+  const excess = Math.max(0, raw.rawCount - mythicTarget);
+  const extraStars = Math.floor(excess / starStep);
+  const starCurr = excess % starStep;
+  return {
+    isFiniteCap: false,
+    extraStars,
+    starStep,
+    starProgressCurrent: starCurr,
+    starProgressTarget: starStep,
+    starProgressPercentage:
+      starStep > 0 ? Math.min(100, Math.round((starCurr / starStep) * 100)) : 0,
+  };
+}
+
 /**
  * Evaluates a single non-platinum TrophyDefinition against a `CatalogIndex`.
  */
@@ -3406,23 +3772,37 @@ export function evaluateSingleNonPlatinumDefinition(
     const prevRanksMap = parsePrevRanksMap(prevState?.ranks_state);
     const rankRes = evaluateRankSteps(def, raw, prevRanksMap, nowIso, isBaseline);
 
-    // Override manual no card inteiro ainda funciona se aplicado ao card ID
+    // Override manual no card inteiro ou override de Estrelas Infinitas no Painel de Testes
     const cardOverride = prevState?.test_override ?? null;
+    const testExtraStarsOverride = prevState?.test_extra_stars ?? null;
+    const forceBaseByStars = testExtraStarsOverride !== null && testExtraStarsOverride > 0 && cardOverride !== false;
+
     let finalRanks = rankRes.ranks;
     let unlockedCount = rankRes.unlockedRanksCount;
     let highestTier = rankRes.highestUnlockedTier;
     let isFullyUnlocked = rankRes.isFullyUnlocked;
+    let unlockedAt = rankRes.unlockedAt;
 
-    if (cardOverride === true || cardOverride === false) {
+    if (cardOverride === true || cardOverride === false || forceBaseByStars) {
+      const effectiveUnlock = forceBaseByStars ? true : Boolean(cardOverride);
       finalRanks = finalRanks.map((r) => ({
         ...r,
-        is_unlocked: cardOverride,
-        unlocked_at: cardOverride ? r.unlocked_at || nowIso : null,
+        is_unlocked: effectiveUnlock,
+        unlocked_at: effectiveUnlock ? r.unlocked_at || nowIso : null,
       }));
-      unlockedCount = cardOverride ? finalRanks.length : 0;
-      highestTier = cardOverride ? finalRanks[finalRanks.length - 1]?.tier || def.tier : null;
-      isFullyUnlocked = cardOverride;
+      unlockedCount = effectiveUnlock ? finalRanks.length : 0;
+      highestTier = effectiveUnlock ? finalRanks[finalRanks.length - 1]?.tier || def.tier : null;
+      isFullyUnlocked = effectiveUnlock;
+      if (effectiveUnlock && !unlockedAt) unlockedAt = nowIso;
     }
+
+    const starMetrics = computeRankInfiniteStars(
+      def,
+      raw,
+      isFullyUnlocked,
+      cardOverride,
+      testExtraStarsOverride
+    );
 
     const card: EvaluatedTrophyCard = {
       id: def.id,
@@ -3439,7 +3819,7 @@ export function evaluateSingleNonPlatinumDefinition(
       sort_order: def.sort_order,
       search_keywords: searchKeywords,
       is_unlocked: isFullyUnlocked,
-      unlocked_at: rankRes.unlockedAt,
+      unlocked_at: unlockedAt,
       test_override: cardOverride,
       is_new: rankRes.hasAnyNew,
       progress_current: rankRes.parentProgressCurrent,
@@ -3448,14 +3828,47 @@ export function evaluateSingleNonPlatinumDefinition(
       ranks: finalRanks,
       unlocked_ranks_count: unlockedCount,
       highest_unlocked_tier: highestTier,
+      extra_stars: starMetrics.extraStars,
+      star_step: starMetrics.starStep,
+      star_progress_current: starMetrics.starProgressCurrent,
+      star_progress_target: starMetrics.starProgressTarget,
+      star_progress_percentage: starMetrics.starProgressPercentage,
+      test_extra_stars: testExtraStarsOverride,
+      is_finite_cap: starMetrics.isFiniteCap,
       checklist: raw.checklist,
     };
+
+    const newlyUnlocked = [...rankRes.newlyUnlockedSteps];
+    const prevExtraStars = Number(prevState?.extra_stars || 0);
+    if (
+      !isBaseline &&
+      testExtraStarsOverride === null &&
+      cardOverride !== true &&
+      !starMetrics.isFiniteCap &&
+      starMetrics.extraStars > prevExtraStars
+    ) {
+      const gainedStars = starMetrics.extraStars - prevExtraStars;
+      newlyUnlocked.push({
+        id: `${def.id}__star_${starMetrics.extraStars}`,
+        card_id: def.id,
+        title: `${def.title} • ★${starMetrics.extraStars} Infinito`,
+        description: `Progressão Infinita! Alcançou ${starMetrics.extraStars} estrela${starMetrics.extraStars === 1 ? '' : 's'} além do Rank Mítico (+${gainedStars * 55} XP).`,
+        tier: 'mythic',
+        category: def.category,
+        categories,
+        icon: def.icon,
+        unlocked_at: nowIso,
+        is_extra_star: true,
+        extra_star_number: starMetrics.extraStars,
+        star_xp: gainedStars * 55,
+      });
+    }
 
     let progressed: ProgressedTrophy | null = null;
     const prevProg = prevState ? prevState.progress_current : rankRes.prevHighestCurrent;
     if (
       !isBaseline &&
-      rankRes.newlyUnlockedSteps.length === 0 &&
+      newlyUnlocked.length === 0 &&
       !isFullyUnlocked &&
       card.progress_current > (prevState ? prevState.progress_current : 0) &&
       prevState
@@ -3475,11 +3888,36 @@ export function evaluateSingleNonPlatinumDefinition(
         target_type: def.target_type,
         target_metadata: def.target_metadata || {},
       };
+    } else if (
+      !isBaseline &&
+      newlyUnlocked.length === 0 &&
+      isFullyUnlocked &&
+      !starMetrics.isFiniteCap &&
+      prevState &&
+      starMetrics.extraStars === prevExtraStars &&
+      starMetrics.starProgressCurrent > (prevState.star_progress_current ?? 0)
+    ) {
+      progressed = {
+        id: def.id,
+        title: `${def.title} (★${starMetrics.extraStars + 1})`,
+        tier: 'mythic',
+        category: def.category,
+        categories,
+        icon: def.icon,
+        progress_current: starMetrics.starProgressCurrent,
+        progress_target: starMetrics.starProgressTarget,
+        progress_percentage: starMetrics.starProgressPercentage,
+        previous_current: prevState.star_progress_current ?? 0,
+        delta: starMetrics.starProgressCurrent - (prevState.star_progress_current ?? 0),
+        target_type: def.target_type,
+        target_metadata: def.target_metadata || {},
+        is_infinite_star: true,
+      };
     }
 
     return {
       card,
-      newlyUnlocked: rankRes.newlyUnlockedSteps,
+      newlyUnlocked,
       progressed,
     };
   }

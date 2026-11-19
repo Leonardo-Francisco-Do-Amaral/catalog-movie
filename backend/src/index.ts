@@ -657,27 +657,30 @@ async function evaluatePostMovieSaveEvents(params: {
     completedMegaSagas: [],
   };
 
-  try {
-    const codexResult = await evaluateAndBuildUniverseCodex({
+  const [codexRes, nextWorld] = await Promise.all([
+    evaluateAndBuildUniverseCodex({
       persist: true,
       triggerMovieId: movieId,
-    });
+    }).catch((uErr: any) => {
+      console.error(`[Universes] Erro na auto-avaliação (${sourceTrigger}):`, uErr.message);
+      return null;
+    }),
+    buildWorldChallengePayload().catch(() => null),
+  ]);
+
+  if (codexRes) {
     universeEvents = {
-      checkpoints: codexResult.newlyHitCheckpoints.map((cp) =>
+      checkpoints: codexRes.newlyHitCheckpoints.map((cp) =>
         isGhost ? { ...cp, isGhost: true } : cp
       ),
-      completedSagas: codexResult.newlyCompletedSagas.map((s) =>
+      completedSagas: codexRes.newlyCompletedSagas.map((s) =>
         isGhost ? { ...s, isGhost: true } : s
       ),
-      completedMegaSagas: codexResult.newlyCompletedMegaSagas.map((ms) =>
+      completedMegaSagas: codexRes.newlyCompletedMegaSagas.map((ms) =>
         isGhost ? { ...ms, isGhost: true } : ms
       ),
     };
-  } catch (uErr: any) {
-    console.error(`[Universes] Erro na auto-avaliação (${sourceTrigger}):`, uErr.message);
   }
-
-  const nextWorld = await buildWorldChallengePayload().catch(() => null);
 
   let newlyUnlocked: any[] = [];
   let progressedTrophies: any[] = [];
@@ -1718,12 +1721,19 @@ app.post('/api/trophies/ack-new', async (req: Request, res: Response) => {
 app.post('/api/trophies/test/override', async (req: Request, res: Response) => {
   try {
     const prevXp = await getQuickXpSnapshot().catch(() => null);
-    const { trophyId, overrideState } = req.body;
+    const { trophyId, overrideState, overrideExtraStars } = req.body;
     if (!trophyId) {
       return res.status(400).json({ success: false, error: 'trophyId é obrigatório' });
     }
-    const parsedState = overrideState === null ? null : Boolean(overrideState);
-    await setTrophyTestOverride(String(trophyId), parsedState);
+    const parsedState =
+      overrideState === undefined ? null : overrideState === null ? null : Boolean(overrideState);
+    const parsedExtraStars =
+      overrideExtraStars === undefined
+        ? undefined
+        : overrideExtraStars === null
+          ? null
+          : Math.max(0, Math.floor(Number(overrideExtraStars) || 0));
+    await setTrophyTestOverride(String(trophyId), parsedState, parsedExtraStars);
     const data = await evaluateTrophies({ markNew: false });
     const xpGain = computeXpGainEvent(prevXp, data.xpStatus);
     return res.json({ success: true, data, xpStatus: data.xpStatus, xpGain });

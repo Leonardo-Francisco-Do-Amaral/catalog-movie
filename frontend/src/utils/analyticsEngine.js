@@ -1226,8 +1226,27 @@ export const CHARACTER_TIERS = [
   { grade: 4, min: 350, max: 429, label: '👑 Grau 4 • Transclasse Cinéfila (Lord das Telas)', nextLabel: '⚡ Grau 5 • 3ª Evolução (Arcebispo da Sétima Arte)', nextMin: 430 },
   { grade: 5, min: 430, max: 499, label: '⚡ Grau 5 • 3ª Evolução (Arcebispo da Sétima Arte)', nextLabel: '🌌 Grau 6 • 4ª Evolução (Hiperclasse Mítica)', nextMin: 500 },
   { grade: 6, min: 500, max: 559, label: '🌌 Grau 6 • 4ª Evolução (Hiperclasse Mítica)', nextLabel: '🌟 Grau 7 • Entidade Cósmica Suprema (Semideus do 4K)', nextMin: 560 },
-  { grade: 7, min: 560, max: 693, label: '🌟 Grau 7 • Entidade Cósmica Suprema (Semideus do 4K)', nextLabel: 'Limite Supremo Conquistado!', nextMin: null },
+  { grade: 7, min: 560, max: 729, label: '🌟 Grau 7 • Entidade Cósmica Suprema (Semideus do 4K)', nextLabel: '🌌 Grau 8 • Arquiteto do Multiverso (Transcendência Pós-693)', nextMin: 730 },
+  { grade: 8, min: 730, max: Infinity, label: '🌌 Grau 8 • Arquiteto do Multiverso (Transcendência Pós-693)', nextLabel: 'Rank Infinito Desbloqueado (Estrelas de Prestígio)', nextMin: null },
 ];
+
+export function buildInfiniteStatProgress(rawSum) {
+  const rawScore = Math.max(0, Math.round(Number(rawSum) || 0));
+  const stars = Math.floor(rawScore / 100);
+  const score = rawScore % 100; // reseta a barrinha (0..99) a cada +100 pts (★1 = 100, ★2 = 200...)
+  const barPct =
+    stars > 0
+      ? Math.min(100, Math.round((score / 99) * 100))
+      : Math.min(100, Math.max(score > 0 ? 2 : 0, score));
+  return {
+    rawScore,
+    stars,
+    score,
+    cycleCap: 99,
+    barPct,
+    ...getRankGrade(score),
+  };
+}
 
 export const ALL_CINEMA_CLASSES = [
   {
@@ -1390,6 +1409,46 @@ export const ALL_CINEMA_CLASSES = [
     favoriteMovie: 'O Poderoso Chefão (1972) com moldura dourada e água benta.',
     passiveSkill: 'Aura da Academia: +40% de pompa e solenidade em discussões cult de bar.',
   },
+  {
+    id: 'cronista_creditos_pos',
+    unlockPts: 600,
+    className: 'O Cronista dos Pós-Créditos Eternos',
+    classIcon: '🎞️',
+    titleFlavor: 'Sentinela da Sala Vazia & Decifrador de Ganchos Secretos',
+    lore: 'Quando as luzes do cinema acendem e o funcionário com a vassoura já encara da porta, ele segue imóvel na poltrona esperando uma cena secreta de 4 segundos que talvez nem exista.',
+    favoriteMovie: 'Qualquer filme de franquia gigante ou épico com 14 minutos de agradecimentos em kanji antes da cena bônus.',
+    passiveSkill: 'Paciência de Projeção: Nunca se levanta antes da última linha do copyright desaparecer da tela.',
+  },
+  {
+    id: 'alquimista_maratonas',
+    unlockPts: 640,
+    className: 'O Alquimista das Maratonas Impossíveis',
+    classIcon: '⚗️',
+    titleFlavor: 'Transmutador de Insônia em Culto & Sommelier de Sessões Triplas',
+    lore: 'Mistura no mesmo domingo um terror cult iraniano de 1974, uma animação tcheca experimental e um blockbuster de três horas e meia — e ainda termina anotando a minutagem!',
+    favoriteMovie: 'Sátántangó (1994) em sessão dupla com Velozes e Furiosos sem piscar.',
+    passiveSkill: 'Imunidade ao Sono: +100% de lucidez crítica após as 3h da manhã em longas acima de 180 minutos.',
+  },
+  {
+    id: 'oraculo_pelicula',
+    unlockPts: 680,
+    className: 'O Oráculo da Película Sagrada',
+    classIcon: '🔮',
+    titleFlavor: 'Vidente dos Plot Twists & Juiz Supremo do IMDb',
+    lore: 'Descobre o assassino, o traidor e o grande plot twist final ainda nos créditos de abertura, só pelo olhar suspeito do coadjuvante que diz "pode deixar que eu olho lá fora".',
+    favoriteMovie: 'Os Suspeitos (1995) e O Sexto Sentido (1999) reassistidos só para checar as pistas falsas.',
+    passiveSkill: 'Terceiro Olho do Roteiro: Detecta foreshadowings escondidos e furos temporais no primeiro ato.',
+  },
+  {
+    id: 'arquiteto_multiverso',
+    unlockPts: 730,
+    className: 'O Arquiteto do Multiverso Cinéfilo',
+    classIcon: '🌌',
+    titleFlavor: 'Entidade Além dos 693 Pontos & Senhor das Estrelas Infinitas',
+    lore: 'Rompeu a barreira humana da pontuação clássica e entrou na era das Estrelas Infinitas. Não assiste mais ao catálogo: os próprios filmes fazem fila respeitosa para ganhar nota sua!',
+    favoriteMovie: 'Toda a história do cinema mundial projetada em 4K HDR Dolby Atmos dentro da própria mente.',
+    passiveSkill: 'Onisciência em 24 FPS: Domina todos os gêneros, países, décadas e troféus infinitos ao mesmo tempo.',
+  },
 ];
 
 export function determineCharacterClass(attributes = [], totalStats = 0, _movies = []) {
@@ -1414,6 +1473,11 @@ export function determineCharacterClass(attributes = [], totalStats = 0, _movies
   const highestUnlockedClass = unlockedList[unlockedList.length - 1] || evaluatedClasses[0];
   const nextClassToUnlock = evaluatedClasses.find((c) => !c.isUnlocked) || null;
 
+  const classStars = totalStats > 693 ? Math.floor(totalStats / 693) : 0;
+  const classCycleScore = totalStats > 693 ? totalStats % 693 : totalStats;
+  const classCyclePct = Math.min(100, Math.round((classCycleScore / 693) * 100));
+  const totalAttributeStars = attributes.reduce((sum, attr) => sum + (Number(attr?.stars) || 0), 0);
+
   return {
     ...highestUnlockedClass,
     tierLabel: currentTier.label,
@@ -1429,6 +1493,10 @@ export function determineCharacterClass(attributes = [], totalStats = 0, _movies
     totalStats,
     maxPossibleStats: 693, // 7 atributos x 99
     statsProgressPct: Math.min(100, Math.round((totalStats / 693) * 100)),
+    classStars,
+    classCycleScore,
+    classCyclePct,
+    totalAttributeStars,
   };
 }
 
@@ -1537,9 +1605,10 @@ export function computeRpgAndGuilds(
   const tmConquered = activeXp?.sources?.timeMachine?.totalConqueredYears || 0;
   const countriesConquered = activeXp?.sources?.countries?.totalConqueredCount || 0;
 
-  // VIT (Caça-Troféus PS5): SÓ ao desbloquear troféu (Bronze 0.2, Prata 0.4, Épico 0.6, Ouro 0.8, Mítico 1.0, Platina 3.0)
+  // VIT (Caça-Troféus PS5): SÓ ao desbloquear troféu (Bronze 0.2, Prata 0.4, Épico 0.6, Ouro 0.8, Mítico 1.0, Platina 3.0, ★ Infinita 0.5)
   let vitSum = 0;
   let unlockedTrophiesCount = 0;
+  let trophyExtraStarsTotal = 0;
   const weightForTier = (tier) => {
     if (tier === 'platinum') return 3.0;
     if (tier === 'mythic') return 1.0;
@@ -1557,6 +1626,11 @@ export function computeRpgAndGuilds(
             vitSum += weightForTier(String(r.tier || '').toLowerCase());
           }
         });
+        const extraStars = Math.max(0, Number(t.extra_stars) || 0);
+        if (extraStars > 0) {
+          trophyExtraStarsTotal += extraStars;
+          vitSum += extraStars * 0.5;
+        }
         return;
       }
       const isUnlocked = Boolean(t.is_unlocked || t.unlocked);
@@ -1573,6 +1647,11 @@ export function computeRpgAndGuilds(
     vitSum += (bt.gold?.count || 0) * 0.8;
     vitSum += (bt.mythic?.count || 0) * 1.0;
     vitSum += (bt.platinum?.count || 0) * 3.0;
+    const extraStarsCount = Math.max(0, Number(activeXp.sources.trophies.extraStarsCount) || 0);
+    if (extraStarsCount > 0) {
+      trophyExtraStarsTotal += extraStarsCount;
+      vitSum += extraStarsCount * 0.5;
+    }
     unlockedTrophiesCount = activeXp.sources.trophies.totalUnlocked || 0;
   } else if (activeXp?.sources?.trophies?.unlockedIds) {
     const ids = activeXp.sources.trophies.unlockedIds;
@@ -1586,28 +1665,33 @@ export function computeRpgAndGuilds(
       else if (tier === 'silver') vitSum += 0.4;
       else vitSum += 0.2;
     });
+    const extraStarsCount = Math.max(0, Number(activeXp.sources.trophies.extraStarsCount) || 0);
+    if (extraStarsCount > 0) {
+      trophyExtraStarsTotal += extraStarsCount;
+      vitSum += extraStarsCount * 0.5;
+    }
   } else {
     unlockedTrophiesCount = activeXp?.sources?.trophies?.totalUnlocked || 0;
     vitSum = unlockedTrophiesCount * 0.4;
   }
 
   // 1. Vigor de Tela (AGI): >120m (0.2) + >140m (0.4) + >170m (1.0)
-  const vigorScore = Math.min(99, Math.round(agiSum));
+  const vigorStat = buildInfiniteStatProgress(agiSum);
 
   // 2. Sabedoria Temporal (INT): Anos Máquina do Tempo (0.8 cada) + clássicos pré-2000 (0.3), pré-1980 (0.5), pré-1950 (0.7)
-  const wisdomScore = Math.min(99, Math.round(tmConquered * 0.8 + intHistoricalSum));
+  const wisdomStat = buildInfiniteStatProgress(tmConquered * 0.8 + intHistoricalSum);
 
   // 3. Diplomacia Global (DES): 1.0 por nação ONU expandida + 0.2 por filme fora do eixo EUA/Brasil
-  const exploreScore = Math.min(99, Math.round(countriesConquered * 1.0 + foreignCount * 0.2));
+  const exploreStat = buildInfiniteStatProgress(countriesConquered * 1.0 + foreignCount * 0.2);
 
   // 4. Olhar Clínico (SOR): 0.2 por obra catalogada + 0.8 por nota extrema (>=9.5 ou <=4.0)
-  const precisionScore = Math.min(99, Math.round(uniqueAll.length * 0.2 + extremeRatingsCount * 0.8));
+  const precisionStat = buildInfiniteStatProgress(uniqueAll.length * 0.2 + extremeRatingsCount * 0.8);
 
-  // 5. Caça-Troféus PS5 (VIT): 0.2 bronze, 0.4 prata, 0.6 épico, 0.8 ouro, 1.0 mítico, 3.0 platina
-  const trophyScore = Math.min(99, Math.round(vitSum));
+  // 5. Caça-Troféus PS5 (VIT): 0.2 bronze, 0.4 prata, 0.6 épico, 0.8 ouro, 1.0 mítico, 3.0 platina, 0.5 ★ infinita
+  const trophyStat = buildInfiniteStatProgress(vitSum);
 
   // 6. Prestígio Áureo (FOR): 0.4 por Oscar vencido + 0.2 por indicação (sem critério de nota)
-  const prestigeScore = Math.min(99, Math.round(oscarWinsTotalAll * 0.4 + oscarNomsTotalAll * 0.2));
+  const prestigeStat = buildInfiniteStatProgress(oscarWinsTotalAll * 0.4 + oscarNomsTotalAll * 0.2);
 
   // 7. Aura de Estrela (CAR): figurinhas coladas no Álbum da Fama por Rank
   let carSum = 0;
@@ -1633,7 +1717,7 @@ export function computeRpgAndGuilds(
     carStuckCount = Number(activeXp?.sources?.walkOfFame?.stuckCount || 0);
   }
   carSum = Math.round(carSum * 10) / 10;
-  const charismaScore = Math.min(99, Math.round(carSum));
+  const charismaStat = buildInfiniteStatProgress(carSum);
 
   // 7 Atributos na ordem solicitada inspirada em RPG clássico (AGI, INT, DES, SOR, VIT, FOR, CAR)
   const rpgAttributes = [
@@ -1643,9 +1727,8 @@ export function computeRpgAndGuilds(
       label: 'Vigor de Tela (Agilidade)',
       shortName: 'Agilidade',
       icon: '⚡',
-      score: vigorScore,
       barColor: 'from-amber-400 to-yellow-300',
-      ...getRankGrade(vigorScore),
+      ...vigorStat,
       desc: `${epic170} gigantes (>170m) • ${epic140} épicos (>140m) • ${epic120} longos (>120m)`,
       formulaSummary: '>120m: +0.2 | >140m: +0.4 | >170m: +1.0',
     },
@@ -1655,9 +1738,8 @@ export function computeRpgAndGuilds(
       label: 'Sabedoria Temporal (Inteligência)',
       shortName: 'Inteligência',
       icon: '🧠',
-      score: wisdomScore,
       barColor: 'from-cyan-400 to-blue-400',
-      ...getRankGrade(wisdomScore),
+      ...wisdomStat,
       desc: `${tmConquered} anos Máquina do Tempo • ${pre2000EraCount + pre1980EraCount + pre1950EraCount} clássicos históricos`,
       formulaSummary: 'Ano Inédito: +0.8 | Pré-2000: +0.3 | Pré-1980: +0.5 | Pré-1950: +0.7',
     },
@@ -1667,9 +1749,8 @@ export function computeRpgAndGuilds(
       label: 'Diplomacia Global (Destreza)',
       shortName: 'Destreza',
       icon: '🌍',
-      score: exploreScore,
       barColor: 'from-emerald-400 to-teal-300',
-      ...getRankGrade(exploreScore),
+      ...exploreStat,
       desc: `${countriesConquered}/195 nações ONU • ${foreignCount} fora EUA/Brasil`,
       formulaSummary: 'Fora do Eixo EUA/Brasil: +0.2 | Nova Nação ONU Desafio 195: +1.0',
     },
@@ -1679,23 +1760,21 @@ export function computeRpgAndGuilds(
       label: 'Olhar Clínico (Sorte)',
       shortName: 'Sorte',
       icon: '🎯',
-      score: precisionScore,
       barColor: 'from-rose-400 to-pink-400',
-      ...getRankGrade(precisionScore),
+      ...precisionStat,
       desc: `${uniqueAll.length} obras catalogadas • ${extremeRatingsCount} notas extremas`,
       formulaSummary: 'Obra Catalogada: +0.2 | Nota Extrema (≥9.5 ou ≤4.0): +0.8',
     },
     {
       key: 'VIT',
       subject: 'Vitalidade (VIT)',
-      label: 'Caça-Troféus PS5 (Vitalidade)',
+      label: 'Caça-Troféus (Vitalidade)',
       shortName: 'Vitalidade',
       icon: '🛡️',
-      score: trophyScore,
       barColor: 'from-purple-400 to-violet-300',
-      ...getRankGrade(trophyScore),
-      desc: `${unlockedTrophiesCount} troféus conquistados (${vitSum.toFixed(1)} pts)`,
-      formulaSummary: 'Bronze: +0.2 | Prata: +0.4 | Épico: +0.6 | Ouro: +0.8 | Mítico: +1.0 | Platina: +3.0',
+      ...trophyStat,
+      desc: `${unlockedTrophiesCount} troféus conquistados${trophyExtraStarsTotal > 0 ? ` + ${trophyExtraStarsTotal}★` : ''} (${vitSum.toFixed(1)} pts)`,
+      formulaSummary: 'Bronze: +0.2 | Prata: +0.4 | Épico: +0.6 | Ouro: +0.8 | Mítico: +1.0 | Platina: +3.0 | ★ Infinita: +0.5',
     },
     {
       key: 'FOR',
@@ -1703,9 +1782,8 @@ export function computeRpgAndGuilds(
       label: 'Prestígio Áureo (Força)',
       shortName: 'Força',
       icon: '👑',
-      score: prestigeScore,
       barColor: 'from-yellow-400 to-amber-300',
-      ...getRankGrade(prestigeScore),
+      ...prestigeStat,
       desc: `${oscarWinsTotalAll} Oscars ganhos • ${oscarNomsTotalAll} indicações`,
       formulaSummary: 'Indicação ao Oscar: +0.2 | Vitória no Oscar: +0.4 (Sem critério de nota)',
     },
@@ -1715,22 +1793,21 @@ export function computeRpgAndGuilds(
       label: 'Aura de Estrela (Carisma)',
       shortName: 'Carisma',
       icon: '🌟',
-      score: charismaScore,
       barColor: 'from-pink-400 via-rose-400 to-amber-300',
-      ...getRankGrade(charismaScore),
+      ...charismaStat,
       desc: `${carStuckCount} figurinhas coladas (${carSum.toFixed(1)} pts)`,
       formulaSummary: 'Coladas — D: +0.1 | C: +0.2 | B: +0.3 | A: +0.4 | A+/X: +0.5 | S: +0.6 | SS: +0.7',
     },
   ];
 
   const totalStatPoints =
-    vigorScore +
-    wisdomScore +
-    exploreScore +
-    precisionScore +
-    trophyScore +
-    prestigeScore +
-    charismaScore;
+    vigorStat.rawScore +
+    wisdomStat.rawScore +
+    exploreStat.rawScore +
+    precisionStat.rawScore +
+    trophyStat.rawScore +
+    prestigeStat.rawScore +
+    charismaStat.rawScore;
   const characterClass = determineCharacterClass(rpgAttributes, totalStatPoints, uniqueAll);
 
   // Facções de Áudio (Dublado, Legendado, Legendado YouTube, Original & Outros)
@@ -2222,6 +2299,10 @@ export function computeMovieStatGains({
   let vitGain = 0;
   if (Array.isArray(newlyUnlocked) && newlyUnlocked.length > 0) {
     newlyUnlocked.forEach((t) => {
+      if (t.is_extra_star) {
+        vitGain += 0.5 * Math.max(1, Number(t.stars_gained || 1));
+        return;
+      }
       const tier = String(t.tier || '').toLowerCase();
       if (tier === 'platinum') vitGain += 3.0;
       else if (tier === 'mythic') vitGain += 1.0;

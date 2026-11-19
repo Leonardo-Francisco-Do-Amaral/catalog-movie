@@ -53,6 +53,60 @@ export const CATEGORY_BADGE_CONFIG = {
   },
 };
 
+export const MAX_VISIBLE_STARS = 6;
+
+export const INFINITE_STAR_VISUAL = {
+  name: 'Infinito',
+  symbol: '🌟',
+  color: '#38BDF8',
+  border: 'border-cyan-400/80 ring-1 ring-fuchsia-400/35',
+  glow: 'shadow-[0_0_28px_rgba(34,211,238,0.28)]',
+  badgeBg:
+    'bg-gradient-to-r from-cyan-500/25 via-fuchsia-500/25 to-amber-500/25 text-cyan-100 border-cyan-300/75 shadow-[0_0_12px_rgba(34,211,238,0.25)]',
+  iconBg: 'from-cyan-500/35 via-fuchsia-600/30 to-amber-500/30',
+  accentColor: '#38BDF8',
+  rayColor: '#38BDF8',
+};
+
+export function InfiniteStarsRow({ count = 0, compact = false, maxVisible = MAX_VISIBLE_STARS }) {
+  const total = Math.max(0, Math.floor(Number(count) || 0));
+  if (total <= 0) return null;
+  const visibleCount = Math.min(total, maxVisible);
+  const overflow = Math.max(0, total - visibleCount);
+
+  return (
+    <span
+      title={`Progressão Infinita: ${total} estrela${total === 1 ? '' : 's'} acumulada${total === 1 ? '' : 's'} (+${total * 55} XP)`}
+      className={`inline-flex items-center gap-0.5 rounded-lg border border-cyan-400/45 bg-gradient-to-r from-cyan-950/80 via-fuchsia-950/60 to-amber-950/70 shadow-[0_0_12px_rgba(34,211,238,0.22)] ${
+        compact ? 'px-1.5 py-0.5 text-[11px]' : 'px-2 py-0.5 text-sm'
+      }`}
+    >
+      {Array.from({ length: visibleCount }).map((_, idx) => (
+        <span
+          key={idx}
+          className="leading-none text-amber-300 animate-pulse select-none"
+          style={{
+            animationDuration: `${1.8 + (idx % 3) * 0.45}s`,
+            animationDelay: `${idx * 0.14}s`,
+            textShadow: '0 0 8px rgba(34,211,238,0.9), 0 0 14px rgba(251,191,36,0.85)',
+          }}
+        >
+          ★
+        </span>
+      ))}
+      {overflow > 0 && (
+        <span
+          className={`ml-0.5 font-mono font-black text-cyan-200 ${
+            compact ? 'text-[9px]' : 'text-[10px]'
+          }`}
+        >
+          +{overflow}
+        </span>
+      )}
+    </span>
+  );
+}
+
 export function TrophyCardBadges({ trophy, theme, isUnlocked, unlockedDateStr }) {
   // Resolve array de categorias da trophy
   let cats = trophy?.categories;
@@ -100,6 +154,18 @@ export function TrophyCardBadges({ trophy, theme, isUnlocked, unlockedDateStr })
         <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border bg-amber-950/60 text-amber-300 border-amber-500/40 shadow-sm">
           🏅 Rank {trophy.unlocked_ranks_count || 0}/{trophy.ranks.length}
         </span>
+      )}
+
+      {/* Badge de Troféu Especial Híbrido (Rank + Único) */}
+      {trophy?.target_metadata?.isSpecialMemorial && (
+        <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border bg-fuchsia-950/60 text-fuchsia-200 border-fuchsia-400/50 shadow-sm">
+          🕯️ Especial • Rank + Único
+        </span>
+      )}
+
+      {/* Badge especial Infinito quando já acumulou Estrelas além do Mítico */}
+      {trophy?.kind === 'rank' && (trophy?.extra_stars || 0) > 0 && (
+        <InfiniteStarsRow count={trophy.extra_stars} compact />
       )}
 
       {/* 3. Status e Dia da Conquista */}
