@@ -150,6 +150,11 @@ const SOUND_PATHS = {
   },
   chimera: {
     dice: '/sounds/extras-memes/banco-reserva/dice.mp3',
+    tarotRarity: {
+      rare: '/sounds/extras-memes/banco-reserva/sonic-continue-sound-effect.mp3',
+      legendary: '/sounds/extras-memes/banco-reserva/lendario.mp3',
+      cursed: '/sounds/extras-memes/banco-reserva/nicos-nextbots-pinhead-sound-track.mp3',
+    },
   },
   trophyByTier: {
     bronze: '/sounds/trofeus/bronze/all-chaos-emeralds-sonic-3-knuckles.mp3',
@@ -1698,6 +1703,81 @@ export function playSecretCardFlipSound(onFallback = null) {
     interrupt: false,
     onFallback,
   });
+}
+
+export function playChimeraTarotFlipSound(rarity = 'common') {
+  if (typeof window === 'undefined' || isAudioMuted()) return false;
+  return playAudioFile(SOUND_PATHS.secretDraw.flip, {
+    volume: 0.9,
+    interrupt: false,
+    onFallback: () => playChimeraRunePickSound(rarity),
+  });
+}
+
+function playCommonTarotRpgSpellFallback() {
+  stopAllTrophyAudio();
+  const spellChord = [
+    { frequency: 523.25, duration: 0.16, gainPeak: 0.085, type: 'triangle', delay: 0 },
+    { frequency: 659.25, duration: 0.18, gainPeak: 0.09, type: 'sine', delay: 0.065 },
+    { frequency: 783.99, duration: 0.22, gainPeak: 0.095, type: 'triangle', delay: 0.13 },
+    { frequency: 1046.5, duration: 0.42, gainPeak: 0.105, type: 'sine', delay: 0.2 },
+    { frequency: 1318.51, duration: 0.52, gainPeak: 0.07, type: 'sine', delay: 0.27 },
+  ];
+  spellChord.forEach((n) => playSynthTimelineTone(n));
+  playFilteredNoiseBurst({
+    startDelay: 0.09,
+    duration: 0.26,
+    filterType: 'highpass',
+    frequency: 2900,
+    q: 1.4,
+    gainPeak: 0.055,
+  });
+  return true;
+}
+
+function playCursedTarotRpgFallback() {
+  stopAllTrophyAudio();
+  [
+    { frequency: 138.59, endFrequency: 92.5, duration: 0.55, gainPeak: 0.11, type: 'sawtooth', delay: 0 },
+    { frequency: 196.0, endFrequency: 130.81, duration: 0.62, gainPeak: 0.095, type: 'triangle', delay: 0.08 },
+    { frequency: 277.18, endFrequency: 185.0, duration: 0.68, gainPeak: 0.08, type: 'sawtooth', delay: 0.18 },
+  ].forEach((n) => playSynthTimelineTone(n));
+  playFilteredNoiseBurst({
+    startDelay: 0,
+    duration: 0.3,
+    filterType: 'lowpass',
+    frequency: 520,
+    q: 1.8,
+    gainPeak: 0.1,
+  });
+  return true;
+}
+
+export function playChimeraTarotRarityRevealSound(rarity = 'common') {
+  if (typeof window === 'undefined' || isAudioMuted()) return false;
+  const r = String(rarity || 'common').toLowerCase();
+  if (r === 'cursed') {
+    return playAudioFile(SOUND_PATHS.chimera.tarotRarity.cursed, {
+      volume: 0.82,
+      interrupt: true,
+      onFallback: playCursedTarotRpgFallback,
+    });
+  }
+  if (r === 'legendary') {
+    return playAudioFile(SOUND_PATHS.chimera.tarotRarity.legendary, {
+      volume: 0.92,
+      interrupt: true,
+      onFallback: () => playChimeraRunePickSound('legendary'),
+    });
+  }
+  if (r === 'rare') {
+    return playAudioFile(SOUND_PATHS.chimera.tarotRarity.rare, {
+      volume: 0.88,
+      interrupt: true,
+      onFallback: () => playChimeraRunePickSound('rare'),
+    });
+  }
+  return playCommonTarotRpgSpellFallback();
 }
 
 // ============================================================================

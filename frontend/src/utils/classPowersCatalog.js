@@ -361,13 +361,13 @@ export const CLASS_POWERS_BY_ID = {
         desc: 'Purifica 1 carta ativa da sua fila: devolve ao baralho grátis E garante uma carta Difícil (♠+) no próximo sorteio!',
       },
       chimera: {
-        title: 'Vela do Altar',
+        title: 'Vela da Mesa',
         tier: 'support',
         tierLabel: '○ Apoio',
         icon: '🕯️',
         cooldownLabel: '1 uso / 15 dias',
         requiresChoice: null,
-        desc: 'Revela a raridade oculta de todas as Runas do Altar da Quimera ativa e soma +15 XP fixos.',
+        desc: 'Revela a raridade oculta de todas as Cartas de Tarô da Quimera ativa e soma +15 XP fixos.',
       },
       bingo: {
         title: 'Água Benta',
@@ -499,7 +499,7 @@ export const CLASS_POWERS_BY_ID = {
         icon: '🏆',
         cooldownLabel: '1 uso / 15 dias',
         requiresChoice: null,
-        desc: 'Concede +1 escolha extra no Altar das Runas da Quimera ativa (ou revela raridades + soma +25 XP se o Altar já foi usado).',
+        desc: 'Concede +1 escolha extra na Mesa de Tarô da Quimera ativa (ou revela raridades + soma +25 XP se todas já foram usadas).',
       },
       bingo: {
         title: 'Lacre de Ferro (Coringa)',
@@ -658,13 +658,13 @@ export const CLASS_POWERS_BY_ID = {
         desc: 'O próximo sorteio abre uma mesa colossal com 15 CARTAS de uma só vez + Raio-X completo de todos os marcos secretos!',
       },
       chimera: {
-        title: 'Terceiro Olho do Altar',
+        title: 'Terceiro Olho do Tarô',
         tier: 'tactical',
         tierLabel: '◐ Tático',
         icon: '👁️',
         cooldownLabel: '1 uso / 15 dias',
         requiresChoice: null,
-        desc: 'Revela todas as 5 Runas ocultas do Altar da Quimera ativa E concede +1 escolha de Runa!',
+        desc: 'Revela todas as 5 Cartas de Tarô ocultas da Quimera ativa E concede +1 escolha de Carta!',
       },
       bingo: {
         title: 'Profecia do Sinete',

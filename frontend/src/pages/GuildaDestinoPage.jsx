@@ -253,7 +253,7 @@ export default function GuildaDestinoPage({
                     )}
                   </div>
                   <p className="text-xs text-zinc-400 mt-0.5">
-                    Forja D20 de 4 pilares + 5 Runas ocultas • 3 fichas / 15 dias (máx. 5) &amp; Declínios.
+                    Forja D20 de 4 pilares + 5 Cartas de Tarô ocultas • 3 fichas / 15 dias (máx. 5) &amp; Declínios.
                   </p>
                 </div>
               </div>

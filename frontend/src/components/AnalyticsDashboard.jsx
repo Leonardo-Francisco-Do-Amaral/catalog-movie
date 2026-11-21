@@ -348,6 +348,8 @@ export default function AnalyticsDashboard({
   const [universeCodex, setUniverseCodex] = useState(null);
   const [walkOfFameData, setWalkOfFameData] = useState(null);
   const [secretDrawData, setSecretDrawData] = useState(null);
+  const [chimeraData, setChimeraData] = useState(null);
+  const [bingoData, setBingoData] = useState(null);
   const [countryViewMode, setCountryViewMode] = useState('coproductions'); // 'coproductions' | 'origin'
 
   const isYearFilterActive = selectedYear !== 'Geral';
@@ -389,13 +391,15 @@ export default function AnalyticsDashboard({
     let mounted = true;
     const loadServerInsights = async () => {
       try {
-        const [xpRes, trRes, worldRes, uniRes, wofRes, secretRes] = await Promise.allSettled([
+        const [xpRes, trRes, worldRes, uniRes, wofRes, secretRes, chimeraRes, bingoRes] = await Promise.allSettled([
           axios.get(`${API_BASE_URL}/xp`),
           axios.get(`${API_BASE_URL}/trophies`),
           axios.get(`${API_BASE_URL}/challenge/world-195`),
           axios.get(`${API_BASE_URL}/universes`),
           axios.get(`${API_BASE_URL}/walk-of-fame`),
           axios.get(`${API_BASE_URL}/secret-draw/status`),
+          axios.get(`${API_BASE_URL}/chimeras/status`),
+          axios.get(`${API_BASE_URL}/bingo/status`),
         ]);
         if (!mounted) return;
         if (xpRes.status === 'fulfilled' && xpRes.value.data?.success && xpRes.value.data?.data) {
@@ -409,6 +413,12 @@ export default function AnalyticsDashboard({
         }
         if (secretRes.status === 'fulfilled' && secretRes.value.data?.success && secretRes.value.data?.data) {
           setSecretDrawData(secretRes.value.data.data);
+        }
+        if (chimeraRes.status === 'fulfilled' && chimeraRes.value.data?.success && chimeraRes.value.data?.data) {
+          setChimeraData(chimeraRes.value.data.data);
+        }
+        if (bingoRes.status === 'fulfilled' && bingoRes.value.data?.success && bingoRes.value.data?.data) {
+          setBingoData(bingoRes.value.data.data);
         }
         if (worldRes.status === 'fulfilled' && worldRes.value.data?.success && worldRes.value.data?.data?.catalogMovies) {
           const countryMetaByCode = {};
@@ -859,9 +869,8 @@ export default function AnalyticsDashboard({
   const pctTimeMachineXp = ((timeMachineXp / totalXp) * 100).toFixed(1);
   const pctUniversesXp = ((universesXp / totalXp) * 100).toFixed(1);
   const pctWalkOfFameXp = ((walkOfFameXp / totalXp) * 100).toFixed(1);
-  const pctSecretDrawXp = ((secretDrawXp / totalXp) * 100).toFixed(1);
-  const pctChimeraXp = ((chimeraXp / totalXp) * 100).toFixed(1);
-  const pctBingoXp = ((bingoXp / totalXp) * 100).toFixed(1);
+  const guildaXp = secretDrawXp + chimeraXp + bingoXp;
+  const pctGuildaXp = ((guildaXp / totalXp) * 100).toFixed(1);
 
   const secretDrawOverview = useMemo(() => {
     const xpSecret = secretDrawData?.xpSummary || xpSources.secretDraw || {};
@@ -917,6 +926,50 @@ export default function AnalyticsDashboard({
       tierRows,
     };
   }, [secretDrawData, xpSources.secretDraw, secretDrawXp]);
+
+  const chimeraOverview = useMemo(() => {
+    const xpCh = chimeraData?.xpSummary || xpSources.chimera || {};
+    const wallet = chimeraData?.wallet || {};
+    const activeList = chimeraData?.activeChimeras || [];
+    const readyList = chimeraData?.readyChimeras || [];
+    const statTotal = Number(xpCh?.statPoints?.total || 0);
+    return {
+      totalXp: Number(xpCh?.totalXp ?? chimeraXp ?? 0),
+      claimedCount: Number(xpCh?.claimedCount || 0),
+      totalJackpotsHit: Number(xpCh?.totalJackpotsHit || 0),
+      activeUsed: activeList.length + readyList.length,
+      readyCount: readyList.length,
+      activeLimit: Number(chimeraData?.baseActiveLimit ?? chimeraData?.activeLimit ?? 2),
+      chipsRemaining: Number(wallet.chipsRemaining ?? 0),
+      declineChipsRemaining: Number(wallet.declineChipsRemaining ?? 0),
+      statTotal,
+    };
+  }, [chimeraData, xpSources.chimera, chimeraXp]);
+
+  const bingoOverview = useMemo(() => {
+    const xpBg = bingoData?.xpSummary || xpSources.bingo || {};
+    const activeBoard = bingoData?.activeBoard || null;
+    const completedSquares = Number(activeBoard?.completedSquaresCount || 0);
+    const claimedSquares = Array.isArray(activeBoard?.board?.squares)
+      ? activeBoard.board.squares.filter((s) => s.claimed).length
+      : 0;
+    const completedLines = Number(activeBoard?.completedLinesCount || 0);
+    const boardPct = Math.round((completedSquares / 16) * 100);
+    return {
+      totalXp: Number(xpBg?.totalXp ?? bingoXp ?? 0),
+      completedBoardsCount: Number(xpBg?.completedBoardsCount || 0),
+      claimedRewardsCount: Number(xpBg?.claimedRewardsCount || 0),
+      claimedSquaresTotal: Number(xpBg?.claimedSquaresTotal || 0),
+      statTotal: Number(xpBg?.statPoints?.total || 0),
+      hasActiveBoard: Boolean(activeBoard),
+      activeMonthKey: activeBoard?.monthKey || bingoData?.wallet?.monthKey || 'Atual',
+      completedSquares,
+      claimedSquares,
+      completedLines,
+      readyToClaimCount: Number(activeBoard?.readyToClaimCount || 0),
+      boardPct,
+    };
+  }, [bingoData, xpSources.bingo, bingoXp]);
 
   const showSection = (id) => {
     if (isYearFilterActive && (id === 'xp_rpg' || id === 'checkpoints')) {
@@ -1196,7 +1249,7 @@ export default function AnalyticsDashboard({
                     Anatomia Completa do XP — De Onde Vem o Seu Poder?
                   </span>
                   <span className="text-[11px] font-mono text-zinc-400">
-                    8 Sistemas Integrados • 100% Tempo Real
+                    7 Sistemas Integrados • 100% Tempo Real
                   </span>
                 </div>
 
@@ -1233,19 +1286,9 @@ export default function AnalyticsDashboard({
                     title={`Álbum da Fama: ${walkOfFameXp} XP (${pctWalkOfFameXp}%)`}
                   />
                   <div
-                    style={{ width: `${pctSecretDrawXp}%` }}
-                    className="h-full bg-fuchsia-400 transition-all"
-                    title={`Sessão Secreta: ${secretDrawXp} XP (${pctSecretDrawXp}%)`}
-                  />
-                  <div
-                    style={{ width: `${pctChimeraXp}%` }}
-                    className="h-full bg-emerald-300 transition-all"
-                    title={`Quimera Cinéfila: ${chimeraXp} XP (${pctChimeraXp}%)`}
-                  />
-                  <div
-                    style={{ width: `${pctBingoXp}%` }}
-                    className="h-full bg-amber-300 rounded-r-full transition-all"
-                    title={`Bingo Mensal: ${bingoXp} XP (${pctBingoXp}%)`}
+                    style={{ width: `${pctGuildaXp}%` }}
+                    className="h-full bg-gradient-to-r from-fuchsia-400 via-emerald-300 to-amber-300 rounded-r-full transition-all"
+                    title={`Guilda do Destino: +${guildaXp} XP (${pctGuildaXp}%) • Sessão +${secretDrawXp} • Quimera +${chimeraXp} • Bingo +${bingoXp}`}
                   />
                 </div>
 
@@ -1316,33 +1359,24 @@ export default function AnalyticsDashboard({
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between rounded-xl bg-zinc-950/90 border border-fuchsia-500/30 px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-fuchsia-400" />
-                      <span className="text-xs font-bold text-zinc-200">🃏 Sessão Secreta</span>
+                  <div className="sm:col-span-2 lg:col-span-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-zinc-950/90 border border-fuchsia-500/35 px-3.5 py-2.5">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-fuchsia-400 via-emerald-300 to-amber-300 shrink-0" />
+                      <span className="text-xs font-black text-zinc-100">⚔️ Guilda do Destino</span>
+                      <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-mono">
+                        <span className="px-2 py-0.5 rounded-md bg-fuchsia-500/15 border border-fuchsia-400/30 text-fuchsia-300">
+                          🃏 Sessão +{secretDrawXp.toLocaleString('pt-BR')} XP
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">
+                          🧬 Quimera +{chimeraXp.toLocaleString('pt-BR')} XP
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-400/30 text-amber-300">
+                          🎯 Bingo +{bingoXp.toLocaleString('pt-BR')} XP
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-xs font-mono font-black text-fuchsia-300">
-                      +{secretDrawXp.toLocaleString('pt-BR')} XP ({pctSecretDrawXp}%)
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between rounded-xl bg-zinc-950/90 border border-emerald-500/30 px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-300" />
-                      <span className="text-xs font-bold text-zinc-200">🧬 Quimera Cinéfila</span>
-                    </div>
-                    <span className="text-xs font-mono font-black text-emerald-300">
-                      +{chimeraXp.toLocaleString('pt-BR')} XP ({pctChimeraXp}%)
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between rounded-xl bg-zinc-950/90 border border-amber-500/30 px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-300" />
-                      <span className="text-xs font-bold text-zinc-200">🎯 Bingo Mensal</span>
-                    </div>
-                    <span className="text-xs font-mono font-black text-amber-300">
-                      +{bingoXp.toLocaleString('pt-BR')} XP ({pctBingoXp}%)
+                    <span className="text-xs font-mono font-black text-amber-200">
+                      +{guildaXp.toLocaleString('pt-BR')} XP ({pctGuildaXp}%)
                     </span>
                   </div>
                 </div>
@@ -1402,8 +1436,8 @@ export default function AnalyticsDashboard({
             </div>
           </div>
 
-          {/* DETALHAMENTO PROFUNDO DOS SUBSISTEMAS DE XP */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* DETALHAMENTO PROFUNDO DOS SUBSISTEMAS DE XP (LAYOUT 3, 3, 3) */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
             {/* Subsistema 1: Troféus por Tier + Estrelas Infinitas */}
             <div className="rounded-3xl bg-zinc-950/90 border border-purple-500/30 p-5 flex flex-col justify-between gap-4">
               <div className="flex flex-col gap-3">
@@ -1562,10 +1596,7 @@ export default function AnalyticsDashboard({
                 </button>
               )}
             </div>
-          </div>
 
-          {/* LINHA CENTRAL (3 SUBSISTEMAS: MÁQUINA DO TEMPO + UNIVERSOS + SESSÃO SECRETA -> LAYOUT 2, 3, 3) */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
             {/* Subsistema 3: Máquina do Tempo por Era & Décadas */}
             <div className="rounded-3xl bg-zinc-950/90 border border-cyan-500/30 p-5 flex flex-col justify-between gap-4">
               <div className="flex flex-col gap-3">
@@ -1652,6 +1683,10 @@ export default function AnalyticsDashboard({
                 </button>
               )}
             </div>
+          </div>
+
+          {/* LINHA CENTRAL (3 SUBSISTEMAS: UNIVERSOS + SESSÃO SECRETA + QUIMERA & BINGO -> LAYOUT 3, 3, 3) */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
 
             {/* Subsistema 4: Universos Conquistados (Códice Multiversal) */}
             <div className="relative overflow-hidden rounded-3xl bg-zinc-950/90 border border-indigo-500/35 p-5 flex flex-col justify-between gap-4">
@@ -1835,6 +1870,138 @@ export default function AnalyticsDashboard({
                   <span>Abrir Sessão Secreta</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
+              )}
+            </div>
+
+            {/* Subsistema 6: Quimera Cinéfila & Pergaminhos da Guilda (Bingo 4x4) */}
+            <div className="relative overflow-hidden rounded-3xl bg-zinc-950/90 border border-emerald-500/35 p-5 flex flex-col justify-between gap-4">
+              <div className="pointer-events-none absolute -top-16 -right-14 w-48 h-48 rounded-full bg-emerald-500/10 blur-3xl" />
+
+              <div className="relative z-10 flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-2 border-b border-zinc-800/80 pb-3">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">
+                      Guilda do Destino • Contratos &amp; Cartelas
+                    </span>
+                    <h3 className="text-base font-black text-white">
+                      🧬 Quimera &amp; 🎯 Bingo 4×4
+                    </h3>
+                    <div className="text-[11px] font-mono text-zinc-400 mt-0.5">
+                      🧬 Fila {chimeraOverview.activeUsed}/{chimeraOverview.activeLimit} • 🎯{' '}
+                      {bingoOverview.completedSquares}/16 casas
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="text-xs font-mono font-black px-2.5 py-1 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-200">
+                      +{(chimeraOverview.totalXp + bingoOverview.totalXp).toLocaleString('pt-BR')} XP
+                    </span>
+                    <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-400/35 text-amber-200">
+                      ⚔️ +{(chimeraOverview.statTotal + bingoOverview.statTotal).toFixed(1)} pts
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bloco 1: Quimera Cinéfila */}
+                <div className="rounded-xl bg-zinc-900/80 border border-emerald-500/25 px-3 py-2.5 flex flex-col gap-2 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-black text-emerald-300">🧬 Quimera Cinéfila</span>
+                    <span className="font-mono font-black text-emerald-200">
+                      +{chimeraOverview.totalXp.toLocaleString('pt-BR')} XP
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 text-[11px] font-mono">
+                    <div className="rounded-lg bg-zinc-950/75 border border-zinc-800 px-2 py-1 flex items-center justify-between">
+                      <span className="text-zinc-400">Despertadas</span>
+                      <span className="font-bold text-zinc-100">{chimeraOverview.claimedCount}</span>
+                    </div>
+                    <div className="rounded-lg bg-zinc-950/75 border border-zinc-800 px-2 py-1 flex items-center justify-between">
+                      <span className="text-zinc-400">Jackpots</span>
+                      <span className="font-bold text-amber-300">🎰 {chimeraOverview.totalJackpotsHit}</span>
+                    </div>
+                    <div className="rounded-lg bg-zinc-950/75 border border-zinc-800 px-2 py-1 flex items-center justify-between">
+                      <span className="text-zinc-400">Fichas / Decl.</span>
+                      <span className="font-bold text-sky-300">
+                        {chimeraOverview.chipsRemaining} / {chimeraOverview.declineChipsRemaining}
+                      </span>
+                    </div>
+                    <div className="rounded-lg bg-zinc-950/75 border border-zinc-800 px-2 py-1 flex items-center justify-between">
+                      <span className="text-zinc-400">Atributos</span>
+                      <span className="font-bold text-emerald-300">+{chimeraOverview.statTotal.toFixed(1)}</span>
+                    </div>
+                  </div>
+                  {chimeraOverview.readyCount > 0 && (
+                    <div className="text-[10px] font-black text-amber-300 bg-amber-500/15 border border-amber-400/40 rounded-lg px-2 py-1">
+                      ✨ {chimeraOverview.readyCount} Quimera(s) pronta(s) para colher XP!
+                    </div>
+                  )}
+                </div>
+
+                {/* Bloco 2: Pergaminhos da Guilda (Bingo Mensal 4x4) */}
+                <div className="rounded-xl bg-zinc-900/80 border border-amber-500/25 px-3 py-2.5 flex flex-col gap-2 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-black text-amber-300">🎯 Bingo Mensal 4×4</span>
+                    <span className="font-mono font-black text-amber-200">
+                      +{bingoOverview.totalXp.toLocaleString('pt-BR')} XP
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between text-[11px] text-zinc-300">
+                      <span>Cartela ({bingoOverview.activeMonthKey})</span>
+                      <span className="font-mono font-bold text-amber-200">
+                        {bingoOverview.completedSquares}/16 ({bingoOverview.boardPct}%) • {bingoOverview.completedLines}/8 lin.
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full bg-zinc-950 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-amber-400 to-emerald-400 rounded-full transition-all"
+                        style={{ width: `${bingoOverview.boardPct}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-1.5 text-[10px] font-mono">
+                    <div className="rounded-lg bg-zinc-950/75 border border-zinc-800 px-2 py-1 flex items-center justify-between">
+                      <span className="text-zinc-400">16/16</span>
+                      <span className="font-bold text-zinc-100">{bingoOverview.completedBoardsCount}</span>
+                    </div>
+                    <div className="rounded-lg bg-zinc-950/75 border border-zinc-800 px-2 py-1 flex items-center justify-between">
+                      <span className="text-zinc-400">Colhidas</span>
+                      <span className="font-bold text-amber-200">{bingoOverview.claimedRewardsCount}</span>
+                    </div>
+                    <div className="rounded-lg bg-zinc-950/75 border border-zinc-800 px-2 py-1 flex items-center justify-between">
+                      <span className="text-zinc-400">Pts</span>
+                      <span className="font-bold text-emerald-300">+{bingoOverview.statTotal.toFixed(1)}</span>
+                    </div>
+                  </div>
+
+                  {bingoOverview.readyToClaimCount > 0 && (
+                    <div className="text-[10px] font-black text-emerald-300 bg-emerald-500/15 border border-emerald-400/40 rounded-lg px-2 py-1">
+                      📜 {bingoOverview.readyToClaimCount} recompensa(s) pronta(s) no Bingo!
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {onNavigateTab && (
+                <div className="relative z-10 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onNavigateTab('guilda', 'chimera')}
+                    className="py-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/40 text-[11px] font-black uppercase tracking-wider text-emerald-200 flex items-center justify-center gap-1 cursor-pointer transition-all"
+                  >
+                    <span>Abrir Quimera</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onNavigateTab('guilda', 'bingo')}
+                    className="py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-[11px] font-black uppercase tracking-wider text-amber-200 flex items-center justify-center gap-1 cursor-pointer transition-all"
+                  >
+                    <span>Abrir Bingo</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               )}
             </div>
           </div>

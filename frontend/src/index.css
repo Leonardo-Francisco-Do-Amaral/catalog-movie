@@ -1917,6 +1917,136 @@ html, body, #root {
   animation: chimeraRevealLegendary 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+@keyframes chimeraRevealCursed {
+  0% {
+    opacity: 0;
+    transform: scale(0.62) rotate(-10deg);
+    filter: brightness(0.4) saturate(1.8);
+  }
+  42% {
+    opacity: 1;
+    transform: scale(1.1) rotate(3deg);
+    box-shadow: 0 0 65px rgba(244, 63, 94, 0.9);
+  }
+  72% {
+    transform: scale(0.97) rotate(-1.5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+    filter: brightness(1);
+    box-shadow: 0 0 38px rgba(225, 29, 72, 0.65);
+  }
+}
+
+.chimera-reveal-cursed {
+  animation: chimeraRevealCursed 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes chimeraNeonOrbit {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.chimera-neon-orbit {
+  animation: chimeraNeonOrbit 3.4s linear infinite;
+}
+
+.chimera-neon-orbit-fast {
+  animation: chimeraNeonOrbit 2.1s linear infinite;
+}
+
+@keyframes chimeraSpellVibrate {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+  12% {
+    transform: translate3d(-5px, 2px, 0) rotate(-1.2deg) scale(1.018);
+  }
+  25% {
+    transform: translate3d(5px, -3px, 0) rotate(1.3deg) scale(1.024);
+  }
+  38% {
+    transform: translate3d(-6px, -2px, 0) rotate(-1.5deg) scale(1.028);
+  }
+  52% {
+    transform: translate3d(6px, 3px, 0) rotate(1.2deg) scale(1.03);
+  }
+  66% {
+    transform: translate3d(-4px, 2px, 0) rotate(-0.9deg) scale(1.02);
+  }
+  80% {
+    transform: translate3d(4px, -2px, 0) rotate(0.7deg) scale(1.01);
+  }
+}
+
+.chimera-spell-vibrate {
+  animation: chimeraSpellVibrate 0.72s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes chimeraSpellVibrateCursed {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+    filter: brightness(1);
+  }
+  8%, 24%, 40%, 56%, 72%, 86% {
+    transform: translate3d(-6px, 3px, 0) rotate(-1.6deg) scale(1.03);
+    filter: brightness(1.18) drop-shadow(0 0 28px rgba(244, 63, 94, 0.85));
+  }
+  16%, 32%, 48%, 64%, 78%, 92% {
+    transform: translate3d(6px, -3px, 0) rotate(1.6deg) scale(1.035);
+    filter: brightness(0.95) drop-shadow(0 0 36px rgba(225, 29, 72, 0.95));
+  }
+}
+
+.chimera-spell-vibrate-cursed {
+  animation: chimeraSpellVibrateCursed 1.48s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes chimeraSpellGemSlam {
+  0% {
+    opacity: 0;
+    transform: scale(2.4) rotate(-14deg);
+    filter: brightness(2.4);
+  }
+  58% {
+    opacity: 1;
+    transform: scale(0.92) rotate(2deg);
+    filter: brightness(1.3);
+  }
+  80% {
+    transform: scale(1.08) rotate(-1deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+    filter: brightness(1);
+  }
+}
+
+.chimera-gem-slam {
+  animation: chimeraSpellGemSlam 0.62s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes chimeraSpellAuraPulse {
+  0% {
+    opacity: 0.95;
+    transform: scale(0.75);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.38);
+  }
+}
+
+.chimera-spell-aura-ring {
+  animation: chimeraSpellAuraPulse 1.05s ease-out forwards;
+}
+
 @keyframes bingoCageSpin {
   0% {
     transform: rotate(0deg) scale(1);

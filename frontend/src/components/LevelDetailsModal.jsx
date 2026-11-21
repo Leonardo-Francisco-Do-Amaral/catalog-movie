@@ -774,7 +774,7 @@ export default function LevelDetailsModal({
                       </span>
                     </div>
                     <div className="text-[11px] text-zinc-400">
-                      Contratos híbridos de Era + Bloco + Gênero + Tag com bônus Jackpot e Runas do Destino.
+                      Contratos híbridos de Era + Bloco + Gênero + Tag com bônus Jackpot e Cartas de Tarô.
                     </div>
                   </div>
                 </div>

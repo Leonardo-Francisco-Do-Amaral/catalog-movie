@@ -1346,27 +1346,49 @@ function predictObjectiveMilestonesAndDifficulty(
 } {
   const milestones: SecretDrawMilestonePrediction[] = [];
 
-  // 1. Desafio 195 Países + Territórios Relíquia
+  // 1. Desafio 195 Países + Territórios Relíquia (máximo 1 marco por filme, pois cada filme conquista apenas 1 país)
   const resolvedTerritories = (movie.countries || [])
     .map((c) => resolveTerritoryDescriptor(c))
     .filter((x): x is NonNullable<typeof x> => Boolean(x));
   const isSingleCountry = resolvedTerritories.length <= 1;
   const newlyConquerableCodes = new Set<string>();
+  const unconqueredEntries: Array<{
+    name: string;
+    isHistorical: boolean;
+    rarityTier: SecretDrawMilestonePrediction['rarityTier'];
+  }> = [];
 
   for (const terr of resolvedTerritories) {
     const codeLower = terr.code.toLowerCase();
     const unc = ctx.unconqueredWorldByCode.get(codeLower);
     if (unc) {
       newlyConquerableCodes.add(codeLower);
-      const coprodNote = isSingleCountry ? '100% conquista direta ao cadastrar' : 'Coprodução (elegível na curadoria)';
-      milestones.push({
-        system: 'world_challenge',
-        icon: unc.isHistorical ? '⏳' : '🌍',
-        label: `País inédito: ${unc.name}`,
-        detail: coprodNote,
+      unconqueredEntries.push({
+        name: unc.name,
+        isHistorical: Boolean(unc.isHistorical),
         rarityTier: unc.rarityTier,
       });
     }
+  }
+
+  if (unconqueredEntries.length === 1) {
+    const u = unconqueredEntries[0];
+    milestones.push({
+      system: 'world_challenge',
+      icon: u.isHistorical ? '⏳' : '🌍',
+      label: `País inédito: ${u.name}`,
+      detail: isSingleCountry ? '100% conquista direta ao cadastrar' : 'Coprodução (elegível na curadoria)',
+      rarityTier: u.rarityTier,
+    });
+  } else if (unconqueredEntries.length > 1) {
+    const uniqueNames = Array.from(new Set(unconqueredEntries.map((u) => u.name)));
+    milestones.push({
+      system: 'world_challenge',
+      icon: unconqueredEntries.some((u) => u.isHistorical) ? '⏳' : '🌍',
+      label: `País inédito: ${uniqueNames.join(' / ')}`,
+      detail: 'Coprodução (desbloqueia 1 país inédito à sua escolha na curadoria)',
+      rarityTier: unconqueredEntries[0].rarityTier,
+    });
   }
 
   // 2. Máquina do Tempo
@@ -2311,6 +2333,52 @@ export async function drawSecretCards(
   };
 }
 
+function normalizeCardWorldChallengeMilestones(card: any): any {
+  if (!card || !Array.isArray(card.milestones)) return card;
+  const worldMilestones = card.milestones.filter(
+    (m: any) => m && m.system === 'world_challenge'
+  );
+  if (worldMilestones.length <= 1) return card;
+
+  const countryNames = worldMilestones
+    .map((m: any) =>
+      String(m.label || '')
+        .replace(/^País inédito:\s*/i, '')
+        .trim()
+    )
+    .filter(Boolean);
+  const firstWorld = worldMilestones[0];
+  const mergedWorld: SecretDrawMilestonePrediction = {
+    system: 'world_challenge',
+    icon: worldMilestones.some((m: any) => m.icon === '⏳') ? '⏳' : firstWorld.icon || '🌍',
+    label:
+      countryNames.length > 0
+        ? `País inédito: ${Array.from(new Set(countryNames)).join(' / ')}`
+        : firstWorld.label,
+    detail: 'Coprodução (desbloqueia 1 país inédito à sua escolha na curadoria)',
+    rarityTier: firstWorld.rarityTier,
+  };
+
+  let inserted = false;
+  const mergedList: SecretDrawMilestonePrediction[] = [];
+  for (const m of card.milestones) {
+    if (m && m.system === 'world_challenge') {
+      if (!inserted) {
+        mergedList.push(mergedWorld);
+        inserted = true;
+      }
+    } else if (m) {
+      mergedList.push(m);
+    }
+  }
+
+  return {
+    ...card,
+    milestones: mergedList,
+    totalMilestonesCount: mergedList.length,
+  };
+}
+
 function mapRoundRow(r: any): SecretDrawRound {
   return {
     id: Number(r.id),
@@ -2319,7 +2387,7 @@ function mapRoundRow(r: any): SecretDrawRound {
     requestedCardCount: Number(r.requested_card_count || (Array.isArray(r.cards_json) ? r.cards_json.length : 5)),
     sagaRule: (r.saga_rule as SecretDrawSagaRule) || 'redirect_first',
     powerFlags: r.power_flags_json || null,
-    cards: Array.isArray(r.cards_json) ? r.cards_json : [],
+    cards: Array.isArray(r.cards_json) ? r.cards_json.map(normalizeCardWorldChallengeMilestones) : [],
     auditLog: Array.isArray(r.audit_log_json) ? r.audit_log_json : [],
     chosenSeat: r.chosen_seat != null ? Number(r.chosen_seat) : null,
     chosenPoolId: r.chosen_pool_id != null ? Number(r.chosen_pool_id) : null,
@@ -2345,7 +2413,7 @@ function mapPickRow(r: any): SecretDrawPick {
     difficulty: (String(r.difficulty || r.card_json?.difficulty || 'common') as SecretDrawDifficulty) || 'common',
     xpReward: Number(r.xp_reward || r.card_json?.xpReward || 35),
     xpAwarded: Number(r.xp_awarded || 0),
-    card: r.card_json,
+    card: normalizeCardWorldChallengeMilestones(r.card_json),
     status: r.status,
     completedMovieId: r.completed_movie_id != null ? Number(r.completed_movie_id) : null,
     completedSource: r.completed_source || null,

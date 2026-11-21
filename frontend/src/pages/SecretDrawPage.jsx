@@ -169,18 +169,6 @@ const AUDIT_STYLE = {
 
 const RANDOM_FAVORITE_ANIMS = ['classic', 'tornado', 'wax'];
 
-const REVEAL_ANIMATION_OPTIONS = [
-  {
-    id: 'random_134',
-    label: 'Aleatório (1, 3, 4)',
-    icon: '🎲',
-    hint: 'Alterna aleatoriamente entre Giro 3D, Tornado & Batida e Selo Quebrado a cada carta virada',
-  },
-  { id: 'classic', label: '1. Giro 3D + Naipes', icon: '🃏', hint: 'Giro clássico limpo com onda de choque e naipes voando' },
-  { id: 'tornado', label: '3. Tornado & Batida', icon: '🌪️', hint: 'Duplo giro aéreo com batida seca na mesa de feltro' },
-  { id: 'wax', label: '4. Selo Quebrado', icon: '🔥', hint: 'Suspense vibrante até estilhaçar o lacre dourado' },
-];
-
 const SAGA_RULE_OPTIONS = [
   {
     id: 'redirect_first',
@@ -362,7 +350,6 @@ export default function SecretDrawPage({
     }
   });
   const [isLabTransparent, setIsLabTransparent] = useState(false);
-  const [revealAnimStyle, setRevealAnimStyle] = useState('random_134');
   const [seatAnimStyles, setSeatAnimStyles] = useState({});
   const [countMode, setCountMode] = useState('10');
   const [sagaRule, setSagaRule] = useState('redirect_first');
@@ -490,11 +477,8 @@ export default function SecretDrawPage({
   }, []);
 
   const pickAnimForSeat = useCallback(
-    () =>
-      revealAnimStyle === 'random_134'
-        ? RANDOM_FAVORITE_ANIMS[Math.floor(Math.random() * RANDOM_FAVORITE_ANIMS.length)]
-        : revealAnimStyle,
-    [revealAnimStyle]
+    () => RANDOM_FAVORITE_ANIMS[Math.floor(Math.random() * RANDOM_FAVORITE_ANIMS.length)],
+    []
   );
 
   const handleDrawCards = async () => {
@@ -568,14 +552,6 @@ export default function SecretDrawPage({
     },
     [pickAnimForSeat]
   );
-
-  const handleSelectAnimStyle = (nextStyle) => {
-    setRevealAnimStyle(nextStyle);
-    setFlippedSeats({});
-    setBurstSeats({});
-    setSeatAnimStyles({});
-    setSpotlightSeat(null);
-  };
 
   const handleReplaySeatAnim = (card) => {
     if (!card) return;
@@ -1488,49 +1464,6 @@ export default function SecretDrawPage({
       )}
 
       {/* =====================================================================
-          EM CIMA: MESA DE FELTRO / SORTEIO DAS CARTAS + ANIMAÇÕES
-         ===================================================================== */}
-      {currentRound?.status === 'revealed' && (
-        <section className="rounded-2xl border border-amber-400/25 bg-zinc-950/85 px-4 py-3 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-black uppercase tracking-wider text-amber-300 mr-1">
-              🎬 Animação ao Virar / Selecionar:
-            </span>
-            {REVEAL_ANIMATION_OPTIONS.map((opt) => {
-              const active = revealAnimStyle === opt.id;
-              return (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => handleSelectAnimStyle(opt.id)}
-                  title={opt.hint}
-                  className={`px-3 py-1.5 rounded-xl text-[11px] font-black transition-all cursor-pointer border ${
-                    active
-                      ? 'bg-gradient-to-r from-amber-400 to-fuchsia-500 text-slate-950 border-amber-200 shadow-md shadow-amber-400/25'
-                      : 'bg-zinc-900 text-zinc-300 border-zinc-700 hover:border-zinc-500 hover:text-white'
-                  }`}
-                >
-                  {opt.icon} {opt.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            <button
-              type="button"
-              disabled={drawing || previewShuffling || acting}
-              onClick={handlePreviewShuffleOnly}
-              className="px-3 py-1.5 rounded-xl text-[11px] font-black bg-zinc-900 hover:bg-zinc-800 text-amber-300 border border-amber-500/35 cursor-pointer disabled:opacity-45"
-              title="Rever a animação de embaralhar o baralho sem gastar ficha"
-            >
-              🃏 Rever Embaralhar
-            </button>
-          </div>
-        </section>
-      )}
-
-      {/* =====================================================================
           MESA DE FELTRO DO BARALHO (EMBARALHAMENTO RIFFLE & 5 CARTAS EM LEQUE)
          ===================================================================== */}
       {(drawing || previewShuffling || (currentRound?.status === 'revealed' && Array.isArray(currentRound.cards))) && (
@@ -1659,8 +1592,7 @@ export default function SecretDrawPage({
                           ? FAN_LAYOUT_3[idx] || ''
                           : FAN_LAYOUT_CLASSES[idx] || '';
                       const hiddenCount = Number(card.totalMilestonesCount || 0);
-                      const fallbackMode = revealAnimStyle === 'random_134' ? 'classic' : revealAnimStyle;
-                      const cardAnimStyle = seatAnimStyles[card.seat] || fallbackMode;
+                      const cardAnimStyle = seatAnimStyles[card.seat] || 'classic';
                       const modeClass =
                         cardAnimStyle === 'tornado'
                           ? 'secret-mode-tornado'
@@ -2313,7 +2245,9 @@ export default function SecretDrawPage({
                       ? 'border-sky-500/45 bg-gradient-to-br from-sky-950/55 via-zinc-950 to-indigo-950/45'
                       : isReadyToClaimItem
                         ? 'border-amber-300/80 bg-gradient-to-br from-amber-950/55 via-zinc-950 to-emerald-950/45 shadow-[0_0_24px_rgba(251,191,36,0.2)]'
-                        : `${suit.borderFrame} bg-gradient-to-br ${suit.frontGradient}`
+                        : isCompletedItem
+                          ? 'border-emerald-400/70 bg-gradient-to-br from-emerald-950/55 via-zinc-950 to-teal-950/40 shadow-[0_0_24px_rgba(16,185,129,0.2)]'
+                          : `${suit.borderFrame} bg-gradient-to-br ${suit.frontGradient}`
                 } p-3.5 sm:p-4 ${isJustEntered ? 'secret-catalog-enter' : ''}`}
               >
                 {!isDismissedItem && (
@@ -2378,8 +2312,8 @@ export default function SecretDrawPage({
                         </span>
                       )}
                       {isCompletedItem && (
-                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black font-mono bg-emerald-500/20 text-emerald-200 border border-emerald-400/55">
-                          ✅ +{focusedPick.xpAwarded || focusedPick.xpReward} XP Liberado
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black font-mono bg-emerald-400/20 text-emerald-200 border border-emerald-300/75 shadow-[0_0_12px_rgba(16,185,129,0.25)]">
+                          🏆 MISSÃO CUMPRIDA • +{focusedPick.xpAwarded || focusedPick.xpReward} XP COLHIDO
                         </span>
                       )}
                       {isBoomerangItem && (
@@ -2663,7 +2597,15 @@ export default function SecretDrawPage({
                           : `secret-rarity-shell ${gSuit.shellClass}`
                     } ${isSelected ? 'ring-2 ring-amber-300 ring-offset-2 ring-offset-zinc-950 scale-[1.03]' : ''}`}
                   >
-                    <div className="relative z-10 aspect-[2/3] w-full rounded-[14px] overflow-hidden bg-zinc-950">
+                    <div
+                      className={`relative z-10 aspect-[2/3] w-full rounded-[14px] overflow-hidden bg-zinc-950 ${
+                        isCompleted
+                          ? 'ring-2 ring-inset ring-emerald-400/75 shadow-[inset_0_0_22px_rgba(16,185,129,0.35)]'
+                          : isReadyToClaim
+                            ? 'ring-2 ring-inset ring-amber-300/90'
+                            : ''
+                      }`}
+                    >
                       {/* Efeito Criativo de Rasgo Dimensional + Vórtice ao Declinar */}
                       {isDecliningCardNow ? (
                         <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/90">
@@ -2762,15 +2704,39 @@ export default function SecretDrawPage({
                       )}
 
                       {/* Vinheta compacta */}
-                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black via-black/30 to-black/65" />
+                      <div
+                        className={`pointer-events-none absolute inset-0 bg-gradient-to-t ${
+                          isCompleted
+                            ? 'from-emerald-950/95 via-black/35 to-black/60'
+                            : 'from-black via-black/30 to-black/65'
+                        }`}
+                      />
 
                       {/* Topo compacto */}
                       <div className="absolute top-1.5 left-1.5 right-1.5 flex items-center justify-between gap-1">
                         <span className={`px-1.5 py-0.5 rounded-full text-[8.5px] font-black border backdrop-blur-md leading-none ${gSuit.badge}`}>
                           {gSuit.suit} {gDiff === 'very_hard' ? 'M.Dif' : gCard?.difficultyLabel || gDiff}
                         </span>
-                        <span className="text-[9px] leading-none px-1 py-0.5 rounded-full bg-black/75 border border-white/15">
-                          {isReadyToClaim ? '✨' : isActive ? '🔥' : isCompleted ? '✅' : isBoomerang ? '🪃' : '✂️'}
+                        <span
+                          className={`leading-none px-1.5 py-0.5 rounded-full backdrop-blur-md tracking-wide uppercase ${
+                            isCompleted
+                              ? 'text-[8px] bg-emerald-400 text-slate-950 font-black border border-emerald-100 shadow-[0_0_10px_rgba(16,185,129,0.75)]'
+                              : isReadyToClaim
+                                ? 'text-[8px] bg-amber-400 text-slate-950 font-black border border-amber-100 animate-pulse'
+                                : isActive
+                                  ? 'text-[8px] bg-amber-500/25 text-amber-200 font-black border border-amber-400/60'
+                                  : 'text-[9px] bg-black/75 border border-white/15'
+                          }`}
+                        >
+                          {isCompleted
+                            ? '✓ CONCLUÍDO'
+                            : isReadyToClaim
+                              ? '✨ COLHER'
+                              : isActive
+                                ? '🔥 FILA'
+                                : isBoomerang
+                                  ? '🪃'
+                                  : '✂️'}
                         </span>
                       </div>
 
@@ -2784,32 +2750,37 @@ export default function SecretDrawPage({
                         <div className="text-[11px] font-black text-white leading-tight line-clamp-2 drop-shadow">
                           {gCard?.resolved?.title}
                         </div>
-                        <div className="flex items-center justify-between text-[9px] font-mono">
-                          <span className="text-zinc-300">{gCard?.resolved?.releaseYear || '?'}</span>
-                          <span
-                            className={`font-black ${
-                              isReadyToClaim
-                                ? 'text-amber-300 animate-pulse'
-                                : isActive
-                                  ? 'text-amber-300'
-                                  : isCompleted
-                                    ? 'text-emerald-300'
+                        {isCompleted ? (
+                          <div className="bg-emerald-500/25 border border-emerald-400/60 rounded-lg px-1.5 py-0.5 mt-0.5 flex items-center justify-between text-[9px] font-mono">
+                            <span className="font-bold text-emerald-100">🏆 Visto</span>
+                            <span className="font-black text-emerald-200">
+                              ✓ +{entry.xpAwarded || entry.xpReward} XP
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between text-[9px] font-mono">
+                            <span className="text-zinc-300">{gCard?.resolved?.releaseYear || '?'}</span>
+                            <span
+                              className={`font-black ${
+                                isReadyToClaim
+                                  ? 'text-amber-300 animate-pulse'
+                                  : isActive
+                                    ? 'text-amber-300'
                                     : isBoomerang
                                       ? 'text-sky-300'
                                       : 'text-zinc-400'
-                            }`}
-                          >
-                            {isReadyToClaim
-                              ? `✨ +${entry.xpReward}`
-                              : isActive
-                                ? `+${entry.xpReward}`
-                                : isCompleted
-                                  ? `✓ +${entry.xpAwarded || entry.xpReward}`
+                              }`}
+                            >
+                              {isReadyToClaim
+                                ? `✨ +${entry.xpReward} XP`
+                                : isActive
+                                  ? `⏳ +${entry.xpReward} XP`
                                   : isBoomerang
                                     ? 'No Baralho'
                                     : 'Vórtice'}
-                          </span>
-                        </div>
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </button>

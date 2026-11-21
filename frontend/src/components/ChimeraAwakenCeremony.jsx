@@ -123,6 +123,7 @@ export default function ChimeraAwakenCeremony({
 
   const banner = getJackpotTierBanner(revealStep >= 4 ? jackpotsHit : visibleJackpots, isClaimed);
   const sacSet = new Set(r.sacrificedPillars || []);
+  const optSet = new Set(r.optionalPillars || []);
   const sealedRunes =
     Array.isArray(r.chosenFateRunes) && r.chosenFateRunes.length > 0
       ? r.chosenFateRunes
@@ -130,44 +131,67 @@ export default function ChimeraAwakenCeremony({
       ? [r.chosenFateRune]
       : [];
 
+  const yearSkipped = !sacSet.has('year') && optSet.has('year') && md.baseYearOk === false;
+  const countrySkipped = !sacSet.has('country') && optSet.has('country') && md.baseCountryOk === false;
+  const genreSkipped = !sacSet.has('genre') && optSet.has('genre') && md.baseGenreOk === false;
+  const tagSkipped = !sacSet.has('tag') && optSet.has('tag') && md.baseTagOk === false;
+
   const steps = [
     {
       label: sacSet.has('year')
         ? '🗡️ Época Sacrificada'
+        : yearSkipped
+        ? '♾️ Época Dispensada'
         : `📅 Época (${r.minYear}–${r.maxYear}${r.allowPost2000 ? ' ou 2000+' : ''})`,
-      hit: !sacSet.has('year') && md.hitJackpotYear,
+      hit: !sacSet.has('year') && !yearSkipped && md.hitJackpotYear,
       hitText: '🎰 JACKPOT! Critério de Ano Premiado!',
       sacrificed: sacSet.has('year'),
-      baseXp: sacSet.has('year') ? 0 : (r.baseYearXp || 0),
-      bonusXp: md.jackpotYearXp || 0,
+      optionalSkipped: yearSkipped,
+      baseXp: sacSet.has('year') || yearSkipped ? 0 : (r.baseYearXp || 0),
+      bonusXp: yearSkipped ? 0 : (md.jackpotYearXp || 0),
     },
     {
-      label: sacSet.has('country') ? '🗡️ Bloco Sacrificado' : `${r.blockIcon || '🌍'} Bloco (${r.blockLabel})`,
-      hit: !sacSet.has('country') && md.hitJackpotCountry,
+      label: sacSet.has('country')
+        ? '🗡️ Bloco Sacrificado'
+        : countrySkipped
+        ? '🧭 Países Dispensados'
+        : `${r.blockIcon || '🌍'} Bloco (${r.blockLabel})`,
+      hit: !sacSet.has('country') && !countrySkipped && md.hitJackpotCountry,
       hitText: `🎰 JACKPOT! País Premiado (${(md.matchedCountries || [])[0] || r.jackpotCountry})`,
       sacrificed: sacSet.has('country'),
-      baseXp: sacSet.has('country') ? 0 : (r.baseCountryXp || 0),
-      bonusXp: md.jackpotCountryXp || 0,
+      optionalSkipped: countrySkipped,
+      baseXp: sacSet.has('country') || countrySkipped ? 0 : (r.baseCountryXp || 0),
+      bonusXp: countrySkipped ? 0 : (md.jackpotCountryXp || 0),
     },
     {
-      label: sacSet.has('genre') ? '🗡️ Gêneros Sacrificados' : `🎭 Gêneros (${(r.genres || []).slice(0, 3).join(' / ')}${(r.genres || []).length > 3 ? '…' : ''})`,
-      hit: !sacSet.has('genre') && md.hitJackpotGenre,
+      label: sacSet.has('genre')
+        ? '🗡️ Gêneros Sacrificados'
+        : genreSkipped
+        ? '🕊️ Gêneros Dispensados'
+        : `🎭 Gêneros (${(r.genres || []).slice(0, 3).join(' / ')}${(r.genres || []).length > 3 ? '…' : ''})`,
+      hit: !sacSet.has('genre') && !genreSkipped && md.hitJackpotGenre,
       hitText: r.stackableGenreJackpots
         ? '🌀 JACKPOT! Gêneros & Ouros Acumulados!'
         : '🎰 JACKPOT! Dupla de Gêneros!',
       sacrificed: sacSet.has('genre'),
-      baseXp: sacSet.has('genre') ? 0 : (r.baseGenreXp || 0),
-      bonusXp: md.jackpotGenreXp || 0,
+      optionalSkipped: genreSkipped,
+      baseXp: sacSet.has('genre') || genreSkipped ? 0 : (r.baseGenreXp || 0),
+      bonusXp: genreSkipped ? 0 : (md.jackpotGenreXp || 0),
     },
     {
-      label: sacSet.has('tag') ? '🗡️ Tags Sacrificadas' : `🏷️ Tags (${(md.matchedTags || []).join(', ') || 'Tag compatível'})`,
-      hit: !sacSet.has('tag') && md.hitJackpotTag,
+      label: sacSet.has('tag')
+        ? '🗡️ Tags Sacrificadas'
+        : tagSkipped
+        ? '🌑 Tags Dispensadas'
+        : `🏷️ Tags (${(md.matchedTags || []).join(', ') || 'Tag compatível'})`,
+      hit: !sacSet.has('tag') && !tagSkipped && md.hitJackpotTag,
       hitText: r.stackableTagJackpots
         ? '☄️ JACKPOT! Tags Ouro Acumuladas!'
         : '👑 JACKPOT! Tag Dourada Ativada!',
       sacrificed: sacSet.has('tag'),
-      baseXp: sacSet.has('tag') ? 0 : (r.baseTagXp || 0),
-      bonusXp: md.jackpotTagXp || 0,
+      optionalSkipped: tagSkipped,
+      baseXp: sacSet.has('tag') || tagSkipped ? 0 : (r.baseTagXp || 0),
+      bonusXp: tagSkipped ? 0 : (md.jackpotTagXp || 0),
     },
   ];
 
@@ -266,7 +290,9 @@ export default function ChimeraAwakenCeremony({
                   {revealed && (
                     <span className="text-[11px] opacity-90">
                       {st.sacrificed
-                        ? '🗡️ Liberada pela Runa Sacrifício'
+                        ? '🗡️ Liberada pela Carta de Sacrifício'
+                        : st.optionalSkipped
+                        ? '🕊️ Dispensada pela Carta (Fora do critério → +0 XP)'
                         : st.hit
                         ? st.hitText
                         : '✅ Base concluída'}
@@ -296,6 +322,10 @@ export default function ChimeraAwakenCeremony({
               r.specialRule ||
               (md.dubbingBonusXp || 0) > 0 ||
               (r.requiresDubbedBonusXp || 0) > 0 ||
+              (md.subbingBonusXp || 0) > 0 ||
+              (r.requiresSubbedBonusXp || 0) > 0 ||
+              (md.categoryBoostXp || 0) > 0 ||
+              (r.categoryXpMultiplierBonusRate || 0) > 0 ||
               sealedRunes.length > 0) && (
             <div className="chimera-jackpot-pop grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
               {(r.difficultyBonusXp || 0) > 0 && (
@@ -337,6 +367,30 @@ export default function ChimeraAwakenCeremony({
                 </div>
               )}
 
+              {(r.requiresSubbedBonusXp || 0) > 0 && (
+                <div
+                  className={`rounded-xl border px-3 py-2 flex items-center justify-between text-[11px] font-bold ${
+                    md.hitSubbingBonus
+                      ? 'border-sky-400/65 bg-sky-500/15 text-sky-100'
+                      : 'border-zinc-800 bg-zinc-900/60 text-zinc-500'
+                  }`}
+                >
+                  <span>💬 Estrela das Legendas</span>
+                  <span className="font-mono font-black">
+                    {md.hitSubbingBonus ? `+${md.subbingBonusXp} XP` : '+0 XP (Não Legendado)'}
+                  </span>
+                </div>
+              )}
+
+              {((r.categoryXpMultiplierBonusRate || 0) > 0 || (md.categoryBoostXp || 0) > 0) && (
+                <div className="rounded-xl border border-amber-400/65 bg-amber-500/15 px-3 py-2 flex items-center justify-between text-[11px] text-amber-100 font-bold">
+                  <span>
+                    🗼 Sobrecarga da Torre (+{Math.round((r.categoryXpMultiplierBonusRate || 0.25) * 100)}%/Cat)
+                  </span>
+                  <span className="font-mono font-black">+{md.categoryBoostXp || 0} XP</span>
+                </div>
+              )}
+
               {sealedRunes.length > 0 && (
                 <div
                   className={`rounded-xl border px-3 py-2 flex items-center justify-between gap-2 text-[11px] font-bold sm:col-span-2 ${
@@ -346,7 +400,7 @@ export default function ChimeraAwakenCeremony({
                   }`}
                 >
                   <span>
-                    🔮 Runas ({sealedRunes.length}):{' '}
+                    🔮 Cartas de Tarô ({sealedRunes.length}):{' '}
                     {sealedRunes.map((sr) => `${sr.icon} ${sr.runeName}`).join(' • ')}
                   </span>
                   <span className="font-mono font-black shrink-0">

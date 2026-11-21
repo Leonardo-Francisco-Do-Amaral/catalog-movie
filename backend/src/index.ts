@@ -2451,9 +2451,10 @@ app.post('/api/chimeras/class-power', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/api/chimeras/status', async (_req: Request, res: Response) => {
+app.get('/api/chimeras/status', async (req: Request, res: Response) => {
   try {
-    const data = await getChimeraStatus();
+    const labMode = req.query?.lab === '1' || req.query?.lab === 'true';
+    const data = await getChimeraStatus(labMode);
     return res.json({ success: true, data });
   } catch (err: any) {
     console.error('[Chimera] Erro ao carregar status:', err.message);
@@ -2466,8 +2467,9 @@ app.post('/api/chimeras/forge', async (req: Request, res: Response) => {
     const ritualStyle = req.body?.ritualStyle;
     const labD20Mode = req.body?.labD20Mode;
     const labForceLegendary = Boolean(req.body?.labForceLegendary);
-    const result = await forgeChimeraContract({ ritualStyle, labD20Mode, labForceLegendary });
-    const data = await getChimeraStatus();
+    const labMode = Boolean(req.body?.labMode);
+    const result = await forgeChimeraContract({ ritualStyle, labD20Mode, labForceLegendary, labMode });
+    const data = await getChimeraStatus(labMode);
     return res.json({ success: true, forged: result.chimera, data });
   } catch (err: any) {
     console.error('[Chimera] Erro ao forjar Quimera:', err.message);
@@ -2486,7 +2488,7 @@ app.post('/api/chimeras/pick-rune', async (req: Request, res: Response) => {
     const data = await getChimeraStatus();
     return res.json({ success: true, chimera: updated, data });
   } catch (err: any) {
-    console.error('[Chimera] Erro ao selar Runa da Quimera:', err.message);
+    console.error('[Chimera] Erro ao selar Carta de Tarô da Quimera:', err.message);
     return res.status(400).json({ success: false, error: err.message });
   }
 });
@@ -2565,7 +2567,8 @@ app.post('/api/chimeras/discard', async (req: Request, res: Response) => {
 app.post('/api/chimeras/lab/grant-chip', async (req: Request, res: Response) => {
   try {
     const amount = Number(req.body?.amount || 1);
-    const chipType = req.body?.type === 'decline' ? 'decline' : 'forge';
+    const chipType =
+      req.body?.type === 'slot' ? 'slot' : req.body?.type === 'decline' ? 'decline' : 'forge';
     await labAddChimeraChip(amount, chipType);
     const data = await getChimeraStatus();
     return res.json({ success: true, data });

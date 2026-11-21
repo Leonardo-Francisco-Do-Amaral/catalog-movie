@@ -14,7 +14,7 @@ import {
 
 export type ChimeraEraKey = 'bw_relic' | 'golden' | 'vhs_classic' | 'modern';
 
-export type ChimeraRuneRarity = 'common' | 'rare' | 'legendary';
+export type ChimeraRuneRarity = 'common' | 'rare' | 'legendary' | 'cursed';
 
 export type ChimeraD20Difficulty = 'nightmare' | 'hard' | 'balanced' | 'blessed';
 
@@ -47,7 +47,17 @@ export type ChimeraRuneEffectType =
   | 'blind_twin_picks'
   | 'omni_second_draw'
   | 'tag_supernova'
-  | 'genre_hurricane';
+  | 'genre_hurricane'
+  | 'death_reap_jackpot'
+  | 'death_scythe_tags'
+  | 'death_cracked_hourglass'
+  | 'subbed_star'
+  | 'optional_genre'
+  | 'optional_country'
+  | 'optional_year'
+  | 'optional_tag'
+  | 'tower_category_boost'
+  | 'death_exile_countries';
 
 export type ChimeraRitualStyle =
   | 'd20_rpg'
@@ -147,10 +157,12 @@ export interface ChimeraRecipe {
   pendingPillarAction?: 'transmute' | 'sacrifice' | null;
   transmutedPillars?: ChimeraPillarKey[];
   sacrificedPillars?: ChimeraPillarKey[];
+  optionalPillars?: ChimeraPillarKey[];
   extraTargetYears?: number[];
   extraBlockLabel?: string | null;
   extraBlockCountries?: string[];
   extraBlockIsoCodes?: string[];
+  exiledCountries?: string[];
   extraJackpotCountries?: Array<{ name: string; iso: string }>;
   stackableCountryJackpots?: boolean;
   extraJackpotGenres?: string[];
@@ -158,10 +170,14 @@ export interface ChimeraRecipe {
   extraJackpotTags?: string[];
   stackableTagJackpots?: boolean;
   legendaryJackpotPillars?: ChimeraPillarKey[];
+  cursedJackpotPillars?: ChimeraPillarKey[];
+  cursedNotes?: string[];
   jackpotMultiplierBonusRate?: number;
+  categoryXpMultiplierBonusRate?: number;
   flatRuneBonusXp?: number;
   allowPost2000?: boolean;
   requiresDubbedBonusXp?: number;
+  requiresSubbedBonusXp?: number;
 }
 
 export interface ChimeraMatchedMovieSnapshot {
@@ -193,6 +209,7 @@ export interface ChimeraMatchDetails {
   hitJackpotTag: boolean;
   hitSpecialBonus: boolean;
   hitDubbingBonus?: boolean;
+  hitSubbingBonus?: boolean;
   jackpotsHitCount: number;
 
   baseXp: number;
@@ -202,6 +219,8 @@ export interface ChimeraMatchDetails {
   jackpotTagXp: number;
   specialBonusXp: number;
   dubbingBonusXp?: number;
+  subbingBonusXp?: number;
+  categoryBoostXp?: number;
   runeBonusXp?: number;
   totalClaimableXp: number;
 }
@@ -232,6 +251,7 @@ export interface ChimeraWallet {
   declineCycleAllowance: number;
   maxDeclineBank: number;
   nextBlessedRolls: number;
+  labExtraSlots: number;
   nextResetLabel: string;
 }
 
@@ -624,6 +644,9 @@ export async function ensureChimeraTables(): Promise<void> {
     ALTER TABLE chimera_wallet
       ADD COLUMN IF NOT EXISTS next_blessed_rolls INTEGER NOT NULL DEFAULT 0;
 
+    ALTER TABLE chimera_wallet
+      ADD COLUMN IF NOT EXISTS lab_extra_slots INTEGER NOT NULL DEFAULT 0;
+
     CREATE TABLE IF NOT EXISTS chimera_contracts (
       id SERIAL PRIMARY KEY,
       status VARCHAR(32) NOT NULL DEFAULT 'active',
@@ -661,6 +684,7 @@ function mapChimeraWalletRow(row: any, nextResetLabel: string): ChimeraWallet {
     declineCycleAllowance: CHIMERA_DECLINE_CHIPS_LIMIT,
     maxDeclineBank: MAX_CHIMERA_DECLINE_BANK,
     nextBlessedRolls: Math.max(0, Number(row.next_blessed_rolls || 0)),
+    labExtraSlots: Math.max(0, Number(row.lab_extra_slots || 0)),
     nextResetLabel,
   };
 }
@@ -695,13 +719,14 @@ export async function ensureChimeraWallet(): Promise<ChimeraWallet> {
       : CHIMERA_DECLINE_CHIPS_LIMIT;
 
     const nextBlessedRolls = Math.max(0, Number(row?.next_blessed_rolls || 0));
+    const nextLabExtraSlots = Math.max(0, Number(row?.lab_extra_slots || 0));
 
     const upd = await query(
       `INSERT INTO chimera_wallet (
          id, week_key, weekly_allowance, chips_remaining, chips_used_this_week,
-         decline_chips_remaining, next_blessed_rolls, updated_at
+         decline_chips_remaining, next_blessed_rolls, lab_extra_slots, updated_at
        )
-       VALUES (1, $1, $2, $3, 0, $4, $5, CURRENT_TIMESTAMP)
+       VALUES (1, $1, $2, $3, 0, $4, $5, $6, CURRENT_TIMESTAMP)
        ON CONFLICT (id) DO UPDATE SET
          week_key = EXCLUDED.week_key,
          weekly_allowance = EXCLUDED.weekly_allowance,
@@ -709,9 +734,10 @@ export async function ensureChimeraWallet(): Promise<ChimeraWallet> {
          chips_used_this_week = 0,
          decline_chips_remaining = EXCLUDED.decline_chips_remaining,
          next_blessed_rolls = EXCLUDED.next_blessed_rolls,
+         lab_extra_slots = EXCLUDED.lab_extra_slots,
          updated_at = CURRENT_TIMESTAMP
        RETURNING *`,
-      [cycleKey, WEEKLY_CHIMERA_CHIPS_LIMIT, nextForgeChips, nextDeclineChips, nextBlessedRolls]
+      [cycleKey, WEEKLY_CHIMERA_CHIPS_LIMIT, nextForgeChips, nextDeclineChips, nextBlessedRolls, nextLabExtraSlots]
     );
     return mapChimeraWalletRow(upd.rows[0], nextResetLabel);
   }
@@ -962,7 +988,7 @@ export const CHIMERA_RUNE_CATALOG: ChimeraFateRune[] = [
   {
     id: 'oracle_xp',
     rarity: 'common',
-    runeName: 'Runa do Sábio',
+    runeName: 'Carta do Sábio',
     icon: '🔮',
     effectType: 'oracle_xp',
     bonusXp: 15,
@@ -992,7 +1018,7 @@ export const CHIMERA_RUNE_CATALOG: ChimeraFateRune[] = [
   {
     id: 'metronome_short',
     rarity: 'common',
-    runeName: 'Runa do Metrônomo',
+    runeName: 'Carta do Metrônomo',
     icon: '🎞️',
     effectType: 'metronome_short',
     bonusXp: 20,
@@ -1113,6 +1139,56 @@ export const CHIMERA_RUNE_CATALOG: ChimeraFateRune[] = [
     label: 'Se você catalogar o filme escolhido com Áudio Dublado, ganha um bônus direto de +50 XP na colheita!',
   },
   {
+    id: 'subbed_star',
+    rarity: 'rare',
+    runeName: 'Estrela das Legendas',
+    icon: '💬',
+    effectType: 'subbed_star',
+    bonusXp: 50,
+    shortTag: '+50 XP se Filme Legendado',
+    label: 'Se você catalogar o filme escolhido com áudio Legendado, ganha um bônus direto de +50 XP na colheita!',
+  },
+  {
+    id: 'optional_genre',
+    rarity: 'rare',
+    runeName: 'Coração Sem Amarras',
+    icon: '🕊️',
+    effectType: 'optional_genre',
+    bonusXp: 0,
+    shortTag: 'Gêneros Desativados (Sem XP se não bater)',
+    label: 'Desativa a exigência de gênero! Você pode assistir qualquer filme fora dos gêneros sorteados — se não bater com os gêneros escolhidos, completa a Quimera mas sem o XP referido ao gênero.',
+  },
+  {
+    id: 'optional_country',
+    rarity: 'rare',
+    runeName: 'Passaporte Sem Fronteiras',
+    icon: '🧭',
+    effectType: 'optional_country',
+    bonusXp: 0,
+    shortTag: 'Países Desativados (Perde XP de País)',
+    label: 'Desativa os países necessários para completar a Quimera! Se assistir um filme fora do bloco sorteado, completa a criatura mas você perde o XP referido aos países.',
+  },
+  {
+    id: 'optional_year',
+    rarity: 'rare',
+    runeName: 'Véu Atemporal',
+    icon: '♾️',
+    effectType: 'optional_year',
+    bonusXp: 0,
+    shortTag: 'Ano Retirado (Sem XP de Ano)',
+    label: 'Retira a restrição de Ano para completar a Quimera! Filmes de qualquer época fecham a criatura, porém você não ganha o XP de ano caso esteja fora da faixa.',
+  },
+  {
+    id: 'optional_tag',
+    rarity: 'rare',
+    runeName: 'Lua Sem Rótulos',
+    icon: '🌑',
+    effectType: 'optional_tag',
+    bonusXp: 0,
+    shortTag: 'Tags Desativadas (Sem XP de Tag)',
+    label: 'Retira a restrição de Tag para completar a Quimera! Se o filme não possuir nenhuma das tags escolhidas, ela ainda completa, mas sem receber o XP de tags.',
+  },
+  {
     id: 'titan_nations',
     rarity: 'rare',
     runeName: 'Passaporte das 5 Potências',
@@ -1192,7 +1268,7 @@ export const CHIMERA_RUNE_CATALOG: ChimeraFateRune[] = [
     effectType: 'echo_supreme',
     bonusXp: 0,
     shortTag: '+1 Escolha + Revela Raridades',
-    label: 'LENDÁRIA: Concede +1 escolha extra no Altar das Runas E revela a raridade (Comum/Rara/Lendária) das cartas ainda fechadas!',
+    label: 'LENDÁRIA: Concede +1 escolha extra na Mesa de Tarô E revela a raridade (Comum/Rara/Lendária) das cartas ainda fechadas!',
   },
   {
     id: 'blind_twin_picks',
@@ -1201,8 +1277,8 @@ export const CHIMERA_RUNE_CATALOG: ChimeraFateRune[] = [
     icon: '🃏',
     effectType: 'blind_twin_picks',
     bonusXp: 0,
-    shortTag: '+2 Escolhas às Cegas (3 Runas!)',
-    label: 'LENDÁRIA: Permite selecionar MAIS 2 Runas ainda fechadas no Altar — mantendo tudo oculto até você clicar!',
+    shortTag: '+2 Escolhas às Cegas (3 Cartas!)',
+    label: 'LENDÁRIA: Permite selecionar MAIS 2 Cartas de Tarô ainda fechadas na Mesa — mantendo tudo oculto até você clicar!',
   },
   {
     id: 'omni_second_draw',
@@ -1234,6 +1310,58 @@ export const CHIMERA_RUNE_CATALOG: ChimeraFateRune[] = [
     shortTag: '+6 Gêneros (2 Ouro Acumuláveis!)',
     label: 'LENDÁRIA: Sorteia +6 Gêneros extras (8 no total!) e marca 2 deles com Checkpot Ouro — cada Gênero Ouro acertado ACUMULA +25 XP extras!',
   },
+  {
+    id: 'tower_category_boost',
+    rarity: 'legendary',
+    runeName: 'Sobrecarga da Torre',
+    icon: '🗼',
+    effectType: 'tower_category_boost',
+    bonusXp: 0,
+    shortTag: '+25% XP em Cada Categoria',
+    label: 'LENDÁRIA (A Torre): Cada categoria da Quimera (Ano, País, Gênero e Tags — incluindo seus Jackpots!) concede +25% de XP adicional na colheita!',
+  },
+
+  // ===== ARCANO XIII • A MORTE (MALDIÇÕES DA MESA!) =====
+  {
+    id: 'death_reap_jackpot',
+    rarity: 'cursed',
+    runeName: 'Ceifa do Jackpot',
+    icon: '💀',
+    effectType: 'death_reap_jackpot',
+    bonusXp: 0,
+    shortTag: 'Corta 1 Jackpot Aleatório',
+    label: 'MALDIÇÃO (A Morte): A foice corta o Jackpot de 1 categoria aleatória! Ela continua valendo seu XP base e +0.1 de atributo, mas o Jackpot e o +0.5 desse pilar são anulados.',
+  },
+  {
+    id: 'death_scythe_tags',
+    rarity: 'cursed',
+    runeName: 'Foice das Tags',
+    icon: '💀',
+    effectType: 'death_scythe_tags',
+    bonusXp: 0,
+    shortTag: '-2 Tags na Receita',
+    label: 'MALDIÇÃO (A Morte): Ceifa 2 Tags comuns aleatórias da receita (reduzindo suas opções de encaixe), preservando sua Tag Ouro.',
+  },
+  {
+    id: 'death_cracked_hourglass',
+    rarity: 'cursed',
+    runeName: 'Ampulheta Rachada',
+    icon: '💀',
+    effectType: 'death_cracked_hourglass',
+    bonusXp: -15,
+    shortTag: 'Faixa de Ano -40% & -15 XP',
+    label: 'MALDIÇÃO (A Morte): Estilhaça a ampulheta! Encolhe a janela de Ano em -40% ao redor do Ano Alvo e drena -15 XP da base da Quimera.',
+  },
+  {
+    id: 'death_exile_countries',
+    rarity: 'cursed',
+    runeName: 'Exílio de Fronteiras',
+    icon: '💀',
+    effectType: 'death_exile_countries',
+    bonusXp: 0,
+    shortTag: '-2 Países (+Risco no Jackpot)',
+    label: 'MALDIÇÃO (A Morte): Retira 2 países aleatórios aceitos da receita! Dependendo dos sorteados pela foice, pode ou não arrancar também o País Jackpot!',
+  },
 ];
 
 function resolveD20Difficulty(d20Roll: number): {
@@ -1253,7 +1381,7 @@ function resolveD20Difficulty(d20Roll: number): {
   return { tier: 'blessed', label: '🌟 Bênção do Oráculo', bonusXp: 0 };
 }
 
-const CHIMERA_ALTAR_CARDS_COUNT = 5;
+const CHIMERA_TABLE_CARDS_COUNT = 5;
 
 function buildFateRuneDeck(params: {
   difficulty: ChimeraD20Difficulty;
@@ -1262,12 +1390,20 @@ function buildFateRuneDeck(params: {
   const commons = shuffleArr(CHIMERA_RUNE_CATALOG.filter((r) => r.rarity === 'common'));
   const rares = shuffleArr(CHIMERA_RUNE_CATALOG.filter((r) => r.rarity === 'rare'));
   const legendaries = shuffleArr(CHIMERA_RUNE_CATALOG.filter((r) => r.rarity === 'legendary'));
+  const cursed = shuffleArr(CHIMERA_RUNE_CATALOG.filter((r) => r.rarity === 'cursed'));
 
   const picked: ChimeraFateRune[] = [];
   const usedIds = new Set<string>();
 
   const pickFromRarity = (rarity: ChimeraRuneRarity) => {
-    const pool = rarity === 'legendary' ? legendaries : rarity === 'rare' ? rares : commons;
+    const pool =
+      rarity === 'legendary'
+        ? legendaries
+        : rarity === 'rare'
+        ? rares
+        : rarity === 'cursed'
+        ? cursed
+        : commons;
     const candidate = pool.find((r) => !usedIds.has(r.id));
     if (candidate) {
       usedIds.add(candidate.id);
@@ -1277,11 +1413,16 @@ function buildFateRuneDeck(params: {
     return false;
   };
 
-  // Garante diversidade real nas 5 cartas do Altar: pelo menos 1 Comum, 1 Rara e (em Pesadelo/Lab) 1 Lendária
+  // Garante diversidade real nas 5 cartas da Mesa: pelo menos 1 Comum, 1 Rara e (em Pesadelo/Lab) 1 Lendária
   pickFromRarity('common');
   pickFromRarity('rare');
   if (params.forceLegendary || params.difficulty === 'nightmare') {
     pickFromRarity('legendary');
+  }
+
+  // Até 1 carta de Maldição (Arcano XIII • A Morte) oculta na Mesa (~42% de chance)
+  if (Math.random() < 0.42 && picked.length < CHIMERA_TABLE_CARDS_COUNT) {
+    pickFromRarity('cursed');
   }
 
   const weights: Record<ChimeraD20Difficulty, { legendary: number; rare: number; common: number }> = {
@@ -1292,7 +1433,7 @@ function buildFateRuneDeck(params: {
   };
   const w = weights[params.difficulty];
 
-  while (picked.length < CHIMERA_ALTAR_CARDS_COUNT) {
+  while (picked.length < CHIMERA_TABLE_CARDS_COUNT) {
     const roll = Math.random() * 100;
     const targetRarity: ChimeraRuneRarity =
       roll < w.legendary ? 'legendary' : roll < w.legendary + w.rare ? 'rare' : 'common';
@@ -1364,6 +1505,7 @@ export async function forgeChimeraContract(
     ritualStyle?: ChimeraRitualStyle;
     labD20Mode?: 'auto' | ChimeraD20Difficulty;
     labForceLegendary?: boolean;
+    labMode?: boolean;
   } = {}
 ): Promise<{
   chimera: ChimeraContract;
@@ -1384,9 +1526,12 @@ export async function forgeChimeraContract(
     `SELECT COUNT(*)::int AS cnt FROM chimera_contracts WHERE status IN ('active', 'ready_to_claim')`
   );
   const activeCnt = Number(activeCntRes.rows[0]?.cnt || 0);
-  if (activeCnt >= MAX_ACTIVE_CHIMERAS) {
+  const effectiveActiveLimit = options.labMode
+    ? MAX_ACTIVE_CHIMERAS + Math.max(0, Number(wallet.labExtraSlots || 0))
+    : MAX_ACTIVE_CHIMERAS;
+  if (activeCnt >= effectiveActiveLimit) {
     throw new Error(
-      `Você já tem ${activeCnt}/${MAX_ACTIVE_CHIMERAS} Quimeras ativas/aguardando colheita! Conclua, decline ou descarte uma antes de forjar outra.`
+      `Você já tem ${activeCnt}/${effectiveActiveLimit} Quimeras ativas/aguardando colheita! Conclua ou decline uma antes de forjar outra.`
     );
   }
 
@@ -1575,11 +1720,17 @@ export async function forgeChimeraContract(
       pendingPillarAction: null,
       transmutedPillars: [],
       sacrificedPillars: [],
+      optionalPillars: [],
       legendaryJackpotPillars: [],
+      cursedJackpotPillars: [],
+      cursedNotes: [],
+      exiledCountries: [],
       jackpotMultiplierBonusRate: 0,
+      categoryXpMultiplierBonusRate: 0,
       flatRuneBonusXp: 0,
       allowPost2000: false,
       requiresDubbedBonusXp: 0,
+      requiresSubbedBonusXp: 0,
     };
     break;
   }
@@ -1662,7 +1813,9 @@ export function evaluateMovieAgainstChimera(
   }
 ): ChimeraMatchDetails | null {
   const sac = new Set<ChimeraPillarKey>(recipe.sacrificedPillars || []);
+  const opt = new Set<ChimeraPillarKey>(recipe.optionalPillars || []);
   const legPillars = new Set<ChimeraPillarKey>(recipe.legendaryJackpotPillars || []);
+  const cursedPillars = new Set<ChimeraPillarKey>(recipe.cursedJackpotPillars || []);
 
   // Regra padrão exige longa (>= 45 min) a menos que o especial "Vale Filme ou Curta!" esteja ativo
   const rt = Number(movie.runtime || 0);
@@ -1672,28 +1825,38 @@ export function evaluateMovieAgainstChimera(
 
   // 1. Época / Ano
   const relYear = Number(movie.releaseYear || 0);
+  let baseYearOk = false;
   let hitJackpotYear = false;
   if (!sac.has('year')) {
     const inEraWindow = relYear >= recipe.minYear && relYear <= recipe.maxYear;
     const inPost2000 = Boolean(recipe.allowPost2000) && relYear >= 2000;
-    if (!relYear || (!inEraWindow && !inPost2000)) {
+    const yearMatched = Boolean(relYear && (inEraWindow || inPost2000));
+    if (!yearMatched && !opt.has('year')) {
       return null;
     }
+    baseYearOk = yearMatched;
     hitJackpotYear =
-      relYear === recipe.targetYear ||
-      (recipe.extraTargetYears || []).includes(relYear) ||
-      legPillars.has('year');
+      baseYearOk &&
+      !cursedPillars.has('year') &&
+      (relYear === recipe.targetYear ||
+        (recipe.extraTargetYears || []).includes(relYear) ||
+        legPillars.has('year'));
   }
 
   // 2. País do bloco (+ Passaporte Duplo / 5 Potências / Convergência)
   const matchedCountries: string[] = [];
+  let baseCountryOk = false;
   let countryJackpotMultiplier = 0;
   if (!sac.has('country')) {
     const blockIsoSet = new Set(
-      [...(recipe.blockIsoCodes || []), ...(recipe.extraBlockIsoCodes || [])].map((c) => c.toUpperCase())
+      [...(recipe.blockIsoCodes || []), ...(recipe.extraBlockIsoCodes || [])]
+        .filter(Boolean)
+        .map((c) => c.toUpperCase())
     );
     const blockNameSet = new Set(
-      [...(recipe.blockCountries || []), ...(recipe.extraBlockCountries || [])].map((c) => normalizeText(c))
+      [...(recipe.blockCountries || []), ...(recipe.extraBlockCountries || [])]
+        .filter(Boolean)
+        .map((c) => normalizeText(c))
     );
     const jackpotCountryTargets = [
       { iso: String(recipe.jackpotCountryIso || '').toUpperCase(), name: normalizeText(recipe.jackpotCountry) },
@@ -1701,7 +1864,7 @@ export function evaluateMovieAgainstChimera(
         iso: String(ej.iso || '').toUpperCase(),
         name: normalizeText(ej.name),
       })),
-    ];
+    ].filter((jt) => Boolean(jt.iso || jt.name));
     const hitJackpotCountryKeys = new Set<string>();
 
     for (const c of movie.countries || []) {
@@ -1710,25 +1873,30 @@ export function evaluateMovieAgainstChimera(
       if (inBlock) {
         matchedCountries.push(c);
         for (const jt of jackpotCountryTargets) {
-          if ((id.iso && jt.iso && id.iso === jt.iso) || id.normName === jt.name) {
+          if ((id.iso && jt.iso && id.iso === jt.iso) || (jt.name && id.normName === jt.name)) {
             hitJackpotCountryKeys.add(jt.iso || jt.name);
           }
         }
       }
     }
-    if (matchedCountries.length === 0) {
+    if (matchedCountries.length === 0 && !opt.has('country')) {
       return null;
     }
-    countryJackpotMultiplier = recipe.stackableCountryJackpots
-      ? Math.max(hitJackpotCountryKeys.size, legPillars.has('country') ? 1 : 0)
-      : hitJackpotCountryKeys.size > 0 || legPillars.has('country')
-      ? 1
-      : 0;
+    baseCountryOk = matchedCountries.length > 0;
+    countryJackpotMultiplier =
+      !baseCountryOk || cursedPillars.has('country')
+        ? 0
+        : recipe.stackableCountryJackpots
+        ? Math.max(hitJackpotCountryKeys.size, legPillars.has('country') ? 1 : 0)
+        : hitJackpotCountryKeys.size > 0 || legPillars.has('country')
+        ? 1
+        : 0;
   }
   const hitJackpotCountry = countryJackpotMultiplier > 0;
 
   // 3. Gêneros (basta 1; >= 2 = Jackpot; Furacão de Gêneros acumula Gêneros Ouro)
   const matchedGenres: string[] = [];
+  let baseGenreOk = false;
   let genreJackpotMultiplier = 0;
   if (!sac.has('genre')) {
     const movieGenreNorms = new Set<string>();
@@ -1743,23 +1911,29 @@ export function evaluateMovieAgainstChimera(
         matchedGenres.push(targetG);
       }
     }
-    if (matchedGenres.length === 0) {
+    if (matchedGenres.length === 0 && !opt.has('genre')) {
       return null;
     }
+    baseGenreOk = matchedGenres.length > 0;
 
-    const baseGenreHit = matchedGenres.length >= 2 || legPillars.has('genre') ? 1 : 0;
-    const uniqueGoldGenres = Array.from(new Set(recipe.extraJackpotGenres || []));
-    const goldGenresHitCount = uniqueGoldGenres.filter((gg) =>
-      expandGenreNormEquivalents(normalizeText(gg)).some((eq) => movieGenreNorms.has(eq))
-    ).length;
+    if (baseGenreOk) {
+      const baseGenreHit = matchedGenres.length >= 2 || legPillars.has('genre') ? 1 : 0;
+      const uniqueGoldGenres = Array.from(new Set(recipe.extraJackpotGenres || []));
+      const goldGenresHitCount = uniqueGoldGenres.filter((gg) =>
+        expandGenreNormEquivalents(normalizeText(gg)).some((eq) => movieGenreNorms.has(eq))
+      ).length;
 
-    genreJackpotMultiplier =
-      baseGenreHit + (recipe.stackableGenreJackpots ? goldGenresHitCount : goldGenresHitCount > 0 && baseGenreHit === 0 ? 1 : 0);
+      genreJackpotMultiplier = cursedPillars.has('genre')
+        ? 0
+        : baseGenreHit +
+          (recipe.stackableGenreJackpots ? goldGenresHitCount : goldGenresHitCount > 0 && baseGenreHit === 0 ? 1 : 0);
+    }
   }
   const hitJackpotGenre = genreJackpotMultiplier > 0;
 
   // 4. Tags pessoais (basta 1; Supernova acumula todas as Tags Ouro acertadas!)
   const matchedTags: string[] = [];
+  let baseTagOk = false;
   let tagJackpotMultiplier = 0;
   if (!sac.has('tag')) {
     const movieTagNorms = new Set((movie.tags || []).map((t) => normalizeText(t)).filter(Boolean));
@@ -1768,18 +1942,24 @@ export function evaluateMovieAgainstChimera(
         matchedTags.push(targetTag);
       }
     }
-    if (matchedTags.length === 0) {
+    if (matchedTags.length === 0 && !opt.has('tag')) {
       return null;
     }
-    const jackpotTagNormList = Array.from(
-      new Set([recipe.jackpotTag, ...(recipe.extraJackpotTags || [])].map((t) => normalizeText(t)).filter(Boolean))
-    );
-    const goldTagsHitCount = jackpotTagNormList.filter((tNorm) => movieTagNorms.has(tNorm)).length;
-    tagJackpotMultiplier = recipe.stackableTagJackpots
-      ? Math.max(goldTagsHitCount, legPillars.has('tag') ? 1 : 0)
-      : goldTagsHitCount > 0 || legPillars.has('tag')
-      ? 1
-      : 0;
+    baseTagOk = matchedTags.length > 0;
+
+    if (baseTagOk) {
+      const jackpotTagNormList = Array.from(
+        new Set([recipe.jackpotTag, ...(recipe.extraJackpotTags || [])].map((t) => normalizeText(t)).filter(Boolean))
+      );
+      const goldTagsHitCount = jackpotTagNormList.filter((tNorm) => movieTagNorms.has(tNorm)).length;
+      tagJackpotMultiplier = cursedPillars.has('tag')
+        ? 0
+        : recipe.stackableTagJackpots
+        ? Math.max(goldTagsHitCount, legPillars.has('tag') ? 1 : 0)
+        : goldTagsHitCount > 0 || legPillars.has('tag')
+        ? 1
+        : 0;
+    }
   }
   const hitJackpotTag = tagJackpotMultiplier > 0;
 
@@ -1808,11 +1988,21 @@ export function evaluateMovieAgainstChimera(
     }
   }
 
-  const baseXp = computeEffectiveBaseXp(recipe);
-  const jackpotYearXp = hitJackpotYear && !sac.has('year') ? Number(recipe.jackpotYearXp || 0) : 0;
-  const jackpotCountryXp = !sac.has('country') ? Number(recipe.jackpotCountryXp || 0) * countryJackpotMultiplier : 0;
-  const jackpotGenreXp = !sac.has('genre') ? Number(recipe.jackpotGenreXp || 0) * genreJackpotMultiplier : 0;
-  const jackpotTagXp = !sac.has('tag') ? Number(recipe.jackpotTagXp || 0) * tagJackpotMultiplier : 0;
+  const earnedYearBase = baseYearOk ? Number(recipe.baseYearXp || 0) : 0;
+  const earnedCountryBase = baseCountryOk ? Number(recipe.baseCountryXp || 0) : 0;
+  const earnedGenreBase = baseGenreOk ? Number(recipe.baseGenreXp || 0) : 0;
+  const earnedTagBase = baseTagOk ? Number(recipe.baseTagXp || 0) : 0;
+  const baseXp =
+    earnedYearBase +
+    earnedCountryBase +
+    earnedGenreBase +
+    earnedTagBase +
+    Number(recipe.difficultyBonusXp || 0);
+
+  const jackpotYearXp = hitJackpotYear && baseYearOk ? Number(recipe.jackpotYearXp || 0) : 0;
+  const jackpotCountryXp = baseCountryOk ? Number(recipe.jackpotCountryXp || 0) * countryJackpotMultiplier : 0;
+  const jackpotGenreXp = baseGenreOk ? Number(recipe.jackpotGenreXp || 0) * genreJackpotMultiplier : 0;
+  const jackpotTagXp = baseTagOk ? Number(recipe.jackpotTagXp || 0) * tagJackpotMultiplier : 0;
 
   const jackpotSum = jackpotYearXp + jackpotCountryXp + jackpotGenreXp + jackpotTagXp;
   const multiplierExtraXp =
@@ -1820,28 +2010,45 @@ export function evaluateMovieAgainstChimera(
       ? Math.round(jackpotSum * recipe.jackpotMultiplierBonusRate)
       : 0;
 
+  const categoryRate = Number(recipe.categoryXpMultiplierBonusRate || 0);
+  const boostCatXp = (catXp: number) => (categoryRate > 0 && catXp > 0 ? Math.round(catXp * categoryRate) : 0);
+  const categoryBoostXp =
+    boostCatXp(earnedYearBase + jackpotYearXp) +
+    boostCatXp(earnedCountryBase + jackpotCountryXp) +
+    boostCatXp(earnedGenreBase + jackpotGenreXp) +
+    boostCatXp(earnedTagBase + jackpotTagXp);
+
   const hitDubbingBonus =
     Number(recipe.requiresDubbedBonusXp || 0) > 0 &&
     normalizeText(movie.audioType || '').includes('dublad');
   const dubbingBonusXp = hitDubbingBonus ? Number(recipe.requiresDubbedBonusXp || 0) : 0;
 
+  const hitSubbingBonus =
+    Number(recipe.requiresSubbedBonusXp || 0) > 0 &&
+    normalizeText(movie.audioType || '').includes('legendad');
+  const subbingBonusXp = hitSubbingBonus ? Number(recipe.requiresSubbedBonusXp || 0) : 0;
+
   const runeBonusXp = Number(recipe.flatRuneBonusXp || 0) + multiplierExtraXp;
 
-  const totalClaimableXp =
+  const totalClaimableXp = Math.max(
+    10,
     baseXp +
-    jackpotYearXp +
-    jackpotCountryXp +
-    jackpotGenreXp +
-    jackpotTagXp +
-    specialBonusXp +
-    dubbingBonusXp +
-    runeBonusXp;
+      jackpotYearXp +
+      jackpotCountryXp +
+      jackpotGenreXp +
+      jackpotTagXp +
+      specialBonusXp +
+      dubbingBonusXp +
+      subbingBonusXp +
+      categoryBoostXp +
+      runeBonusXp
+  );
 
   return {
-    baseYearOk: true,
-    baseCountryOk: true,
-    baseGenreOk: true,
-    baseTagOk: true,
+    baseYearOk,
+    baseCountryOk,
+    baseGenreOk,
+    baseTagOk,
     matchedGenres,
     matchedTags,
     matchedCountries,
@@ -1851,6 +2058,7 @@ export function evaluateMovieAgainstChimera(
     hitJackpotTag,
     hitSpecialBonus,
     hitDubbingBonus,
+    hitSubbingBonus,
     jackpotsHitCount,
     baseXp,
     jackpotYearXp,
@@ -1859,6 +2067,8 @@ export function evaluateMovieAgainstChimera(
     jackpotTagXp,
     specialBonusXp,
     dubbingBonusXp,
+    subbingBonusXp,
+    categoryBoostXp,
     runeBonusXp,
     totalClaimableXp,
   };
@@ -1954,27 +2164,32 @@ const TITAN_NATIONS_LIST: Array<{ name: string; iso: string }> = [
 
 function recalculateRecipeXpTotals(recipe: ChimeraRecipe): ChimeraRecipe {
   const sac = new Set<ChimeraPillarKey>(recipe.sacrificedPillars || []);
-  const yearJackpotMax = sac.has('year') ? 0 : Number(recipe.jackpotYearXp || 0);
-  const countryJackpotCount = sac.has('country')
-    ? 0
-    : recipe.stackableCountryJackpots
-    ? Math.max(1, 1 + (recipe.extraJackpotCountries?.length || 0))
-    : 1;
+  const cursed = new Set<ChimeraPillarKey>(recipe.cursedJackpotPillars || []);
+  const yearJackpotMax = sac.has('year') || cursed.has('year') ? 0 : Number(recipe.jackpotYearXp || 0);
+  const countryJackpotCount =
+    sac.has('country') || cursed.has('country')
+      ? 0
+      : recipe.stackableCountryJackpots
+      ? Math.max(1, 1 + (recipe.extraJackpotCountries?.length || 0))
+      : 1;
   const countryJackpotMax = Number(recipe.jackpotCountryXp || 0) * countryJackpotCount;
 
-  const genreJackpotCount = sac.has('genre')
-    ? 0
-    : 1 + (recipe.stackableGenreJackpots ? recipe.extraJackpotGenres?.length || 0 : 0);
+  const genreJackpotCount =
+    sac.has('genre') || cursed.has('genre')
+      ? 0
+      : 1 + (recipe.stackableGenreJackpots ? recipe.extraJackpotGenres?.length || 0 : 0);
   const genreJackpotMax = Number(recipe.jackpotGenreXp || 0) * genreJackpotCount;
 
-  const uniqueGoldTagCount = sac.has('tag')
-    ? 0
-    : new Set([recipe.jackpotTag, ...(recipe.extraJackpotTags || [])].map((t) => normalizeText(t)).filter(Boolean)).size;
-  const tagJackpotCount = sac.has('tag')
-    ? 0
-    : recipe.stackableTagJackpots
-    ? Math.max(1, uniqueGoldTagCount)
-    : 1;
+  const uniqueGoldTagCount =
+    sac.has('tag') || cursed.has('tag')
+      ? 0
+      : new Set([recipe.jackpotTag, ...(recipe.extraJackpotTags || [])].map((t) => normalizeText(t)).filter(Boolean)).size;
+  const tagJackpotCount =
+    sac.has('tag') || cursed.has('tag')
+      ? 0
+      : recipe.stackableTagJackpots
+      ? Math.max(1, uniqueGoldTagCount)
+      : 1;
   const tagJackpotMax = Number(recipe.jackpotTagXp || 0) * tagJackpotCount;
 
   const baseJackpotMax = yearJackpotMax + countryJackpotMax + genreJackpotMax + tagJackpotMax;
@@ -1982,16 +2197,29 @@ function recalculateRecipeXpTotals(recipe: ChimeraRecipe): ChimeraRecipe {
     recipe.jackpotMultiplierBonusRate && baseJackpotMax > 0
       ? Math.round(baseJackpotMax * recipe.jackpotMultiplierBonusRate)
       : 0;
+  const categoryRate = Number(recipe.categoryXpMultiplierBonusRate || 0);
+  const boostCatMax = (xp: number) => (categoryRate > 0 && xp > 0 ? Math.round(xp * categoryRate) : 0);
+  const maxCategoryBoostXp =
+    boostCatMax((sac.has('year') ? 0 : Number(recipe.baseYearXp || 0)) + yearJackpotMax) +
+    boostCatMax((sac.has('country') ? 0 : Number(recipe.baseCountryXp || 0)) + countryJackpotMax) +
+    boostCatMax((sac.has('genre') ? 0 : Number(recipe.baseGenreXp || 0)) + genreJackpotMax) +
+    boostCatMax((sac.has('tag') ? 0 : Number(recipe.baseTagXp || 0)) + tagJackpotMax);
+
+  const flatBonus = Number(recipe.flatRuneBonusXp || 0);
 
   return {
     ...recipe,
-    totalBaseXp: computeEffectiveBaseXp(recipe),
-    maxJackpotBonusXp:
+    totalBaseXp: Math.max(10, computeEffectiveBaseXp(recipe) + Math.min(0, flatBonus)),
+    maxJackpotBonusXp: Math.max(
+      0,
       baseJackpotMax +
-      crimsonMax +
-      Number(recipe.specialRule?.bonusXp || 0) +
-      Number(recipe.requiresDubbedBonusXp || 0) +
-      Number(recipe.flatRuneBonusXp || 0),
+        crimsonMax +
+        maxCategoryBoostXp +
+        Number(recipe.specialRule?.bonusXp || 0) +
+        Number(recipe.requiresDubbedBonusXp || 0) +
+        Number(recipe.requiresSubbedBonusXp || 0) +
+        Math.max(0, flatBonus)
+    ),
   };
 }
 
@@ -2062,7 +2290,7 @@ export async function pickChimeraFateRune(
   }
   const current = mapChimeraRow(res.rows[0]);
   if (current.status !== 'active') {
-    throw new Error('Só é possível selar Runas em uma Quimera ativa.');
+    throw new Error('Só é possível selar Cartas de Tarô em uma Quimera ativa.');
   }
   const recipe: ChimeraRecipe = { ...current.recipe };
   const remainingBefore = Number(
@@ -2075,10 +2303,10 @@ export async function pickChimeraFateRune(
   const deck = recipe.fateRunes || [];
   const chosen = deck.find((r) => r.id === runeId);
   if (!chosen) {
-    throw new Error('Runa escolhida não encontrada nesta receita.');
+    throw new Error('Carta de Tarô escolhida não encontrada nesta receita.');
   }
   if (chosen.chosen) {
-    throw new Error('Esta Runa já foi selada neste Altar.');
+    throw new Error('Esta Carta de Tarô já foi selada nesta Mesa.');
   }
 
   const sealedRune: ChimeraFateRune = { ...chosen, chosen: true };
@@ -2143,7 +2371,7 @@ export async function pickChimeraFateRune(
         updatedRecipe.specialRule = {
           id: 'short_allowed',
           icon: '🎞️',
-          label: 'Runa: Vale Curta (<50m)!',
+          label: 'Carta de Tarô: Vale Curta (<50m)!',
           hint: 'Permite curta-metragem e concede +20 XP bônus se assistir um curta.',
           bonusXp: 20,
           allowShort: true,
@@ -2208,6 +2436,39 @@ export async function pickChimeraFateRune(
 
     case 'dubbing_star': {
       updatedRecipe.requiresDubbedBonusXp = Number(recipe.requiresDubbedBonusXp || 0) + 50;
+      break;
+    }
+
+    case 'subbed_star': {
+      updatedRecipe.requiresSubbedBonusXp = Number(recipe.requiresSubbedBonusXp || 0) + 50;
+      break;
+    }
+
+    case 'optional_genre': {
+      updatedRecipe.optionalPillars = Array.from(
+        new Set<ChimeraPillarKey>([...(recipe.optionalPillars || []), 'genre'])
+      );
+      break;
+    }
+
+    case 'optional_country': {
+      updatedRecipe.optionalPillars = Array.from(
+        new Set<ChimeraPillarKey>([...(recipe.optionalPillars || []), 'country'])
+      );
+      break;
+    }
+
+    case 'optional_year': {
+      updatedRecipe.optionalPillars = Array.from(
+        new Set<ChimeraPillarKey>([...(recipe.optionalPillars || []), 'year'])
+      );
+      break;
+    }
+
+    case 'optional_tag': {
+      updatedRecipe.optionalPillars = Array.from(
+        new Set<ChimeraPillarKey>([...(recipe.optionalPillars || []), 'tag'])
+      );
       break;
     }
 
@@ -2318,6 +2579,159 @@ export async function pickChimeraFateRune(
 
     case 'genre_hurricane': {
       applyExtraGenresMutation(updatedRecipe, 6, 2);
+      break;
+    }
+
+    case 'tower_category_boost': {
+      updatedRecipe.categoryXpMultiplierBonusRate =
+        Number(recipe.categoryXpMultiplierBonusRate || 0) + 0.25;
+      break;
+    }
+
+    case 'death_reap_jackpot': {
+      const sacSet = new Set<ChimeraPillarKey>(updatedRecipe.sacrificedPillars || []);
+      const cursedSet = new Set<ChimeraPillarKey>(updatedRecipe.cursedJackpotPillars || []);
+      const candidates = (['year', 'country', 'genre', 'tag'] as ChimeraPillarKey[]).filter(
+        (p) => !sacSet.has(p) && !cursedSet.has(p)
+      );
+      const victim = candidates[Math.floor(Math.random() * candidates.length)] || 'year';
+      cursedSet.add(victim);
+      updatedRecipe.cursedJackpotPillars = Array.from(cursedSet);
+      updatedRecipe.legendaryJackpotPillars = (updatedRecipe.legendaryJackpotPillars || []).filter(
+        (p) => p !== victim
+      );
+      const victimLabels: Record<ChimeraPillarKey, string> = {
+        year: 'Ano / Época',
+        country: 'País / Bloco',
+        genre: 'Gêneros',
+        tag: 'Tags',
+      };
+      if (victim === 'year') updatedRecipe.jackpotYearXp = 0;
+      if (victim === 'country') updatedRecipe.jackpotCountryXp = 0;
+      if (victim === 'genre') updatedRecipe.jackpotGenreXp = 0;
+      if (victim === 'tag') updatedRecipe.jackpotTagXp = 0;
+      updatedRecipe.cursedNotes = [
+        ...(updatedRecipe.cursedNotes || []),
+        `💀 Ceifa do Jackpot: pilar ${victimLabels[victim]} perdeu o Jackpot`,
+      ];
+      break;
+    }
+
+    case 'death_scythe_tags': {
+      const goldNorms = new Set(
+        [updatedRecipe.jackpotTag, ...(updatedRecipe.extraJackpotTags || [])]
+          .map((t) => normalizeText(t))
+          .filter(Boolean)
+      );
+      const allTags = [...(updatedRecipe.tags || [])];
+      const removable = shuffleArr(allTags.filter((t) => !goldNorms.has(normalizeText(t))));
+      const toRemove = new Set<string>();
+      for (const candidate of removable) {
+        if (toRemove.size >= 2) break;
+        if (allTags.length - toRemove.size <= 2) break;
+        toRemove.add(normalizeText(candidate));
+      }
+      if (toRemove.size > 0) {
+        updatedRecipe.tags = allTags.filter((t) => !toRemove.has(normalizeText(t)));
+      }
+      updatedRecipe.cursedNotes = [
+        ...(updatedRecipe.cursedNotes || []),
+        `💀 Foice das Tags: -${toRemove.size} Tag(s) removida(s) da receita`,
+      ];
+      break;
+    }
+
+    case 'death_cracked_hourglass': {
+      const currentHalf = Math.max(1, Math.floor((updatedRecipe.maxYear - updatedRecipe.minYear) / 2));
+      const nextHalf = Math.max(1, Math.round(currentHalf * 0.6));
+      const maxCap = new Date().getFullYear();
+      updatedRecipe.minYear = Math.max(1920, updatedRecipe.targetYear - nextHalf);
+      updatedRecipe.maxYear = Math.min(maxCap, updatedRecipe.targetYear + nextHalf);
+      updatedRecipe.windowSize = updatedRecipe.maxYear - updatedRecipe.minYear + 1;
+      updatedRecipe.flatRuneBonusXp = Number(updatedRecipe.flatRuneBonusXp || 0) - 15;
+      updatedRecipe.cursedNotes = [
+        ...(updatedRecipe.cursedNotes || []),
+        `💀 Ampulheta Rachada: faixa reduzida (${updatedRecipe.minYear}–${updatedRecipe.maxYear}) e -15 XP`,
+      ];
+      break;
+    }
+
+    case 'death_exile_countries': {
+      const combinedPool = Array.from(
+        new Map(
+          [...(updatedRecipe.blockCountries || []), ...(updatedRecipe.extraBlockCountries || [])]
+            .filter(Boolean)
+            .map((name) => [normalizeText(name), name])
+        ).entries()
+      );
+      const shuffled = shuffleArr(combinedPool);
+      const exiledEntries: Array<[string, string]> = [];
+      for (const entry of shuffled) {
+        if (exiledEntries.length >= 2) break;
+        if (combinedPool.length - exiledEntries.length <= 1) break;
+        exiledEntries.push(entry);
+      }
+
+      const exiledNorms = new Set(exiledEntries.map(([norm]) => norm));
+      const exiledNames = exiledEntries.map(([, name]) => name);
+      const exiledIsos = new Set(
+        exiledNames.map((n) => resolveCountryIdentity(n).iso).filter(Boolean) as string[]
+      );
+
+      updatedRecipe.blockCountries = (updatedRecipe.blockCountries || []).filter(
+        (c) => !exiledNorms.has(normalizeText(c))
+      );
+      updatedRecipe.blockIsoCodes = (updatedRecipe.blockIsoCodes || []).filter(
+        (iso) => !exiledIsos.has(String(iso || '').toUpperCase())
+      );
+      updatedRecipe.extraBlockCountries = (updatedRecipe.extraBlockCountries || []).filter(
+        (c) => !exiledNorms.has(normalizeText(c))
+      );
+      updatedRecipe.extraBlockIsoCodes = (updatedRecipe.extraBlockIsoCodes || []).filter(
+        (iso) => !exiledIsos.has(String(iso || '').toUpperCase())
+      );
+      updatedRecipe.exiledCountries = Array.from(
+        new Set([...(updatedRecipe.exiledCountries || []), ...exiledNames])
+      );
+
+      const primaryRemoved =
+        Boolean(updatedRecipe.jackpotCountry) &&
+        exiledNorms.has(normalizeText(updatedRecipe.jackpotCountry));
+      const remainingExtras = (updatedRecipe.extraJackpotCountries || []).filter(
+        (ej) => !exiledNorms.has(normalizeText(ej.name))
+      );
+      const extraRemovedCount =
+        (updatedRecipe.extraJackpotCountries || []).length - remainingExtras.length;
+      updatedRecipe.extraJackpotCountries = remainingExtras;
+
+      let jackpotNote = 'Jackpot de País preservado!';
+      if (primaryRemoved) {
+        if (remainingExtras.length > 0) {
+          const promoted = remainingExtras[0];
+          updatedRecipe.jackpotCountry = promoted.name;
+          updatedRecipe.jackpotCountryIso = promoted.iso;
+          updatedRecipe.extraJackpotCountries = remainingExtras.slice(1);
+          jackpotNote = 'atingiu 1 Jackpot (outro sobreviveu)';
+        } else {
+          updatedRecipe.jackpotCountry = '';
+          updatedRecipe.jackpotCountryIso = '';
+          updatedRecipe.jackpotCountryXp = 0;
+          const cursedSet = new Set<ChimeraPillarKey>(updatedRecipe.cursedJackpotPillars || []);
+          cursedSet.add('country');
+          updatedRecipe.cursedJackpotPillars = Array.from(cursedSet);
+          updatedRecipe.legendaryJackpotPillars = (updatedRecipe.legendaryJackpotPillars || []).filter(
+            (p) => p !== 'country'
+          );
+          jackpotNote = 'arrancou também o País Jackpot!';
+        }
+      } else if (extraRemovedCount > 0) {
+        jackpotNote = 'removeu um País Jackpot extra';
+      }
+
+      updatedRecipe.cursedNotes = [
+        ...(updatedRecipe.cursedNotes || []),
+        `💀 Exílio de Fronteiras: removeu ${exiledNames.join(' & ') || 'nenhum país'} (${jackpotNote})`,
+      ];
       break;
     }
   }
@@ -2534,11 +2948,18 @@ export async function discardChimeraContract(chimeraId: number): Promise<void> {
 
 export async function labAddChimeraChip(
   amount = 1,
-  chipType: 'forge' | 'decline' = 'forge'
+  chipType: 'forge' | 'decline' | 'slot' = 'forge'
 ): Promise<ChimeraWallet> {
   await ensureChimeraWallet();
   const add = Math.max(1, Math.min(10, Math.floor(Number(amount) || 1)));
-  if (chipType === 'decline') {
+  if (chipType === 'slot') {
+    await query(
+      `UPDATE chimera_wallet
+       SET lab_extra_slots = LEAST(8, COALESCE(lab_extra_slots, 0) + 2),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = 1`
+    );
+  } else if (chipType === 'decline') {
     await query(
       `UPDATE chimera_wallet
        SET decline_chips_remaining = COALESCE(decline_chips_remaining, 0) + $1,
@@ -2576,15 +2997,19 @@ export async function labSimulateMatchChimera(
   const firstSug = r.tmdbSuggestions?.[0];
   const isFull = jackpotMode === 'full_jackpot';
 
+  const availableCountries = [
+    ...(r.blockCountries || []),
+    ...(r.extraBlockCountries || []),
+  ].filter(Boolean);
   const simCountries = isFull
     ? Array.from(
-        new Set([r.jackpotCountry, ...(r.extraJackpotCountries || []).map((c) => c.name)].filter(Boolean))
-      )
-    : [r.blockCountries[0] || r.jackpotCountry];
+        new Set([r.jackpotCountry, ...(r.extraJackpotCountries || []).map((c) => c.name), availableCountries[0]].filter(Boolean))
+      ).slice(0, Math.max(1, r.jackpotCountry ? 2 : 1))
+    : [availableCountries[0] || r.jackpotCountry || 'Brasil'].filter(Boolean);
 
   const simGenres = isFull
     ? Array.from(new Set([...(r.genres || []).slice(0, 2), ...(r.extraJackpotGenres || [])].filter(Boolean)))
-    : [r.genres[0]];
+    : [r.genres[0]].filter(Boolean);
 
   const simTags = isFull
     ? Array.from(
@@ -2596,17 +3021,24 @@ export async function labSimulateMatchChimera(
           ].filter(Boolean)
         )
       )
-    : [r.tags.find((t) => normalizeText(t) !== normalizeText(r.jackpotTag)) || r.tags[0]];
+    : [r.tags.find((t) => normalizeText(t) !== normalizeText(r.jackpotTag)) || r.tags[0]].filter(Boolean);
+
+  const simulatedAudio =
+    Number(r.requiresSubbedBonusXp || 0) > 0 && !Number(r.requiresDubbedBonusXp || 0)
+      ? 'Legendado'
+      : isFull
+      ? 'Dublado'
+      : 'Legendado';
 
   const simulatedMovie: ChimeraMatchedMovieSnapshot = {
     movieId: 0,
-    title: firstSug?.title || `Filme Simulado • ${r.jackpotCountry}`,
+    title: firstSug?.title || `Filme Simulado • ${r.jackpotCountry || availableCountries[0] || r.blockLabel}`,
     originalTitle: firstSug?.originalTitle || null,
     releaseYear: isFull ? r.targetYear : (firstSug?.releaseYear ?? r.targetYear),
     posterUrl: firstSug?.posterUrl || null,
     runtime: r.specialRule?.id === 'short_allowed' && isFull ? 28 : 108,
     voteCount: isFull ? 1800 : (firstSug?.voteCount || 4200),
-    audioType: isFull ? 'Dublado' : 'Legendado',
+    audioType: simulatedAudio,
     countries: simCountries,
     genres: simGenres,
     tags: simTags,
@@ -2642,9 +3074,9 @@ export async function labResetChimeras(): Promise<void> {
   await query(
     `INSERT INTO chimera_wallet (
        id, week_key, weekly_allowance, chips_remaining, chips_used_this_week,
-       decline_chips_remaining, next_blessed_rolls, updated_at
+       decline_chips_remaining, next_blessed_rolls, lab_extra_slots, updated_at
      )
-     VALUES (1, $1, $2, $2, 0, $3, 0, CURRENT_TIMESTAMP)
+     VALUES (1, $1, $2, $2, 0, $3, 0, 0, CURRENT_TIMESTAMP)
      ON CONFLICT (id) DO UPDATE SET
        week_key = EXCLUDED.week_key,
        weekly_allowance = EXCLUDED.weekly_allowance,
@@ -2652,6 +3084,7 @@ export async function labResetChimeras(): Promise<void> {
        chips_used_this_week = 0,
        decline_chips_remaining = EXCLUDED.decline_chips_remaining,
        next_blessed_rolls = 0,
+       lab_extra_slots = 0,
        updated_at = CURRENT_TIMESTAMP`,
     [cycleKey, WEEKLY_CHIMERA_CHIPS_LIMIT, CHIMERA_DECLINE_CHIPS_LIMIT]
   );
@@ -2790,9 +3223,11 @@ export async function getQuickChimeraXpSummary(): Promise<ChimeraXpSummary> {
   }
 }
 
-export async function getChimeraStatus(): Promise<{
+export async function getChimeraStatus(labMode = false): Promise<{
   wallet: ChimeraWallet;
   activeLimit: number;
+  baseActiveLimit: number;
+  labActiveLimit: number;
   readyToClaimCount: number;
   activeChimeras: ChimeraContract[];
   readyChimeras: ChimeraContract[];
@@ -2828,9 +3263,14 @@ export async function getChimeraStatus(): Promise<{
     blk.countries.map((c) => ({ iso: c.iso, name: c.name, blockLabel: blk.label }))
   );
 
+  const baseActiveLimit = MAX_ACTIVE_CHIMERAS;
+  const labActiveLimit = MAX_ACTIVE_CHIMERAS + Math.max(0, Number(wallet.labExtraSlots || 0));
+
   return {
     wallet,
-    activeLimit: MAX_ACTIVE_CHIMERAS,
+    activeLimit: labMode ? labActiveLimit : baseActiveLimit,
+    baseActiveLimit,
+    labActiveLimit,
     readyToClaimCount: readyChimeras.length,
     activeChimeras,
     readyChimeras,
@@ -3029,7 +3469,7 @@ export async function activateChimeraClassPower(params: {
     case 'sacerdote_cinefilo': {
       recipe.revealRemainingRarities = true;
       recipe.flatRuneBonusXp = Number(recipe.flatRuneBonusXp || 0) + 15;
-      message = '🕯️ Vela do Altar acesa: raridade de todas as Runas revelada + 15 XP na Quimera!';
+      message = '🕯️ Vela da Mesa acesa: raridade de todas as Cartas de Tarô revelada + 15 XP na Quimera!';
       break;
     }
 
@@ -3082,11 +3522,11 @@ export async function activateChimeraClassPower(params: {
           unpickedCount,
           Number(recipe.runePicksRemaining || 0) + 1
         );
-        message = '🏆 Armadura de Platina: +1 escolha de Runa liberada no Altar desta Quimera!';
+        message = '🏆 Armadura de Platina: +1 escolha de Carta de Tarô liberada na Mesa desta Quimera!';
       } else {
         recipe.revealRemainingRarities = true;
         recipe.flatRuneBonusXp = Number(recipe.flatRuneBonusXp || 0) + 25;
-        message = '🏆 Armadura de Platina: Altar já fechado, concedido +25 XP blindados na Quimera!';
+        message = '🏆 Armadura de Platina: Mesa já fechada, concedido +25 XP blindados na Quimera!';
       }
       break;
     }
@@ -3148,7 +3588,7 @@ export async function activateChimeraClassPower(params: {
       if (unpicked > 0) {
         recipe.runePicksRemaining = Math.min(unpicked, Number(recipe.runePicksRemaining || 0) + 1);
       }
-      message = '👁️ Terceiro Olho do Altar: todas as 5 Runas reveladas + 1 escolha extra no Altar!';
+      message = '👁️ Terceiro Olho do Tarô: todas as 5 Cartas de Tarô reveladas + 1 escolha extra na Mesa!';
       break;
     }
 

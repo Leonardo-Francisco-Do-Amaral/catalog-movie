@@ -28,8 +28,10 @@ import {
   playChimeraJackpotFanfareSound,
   playChimeraAwakenSound,
   playChimeraRunePickSound,
+  playChimeraTarotFlipSound,
 } from '../utils/trophyAudio';
-import ChimeraForgeRitual from '../components/ChimeraForgeRitual';
+import ChimeraForgeRitual, { TarotCardShowcaseModal } from '../components/ChimeraForgeRitual';
+import { TAROT_BACK_IMAGE, getRuneTarotMeta } from '../utils/chimeraTarotCatalog';
 import ChimeraAwakenCeremony from '../components/ChimeraAwakenCeremony';
 import { ALL_CINEMA_CLASSES } from '../utils/analyticsEngine';
 import {
@@ -48,7 +50,7 @@ const LAB_D20_MODES = [
 
 function dispatchChimeraSync() {
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('cine-chimera-sync'));
+    window.dispatchEvent(new CustomEvent('cine-chimera-sync', { detail: { source: 'chimera-page' } }));
   }
 }
 
@@ -68,12 +70,13 @@ export default function ChimeraPage({
   const [selectedPowerChoice, setSelectedPowerChoice] = useState('');
   const [actingClassPower, setActingClassPower] = useState(false);
 
-  // Cena D20 + Altar das Runas Roguelike
+  // Cena D20 + Mesa das Cartas de Tarô Roguelike
   const [labD20Mode, setLabD20Mode] = useState('auto');
   const [labForceLegendary, setLabForceLegendary] = useState(false);
   const [showRuneCodex, setShowRuneCodex] = useState(false);
   const [activeRitualContract, setActiveRitualContract] = useState(null);
   const [runeBusy, setRuneBusy] = useState(false);
+  const [inspectedTarotRune, setInspectedTarotRune] = useState(null);
 
   // Modo Lab oculto por padrão (revelado via Alt+L ou duplo clique no selo Ciclo 15 Dias)
   const [showLabTools, setShowLabTools] = useState(() => {
@@ -130,6 +133,11 @@ export default function ChimeraPage({
     (data, xpStatus = null) => {
       if (data) {
         setStatusData(data);
+        setActiveRitualContract((prev) => {
+          if (!prev) return null;
+          const stillActive = (data.activeChimeras || []).find((c) => Number(c.id) === Number(prev.id));
+          return stillActive || null;
+        });
         onStatusLoaded(data);
       }
       if (xpStatus) {
@@ -144,17 +152,25 @@ export default function ChimeraPage({
   const fetchStatus = useCallback(async () => {
     try {
       setErrorMsg('');
-      const res = await axios.get(`${API_BASE_URL}/chimeras/status`);
+      const res = await axios.get(`${API_BASE_URL}/chimeras/status`, {
+        params: { lab: showLabTools ? '1' : '0' },
+      });
       if (res.data?.success && res.data?.data) {
-        setStatusData(res.data.data);
-        onStatusLoaded(res.data.data);
+        const nextData = res.data.data;
+        setStatusData(nextData);
+        setActiveRitualContract((prev) => {
+          if (!prev) return null;
+          const stillActive = (nextData.activeChimeras || []).find((c) => Number(c.id) === Number(prev.id));
+          return stillActive || null;
+        });
+        onStatusLoaded(nextData);
       }
     } catch (err) {
       setErrorMsg(err.response?.data?.error || 'Erro ao carregar a Quimera Cinéfila.');
     } finally {
       setLoading(false);
     }
-  }, [onStatusLoaded]);
+  }, [onStatusLoaded, showLabTools]);
 
   const fetchClassPowerWallet = useCallback(async () => {
     try {
@@ -173,7 +189,8 @@ export default function ChimeraPage({
   }, [fetchStatus, fetchClassPowerWallet]);
 
   useEffect(() => {
-    const onExternalSync = () => {
+    const onExternalSync = (e) => {
+      if (e?.detail?.source === 'chimera-page') return;
       fetchStatus();
       fetchClassPowerWallet();
     };
@@ -201,6 +218,7 @@ export default function ChimeraPage({
         ritualStyle: 'rogue_runes',
         labD20Mode: showLabTools ? labD20Mode : 'auto',
         labForceLegendary: showLabTools ? labForceLegendary : false,
+        labMode: Boolean(showLabTools),
       });
       const forged = res.data?.forged || null;
       const nextData = res.data?.data || null;
@@ -223,18 +241,25 @@ export default function ChimeraPage({
     if (runeBusy || !chimeraId || !runeId) return;
     setRuneBusy(true);
     setErrorMsg('');
+    playChimeraTarotFlipSound('common');
     try {
       const res = await axios.post(`${API_BASE_URL}/chimeras/pick-rune`, { chimeraId, runeId });
-      const chosenRarity = res.data?.chimera?.recipe?.chosenFateRune?.rarity || 'common';
-      playChimeraRunePickSound(chosenRarity);
-      if (res.data?.chimera) {
+      const recipeAfter = res.data?.chimera?.recipe;
+      const pickedRune =
+        recipeAfter?.fateRunes?.find((r) => r.id === runeId) || recipeAfter?.chosenFateRune;
+      if (res.data?.chimera && Number(activeRitualContract?.id) === Number(chimeraId)) {
         setActiveRitualContract(res.data.chimera);
+      } else if (pickedRune) {
+        setInspectedTarotRune(pickedRune);
+        setInfoBanner(
+          `🔮 Carta de Tarô "${pickedRune.icon || '✨'} ${pickedRune.runeName}" selada na Quimera #${chimeraId}!`
+        );
       }
       if (res.data?.data) {
         applyServerStatus(res.data.data);
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.error || 'Erro ao selar Runa de Destino.');
+      setErrorMsg(err.response?.data?.error || 'Erro ao selar Carta de Tarô.');
     } finally {
       setRuneBusy(false);
     }
@@ -276,7 +301,13 @@ export default function ChimeraPage({
     setErrorMsg('');
     try {
       const res = await axios.post(`${API_BASE_URL}/chimeras/decline`, { chimeraId });
+      if (Number(activeRitualContract?.id) === Number(chimeraId)) {
+        clearAllTimers();
+        setActiveRitualContract(null);
+        setInspectedTarotRune(null);
+      }
       applyServerStatus(res.data?.data);
+      setInfoBanner(`🪶 Quimera #${chimeraId} declinada! +1 Ficha de Forja estornada.`);
     } catch (err) {
       setErrorMsg(err.response?.data?.error || 'Erro ao declinar Quimera.');
     } finally {
@@ -290,7 +321,13 @@ export default function ChimeraPage({
     setErrorMsg('');
     try {
       const res = await axios.post(`${API_BASE_URL}/chimeras/discard`, { chimeraId });
+      if (Number(activeRitualContract?.id) === Number(chimeraId)) {
+        clearAllTimers();
+        setActiveRitualContract(null);
+        setInspectedTarotRune(null);
+      }
       applyServerStatus(res.data?.data);
+      setInfoBanner(`🗑️ Quimera #${chimeraId} deletada no Laboratório.`);
     } catch (err) {
       setErrorMsg(err.response?.data?.error || 'Erro ao descartar Quimera.');
     } finally {
@@ -364,11 +401,15 @@ export default function ChimeraPage({
     setActionBusy(true);
     setErrorMsg('');
     try {
+      const normalizedType = chipType === 'decline' ? 'decline' : chipType === 'slot' ? 'slot' : 'forge';
       const res = await axios.post(`${API_BASE_URL}/chimeras/lab/grant-chip`, {
         amount: 1,
-        type: chipType === 'decline' ? 'decline' : 'forge',
+        type: normalizedType,
       });
       applyServerStatus(res.data?.data);
+      if (normalizedType === 'slot') {
+        setInfoBanner('🧬 +2 Slots extras de Quimera ativados no Lab!');
+      }
     } catch (err) {
       setErrorMsg(err.response?.data?.error || 'Erro ao recarregar ficha no Lab.');
     } finally {
@@ -385,6 +426,10 @@ export default function ChimeraPage({
         chimeraId,
         mode,
       });
+      if (Number(activeRitualContract?.id) === Number(chimeraId)) {
+        clearAllTimers();
+        setActiveRitualContract(null);
+      }
       applyServerStatus(res.data?.data);
       playChimeraJackpotTickSound(mode === 'full_jackpot' ? 3 : 1);
     } catch (err) {
@@ -400,7 +445,11 @@ export default function ChimeraPage({
     setErrorMsg('');
     try {
       const res = await axios.post(`${API_BASE_URL}/chimeras/lab/reset`);
+      clearAllTimers();
+      setActiveRitualContract(null);
+      setInspectedTarotRune(null);
       applyServerStatus(res.data?.data, res.data?.xpStatus);
+      setInfoBanner('🧪 Laboratório resetado com sucesso!');
     } catch (err) {
       setErrorMsg(err.response?.data?.error || 'Erro ao resetar Quimeras no Lab.');
     } finally {
@@ -433,7 +482,9 @@ export default function ChimeraPage({
   const maxChipsBank = Number(wallet.maxChipsBank || 5);
   const maxDeclineBank = Number(wallet.maxDeclineBank || 2);
   const cycleDays = Number(wallet.cycleDays || 15);
-  const activeLimit = statusData?.activeLimit || 2;
+  const baseActiveLimit = Number(statusData?.baseActiveLimit ?? 2);
+  const labActiveLimit = Number(statusData?.labActiveLimit ?? statusData?.activeLimit ?? baseActiveLimit);
+  const activeLimit = showLabTools ? labActiveLimit : baseActiveLimit;
   const readyChimeras = statusData?.readyChimeras || [];
   const activeChimeras = statusData?.activeChimeras || [];
   const claimedHistory = statusData?.claimedHistory || [];
@@ -508,6 +559,9 @@ export default function ChimeraPage({
       });
       if (res.data?.success && res.data?.data) {
         const payload = res.data.data;
+        if (payload.chimera && Number(activeRitualContract?.id) === Number(targetPowerChimeraId)) {
+          setActiveRitualContract(payload.chimera);
+        }
         if (payload.data) applyServerStatus(payload.data);
         if (payload.classWallet) setClassPowerWallet(payload.classWallet);
         setInfoBanner(payload.message || 'Poder da classe ativado na Quimera!');
@@ -569,7 +623,9 @@ export default function ChimeraPage({
                   className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/35 text-emerald-300 text-[10px] font-black uppercase tracking-widest select-none"
                 >
                   <Dna className="w-3.5 h-3.5" />
-                  Ciclo {cycleDays} Dias • {wallet.weeklyAllowance || 3} Fichas (máx. {maxChipsBank}) • 1 Declínio (máx. {maxDeclineBank})
+                  Ciclo {cycleDays} Dias • {wallet.weeklyAllowance || 3} Fichas (máx. {maxChipsBank}) •{' '}
+                  {wallet.declineChipsRemaining ?? 0} Declínio{(wallet.declineChipsRemaining ?? 0) === 1 ? '' : 's'}{' '}
+                  disp. (máx. {maxDeclineBank})
                 </span>
               )}
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-400/30 text-amber-300 text-[10px] font-bold">
@@ -591,7 +647,7 @@ export default function ChimeraPage({
               <strong className="text-sky-300">Bloco Regional</strong>,{' '}
               <strong className="text-purple-300">2 Gêneros</strong> e{' '}
               <strong className="text-amber-300">5 Tags Temáticas</strong>, mais 1 de{' '}
-              <strong className="text-purple-200">5 Runas ocultas no Altar</strong> ({runeCatalog.length || 27} no Códice!). Pesquise qualquer filme real que
+              <strong className="text-purple-200">5 Cartas de Tarô ocultas na Mesa</strong> ({runeCatalog.length || 30} no Códice!). Pesquise qualquer filme real que
               cumpra <strong className="text-white">1 de cada critério</strong> para ganhar o XP Base — e acerte
               os alvos dourados para empilhar <strong className="text-amber-300">Jackpots independentes</strong>!
             </p>
@@ -679,12 +735,12 @@ export default function ChimeraPage({
               className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-purple-950/50 hover:bg-purple-900/60 border border-purple-400/40 text-purple-200 text-xs font-bold transition-colors cursor-pointer"
             >
               <BookOpen className="w-4 h-4 text-purple-300" />
-              Códice das {runeCatalog.length || 27} Runas
+              Códice das {runeCatalog.length || 30} Cartas de Tarô
             </button>
           </div>
         </div>
 
-        {/* Painel Lab Expansível (Calibração do Dado D20 + Runas Lendárias + Simulações) */}
+        {/* Painel Lab Expansível (Calibração do Dado D20 + Cartas Lendárias + Simulações) */}
         {showLabTools && (
           <div className="relative mt-4 rounded-2xl border border-cyan-500/35 bg-cyan-950/20 p-4 flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -692,7 +748,7 @@ export default function ChimeraPage({
                 <FlaskConical className="w-4 h-4 text-cyan-400 shrink-0" />
                 <span>
                   <strong>Sandbox Lab:</strong> Force o D20 baixo (Pesadelo 1–4) ou alto (Bênção 17–20), garanta
-                  Runas Lendárias no altar e simule capturas douradas à vontade!
+                  Cartas de Tarô Lendárias na mesa e simule capturas douradas à vontade!
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -723,6 +779,18 @@ export default function ChimeraPage({
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   +1 Poder Classe
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleLabGrantChip('slot')}
+                  disabled={actionBusy || Number(wallet?.labExtraSlots || 0) >= 8}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-200 text-[11px] font-black uppercase tracking-wider cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
+                  title={`Liberar +2 Slots extras de Quimera no Lab (bônus atual: +${Number(wallet?.labExtraSlots || 0)}/8)`}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  {Number(wallet?.labExtraSlots || 0) >= 8
+                    ? 'Slots Lab Máx (+8)'
+                    : `+2 Slots Lab${Number(wallet?.labExtraSlots || 0) > 0 ? ` (+${Number(wallet?.labExtraSlots || 0)})` : ''}`}
                 </button>
                 <button
                   type="button"
@@ -766,9 +834,69 @@ export default function ChimeraPage({
                     : 'bg-zinc-950/75 border-cyan-500/30 text-zinc-300 hover:border-amber-400/40'
                 }`}
               >
-                👑 {labForceLegendary ? 'Baralho c/ Lendária FORÇADO' : 'Forçar Runa Lendária no Altar'}
+                👑 {labForceLegendary ? 'Baralho c/ Lendária FORÇADO' : 'Forçar Carta Lendária no Tarô'}
               </button>
             </div>
+
+            {(activeChimeras.length > 0 || readyChimeras.length > 0) && (
+              <div className="pt-2.5 border-t border-cyan-400/20 flex flex-col gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] font-black uppercase tracking-widest text-cyan-300/90">
+                  <span>
+                    🧬 Fila de Quimeras Ativas ({slotsUsed}/{activeLimit}) — Declinar ou Remover pelo Lab:
+                  </span>
+                  <span className="text-sky-300 font-mono">
+                    Declínios: {wallet.declineChipsRemaining ?? 0} • Fichas: {wallet.chipsRemaining ?? 0}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {[
+                    ...readyChimeras.map((c) => ({ ...c, _queueStage: 'Pronta' })),
+                    ...activeChimeras.map((c) => ({ ...c, _queueStage: 'Em Caça' })),
+                  ].map((ch) => (
+                    <div
+                      key={`lab-q-${ch.id}`}
+                      className="rounded-xl border border-cyan-500/25 bg-zinc-950/80 px-3 py-2 flex flex-wrap items-center justify-between gap-2"
+                    >
+                      <div className="min-w-0 flex items-center gap-2">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                            ch._queueStage === 'Pronta'
+                              ? 'bg-amber-400/20 border border-amber-400/50 text-amber-200'
+                              : 'bg-emerald-500/15 border border-emerald-400/40 text-emerald-200'
+                          }`}
+                        >
+                          #{ch.id} • {ch._queueStage}
+                        </span>
+                        <span className="text-xs font-bold text-zinc-100 truncate">
+                          {ch.recipe?.creatureTitle || `Quimera #${ch.id}`}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleDeclineChimera(ch.id)}
+                          disabled={actionBusy || (wallet.declineChipsRemaining ?? 0) <= 0}
+                          title="Declinar Quimera (+1 Ficha de Forja)"
+                          className="px-2.5 py-1 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/45 text-sky-200 text-[10px] font-black cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          🪶 Declinar (+1 Ficha • {wallet.declineChipsRemaining ?? 0})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDiscardChimera(ch.id)}
+                          disabled={actionBusy}
+                          title="Remover Quimera pelo Lab (sem estornar ficha)"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/45 text-rose-200 text-[10px] font-black cursor-pointer disabled:opacity-40"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Remover
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </section>
@@ -903,13 +1031,18 @@ export default function ChimeraPage({
         </div>
       )}
 
-      {/* Cena D20 + Altar Roguelike (4 Categorias na ordem livre) */}
+      {/* Cena D20 + Mesa de Tarô Roguelike (4 Categorias na ordem livre) */}
       {activeRitualContract && (
         <ChimeraForgeRitual
           contract={activeRitualContract}
           onSelectFateRune={handleSelectFateRune}
           runeBusy={runeBusy}
+          actionBusy={actionBusy}
           onFinishRitual={handleFinishRitual}
+          onDeclineChimera={handleDeclineChimera}
+          onDiscardChimera={handleDiscardChimera}
+          declineChipsRemaining={wallet.declineChipsRemaining ?? 0}
+          showLabTools={showLabTools}
         />
       )}
 
@@ -989,61 +1122,85 @@ export default function ChimeraPage({
                       <div className="grid grid-cols-2 gap-2 text-[11px]">
                         <div
                           className={`rounded-xl px-3 py-2 border ${
-                            md.hitJackpotYear
+                            md.baseYearOk === false
+                              ? 'border-zinc-700/70 bg-zinc-900/60 text-zinc-400'
+                              : md.hitJackpotYear
                               ? 'border-amber-400/70 bg-amber-400/15 text-amber-200'
                               : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
                           }`}
                         >
                           <div className="font-black">
-                            {md.hitJackpotYear ? '🎰 JACKPOT Ano Exato!' : '✅ Ano na Faixa'}
+                            {md.baseYearOk === false
+                              ? '♾️ Ano Dispensado'
+                              : md.hitJackpotYear
+                              ? '🎰 JACKPOT Ano Exato!'
+                              : '✅ Ano na Faixa'}
                           </div>
                           <div className="font-mono text-[10px] opacity-90">
-                            +{md.hitJackpotYear ? r.baseYearXp + (md.jackpotYearXp || 0) : r.baseYearXp} XP
+                            +{md.baseYearOk === false ? 0 : md.hitJackpotYear ? r.baseYearXp + (md.jackpotYearXp || 0) : r.baseYearXp} XP
                           </div>
                         </div>
 
                         <div
                           className={`rounded-xl px-3 py-2 border ${
-                            md.hitJackpotCountry
+                            md.baseCountryOk === false
+                              ? 'border-zinc-700/70 bg-zinc-900/60 text-zinc-400'
+                              : md.hitJackpotCountry
                               ? 'border-amber-400/70 bg-amber-400/15 text-amber-200'
                               : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
                           }`}
                         >
                           <div className="font-black">
-                            {md.hitJackpotCountry ? '🎰 JACKPOT País!' : '✅ Bloco Regional'}
+                            {md.baseCountryOk === false
+                              ? '🧭 País Dispensado'
+                              : md.hitJackpotCountry
+                              ? '🎰 JACKPOT País!'
+                              : '✅ Bloco Regional'}
                           </div>
                           <div className="font-mono text-[10px] opacity-90">
-                            +{md.hitJackpotCountry ? r.baseCountryXp + (md.jackpotCountryXp || 0) : r.baseCountryXp} XP
+                            +{md.baseCountryOk === false ? 0 : md.hitJackpotCountry ? r.baseCountryXp + (md.jackpotCountryXp || 0) : r.baseCountryXp} XP
                           </div>
                         </div>
 
                         <div
                           className={`rounded-xl px-3 py-2 border ${
-                            md.hitJackpotGenre
+                            md.baseGenreOk === false
+                              ? 'border-zinc-700/70 bg-zinc-900/60 text-zinc-400'
+                              : md.hitJackpotGenre
                               ? 'border-amber-400/70 bg-amber-400/15 text-amber-200'
                               : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
                           }`}
                         >
                           <div className="font-black">
-                            {md.hitJackpotGenre ? '🎰 JACKPOT 2 Gêneros!' : '✅ 1/2 Gêneros'}
+                            {md.baseGenreOk === false
+                              ? '🕊️ Gênero Dispensado'
+                              : md.hitJackpotGenre
+                              ? '🎰 JACKPOT 2 Gêneros!'
+                              : '✅ Gênero Compatível'}
                           </div>
                           <div className="font-mono text-[10px] opacity-90">
-                            +{md.hitJackpotGenre ? r.baseGenreXp + (md.jackpotGenreXp || 0) : r.baseGenreXp} XP
+                            +{md.baseGenreOk === false ? 0 : md.hitJackpotGenre ? r.baseGenreXp + (md.jackpotGenreXp || 0) : r.baseGenreXp} XP
                           </div>
                         </div>
 
                         <div
                           className={`rounded-xl px-3 py-2 border ${
-                            md.hitJackpotTag
+                            md.baseTagOk === false
+                              ? 'border-zinc-700/70 bg-zinc-900/60 text-zinc-400'
+                              : md.hitJackpotTag
                               ? 'border-amber-400/70 bg-amber-400/15 text-amber-200'
                               : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
                           }`}
                         >
                           <div className="font-black">
-                            {md.hitJackpotTag ? '👑 JACKPOT Tag Ouro!' : `✅ 1/${(r.tags || []).length || 5} Tags`}
+                            {md.baseTagOk === false
+                              ? '🌑 Tag Dispensada'
+                              : md.hitJackpotTag
+                              ? '👑 JACKPOT Tag Ouro!'
+                              : `✅ 1/${(r.tags || []).length || 5} Tags`}
                           </div>
                           <div className="font-mono text-[10px] opacity-90">
-                            +{md.hitJackpotTag ? r.baseTagXp + (md.jackpotTagXp || 0) : r.baseTagXp} XP
+                            +{md.baseTagOk === false ? 0 : md.hitJackpotTag ? r.baseTagXp + (md.jackpotTagXp || 0) : r.baseTagXp} XP
                           </div>
                         </div>
                       </div>
@@ -1055,6 +1212,27 @@ export default function ChimeraPage({
                         </div>
                       )}
 
+                      {md.hitDubbingBonus && (md.dubbingBonusXp || 0) > 0 && (
+                        <div className="rounded-xl border border-emerald-400/50 bg-emerald-500/15 px-3 py-2 text-[11px] font-bold text-emerald-200 flex items-center justify-between">
+                          <span>🎙️ Bônus Áudio Dublado</span>
+                          <span className="font-mono text-emerald-100">+{md.dubbingBonusXp} XP</span>
+                        </div>
+                      )}
+
+                      {md.hitSubbingBonus && (md.subbingBonusXp || 0) > 0 && (
+                        <div className="rounded-xl border border-sky-400/50 bg-sky-500/15 px-3 py-2 text-[11px] font-bold text-sky-200 flex items-center justify-between">
+                          <span>💬 Bônus Filme Legendado</span>
+                          <span className="font-mono text-sky-100">+{md.subbingBonusXp} XP</span>
+                        </div>
+                      )}
+
+                      {(md.categoryBoostXp || 0) > 0 && (
+                        <div className="rounded-xl border border-amber-400/50 bg-amber-500/15 px-3 py-2 text-[11px] font-bold text-amber-200 flex items-center justify-between">
+                          <span>🗼 Sobrecarga da Torre (+{Math.round((r.categoryXpMultiplierBonusRate || 0.25) * 100)}%/Cat)</span>
+                          <span className="font-mono text-amber-100">+{md.categoryBoostXp} XP</span>
+                        </div>
+                      )}
+
                       <button
                         type="button"
                         onClick={() => handleStartAwakenCeremony(contract)}
@@ -1063,6 +1241,35 @@ export default function ChimeraPage({
                         <Sparkles className="w-5 h-5" />
                         Despertar Quimera & Colher +{md.totalClaimableXp || r.totalBaseXp} XP
                       </button>
+
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleDeclineChimera(contract.id)}
+                          disabled={actionBusy || (wallet.declineChipsRemaining ?? 0) <= 0}
+                          title={
+                            (wallet.declineChipsRemaining ?? 0) <= 0
+                              ? `Sem Declínios disponíveis (1 a cada ${cycleDays} dias, máx. ${maxDeclineBank}).`
+                              : 'Gasta 1 Declínio para cancelar esta Quimera e DEVOLVER +1 Ficha de Forja!'
+                          }
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/40 text-sky-200 text-[11px] font-black transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          🪶 Declinar (+1 Ficha • {wallet.declineChipsRemaining ?? 0} disp.)
+                        </button>
+
+                        {showLabTools && (
+                          <button
+                            type="button"
+                            onClick={() => handleDiscardChimera(contract.id)}
+                            disabled={actionBusy}
+                            title="Remover / deletar esta Quimera da fila no Lab (sem estornar ficha de forja)"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/45 text-rose-200 text-[11px] font-black transition-colors cursor-pointer disabled:opacity-40"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Remover Quimera (Lab)
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1115,6 +1322,7 @@ export default function ChimeraPage({
                   ? r.pendingPillarActions[0]
                   : r.pendingPillarAction || null;
               const sacSet = new Set(r.sacrificedPillars || []);
+              const optSet = new Set(r.optionalPillars || []);
 
               return (
                 <article
@@ -1153,18 +1361,52 @@ export default function ChimeraPage({
                         <span className="px-2.5 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-zinc-200 text-[11px] font-mono font-bold">
                           Base: +{r.totalBaseXp} XP • Potencial Máx: +{maxPossibleXp} XP
                         </span>
-                        {chosenRunes.map((cr) => (
+                        {chosenRunes.map((cr) => {
+                          const tarot = getRuneTarotMeta(cr);
+                          const crBadgeCls =
+                            cr.rarity === 'cursed'
+                              ? 'bg-rose-950/60 hover:bg-rose-900/70 border-rose-500/65 text-rose-200'
+                              : cr.rarity === 'legendary'
+                              ? 'bg-amber-500/20 hover:bg-amber-400/30 border-amber-300/60 text-amber-100'
+                              : cr.rarity === 'rare'
+                              ? 'bg-sky-500/20 hover:bg-sky-400/30 border-sky-400/55 text-sky-100'
+                              : 'bg-purple-500/20 hover:bg-purple-400/30 border-purple-400/45 text-purple-200';
+                          return (
+                            <button
+                              key={cr.id}
+                              type="button"
+                              onClick={() => setInspectedTarotRune(cr)}
+                              title={`Clique para ampliar a carta Arcano ${tarot.roman} (${tarot.name}) — ${cr.label}`}
+                              className={`px-2.5 py-1 rounded-full border text-[11px] font-bold inline-flex items-center gap-1 transition-colors cursor-pointer ${crBadgeCls}`}
+                            >
+                              <span className="font-mono text-[10px] opacity-80">{tarot.roman} •</span>
+                              <span>
+                                {cr.icon} {cr.runeName}
+                              </span>
+                            </button>
+                          );
+                        })}
+                        {(r.cursedNotes || []).map((note, noteIdx) => (
                           <span
-                            key={cr.id}
-                            title={cr.label}
-                            className="px-2.5 py-1 rounded-full bg-purple-500/20 border border-purple-400/45 text-purple-200 text-[11px] font-bold"
+                            key={`cursed-note-${noteIdx}`}
+                            className="px-2.5 py-1 rounded-full bg-rose-950/60 border border-rose-500/55 text-rose-200 text-[11px] font-bold"
                           >
-                            {cr.icon} {cr.runeName}
+                            💀 {note}
                           </span>
                         ))}
                         {(r.requiresDubbedBonusXp || 0) > 0 && (
                           <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/45 text-emerald-200 text-[11px] font-bold">
                             🎙️ Filme Dublado (+{r.requiresDubbedBonusXp} XP)
+                          </span>
+                        )}
+                        {(r.requiresSubbedBonusXp || 0) > 0 && (
+                          <span className="px-2.5 py-1 rounded-full bg-sky-500/15 border border-sky-400/45 text-sky-200 text-[11px] font-bold">
+                            💬 Filme Legendado (+{r.requiresSubbedBonusXp} XP)
+                          </span>
+                        )}
+                        {(r.categoryXpMultiplierBonusRate || 0) > 0 && (
+                          <span className="px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-400/45 text-amber-200 text-[11px] font-bold">
+                            🗼 Sobrecarga da Torre (+{Math.round(r.categoryXpMultiplierBonusRate * 100)}%/Cat)
                           </span>
                         )}
                         {r.specialRule && (
@@ -1190,7 +1432,7 @@ export default function ChimeraPage({
                         }
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/40 text-sky-200 text-[11px] font-black transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        🪶 Declinar (+1 Ficha)
+                        🪶 Declinar (+1 Ficha • {wallet.declineChipsRemaining ?? 0} disp.)
                       </button>
 
                       {showLabTools && (
@@ -1198,54 +1440,80 @@ export default function ChimeraPage({
                           type="button"
                           onClick={() => handleDiscardChimera(contract.id)}
                           disabled={actionBusy}
-                          title="Descartar no Lab (sem devolver ficha)"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-rose-950/50 border border-zinc-800 hover:border-rose-500/40 text-zinc-400 hover:text-rose-300 text-[11px] font-bold transition-colors cursor-pointer"
+                          title="Remover / deletar esta Quimera da fila no Lab (sem estornar ficha de forja)"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/45 text-rose-200 text-[11px] font-black transition-colors cursor-pointer disabled:opacity-40"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
-                          Descartar (Lab)
+                          Remover Quimera (Lab)
                         </button>
                       )}
                     </div>
                   </div>
 
-                  {/* Runas pendentes se usuário fechou ou ganhou escolhas extras */}
+                  {/* Cartas de Tarô pendentes se usuário fechou ou ganhou escolhas extras */}
                   {Array.isArray(r.fateRunes) && r.fateRunes.length > 0 && runePicksLeft > 0 && (
-                    <div className="rounded-2xl border border-purple-400/45 bg-purple-950/20 p-3.5 flex flex-wrap items-center justify-between gap-3">
+                    <div className="rounded-2xl border border-purple-400/45 bg-purple-950/20 p-3.5 flex flex-col gap-3">
                       <span className="text-xs font-bold text-purple-200">
-                        🔮 Escolha{' '}
+                        🔮 Mesa de Tarô — Escolha{' '}
                         <strong>
-                          {runePicksLeft} Runa{runePicksLeft > 1 ? 's' : ''} restante{runePicksLeft > 1 ? 's' : ''}
+                          {runePicksLeft} Carta{runePicksLeft > 1 ? 's' : ''} restante{runePicksLeft > 1 ? 's' : ''}
                         </strong>{' '}
-                        do Altar{r.revealRemainingRarities ? ' (👁️ Raridades Reveladas!)' : ''}:
+                        da Mesa{r.revealRemainingRarities ? ' (👁️ Raridades Reveladas!)' : ''}:
                       </span>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                         {r.fateRunes.map((rune, rIdx) => {
                           const isSealed = Boolean(rune.chosen) || chosenRunes.some((cr) => cr.id === rune.id);
+                          const tarot = getRuneTarotMeta(rune);
                           const rarityHint =
                             r.revealRemainingRarities && !isSealed
-                              ? rune.rarity === 'legendary'
-                                ? ' • 👑 Lendária'
+                              ? rune.rarity === 'cursed'
+                                ? '💀 Maldição XIII'
+                                : rune.rarity === 'legendary'
+                                ? '👑 Lendária'
                                 : rune.rarity === 'rare'
-                                ? ' • 💠 Rara'
-                                : ' • ⚪ Comum'
+                                ? '💠 Rara'
+                                : '⚪ Comum'
                               : '';
                           return (
                             <button
                               key={rune.id}
                               type="button"
-                              disabled={runeBusy || isSealed}
-                              onClick={() => handleSelectFateRune(contract.id, rune.id)}
-                              className={`px-3 py-1.5 rounded-xl border text-[11px] font-black ${
+                              disabled={runeBusy}
+                              onClick={() =>
+                                isSealed ? setInspectedTarotRune(rune) : handleSelectFateRune(contract.id, rune.id)
+                              }
+                              className={`p-2 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer disabled:opacity-50 ${
                                 isSealed
-                                  ? 'border-emerald-400/50 bg-emerald-500/15 text-emerald-200 cursor-default'
+                                  ? rune.rarity === 'cursed'
+                                    ? 'border-rose-500/70 bg-rose-950/55 hover:bg-rose-900/55 text-rose-100'
+                                    : 'border-emerald-400/55 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-100'
+                                  : r.revealRemainingRarities && rune.rarity === 'cursed'
+                                  ? 'border-rose-500 bg-rose-950/55 hover:bg-rose-900/65 text-rose-100'
                                   : r.revealRemainingRarities && rune.rarity === 'legendary'
-                                  ? 'border-amber-400 bg-amber-500/20 hover:bg-amber-400/30 text-amber-100 cursor-pointer'
+                                  ? 'border-amber-400 bg-amber-500/20 hover:bg-amber-400/30 text-amber-100'
                                   : r.revealRemainingRarities && rune.rarity === 'rare'
-                                  ? 'border-sky-400 bg-sky-500/20 hover:bg-sky-400/30 text-sky-100 cursor-pointer'
-                                  : 'border-purple-400/50 bg-purple-500/20 hover:border-amber-300 hover:bg-amber-400/20 text-purple-100 cursor-pointer'
+                                  ? 'border-sky-400 bg-sky-500/20 hover:bg-sky-400/30 text-sky-100'
+                                  : 'border-purple-400/50 bg-purple-500/20 hover:border-amber-300 hover:bg-amber-400/20 text-purple-100'
                               }`}
                             >
-                              {isSealed ? `${rune.icon} ${rune.runeName}` : `🔮 Runa #${rIdx + 1}${rarityHint}`}
+                              <div className="w-10 aspect-[2/3] rounded-lg overflow-hidden shrink-0 border border-white/15 bg-black">
+                                <img
+                                  src={isSealed ? tarot.image : TAROT_BACK_IMAGE}
+                                  alt={isSealed ? `${tarot.roman} - ${tarot.name}` : `Carta fechada ${rIdx + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <div className="min-w-0 flex-1 flex flex-col">
+                                <span className="text-[10px] font-black uppercase tracking-wider opacity-75">
+                                  {isSealed ? `Arcano ${tarot.roman}` : `Arcano #${rIdx + 1}`}
+                                </span>
+                                <span className="text-[11px] font-black leading-tight truncate">
+                                  {isSealed ? `${rune.icon} ${rune.runeName}` : 'Carta Oculta'}
+                                </span>
+                                <span className="text-[10px] opacity-85 truncate mt-0.5">
+                                  {isSealed ? 'Ver carta' : rarityHint || 'Despertar'}
+                                </span>
+                              </div>
                             </button>
                           );
                         })}
@@ -1311,6 +1579,7 @@ export default function ChimeraPage({
                   {/* Os 4 Pilares (refletem mutações de Runas Comuns, Raras & Lendárias) */}
                   {(() => {
                     const legSet = new Set(r.legendaryJackpotPillars || []);
+                    const cursedSet = new Set(r.cursedJackpotPillars || []);
                     const allBlockCountries = Array.from(
                       new Set([...(r.blockCountries || []), ...(r.extraBlockCountries || [])])
                     );
@@ -1358,10 +1627,23 @@ export default function ChimeraPage({
                                 <div className="text-[11px] text-emerald-200/75 mt-0.5">
                                   {r.eraLabel} • Faixa de {r.windowSize} anos
                                 </div>
+                                {optSet.has('year') && (
+                                  <div className="mt-2 inline-flex w-fit items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-400/50 text-indigo-200 text-[10px] font-bold">
+                                    ♾️ Opcional (Completa sem XP se fora)
+                                  </div>
+                                )}
                               </div>
-                              <div className="rounded-xl bg-amber-500/10 border border-amber-400/35 px-3 py-2 text-[11px] text-amber-200 flex items-center justify-between gap-1">
+                              <div
+                                className={`rounded-xl border px-3 py-2 text-[11px] flex items-center justify-between gap-1 ${
+                                  cursedSet.has('year')
+                                    ? 'bg-rose-950/45 border-rose-500/45 text-rose-200'
+                                    : 'bg-amber-500/10 border-amber-400/35 text-amber-200'
+                                }`}
+                              >
                                 <span>
-                                  {legSet.has('year') ? (
+                                  {cursedSet.has('year') ? (
+                                    <strong>💀 Ceifado pela Morte</strong>
+                                  ) : legSet.has('year') ? (
                                     <strong>👑 CATEGORIA 100% JACKPOT!</strong>
                                   ) : r.extraTargetYears?.length ? (
                                     <>🎰 Alvos: <strong>{r.targetYear} / {r.extraTargetYears.join(' / ')}</strong></>
@@ -1369,7 +1651,9 @@ export default function ChimeraPage({
                                     <>🎰 Jackpot Exato: <strong>{r.targetYear}</strong></>
                                   )}
                                 </span>
-                                <span className="font-mono font-black shrink-0">+{r.jackpotYearXp} XP</span>
+                                <span className="font-mono font-black shrink-0">
+                                  {cursedSet.has('year') ? '+0 XP' : `+${r.jackpotYearXp} XP`}
+                                </span>
                               </div>
                             </>
                           )}
@@ -1403,6 +1687,11 @@ export default function ChimeraPage({
                                   {r.blockIcon} {r.blockLabel}
                                   {r.extraBlockLabel ? ` + ${r.extraBlockLabel}` : ''}
                                 </div>
+                                {optSet.has('country') && (
+                                  <div className="mt-1.5 inline-flex w-fit items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-400/50 text-indigo-200 text-[10px] font-bold">
+                                    🧭 Países Opcionais (Perde XP de País se fora)
+                                  </div>
+                                )}
                                 <div className="flex flex-wrap gap-1 mt-2">
                                   {allBlockCountries.map((c) => {
                                     const isJackCountry = allJackpotCountries.includes(c);
@@ -1422,9 +1711,17 @@ export default function ChimeraPage({
                                   })}
                                 </div>
                               </div>
-                              <div className="rounded-xl bg-amber-500/10 border border-amber-400/35 px-3 py-2 text-[11px] text-amber-200 flex items-center justify-between gap-1">
+                              <div
+                                className={`rounded-xl border px-3 py-2 text-[11px] flex items-center justify-between gap-1 ${
+                                  cursedSet.has('country')
+                                    ? 'bg-rose-950/45 border-rose-500/45 text-rose-200'
+                                    : 'bg-amber-500/10 border-amber-400/35 text-amber-200'
+                                }`}
+                              >
                                 <span>
-                                  {legSet.has('country') ? (
+                                  {cursedSet.has('country') ? (
+                                    <strong>💀 Ceifado pela Morte</strong>
+                                  ) : legSet.has('country') ? (
                                     <strong>👑 BLOCO 100% JACKPOT!</strong>
                                   ) : allJackpotCountries.length > 1 ? (
                                     <>
@@ -1436,7 +1733,9 @@ export default function ChimeraPage({
                                   )}
                                 </span>
                                 <span className="font-mono font-black shrink-0">
-                                  +{r.jackpotCountryXp} XP{r.stackableCountryJackpots ? '×' : ''}
+                                  {cursedSet.has('country')
+                                    ? '+0 XP'
+                                    : `+${r.jackpotCountryXp} XP${r.stackableCountryJackpots ? '×' : ''}`}
                                 </span>
                               </div>
                             </>
@@ -1489,10 +1788,23 @@ export default function ChimeraPage({
                                     );
                                   })}
                                 </div>
+                                {optSet.has('genre') && (
+                                  <div className="mt-2 inline-flex w-fit items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-400/50 text-indigo-200 text-[10px] font-bold">
+                                    🕊️ Gêneros Desativados (Sem XP se fora)
+                                  </div>
+                                )}
                               </div>
-                              <div className="rounded-xl bg-amber-500/10 border border-amber-400/35 px-3 py-2 text-[11px] text-amber-200 flex items-center justify-between gap-1">
+                              <div
+                                className={`rounded-xl border px-3 py-2 text-[11px] flex items-center justify-between gap-1 ${
+                                  cursedSet.has('genre')
+                                    ? 'bg-rose-950/45 border-rose-500/45 text-rose-200'
+                                    : 'bg-amber-500/10 border-amber-400/35 text-amber-200'
+                                }`}
+                              >
                                 <span>
-                                  {legSet.has('genre') ? (
+                                  {cursedSet.has('genre') ? (
+                                    <strong>💀 Ceifado pela Morte</strong>
+                                  ) : legSet.has('genre') ? (
                                     <strong>👑 GÊNEROS 100% JACKPOT!</strong>
                                   ) : r.extraJackpotGenres?.length ? (
                                     <>🌀 2+ Gên. ou Ouro ({r.extraJackpotGenres.join(' / ')}) acumulam!</>
@@ -1501,7 +1813,9 @@ export default function ChimeraPage({
                                   )}
                                 </span>
                                 <span className="font-mono font-black shrink-0">
-                                  +{r.jackpotGenreXp} XP{r.stackableGenreJackpots ? '×' : ''}
+                                  {cursedSet.has('genre')
+                                    ? '+0 XP'
+                                    : `+${r.jackpotGenreXp} XP${r.stackableGenreJackpots ? '×' : ''}`}
                                 </span>
                               </div>
                             </>
@@ -1552,10 +1866,23 @@ export default function ChimeraPage({
                                     );
                                   })}
                                 </div>
+                                {optSet.has('tag') && (
+                                  <div className="mt-2 inline-flex w-fit items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-400/50 text-indigo-200 text-[10px] font-bold">
+                                    🌑 Tags Opcionais (Sem XP se não bater)
+                                  </div>
+                                )}
                               </div>
-                              <div className="rounded-xl bg-amber-500/10 border border-amber-400/35 px-3 py-2 text-[11px] text-amber-200 flex items-center justify-between gap-1">
+                              <div
+                                className={`rounded-xl border px-3 py-2 text-[11px] flex items-center justify-between gap-1 ${
+                                  cursedSet.has('tag')
+                                    ? 'bg-rose-950/45 border-rose-500/45 text-rose-200'
+                                    : 'bg-amber-500/10 border-amber-400/35 text-amber-200'
+                                }`}
+                              >
                                 <span>
-                                  {legSet.has('tag') ? (
+                                  {cursedSet.has('tag') ? (
+                                    <strong>💀 Ceifado pela Morte</strong>
+                                  ) : legSet.has('tag') ? (
                                     <strong>👑 TODAS AS TAGS = JACKPOT!</strong>
                                   ) : allGoldTags.length > 1 ? (
                                     <>
@@ -1567,7 +1894,9 @@ export default function ChimeraPage({
                                   )}
                                 </span>
                                 <span className="font-mono font-black shrink-0">
-                                  +{r.jackpotTagXp} XP{r.stackableTagJackpots ? '×' : ''}
+                                  {cursedSet.has('tag')
+                                    ? '+0 XP'
+                                    : `+${r.jackpotTagXp} XP${r.stackableTagJackpots ? '×' : ''}`}
                                 </span>
                               </div>
                             </>
@@ -1666,6 +1995,23 @@ export default function ChimeraPage({
                         >
                           🎰 Simular Full Jackpot (4/4)
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeclineChimera(contract.id)}
+                          disabled={actionBusy || (wallet.declineChipsRemaining ?? 0) <= 0}
+                          className="px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/45 text-sky-200 text-[11px] font-black uppercase tracking-wider cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          🪶 Declinar (+1 Ficha)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDiscardChimera(contract.id)}
+                          disabled={actionBusy}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/45 text-rose-200 text-[11px] font-black uppercase tracking-wider cursor-pointer disabled:opacity-40"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Remover (Lab)
+                        </button>
                       </div>
                     </div>
                   )}
@@ -1739,21 +2085,21 @@ export default function ChimeraPage({
         onClose={handleCloseAwakenModal}
       />
 
-      {/* MODAL CÓDICE DAS 27 RUNAS ROGUELIKE */}
+      {/* MODAL CÓDICE DAS CARTAS DE TARÔ */}
       {showRuneCodex && (
         <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="relative w-full max-w-4xl max-h-[88vh] overflow-y-auto rounded-3xl border border-purple-400/50 bg-zinc-950 p-6 shadow-[0_0_60px_rgba(168,85,247,0.28)] flex flex-col gap-5">
+          <div className="relative w-full max-w-5xl max-h-[88vh] overflow-y-auto rounded-3xl border border-purple-400/50 bg-zinc-950 p-6 shadow-[0_0_60px_rgba(168,85,247,0.28)] flex flex-col gap-5">
             <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-widest text-purple-300">
-                  🔮 Grimório Roguelike da Quimera
+                  🔮 Grimório Roguelike & Tarô Cinéfilo
                 </span>
                 <h3 className="text-xl sm:text-2xl font-black text-white mt-0.5">
-                  Códice das {runeCatalog.length} Runas (Comuns • Raras • Lendárias)
+                  Códice das {runeCatalog.length || 35} Cartas de Tarô (Comuns • Raras • Lendárias • Maldição XIII)
                 </h3>
                 <p className="text-xs text-zinc-400 mt-1">
-                  Ao revelar as 4 categorias do D20, 5 runas ocultas surgem no altar sem revelar raridade nem efeito.
-                  Rolagens baixas (1–4) elevam o desafio e aumentam a chance de virem Runas Raras e Lendárias!
+                  Ao revelar as 4 categorias do D20, 5 cartas de tarô ocultas surgem na mesa. Clique em qualquer carta
+                  abaixo para ampliá-la e conferir o significado simbólico, as referências de cinema e a habilidade.
                 </p>
               </div>
               <button
@@ -1768,21 +2114,27 @@ export default function ChimeraPage({
             {[
               {
                 key: 'legendary',
-                title: '👑 Runas Lendárias — Convertem Categorias Inteiras em Jackpot ou Amplificam XP',
-                cardCls: 'border-amber-400/55 bg-amber-950/20 text-amber-100',
+                title: '👑 Cartas de Tarô Lendárias — Convertem Categorias Inteiras em Jackpot ou Amplificam XP',
+                cardCls: 'border-amber-400/55 bg-amber-950/20 hover:bg-amber-950/35 text-amber-100',
                 badgeCls: 'bg-amber-400 text-zinc-950',
               },
               {
                 key: 'rare',
-                title: '💠 Runas Raras — Fazem 2º Sorteio de Categoria ou Dobram Alvos Jackpot',
-                cardCls: 'border-sky-400/50 bg-sky-950/20 text-sky-100',
+                title: '💠 Cartas de Tarô Raras — Fazem 2º Sorteio de Categoria ou Dobram Alvos Jackpot',
+                cardCls: 'border-sky-400/50 bg-sky-950/20 hover:bg-sky-950/35 text-sky-100',
                 badgeCls: 'bg-sky-400/25 border border-sky-300/60 text-sky-100',
               },
               {
                 key: 'common',
-                title: '⚪ Runas Comuns — Bônus Diretos & Flexibilidade na Caçada',
-                cardCls: 'border-zinc-700 bg-zinc-900/80 text-zinc-100',
+                title: '⚪ Cartas de Tarô Comuns — Bônus Diretos & Flexibilidade na Caçada',
+                cardCls: 'border-zinc-700 bg-zinc-900/80 hover:bg-zinc-800/85 text-zinc-100',
                 badgeCls: 'bg-zinc-700 text-zinc-100',
+              },
+              {
+                key: 'cursed',
+                title: '💀 Arcano XIII • A Morte — Maldições Ocultas da Mesa (Cuidado ao puxar às cegas!)',
+                cardCls: 'border-rose-500/60 bg-rose-950/30 hover:bg-rose-950/45 text-rose-100',
+                badgeCls: 'bg-rose-600/40 border border-rose-400/70 text-rose-100',
               },
             ].map((group) => {
               const items = runeCatalog.filter((x) => x.rarity === group.key);
@@ -1793,19 +2145,42 @@ export default function ChimeraPage({
                     {group.title}
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {items.map((rune) => (
-                      <div key={rune.id} className={`rounded-2xl border p-3.5 flex flex-col gap-1 ${group.cardCls}`}>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-sm font-black">
-                            {rune.icon} {rune.runeName}
-                          </span>
-                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${group.badgeCls}`}>
-                            {rune.shortTag}
-                          </span>
-                        </div>
-                        <p className="text-[11px] opacity-90 leading-relaxed">{rune.label}</p>
-                      </div>
-                    ))}
+                    {items.map((rune) => {
+                      const tarot = getRuneTarotMeta(rune);
+                      return (
+                        <button
+                          key={rune.id}
+                          type="button"
+                          onClick={() => setInspectedTarotRune(rune)}
+                          className={`rounded-2xl border p-3 flex items-start gap-3 text-left transition-all cursor-pointer hover:scale-[1.01] ${group.cardCls}`}
+                        >
+                          <div className="w-14 aspect-[2/3] rounded-lg overflow-hidden shrink-0 border border-white/20 bg-black shadow-md">
+                            <img
+                              src={tarot.image}
+                              alt={`${tarot.roman} - ${tarot.name}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1 flex flex-col gap-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[10px] font-black uppercase tracking-wider opacity-80">
+                                Arcano {tarot.roman} • {tarot.name}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase shrink-0 ${group.badgeCls}`}>
+                                {rune.shortTag}
+                              </span>
+                            </div>
+                            <span className="text-sm font-black leading-tight">
+                              {rune.icon} {rune.runeName}
+                            </span>
+                            <p className="text-[11px] opacity-90 leading-relaxed">{rune.label}</p>
+                            <span className="text-[10px] font-bold opacity-65 mt-0.5">
+                              🔍 Clique para ampliar a carta e ver referências
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -1813,6 +2188,8 @@ export default function ChimeraPage({
           </div>
         </div>
       )}
+
+      <TarotCardShowcaseModal rune={inspectedTarotRune} onClose={() => setInspectedTarotRune(null)} />
     </div>
   );
 }
