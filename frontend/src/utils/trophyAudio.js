@@ -6,8 +6,15 @@
 
 let audioCtx = null;
 let activeAudioEl = null;
+const activeConcurrentAudioEls = new Set();
 let activeDelayTimer = null;
 let audioSequenceToken = 0;
+
+// Controle dedicado dos loops com corte automático do silêncio final (Web Audio API)
+const activeLoopPlaybacks = new Map();
+const decodedLoopBufferCache = new Map();
+const loopLoadPromises = new Map();
+const loopTokens = new Map();
 
 function getAudioContext() {
   if (typeof window === 'undefined') return null;
@@ -30,8 +37,60 @@ export function isAudioMuted() {
   return localStorage.getItem(STORAGE_KEY_MUTED) === 'true';
 }
 
+function stopWebAudioLoopChannel(channel) {
+  loopTokens.set(channel, (loopTokens.get(channel) || 0) + 1);
+  const current = activeLoopPlaybacks.get(channel);
+  if (!current) return;
+  activeLoopPlaybacks.delete(channel);
+
+  if (current.type === 'webaudio') {
+    try {
+      const { ctx, source, gainNode } = current;
+      const now = ctx.currentTime;
+      gainNode.gain.cancelScheduledValues(now);
+      gainNode.gain.setValueAtTime(Math.max(0.001, gainNode.gain.value || 0.8), now);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.075);
+      setTimeout(() => {
+        try {
+          source.stop();
+          source.disconnect();
+          gainNode.disconnect();
+        } catch {
+          // ignore cleanup
+        }
+      }, 90);
+    } catch {
+      try {
+        current.source?.stop();
+      } catch {
+        // ignore
+      }
+    }
+    return;
+  }
+
+  if (current.type === 'htmlaudio' && current.audio) {
+    try {
+      current.audio.pause();
+      current.audio.currentTime = 0;
+    } catch {
+      // ignore
+    }
+  }
+}
+
+export function stopSecretShuffleSound() {
+  stopWebAudioLoopChannel('secret_shuffle');
+}
+
+export function stopChimeraDiceLoopSound() {
+  stopWebAudioLoopChannel('chimera_dice');
+}
+
 export function stopAllTrophyAudio() {
   audioSequenceToken += 1;
+  stopSecretShuffleSound();
+  stopChimeraDiceLoopSound();
   if (activeDelayTimer) {
     clearTimeout(activeDelayTimer);
     activeDelayTimer = null;
@@ -47,6 +106,17 @@ export function stopAllTrophyAudio() {
     }
     activeAudioEl = null;
   }
+  for (const el of Array.from(activeConcurrentAudioEls)) {
+    try {
+      el.onended = null;
+      el.onerror = null;
+      el.pause();
+      el.currentTime = 0;
+    } catch {
+      // ignore
+    }
+  }
+  activeConcurrentAudioEls.clear();
 }
 
 export function setAudioMuted(muted) {
@@ -66,8 +136,21 @@ export function toggleAudioMute() {
 
 const SOUND_PATHS = {
   trophyProgress: '/sounds/trofeus/progresso/26f8b9_sonic_ring_sound_effect.mp3',
-  // Som customizável exclusivo para Estrela Infinita (★) de Rank — se null, usa acorde astral Web Audio API:
-  trophyExtraStar: null,
+  // Áudios progressivos para Estrela Infinita (★) por faixa de estrela conquistada
+  trophyExtraStarByRange: {
+    tier1_3: '/sounds/extras-memes/banco-reserva/special-card.mp3',
+    tier4_7: '/sounds/extras-memes/banco-reserva/ssf2-dragon-ball-z-victory-theme-goku.mp3',
+    tier8_10: '/sounds/extras-memes/banco-reserva/victory-tf2.mp3',
+    tier11_13: '/sounds/extras-memes/banco-reserva/zelda-victory-ost.mp3',
+    tier14Plus: '/sounds/extras-memes/banco-reserva/clair-obscur-expedition-33-une-vie-a-taimer_hUR0ssn.mp3',
+  },
+  secretDraw: {
+    shuffle: '/sounds/extras-memes/banco-reserva/card-ruffle.mp3',
+    flip: '/sounds/extras-memes/banco-reserva/card-flip.mp3',
+  },
+  chimera: {
+    dice: '/sounds/extras-memes/banco-reserva/dice.mp3',
+  },
   trophyByTier: {
     bronze: '/sounds/trofeus/bronze/all-chaos-emeralds-sonic-3-knuckles.mp3',
     silver: '/sounds/trofeus/prata/two-time-respawne-forsaken.mp3',
@@ -185,16 +268,22 @@ function playAudioFile(url, { volume = 0.85, interrupt = true, onEnded = null, o
   try {
     const audio = new Audio(encodeAudioSrc(url));
     audio.volume = Math.max(0, Math.min(1, volume));
-    activeAudioEl = audio;
+    if (interrupt) {
+      activeAudioEl = audio;
+    } else {
+      activeConcurrentAudioEls.add(audio);
+    }
 
     let handled = false;
     audio.onended = () => {
-      if (myToken !== audioSequenceToken) return;
+      activeConcurrentAudioEls.delete(audio);
+      if (myToken !== audioSequenceToken && interrupt) return;
       if (activeAudioEl === audio) activeAudioEl = null;
       onEnded?.();
     };
     audio.onerror = () => {
-      if (handled || myToken !== audioSequenceToken) return;
+      activeConcurrentAudioEls.delete(audio);
+      if (handled || (myToken !== audioSequenceToken && interrupt)) return;
       handled = true;
       if (activeAudioEl === audio) activeAudioEl = null;
       onFallback?.();
@@ -203,7 +292,8 @@ function playAudioFile(url, { volume = 0.85, interrupt = true, onEnded = null, o
     const playPromise = audio.play();
     if (playPromise && typeof playPromise.catch === 'function') {
       playPromise.catch((err) => {
-        if (handled || myToken !== audioSequenceToken) return;
+        activeConcurrentAudioEls.delete(audio);
+        if (handled || (myToken !== audioSequenceToken && interrupt)) return;
         handled = true;
         if (activeAudioEl === audio) activeAudioEl = null;
         console.warn('[TrophyAudio] Falha ao reproduzir arquivo:', url, err);
@@ -278,10 +368,30 @@ export function playTrophyBatchSound(items = []) {
   playCollectibleChimeSound();
 }
 
-export function playTrophyStarSound() {
+export function getTrophyExtraStarSoundUrl(trophyOrStarCount = 1) {
+  const rawCount =
+    typeof trophyOrStarCount === 'number'
+      ? trophyOrStarCount
+      : Number(
+          trophyOrStarCount?.extra_star_number ||
+            trophyOrStarCount?.extra_stars ||
+            trophyOrStarCount?.stars_gained ||
+            1
+        );
+  const stars = Math.max(1, Number.isFinite(rawCount) ? Math.floor(rawCount) : 1);
+  const map = SOUND_PATHS.trophyExtraStarByRange;
+  if (stars >= 14) return map.tier14Plus;
+  if (stars >= 11) return map.tier11_13;
+  if (stars >= 8) return map.tier8_10;
+  if (stars >= 4) return map.tier4_7;
+  return map.tier1_3;
+}
+
+export function playTrophyStarSound(trophyOrStarCount = 1) {
   if (isAudioMuted()) return;
-  if (SOUND_PATHS.trophyExtraStar) {
-    playAudioFile(SOUND_PATHS.trophyExtraStar, {
+  const starUrl = getTrophyExtraStarSoundUrl(trophyOrStarCount);
+  if (starUrl) {
+    playAudioFile(starUrl, {
       onFallback: playSyntheticTrophyStarSound,
     });
     return;
@@ -304,7 +414,7 @@ export function playTrophySound(tier = 'bronze', trophy = null) {
   }
 
   if (isInfiniteStarTrophy(trophy)) {
-    playTrophyStarSound();
+    playTrophyStarSound(trophy);
     return;
   }
 
@@ -1442,4 +1552,543 @@ function playSyntheticWorldConquestSound(rarity = 'common') {
   } catch {
     // Silencioso em bloqueios de autoplay
   }
+}
+
+// ============================================================================
+// SESSÃO SECRETA: EMBARALHAMENTO EM LOOP (SEM SILÊNCIO NO FINAL) & CARD FLIP
+// ============================================================================
+function findAudioBufferActiveBounds(buffer, startThreshold = 0.008, endThreshold = 0.012) {
+  const duration = Number(buffer?.duration || 0);
+  if (!buffer || duration <= 0.15) {
+    return { activeStart: 0, activeEnd: Math.max(0.1, duration) };
+  }
+  const sr = buffer.sampleRate || 44100;
+  const len = buffer.length;
+  const numChannels = Math.max(1, buffer.numberOfChannels || 1);
+
+  let firstSample = len - 1;
+  let lastSample = 0;
+
+  for (let ch = 0; ch < numChannels; ch++) {
+    const data = buffer.getChannelData(ch);
+    let i = 0;
+    while (i < firstSample && Math.abs(data[i]) < startThreshold) i++;
+    if (i < firstSample) firstSample = i;
+
+    let j = len - 1;
+    while (j > lastSample && Math.abs(data[j]) < endThreshold) j--;
+    if (j > lastSample) lastSample = j;
+  }
+
+  if (lastSample <= firstSample) {
+    return { activeStart: 0, activeEnd: duration };
+  }
+
+  const activeStart = Math.max(0, firstSample / sr - 0.005);
+  const activeEnd = Math.min(duration, lastSample / sr + 0.015);
+  if (activeEnd - activeStart < 0.15) {
+    return { activeStart: 0, activeEnd: duration };
+  }
+  return { activeStart, activeEnd };
+}
+
+async function preloadWebAudioLoop(channel, rawPath) {
+  if (typeof window === 'undefined') return null;
+  if (decodedLoopBufferCache.has(channel)) return decodedLoopBufferCache.get(channel);
+  if (loopLoadPromises.has(channel)) return loopLoadPromises.get(channel);
+
+  const p = (async () => {
+    try {
+      const ctx = getAudioContext();
+      if (!ctx || typeof fetch !== 'function') return null;
+      const resp = await fetch(encodeAudioSrc(rawPath));
+      if (!resp.ok) return null;
+      const arrBuf = await resp.arrayBuffer();
+      const buffer = await ctx.decodeAudioData(arrBuf);
+      const bounds = findAudioBufferActiveBounds(buffer);
+      const entry = { buffer, ...bounds };
+      decodedLoopBufferCache.set(channel, entry);
+      return entry;
+    } catch {
+      return null;
+    } finally {
+      loopLoadPromises.delete(channel);
+    }
+  })();
+
+  loopLoadPromises.set(channel, p);
+  return p;
+}
+
+function startWebAudioLoopChannel(channel, rawPath, volume = 0.85) {
+  if (typeof window === 'undefined' || isAudioMuted()) return false;
+  stopWebAudioLoopChannel(channel);
+  const myToken = (loopTokens.get(channel) || 0) + 1;
+  loopTokens.set(channel, myToken);
+
+  const beginLoop = (entry) => {
+    if (loopTokens.get(channel) !== myToken || isAudioMuted() || !entry?.buffer) return false;
+    const ctx = getAudioContext();
+    if (!ctx) return false;
+    try {
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+      const source = ctx.createBufferSource();
+      source.buffer = entry.buffer;
+      source.loop = true;
+      source.loopStart = entry.activeStart;
+      source.loopEnd = entry.activeEnd;
+
+      const gainNode = ctx.createGain();
+      gainNode.gain.setValueAtTime(volume, ctx.currentTime);
+
+      source.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      source.start(ctx.currentTime, entry.activeStart);
+
+      activeLoopPlaybacks.set(channel, { type: 'webaudio', ctx, source, gainNode });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const cached = decodedLoopBufferCache.get(channel);
+  if (cached && beginLoop(cached)) return true;
+
+  preloadWebAudioLoop(channel, rawPath).then((entry) => {
+    if (loopTokens.get(channel) !== myToken || isAudioMuted()) return;
+    if (entry && beginLoop(entry)) return;
+
+    try {
+      const audio = new Audio(encodeAudioSrc(rawPath));
+      audio.loop = true;
+      audio.volume = volume;
+      audio.play().catch(() => {});
+      activeLoopPlaybacks.set(channel, { type: 'htmlaudio', audio });
+    } catch {
+      // ignore
+    }
+  });
+
+  return true;
+}
+
+export async function preloadSecretShuffleSound() {
+  return preloadWebAudioLoop('secret_shuffle', SOUND_PATHS.secretDraw.shuffle);
+}
+
+export function startSecretShuffleSound() {
+  return startWebAudioLoopChannel('secret_shuffle', SOUND_PATHS.secretDraw.shuffle, 0.85);
+}
+
+export async function preloadChimeraDiceSound() {
+  return preloadWebAudioLoop('chimera_dice', SOUND_PATHS.chimera.dice);
+}
+
+export function startChimeraDiceLoopSound() {
+  return startWebAudioLoopChannel('chimera_dice', SOUND_PATHS.chimera.dice, 0.82);
+}
+
+export function playSecretCardFlipSound(onFallback = null) {
+  if (typeof window === 'undefined' || isAudioMuted()) return false;
+  return playAudioFile(SOUND_PATHS.secretDraw.flip, {
+    volume: 0.88,
+    interrupt: false,
+    onFallback,
+  });
+}
+
+// ============================================================================
+// QUIMERA CINÉFILA: FORJA ALQUÍMICA, ROLETA & DESPERTAR DOURADO
+// ============================================================================
+export function playChimeraForgeSpinSound() {
+  if (typeof window === 'undefined' || isAudioMuted()) return false;
+  // Roleta ascendente + faíscas metálicas da forja
+  const ticks = [0, 0.08, 0.16, 0.25, 0.35, 0.46, 0.58, 0.72, 0.88, 1.05, 1.24, 1.45];
+  ticks.forEach((delay, idx) => {
+    playSynthTimelineTone({
+      frequency: 360 + idx * 42,
+      endFrequency: 420 + idx * 48,
+      duration: 0.065,
+      gainPeak: 0.06,
+      type: idx % 2 === 0 ? 'triangle' : 'sine',
+      delay,
+    });
+  });
+  playSynthTimelineTone({
+    frequency: 523.25,
+    endFrequency: 1046.5,
+    duration: 0.32,
+    gainPeak: 0.09,
+    type: 'triangle',
+    delay: 1.55,
+  });
+  return true;
+}
+
+export function playChimeraJackpotTickSound(hitIndex = 0) {
+  if (typeof window === 'undefined' || isAudioMuted()) return false;
+  const scale = [587.33, 739.99, 880.0, 1174.66];
+  const baseFreq = scale[Math.min(scale.length - 1, Math.max(0, Number(hitIndex) || 0))];
+  playSynthTimelineTone({
+    frequency: baseFreq,
+    endFrequency: baseFreq * 1.25,
+    duration: 0.22,
+    gainPeak: 0.11,
+    type: 'triangle',
+    delay: 0,
+  });
+  playSynthTimelineTone({
+    frequency: baseFreq * 1.5,
+    duration: 0.26,
+    gainPeak: 0.065,
+    type: 'sine',
+    delay: 0.04,
+  });
+  return true;
+}
+
+export function playChimeraAwakenSound(jackpotsHitCount = 0) {
+  if (typeof window === 'undefined' || isAudioMuted()) return false;
+  const isGrand = Number(jackpotsHitCount) >= 2;
+  const chord = isGrand
+    ? [
+        { frequency: 392.0, duration: 0.22, gainPeak: 0.08, type: 'triangle', delay: 0 },
+        { frequency: 523.25, duration: 0.24, gainPeak: 0.09, type: 'triangle', delay: 0.11 },
+        { frequency: 659.25, duration: 0.28, gainPeak: 0.095, type: 'triangle', delay: 0.22 },
+        { frequency: 783.99, duration: 0.55, gainPeak: 0.11, type: 'triangle', delay: 0.34 },
+        { frequency: 1046.5, duration: 0.78, gainPeak: 0.12, type: 'sine', delay: 0.42 },
+        { frequency: 1318.51, duration: 0.9, gainPeak: 0.085, type: 'sine', delay: 0.5 },
+      ]
+    : [
+        { frequency: 440.0, duration: 0.2, gainPeak: 0.085, type: 'triangle', delay: 0 },
+        { frequency: 554.37, duration: 0.25, gainPeak: 0.09, type: 'triangle', delay: 0.12 },
+        { frequency: 659.25, duration: 0.55, gainPeak: 0.105, type: 'triangle', delay: 0.24 },
+        { frequency: 880.0, duration: 0.72, gainPeak: 0.09, type: 'sine', delay: 0.34 },
+      ];
+  chord.forEach((n) => playSynthTimelineTone(n));
+  playFilteredNoiseBurst({
+    startDelay: 0.28,
+    duration: 0.25,
+    filterType: 'highpass',
+    frequency: 2400,
+    q: 1.2,
+    gainPeak: 0.055,
+  });
+  return true;
+}
+
+export function playChimeraDiceRollSound(isCritical = false) {
+  if (typeof window === 'undefined' || isAudioMuted()) return false;
+  [0, 0.09, 0.19, 0.31, 0.45, 0.62].forEach((delay, idx) => {
+    playFilteredNoiseBurst({
+      startDelay: delay,
+      duration: 0.045,
+      filterType: 'bandpass',
+      frequency: 1100 + idx * 140,
+      q: 2.2,
+      gainPeak: 0.075,
+    });
+    playSynthTimelineTone({
+      frequency: 300 + (idx % 3) * 95,
+      endFrequency: 210,
+      duration: 0.055,
+      gainPeak: 0.055,
+      type: 'triangle',
+      delay,
+    });
+  });
+
+  if (isCritical) {
+    [
+      { frequency: 587.33, duration: 0.16, gainPeak: 0.09, type: 'triangle', delay: 0.72 },
+      { frequency: 880.0, duration: 0.22, gainPeak: 0.1, type: 'triangle', delay: 0.82 },
+      { frequency: 1174.66, duration: 0.42, gainPeak: 0.11, type: 'sine', delay: 0.92 },
+    ].forEach((n) => playSynthTimelineTone(n));
+  } else {
+    playSynthTimelineTone({
+      frequency: 440,
+      endFrequency: 659.25,
+      duration: 0.22,
+      gainPeak: 0.08,
+      type: 'triangle',
+      delay: 0.72,
+    });
+  }
+  return true;
+}
+
+export function playChimeraWaxSealSound(stepIndex = 0) {
+  if (typeof window === 'undefined' || isAudioMuted()) return false;
+  const idx = Math.max(0, Number(stepIndex) || 0);
+  playSynthTimelineTone({
+    frequency: 155 + idx * 18,
+    endFrequency: 46,
+    duration: 0.16,
+    gainPeak: 0.13,
+    type: 'triangle',
+    delay: 0,
+  });
+  playFilteredNoiseBurst({
+    startDelay: 0.01,
+    duration: 0.08,
+    filterType: 'lowpass',
+    frequency: 720,
+    q: 1.4,
+    gainPeak: 0.09,
+  });
+  return true;
+}
+
+export function playChimeraPotionDropSound(stepIndex = 0) {
+  if (typeof window === 'undefined' || isAudioMuted()) return false;
+  const idx = Math.max(0, Number(stepIndex) || 0);
+  const startFreq = 260 + idx * 75;
+  playSynthTimelineTone({
+    frequency: startFreq,
+    endFrequency: startFreq * 2.25,
+    duration: 0.18,
+    gainPeak: 0.09,
+    type: 'sine',
+    delay: 0,
+  });
+  playFilteredNoiseBurst({
+    startDelay: 0.09,
+    duration: 0.14,
+    filterType: 'highpass',
+    frequency: 2100 + idx * 250,
+    q: 1.3,
+    gainPeak: 0.045,
+  });
+  return true;
+}
+
+export function playChimeraRunePickSound(rarity = 'common') {
+  if (typeof window === 'undefined' || isAudioMuted()) return false;
+  if (rarity === 'legendary') {
+    [
+      { frequency: 440.0, duration: 0.22, gainPeak: 0.085, type: 'triangle', delay: 0 },
+      { frequency: 554.37, duration: 0.24, gainPeak: 0.09, type: 'triangle', delay: 0.08 },
+      { frequency: 659.25, duration: 0.28, gainPeak: 0.095, type: 'triangle', delay: 0.16 },
+      { frequency: 880.0, duration: 0.45, gainPeak: 0.11, type: 'sine', delay: 0.24 },
+      { frequency: 1108.73, duration: 0.65, gainPeak: 0.1, type: 'sine', delay: 0.32 },
+      { frequency: 1318.51, duration: 0.85, gainPeak: 0.09, type: 'sine', delay: 0.4 },
+    ].forEach((n) => playSynthTimelineTone(n));
+    playFilteredNoiseBurst({
+      startDelay: 0.22,
+      duration: 0.28,
+      filterType: 'highpass',
+      frequency: 2600,
+      q: 1.2,
+      gainPeak: 0.055,
+    });
+    return true;
+  }
+  if (rarity === 'rare') {
+    [
+      { frequency: 493.88, duration: 0.18, gainPeak: 0.08, type: 'triangle', delay: 0 },
+      { frequency: 739.99, duration: 0.24, gainPeak: 0.09, type: 'sine', delay: 0.09 },
+      { frequency: 987.77, duration: 0.42, gainPeak: 0.095, type: 'sine', delay: 0.18 },
+      { frequency: 1479.98, duration: 0.55, gainPeak: 0.07, type: 'sine', delay: 0.27 },
+    ].forEach((n) => playSynthTimelineTone(n));
+    return true;
+  }
+  [
+    { frequency: 523.25, duration: 0.18, gainPeak: 0.08, type: 'sine', delay: 0 },
+    { frequency: 783.99, duration: 0.22, gainPeak: 0.085, type: 'sine', delay: 0.09 },
+    { frequency: 1046.5, duration: 0.35, gainPeak: 0.095, type: 'triangle', delay: 0.18 },
+  ].forEach((n) => playSynthTimelineTone(n));
+  return true;
+}
+
+export function playChimeraDiceImpactSound(d20Roll = 10) {
+  if (typeof window === 'undefined' || isAudioMuted()) return false;
+  const r = Number(d20Roll || 10);
+  // Impacto seco na madeira da mesa
+  playSynthTimelineTone({
+    frequency: 140,
+    endFrequency: 42,
+    duration: 0.18,
+    gainPeak: 0.13,
+    type: 'triangle',
+    delay: 0,
+  });
+  if (r <= 4) {
+    // Trovão sombrio (Pesadelo!)
+    [
+      { frequency: 130.81, endFrequency: 98.0, duration: 0.42, gainPeak: 0.1, type: 'sawtooth', delay: 0.04 },
+      { frequency: 196.0, endFrequency: 146.83, duration: 0.48, gainPeak: 0.085, type: 'triangle', delay: 0.12 },
+    ].forEach((n) => playSynthTimelineTone(n));
+  } else if (r <= 9) {
+    // Acorde tenso (Difícil)
+    playSynthTimelineTone({ frequency: 293.66, duration: 0.28, gainPeak: 0.09, type: 'triangle', delay: 0.05 });
+    playSynthTimelineTone({ frequency: 440.0, duration: 0.34, gainPeak: 0.08, type: 'sine', delay: 0.14 });
+  } else if (r <= 15) {
+    // Acorde equilibrado
+    playSynthTimelineTone({ frequency: 440.0, duration: 0.22, gainPeak: 0.08, type: 'triangle', delay: 0.05 });
+    playSynthTimelineTone({ frequency: 587.33, duration: 0.3, gainPeak: 0.085, type: 'sine', delay: 0.14 });
+  } else {
+    // Fanfarra de bênção (16..20)
+    [
+      { frequency: 523.25, duration: 0.18, gainPeak: 0.085, type: 'triangle', delay: 0.04 },
+      { frequency: 783.99, duration: 0.24, gainPeak: 0.095, type: 'triangle', delay: 0.12 },
+      { frequency: 1046.5, duration: 0.45, gainPeak: 0.1, type: 'sine', delay: 0.2 },
+    ].forEach((n) => playSynthTimelineTone(n));
+  }
+  return true;
+}
+
+export function playChimeraDiceThrowSound(d20Roll = 10) {
+  if (typeof window === 'undefined' || isAudioMuted()) return false;
+  return playAudioFile(SOUND_PATHS.chimera.dice, {
+    volume: 0.92,
+    interrupt: false,
+    onFallback: () => playChimeraDiceImpactSound(d20Roll),
+  });
+}
+
+export function playChimeraSlotTickSound(step = 0, total = 10) {
+  if (typeof window === 'undefined' || isAudioMuted()) return false;
+  const ratio = Math.min(1, Math.max(0, step / Math.max(1, total)));
+  const freq = 620 - ratio * 240;
+  playSynthTimelineTone({
+    frequency: freq,
+    endFrequency: freq * 0.82,
+    duration: 0.045,
+    gainPeak: 0.055,
+    type: 'triangle',
+    delay: 0,
+  });
+  return true;
+}
+
+export function playChimeraJackpotFanfareSound(jackpotsHitCount = 0) {
+  if (typeof window === 'undefined' || isAudioMuted()) return false;
+  const count = Math.max(0, Number(jackpotsHitCount) || 0);
+  // Cascata de moedas douradas + acordes crescentes estilo RPG Victory / Jackpot
+  const coinDrops = count >= 2 ? [0, 0.06, 0.12, 0.18, 0.24, 0.31, 0.38] : [0, 0.07, 0.14, 0.22];
+  coinDrops.forEach((delay, idx) => {
+    playSynthTimelineTone({
+      frequency: 1174.66 + idx * 145,
+      endFrequency: 1760 + idx * 180,
+      duration: 0.11,
+      gainPeak: 0.075,
+      type: 'sine',
+      delay,
+    });
+  });
+
+  const fanfare =
+    count >= 3
+      ? [
+          { frequency: 523.25, duration: 0.2, gainPeak: 0.095, type: 'triangle', delay: 0.12 },
+          { frequency: 659.25, duration: 0.22, gainPeak: 0.1, type: 'triangle', delay: 0.22 },
+          { frequency: 783.99, duration: 0.26, gainPeak: 0.105, type: 'triangle', delay: 0.32 },
+          { frequency: 1046.5, duration: 0.65, gainPeak: 0.12, type: 'triangle', delay: 0.44 },
+          { frequency: 1318.51, duration: 0.78, gainPeak: 0.095, type: 'sine', delay: 0.5 },
+          { frequency: 1567.98, duration: 0.92, gainPeak: 0.085, type: 'sine', delay: 0.56 },
+        ]
+      : [
+          { frequency: 440.0, duration: 0.2, gainPeak: 0.085, type: 'triangle', delay: 0.1 },
+          { frequency: 554.37, duration: 0.22, gainPeak: 0.09, type: 'triangle', delay: 0.22 },
+          { frequency: 659.25, duration: 0.5, gainPeak: 0.1, type: 'triangle', delay: 0.34 },
+          { frequency: 1046.5, duration: 0.72, gainPeak: 0.095, type: 'sine', delay: 0.44 },
+        ];
+  fanfare.forEach((n) => playSynthTimelineTone(n));
+  return true;
+}
+
+// ============================================================================
+// BINGO MENSAL: GLOBO GIRATÓRIO, CARIMBO TÁTIL E FANFARRA DE LINHA / BLACKOUT
+// ============================================================================
+export function playBingoCageSpinSound() {
+  if (typeof window === 'undefined' || isAudioMuted()) return false;
+  const rattleDelays = [0, 0.07, 0.14, 0.22, 0.31, 0.4, 0.5, 0.61, 0.73, 0.86];
+  rattleDelays.forEach((delay, idx) => {
+    playFilteredNoiseBurst({
+      startDelay: delay,
+      duration: 0.038,
+      filterType: 'bandpass',
+      frequency: 1350 + (idx % 4) * 260,
+      q: 2.6,
+      gainPeak: 0.07,
+    });
+    playSynthTimelineTone({
+      frequency: 420 + ((idx * 97) % 340),
+      endFrequency: 310 + ((idx * 53) % 180),
+      duration: 0.045,
+      gainPeak: 0.05,
+      type: 'triangle',
+      delay,
+    });
+  });
+  // Bolinha caindo na canaleta
+  playSynthTimelineTone({
+    frequency: 698.46,
+    endFrequency: 1046.5,
+    duration: 0.22,
+    gainPeak: 0.095,
+    type: 'sine',
+    delay: 0.96,
+  });
+  return true;
+}
+
+export function playBingoStampSound() {
+  if (typeof window === 'undefined' || isAudioMuted()) return false;
+  // Batida física do carimbo no papel + toque cristalino
+  playSynthTimelineTone({
+    frequency: 170,
+    endFrequency: 48,
+    duration: 0.13,
+    gainPeak: 0.14,
+    type: 'triangle',
+    delay: 0,
+  });
+  playFilteredNoiseBurst({
+    startDelay: 0.01,
+    duration: 0.055,
+    filterType: 'lowpass',
+    frequency: 820,
+    q: 1.5,
+    gainPeak: 0.085,
+  });
+  playSynthTimelineTone({
+    frequency: 880.0,
+    duration: 0.18,
+    gainPeak: 0.08,
+    type: 'sine',
+    delay: 0.05,
+  });
+  playSynthTimelineTone({
+    frequency: 1318.51,
+    duration: 0.26,
+    gainPeak: 0.07,
+    type: 'sine',
+    delay: 0.1,
+  });
+  return true;
+}
+
+export function playBingoLineSound(isBlackout = false) {
+  if (typeof window === 'undefined' || isAudioMuted()) return false;
+  const notes = isBlackout
+    ? [
+        { frequency: 523.25, duration: 0.18, gainPeak: 0.095, type: 'triangle', delay: 0 },
+        { frequency: 659.25, duration: 0.18, gainPeak: 0.095, type: 'triangle', delay: 0.09 },
+        { frequency: 783.99, duration: 0.2, gainPeak: 0.1, type: 'triangle', delay: 0.18 },
+        { frequency: 1046.5, duration: 0.28, gainPeak: 0.115, type: 'triangle', delay: 0.27 },
+        { frequency: 1318.51, duration: 0.65, gainPeak: 0.11, type: 'sine', delay: 0.36 },
+        { frequency: 1567.98, duration: 0.85, gainPeak: 0.095, type: 'sine', delay: 0.44 },
+      ]
+    : [
+        { frequency: 587.33, duration: 0.16, gainPeak: 0.09, type: 'triangle', delay: 0 },
+        { frequency: 739.99, duration: 0.18, gainPeak: 0.095, type: 'triangle', delay: 0.09 },
+        { frequency: 880.0, duration: 0.25, gainPeak: 0.1, type: 'triangle', delay: 0.18 },
+        { frequency: 1174.66, duration: 0.5, gainPeak: 0.105, type: 'sine', delay: 0.27 },
+      ];
+  notes.forEach((n) => playSynthTimelineTone(n));
+  return true;
 }

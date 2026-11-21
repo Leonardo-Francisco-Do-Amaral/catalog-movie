@@ -61,6 +61,60 @@ import {
   saveWalkOfFameCustomSkin,
   invalidateWalkOfFameCache,
 } from './services/walkOfFameService';
+import {
+  ensureSecretDrawTables,
+  ensurePoolPopulatedIfEmpty,
+  getSecretDrawStatus,
+  drawSecretCards,
+  chooseSecretCard,
+  finishSecretDrawRound,
+  declineSecretPick,
+  boomerangSecretPick,
+  claimSecretDrawPick,
+  labCompleteSecretPick,
+  labAddWeeklyDrawChip,
+  labResetSecretDraws,
+  syncSecretDrawPoolFromBuffer,
+  checkAndCompleteActiveDrawOnMovieSave,
+  activateSecretDrawClassPower,
+} from './services/secretDrawService';
+import {
+  ensureChimeraTables,
+  getChimeraStatus,
+  forgeChimeraContract,
+  pickChimeraFateRune,
+  applyChimeraPillarAction,
+  claimChimeraContract,
+  discardChimeraContract,
+  declineChimeraContract,
+  labAddChimeraChip,
+  labSimulateMatchChimera,
+  labResetChimeras,
+  checkChimeraMatchOnMovieSave,
+  activateChimeraClassPower,
+} from './services/chimeraService';
+import {
+  ensureBingoTables,
+  getBingoStatus,
+  forgeBingoBoard,
+  archiveExpiredBingoBoard,
+  applyBingoBoardAction,
+  claimBingoReward,
+  evaluateBingoOnMovieSave,
+  evaluateBingoOnSecretDrawClaim,
+  evaluateBingoOnChimeraClaim,
+  evaluateBingoOnStickerGain,
+  labAddBingoChip,
+  labSimulateBingoProgress,
+  labSimulateBingoMonthRollover,
+  labResetBingo,
+  BingoChipType,
+  activateBingoClassPower,
+} from './services/bingoService';
+import {
+  getClassPowerWalletStatus,
+  labGrantClassPowerCharge,
+} from './services/classPowersService';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -257,9 +311,15 @@ app.get('/api/health', async (req: Request, res: Response) => {
   });
 });
 
+const SECRET_DRAW_MOVIE_SELECT_FIELDS = `
+             (SELECT sdp.difficulty FROM secret_draw_picks sdp WHERE sdp.completed_movie_id = m.id AND sdp.status = 'completed' ORDER BY sdp.completed_at DESC NULLS LAST, sdp.id DESC LIMIT 1) as secret_draw_difficulty,
+             (SELECT sdp.xp_awarded FROM secret_draw_picks sdp WHERE sdp.completed_movie_id = m.id AND sdp.status = 'completed' ORDER BY sdp.completed_at DESC NULLS LAST, sdp.id DESC LIMIT 1) as secret_draw_xp
+`;
+
 // 1. Rota: Último Filme Assistido (Destaque HeroBanner)
 app.get('/api/movies/latest', async (req: Request, res: Response) => {
   try {
+    await ensureSecretDrawTables();
     const sql = `
       SELECT mv.id, m.id as movie_id, m.imdb_id, m.tmdb_id, m.title, m.original_title, m.release_year, m.runtime, m.synopsis, m.poster_url, m.imdb_rating, m.metacritic_score, m.rotten_tomatoes_score, m.is_custom, m.oscar_wins, m.oscar_nominations, m.vote_count, m.distributor, m.raw_api_data,
              mv.user_rating, mv.month_seen, mv.year_seen, mv.audio_type, mv.platform, mv.review_notes, mv.watched_at,
@@ -270,7 +330,8 @@ app.get('/api/movies/latest', async (req: Request, res: Response) => {
              COALESCE(array_agg(DISTINCT w.name) FILTER (WHERE w.name IS NOT NULL), '{}') as writers,
              COALESCE(array_agg(DISTINCT s.name) FILTER (WHERE s.name IS NOT NULL), '{}') as studios,
              (SELECT wmo.primary_country_code FROM world_challenge_movie_origins wmo WHERE wmo.movie_id = m.id LIMIT 1) as manual_origin_code,
-             (SELECT wcp.country_code FROM world_challenge_picks wcp WHERE wcp.champion_movie_id = m.id ORDER BY wcp.updated_at DESC LIMIT 1) as manual_pick_code
+             (SELECT wcp.country_code FROM world_challenge_picks wcp WHERE wcp.champion_movie_id = m.id ORDER BY wcp.updated_at DESC LIMIT 1) as manual_pick_code,
+${SECRET_DRAW_MOVIE_SELECT_FIELDS}
       FROM movie_views mv
       JOIN movies m ON mv.movie_id = m.id
       LEFT JOIN movie_tags mt ON m.id = mt.movie_id
@@ -303,6 +364,7 @@ app.get('/api/movies/latest', async (req: Request, res: Response) => {
 // 2. Rota: Favoritos Inesquecíveis (user_rating >= 9.5)
 app.get('/api/movies/favorites', async (req: Request, res: Response) => {
   try {
+    await ensureSecretDrawTables();
     const sql = `
       SELECT mv.id, m.id as movie_id, m.imdb_id, m.tmdb_id, m.title, m.original_title, m.release_year, m.runtime, m.synopsis, m.poster_url, m.imdb_rating, m.metacritic_score, m.rotten_tomatoes_score, m.is_custom, m.oscar_wins, m.oscar_nominations, m.vote_count, m.distributor, m.raw_api_data,
              mv.user_rating, mv.month_seen, mv.year_seen, mv.audio_type, mv.platform, mv.review_notes, mv.watched_at,
@@ -313,7 +375,8 @@ app.get('/api/movies/favorites', async (req: Request, res: Response) => {
              COALESCE(array_agg(DISTINCT w.name) FILTER (WHERE w.name IS NOT NULL), '{}') as writers,
              COALESCE(array_agg(DISTINCT s.name) FILTER (WHERE s.name IS NOT NULL), '{}') as studios,
              (SELECT wmo.primary_country_code FROM world_challenge_movie_origins wmo WHERE wmo.movie_id = m.id LIMIT 1) as manual_origin_code,
-             (SELECT wcp.country_code FROM world_challenge_picks wcp WHERE wcp.champion_movie_id = m.id ORDER BY wcp.updated_at DESC LIMIT 1) as manual_pick_code
+             (SELECT wcp.country_code FROM world_challenge_picks wcp WHERE wcp.champion_movie_id = m.id ORDER BY wcp.updated_at DESC LIMIT 1) as manual_pick_code,
+${SECRET_DRAW_MOVIE_SELECT_FIELDS}
       FROM movie_views mv
       JOIN movies m ON mv.movie_id = m.id
       LEFT JOIN movie_tags mt ON m.id = mt.movie_id
@@ -343,6 +406,7 @@ app.get('/api/movies/favorites', async (req: Request, res: Response) => {
 // 3. Rota: Terror & Tensão (Gênero ou Tags de Horror/Suspense/Gore/Vampiro)
 app.get('/api/movies/horror-suspense', async (req: Request, res: Response) => {
   try {
+    await ensureSecretDrawTables();
     const sql = `
       SELECT mv.id, m.id as movie_id, m.imdb_id, m.tmdb_id, m.title, m.original_title, m.release_year, m.runtime, m.synopsis, m.poster_url, m.imdb_rating, m.metacritic_score, m.rotten_tomatoes_score, m.is_custom, m.oscar_wins, m.oscar_nominations, m.vote_count, m.distributor, m.raw_api_data,
              mv.user_rating, mv.month_seen, mv.year_seen, mv.audio_type, mv.platform, mv.review_notes, mv.watched_at,
@@ -353,7 +417,8 @@ app.get('/api/movies/horror-suspense', async (req: Request, res: Response) => {
              COALESCE(array_agg(DISTINCT w.name) FILTER (WHERE w.name IS NOT NULL), '{}') as writers,
              COALESCE(array_agg(DISTINCT s.name) FILTER (WHERE s.name IS NOT NULL), '{}') as studios,
              (SELECT wmo.primary_country_code FROM world_challenge_movie_origins wmo WHERE wmo.movie_id = m.id LIMIT 1) as manual_origin_code,
-             (SELECT wcp.country_code FROM world_challenge_picks wcp WHERE wcp.champion_movie_id = m.id ORDER BY wcp.updated_at DESC LIMIT 1) as manual_pick_code
+             (SELECT wcp.country_code FROM world_challenge_picks wcp WHERE wcp.champion_movie_id = m.id ORDER BY wcp.updated_at DESC LIMIT 1) as manual_pick_code,
+${SECRET_DRAW_MOVIE_SELECT_FIELDS}
       FROM movie_views mv
       JOIN movies m ON mv.movie_id = m.id
       LEFT JOIN movie_tags mt ON m.id = mt.movie_id
@@ -391,6 +456,7 @@ app.get('/api/movies/horror-suspense', async (req: Request, res: Response) => {
 // 4. Rota: Todos os Filmes (Grelha Geral e Filtros)
 app.get('/api/movies/all', async (req: Request, res: Response) => {
   try {
+    await ensureSecretDrawTables();
     const sql = `
       SELECT mv.id, m.id as movie_id, m.imdb_id, m.tmdb_id, m.title, m.original_title, m.release_year, m.runtime, m.synopsis, m.poster_url, m.imdb_rating, m.metacritic_score, m.rotten_tomatoes_score, m.is_custom, m.oscar_wins, m.oscar_nominations, m.vote_count, m.distributor,
              CASE
@@ -425,7 +491,8 @@ app.get('/api/movies/all', async (req: Request, res: Response) => {
              COALESCE(array_agg(DISTINCT w.name) FILTER (WHERE w.name IS NOT NULL), '{}') as writers,
              COALESCE(array_agg(DISTINCT s.name) FILTER (WHERE s.name IS NOT NULL), '{}') as studios,
              (SELECT wmo.primary_country_code FROM world_challenge_movie_origins wmo WHERE wmo.movie_id = m.id LIMIT 1) as manual_origin_code,
-             (SELECT wcp.country_code FROM world_challenge_picks wcp WHERE wcp.champion_movie_id = m.id ORDER BY wcp.updated_at DESC LIMIT 1) as manual_pick_code
+             (SELECT wcp.country_code FROM world_challenge_picks wcp WHERE wcp.champion_movie_id = m.id ORDER BY wcp.updated_at DESC LIMIT 1) as manual_pick_code,
+${SECRET_DRAW_MOVIE_SELECT_FIELDS}
       FROM movie_views mv
       JOIN movies m ON mv.movie_id = m.id
       LEFT JOIN movie_tags mt ON m.id = mt.movie_id
@@ -637,6 +704,97 @@ async function syncMovieRelations(params: {
   }
 }
 
+interface BingoMovieInput {
+  tmdbId: number | null;
+  title: string;
+  originalTitle: string | null;
+  releaseYear: number | null;
+  runtime: number | null;
+  voteCount: number;
+  imdbRating: number | null;
+  rottenTomatoesScore: number | null;
+  metacriticScore: number | null;
+  userRating: number | null;
+  audioType: string | null;
+  platform: string | null;
+  reviewNotes: string | null;
+  oscarWins: number;
+  oscarNominations: number;
+  countries: string[];
+  genres: string[];
+  tags: string[];
+}
+
+function buildBingoMovieInputFromBody(
+  body: any,
+  extras: { tmdbId: number | null; countries: string[]; genres: string[]; tags: string[] }
+): BingoMovieInput {
+  return {
+    tmdbId: extras.tmdbId,
+    title: String(body?.title || ''),
+    originalTitle: body?.original_title ? String(body.original_title) : null,
+    releaseYear: parseNullableNumeric(body?.release_year),
+    runtime: parseNullableNumeric(body?.runtime),
+    voteCount: parseGlobalReviewsNullable(body?.vote_count) ?? 0,
+    imdbRating: parseNullableNumeric(body?.imdb_rating),
+    rottenTomatoesScore: parseNullableNumeric(body?.rotten_tomatoes_score),
+    metacriticScore: parseNullableNumeric(body?.metacritic_score),
+    userRating: parseNullableNumeric(body?.user_rating),
+    audioType: body?.audio_type ? String(body.audio_type) : null,
+    platform: body?.platform ? String(body.platform) : null,
+    reviewNotes: body?.review_notes ? String(body.review_notes) : null,
+    oscarWins: parseNumeric(body?.oscar_wins, 0),
+    oscarNominations: parseNumeric(body?.oscar_nominations, 0),
+    countries: extras.countries,
+    genres: extras.genres,
+    tags: extras.tags,
+  };
+}
+
+async function syncBingoWithWalkOfFameMutation(
+  data: any,
+  prevXp: any,
+  xpStatus: any,
+  allowedStarIds?: Set<string>
+) {
+  try {
+    const candidateStars: any[] = Array.isArray(data?.updatedStars)
+      ? data.updatedStars
+      : Array.isArray(data?.stars)
+        ? allowedStarIds
+          ? data.stars.filter((s: any) => allowedStarIds.has(String(s.id)))
+          : data.stars
+        : [];
+    const prevMap = prevXp?.sources?.walkOfFame?.starsById || {};
+    const nextMap = xpStatus?.sources?.walkOfFame?.starsById || {};
+    const gainedStars = candidateStars.filter((s: any) => {
+      const sid = String(s.id);
+      const prevEntry = prevMap[sid];
+      const nextEntry = nextMap[sid];
+      if (!nextEntry) return Boolean(s.stuckTier);
+      return (
+        !prevEntry ||
+        Number(nextEntry.xp || 0) > Number(prevEntry.xp || 0) ||
+        Number(nextEntry.claimedPct || 0) > Number(prevEntry.claimedPct || 0) ||
+        Number(nextEntry.claimedExtraStars || 0) > Number(prevEntry.claimedExtraStars || 0)
+      );
+    });
+    if (gainedStars.length > 0) {
+      await evaluateBingoOnStickerGain(
+        gainedStars.map((s: any) => ({
+          id: String(s.id),
+          kind: s.kind,
+          alameda: s.alameda,
+          statusTierKey: s.statusTierKey,
+          extraStars: s.extraStars,
+        }))
+      );
+    }
+  } catch (err: any) {
+    console.warn('[Bingo] Erro ao avaliar figurinha para o Bingo:', err?.message);
+  }
+}
+
 async function evaluatePostMovieSaveEvents(params: {
   prevXp: any;
   prevWorld: any;
@@ -645,8 +803,18 @@ async function evaluatePostMovieSaveEvents(params: {
   movieTitle: string;
   sourceTrigger: 'movie_add' | 'movie_edit';
   isGhost?: boolean;
+  bingoMoviePayload?: BingoMovieInput | null;
 }) {
-  const { prevXp, prevWorld, prevTm, movieId, movieTitle, sourceTrigger, isGhost = false } = params;
+  const {
+    prevXp,
+    prevWorld,
+    prevTm,
+    movieId,
+    movieTitle,
+    sourceTrigger,
+    isGhost = false,
+    bingoMoviePayload = null,
+  } = params;
   let universeEvents: {
     checkpoints: any[];
     completedSagas: any[];
@@ -718,6 +886,32 @@ async function evaluatePostMovieSaveEvents(params: {
     movieId,
     isGhost,
   });
+
+  if (!isGhost && bingoMoviePayload) {
+    const wonYearOrCountryDuel =
+      timeMachineUnlocks.some((u: any) => u.kind === 'year_dethrone') ||
+      worldChallengeUnlocks.some((u: any) => u.kind === 'country_dethrone');
+    const conqueredNewYearOrCountry =
+      timeMachineUnlocks.some((u: any) => u.kind === 'year') ||
+      worldChallengeUnlocks.some((u: any) => u.kind === 'country_unlock');
+    const extraTrophyStarsDelta = Math.max(
+      0,
+      Number(xpStatus?.sources?.trophies?.extraStarsCount || 0) -
+        Number(prevXp?.sources?.trophies?.extraStarsCount || 0)
+    );
+    await evaluateBingoOnMovieSave({
+      movieId,
+      ...bingoMoviePayload,
+      newlyUnlockedTrophiesCount: Array.isArray(newlyUnlocked) ? newlyUnlocked.length : 0,
+      extraTrophyStarsDelta,
+      progressedTrophiesCount: Array.isArray(progressedTrophies) ? progressedTrophies.length : 0,
+      wonYearOrCountryDuel,
+      conqueredNewYearOrCountry,
+      isNewMovie: sourceTrigger === 'movie_add',
+    }).catch((bErr: any) => {
+      console.warn('[Bingo] Erro ao avaliar filme para o Bingo Mensal:', bErr?.message);
+    });
+  }
 
   return {
     newlyUnlocked,
@@ -927,6 +1121,33 @@ app.post('/api/movies/add', upload.single('poster_file'), async (req: Request, r
 
     await dbClient.query('COMMIT');
     invalidateWalkOfFameCache();
+    const secretDrawCompleted = await checkAndCompleteActiveDrawOnMovieSave({
+      movieId,
+      tmdbId: effectiveTmdbId,
+      imdbId: effectiveImdbId,
+      title: String(title || ''),
+      originalTitle: original_title ? String(original_title) : null,
+      releaseYear: parseNullableNumeric(release_year),
+    }).catch((sdErr: any) => {
+      console.warn('[SecretDraw] Erro ao verificar conclusão de carta ativa:', sdErr?.message);
+      return null;
+    });
+    const chimeraMatched = await checkChimeraMatchOnMovieSave({
+      movieId,
+      title: String(title || ''),
+      originalTitle: original_title ? String(original_title) : null,
+      releaseYear: parseNullableNumeric(release_year),
+      posterUrl: finalPosterUrl,
+      runtime: parseNullableNumeric(runtime),
+      voteCount: parseGlobalReviewsNullable(vote_count) ?? 0,
+      audioType: audio_type ? String(audio_type) : null,
+      countries: parsedCountries,
+      genres: parsedGenres,
+      tags: parsedTags,
+    }).catch((chErr: any) => {
+      console.warn('[Chimera] Erro ao verificar match de Quimera ativa:', chErr?.message);
+      return [];
+    });
     const savedEvents = await evaluatePostMovieSaveEvents({
       prevXp,
       prevWorld,
@@ -935,8 +1156,14 @@ app.post('/api/movies/add', upload.single('poster_file'), async (req: Request, r
       movieTitle,
       sourceTrigger: 'movie_add',
       isGhost: false,
+      bingoMoviePayload: buildBingoMovieInputFromBody(req.body, {
+        tmdbId: effectiveTmdbId,
+        countries: parsedCountries,
+        genres: parsedGenres,
+        tags: parsedTags,
+      }),
     });
-    return res.json({ success: true, isGhost: false, movieId, ...savedEvents });
+    return res.json({ success: true, isGhost: false, movieId, secretDrawCompleted, chimeraMatched, ...savedEvents });
   } catch (err: any) {
     await dbClient.query('ROLLBACK');
     cleanupGhostUpload();
@@ -1151,6 +1378,22 @@ app.put('/api/movies/edit/:id', upload.single('poster_file'), async (req: Reques
 
     await dbClient.query('COMMIT');
     invalidateWalkOfFameCache();
+    const chimeraMatched = await checkChimeraMatchOnMovieSave({
+      movieId: activeMovieId,
+      title: String(title || ''),
+      originalTitle: original_title ? String(original_title) : null,
+      releaseYear: parseNullableNumeric(release_year),
+      posterUrl: finalPosterUrl,
+      runtime: parseNullableNumeric(runtime),
+      voteCount: parseGlobalReviewsNullable(vote_count) ?? 0,
+      audioType: audio_type ? String(audio_type) : null,
+      countries: parsedCountries,
+      genres: parsedGenres,
+      tags: parsedTags,
+    }).catch((chErr: any) => {
+      console.warn('[Chimera] Erro ao verificar match de Quimera na edição:', chErr?.message);
+      return [];
+    });
     const savedEvents = await evaluatePostMovieSaveEvents({
       prevXp,
       prevWorld,
@@ -1159,8 +1402,14 @@ app.put('/api/movies/edit/:id', upload.single('poster_file'), async (req: Reques
       movieTitle: String(title || original_title || 'Filme editado'),
       sourceTrigger: 'movie_edit',
       isGhost: false,
+      bingoMoviePayload: buildBingoMovieInputFromBody(req.body, {
+        tmdbId: parseNullableNumeric(tmdb_id),
+        countries: parsedCountries,
+        genres: parsedGenres,
+        tags: parsedTags,
+      }),
     });
-    return res.json({ success: true, ...savedEvents });
+    return res.json({ success: true, chimeraMatched, ...savedEvents });
   } catch (err: any) {
     await dbClient.query('ROLLBACK');
     console.error('[Express] Erro ao editar filme:', err.message);
@@ -1834,6 +2083,7 @@ app.post('/api/walk-of-fame/packs/:packId/open', async (req: Request, res: Respo
     const prevXp = await getQuickXpSnapshot({ worldData });
     const data = await openWalkOfFamePack(packId, stickImmediately, { compact });
     const xpStatus = await getQuickXpSnapshot({ worldData });
+    await syncBingoWithWalkOfFameMutation(data, prevXp, xpStatus);
     const xpGain = computeXpGainEvent(prevXp, xpStatus);
     return res.json({ success: true, data: { ...data, xpStatus, xpGain } });
   } catch (err: any) {
@@ -1850,6 +2100,7 @@ app.post('/api/walk-of-fame/stickers/stick-batch', async (req: Request, res: Res
     const prevXp = await getQuickXpSnapshot({ worldData });
     const data = await stickWalkOfFameStarsBatch(starIds, { compact });
     const xpStatus = await getQuickXpSnapshot({ worldData });
+    await syncBingoWithWalkOfFameMutation(data, prevXp, xpStatus, new Set(starIds));
     const rawGain = computeXpGainEvent(prevXp, xpStatus);
     const xpGain =
       rawGain && (rawGain.gainedXp > 0 || (rawGain.statGains && rawGain.statGains.length > 0))
@@ -1864,11 +2115,13 @@ app.post('/api/walk-of-fame/stickers/stick-batch', async (req: Request, res: Res
 
 app.post('/api/walk-of-fame/stickers/:starId/stick', async (req: Request, res: Response) => {
   try {
+    const starId = String(req.params.starId);
     const compact = req.body?.compact === true || req.query.compact === 'true';
     const worldData = await buildWorldChallengePayload().catch(() => undefined);
     const prevXp = await getQuickXpSnapshot({ worldData });
-    const data = await stickWalkOfFameStar(String(req.params.starId), { compact });
+    const data = await stickWalkOfFameStar(starId, { compact });
     const xpStatus = await getQuickXpSnapshot({ worldData });
+    await syncBingoWithWalkOfFameMutation(data, prevXp, xpStatus, new Set([starId]));
     const rawGain = computeXpGainEvent(prevXp, xpStatus);
     const xpGain =
       rawGain && (rawGain.gainedXp > 0 || (rawGain.statGains && rawGain.statGains.length > 0))
@@ -1949,6 +2202,571 @@ app.get('/api/xp', async (req: Request, res: Response) => {
   }
 });
 
+// ============================================================================
+// ROTAS DA SESSÃO SECRETA (LAB TRANSPARENTE — SORTEIO DE CARTAS DA PLANILHA)
+// ============================================================================
+app.get('/api/class-powers/status', async (_req: Request, res: Response) => {
+  try {
+    const data = await getClassPowerWalletStatus();
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'Erro ao carregar poderes de classe.' });
+  }
+});
+
+app.post('/api/class-powers/lab/grant', async (req: Request, res: Response) => {
+  try {
+    const rawMode = String(req.body?.mode || 'all');
+    const mode =
+      rawMode === 'secret_draw' || rawMode === 'chimera' || rawMode === 'bingo'
+        ? rawMode
+        : 'all';
+    const data = await labGrantClassPowerCharge(mode);
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    return res.status(400).json({ success: false, error: err?.message || 'Erro ao conceder carga de classe.' });
+  }
+});
+
+app.post('/api/secret-draw/class-power', async (req: Request, res: Response) => {
+  try {
+    const classId = String(req.body?.classId || '').trim();
+    const pickId = req.body?.pickId ? Number(req.body.pickId) : undefined;
+    const data = await activateSecretDrawClassPower({ classId, pickId });
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    return res.status(400).json({ success: false, error: err?.message || 'Erro ao ativar poder na Sessão Secreta.' });
+  }
+});
+
+app.get('/api/secret-draw/status', async (_req: Request, res: Response) => {
+  try {
+    const data = await getSecretDrawStatus();
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[SecretDraw] Erro ao carregar status:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/secret-draw/draw', async (req: Request, res: Response) => {
+  try {
+    const rawCount = req.body?.requestedCount;
+    const requestedCount =
+      rawCount === null || rawCount === undefined || rawCount === 'random' || rawCount === ''
+        ? null
+        : Number(rawCount);
+    const rawSagaRule = String(req.body?.sagaRule || '').trim();
+    const sagaRule =
+      rawSagaRule === 'skip_sequels' || rawSagaRule === 'allow_any' || rawSagaRule === 'redirect_first'
+        ? rawSagaRule
+        : 'redirect_first';
+    const data = await drawSecretCards({ requestedCount, sagaRule });
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[SecretDraw] Erro ao sortear cartas:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/secret-draw/choose', async (req: Request, res: Response) => {
+  try {
+    const roundId = Number(req.body?.roundId);
+    const seat = Number(req.body?.seat);
+    if (!roundId || !seat) {
+      return res.status(400).json({ success: false, error: 'roundId e seat são obrigatórios.' });
+    }
+    await chooseSecretCard(roundId, seat);
+    const data = await getSecretDrawStatus();
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[SecretDraw] Erro ao escolher carta:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/secret-draw/finish-round', async (req: Request, res: Response) => {
+  try {
+    const roundId = Number(req.body?.roundId);
+    if (!roundId) {
+      return res.status(400).json({ success: false, error: 'roundId é obrigatório.' });
+    }
+    const result = await finishSecretDrawRound(roundId);
+    const data = await getSecretDrawStatus();
+    return res.json({ success: true, result, data });
+  } catch (err: any) {
+    console.error('[SecretDraw] Erro ao finalizar escolha da mão:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/secret-draw/decline', async (req: Request, res: Response) => {
+  try {
+    const pickId = Number(req.body?.pickId);
+    const reason = String(req.body?.reason || 'Não encontrado para assistir').trim();
+    if (!pickId) {
+      return res.status(400).json({ success: false, error: 'pickId é obrigatório.' });
+    }
+    await declineSecretPick(pickId, reason);
+    const data = await getSecretDrawStatus();
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[SecretDraw] Erro ao declinar carta:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/secret-draw/boomerang', async (req: Request, res: Response) => {
+  try {
+    const pickId = Number(req.body?.pickId);
+    const reason = String(req.body?.reason || 'Não quero ver agora — volta para o baralho').trim();
+    if (!pickId) {
+      return res.status(400).json({ success: false, error: 'pickId é obrigatório.' });
+    }
+    await boomerangSecretPick(pickId, reason);
+    const data = await getSecretDrawStatus();
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[SecretDraw] Erro ao devolver carta com Ficha Bumerangue:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/secret-draw/claim', async (req: Request, res: Response) => {
+  try {
+    const pickId = Number(req.body?.pickId);
+    if (!pickId) {
+      return res.status(400).json({ success: false, error: 'pickId é obrigatório.' });
+    }
+    const prevXp = await getQuickXpSnapshot().catch(() => null);
+    const claimed = await claimSecretDrawPick(pickId);
+    await evaluateBingoOnSecretDrawClaim({
+      pickId: claimed.id,
+      difficulty: claimed.difficulty,
+    }).catch((bErr: any) => console.warn('[Bingo] Erro ao avaliar Sessão Secreta:', bErr?.message));
+    const [data, xpStatus] = await Promise.all([
+      getSecretDrawStatus(),
+      getQuickXpSnapshot().catch(() => null),
+    ]);
+    const xpGain = computeXpGainEvent(prevXp, xpStatus);
+    return res.json({ success: true, claimed, data, xpStatus, xpGain });
+  } catch (err: any) {
+    console.error('[SecretDraw] Erro ao colher XP da carta:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/secret-draw/lab/complete', async (req: Request, res: Response) => {
+  try {
+    const pickId = Number(req.body?.pickId);
+    if (!pickId) {
+      return res.status(400).json({ success: false, error: 'pickId é obrigatório.' });
+    }
+    const prevXp = await getQuickXpSnapshot().catch(() => null);
+    await labCompleteSecretPick(pickId);
+    const [data, xpStatus] = await Promise.all([
+      getSecretDrawStatus(),
+      getQuickXpSnapshot().catch(() => null),
+    ]);
+    const xpGain = computeXpGainEvent(prevXp, xpStatus);
+    return res.json({ success: true, data, xpStatus, xpGain });
+  } catch (err: any) {
+    console.error('[SecretDraw] Erro ao concluir carta no Lab:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/secret-draw/lab/grant-chip', async (req: Request, res: Response) => {
+  try {
+    const amount = Number(req.body?.amount || 1);
+    const chipType = req.body?.type === 'boomerang' ? 'boomerang' : 'draw';
+    await labAddWeeklyDrawChip(amount, chipType);
+    const data = await getSecretDrawStatus();
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[SecretDraw] Erro ao recarregar ficha no Lab:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/secret-draw/lab/reset', async (_req: Request, res: Response) => {
+  try {
+    await labResetSecretDraws();
+    const [data, xpStatus] = await Promise.all([
+      getSecretDrawStatus(),
+      getQuickXpSnapshot().catch(() => null),
+    ]);
+    return res.json({ success: true, data, xpStatus });
+  } catch (err: any) {
+    console.error('[SecretDraw] Erro ao resetar testes Lab:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/secret-draw/sync-sheet', (req: Request, res: Response) => {
+  sheetUpload.single('sheet_file')(req, res, async (uploadErr: any) => {
+    if (uploadErr) {
+      return res.status(400).json({ success: false, error: uploadErr.message || 'Erro no upload da planilha.' });
+    }
+    try {
+      if (req.file?.buffer) {
+        await syncSecretDrawPoolFromBuffer(req.file.buffer, req.file.originalname || 'upload.xlsx');
+      } else {
+        const candidates = [
+          path.resolve(__dirname, 'data/sorteio.xlsx'),
+          path.resolve(process.cwd(), 'src/data/sorteio.xlsx'),
+          path.resolve(process.cwd(), 'backend/src/data/sorteio.xlsx'),
+        ];
+        const found = candidates.find((p) => fs.existsSync(p));
+        if (!found) {
+          return res.status(404).json({ success: false, error: 'Arquivo sorteio.xlsx não encontrado no servidor.' });
+        }
+        const buf = fs.readFileSync(found);
+        await syncSecretDrawPoolFromBuffer(buf, path.basename(found));
+      }
+      const data = await getSecretDrawStatus();
+      return res.json({ success: true, data });
+    } catch (err: any) {
+      console.error('[SecretDraw] Erro ao sincronizar planilha:', err.message);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+});
+
+// ============================================================================
+// ROTAS DA QUIMERA CINÉFILA (FORJA SEMANAL + JACKPOTS INDEPENDENTES + LAB)
+// ============================================================================
+app.post('/api/chimeras/class-power', async (req: Request, res: Response) => {
+  try {
+    const classId = String(req.body?.classId || '').trim();
+    const chimeraId = req.body?.chimeraId ? Number(req.body.chimeraId) : undefined;
+    const choiceValue =
+      req.body?.choiceValue !== undefined && req.body?.choiceValue !== null
+        ? String(req.body.choiceValue).trim()
+        : undefined;
+    const data = await activateChimeraClassPower({ classId, chimeraId, choiceValue });
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    return res.status(400).json({ success: false, error: err?.message || 'Erro ao ativar poder na Quimera.' });
+  }
+});
+
+app.get('/api/chimeras/status', async (_req: Request, res: Response) => {
+  try {
+    const data = await getChimeraStatus();
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[Chimera] Erro ao carregar status:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/chimeras/forge', async (req: Request, res: Response) => {
+  try {
+    const ritualStyle = req.body?.ritualStyle;
+    const labD20Mode = req.body?.labD20Mode;
+    const labForceLegendary = Boolean(req.body?.labForceLegendary);
+    const result = await forgeChimeraContract({ ritualStyle, labD20Mode, labForceLegendary });
+    const data = await getChimeraStatus();
+    return res.json({ success: true, forged: result.chimera, data });
+  } catch (err: any) {
+    console.error('[Chimera] Erro ao forjar Quimera:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/chimeras/pick-rune', async (req: Request, res: Response) => {
+  try {
+    const chimeraId = Number(req.body?.chimeraId);
+    const runeId = String(req.body?.runeId || '').trim();
+    if (!chimeraId || !runeId) {
+      return res.status(400).json({ success: false, error: 'chimeraId e runeId são obrigatórios.' });
+    }
+    const updated = await pickChimeraFateRune(chimeraId, runeId);
+    const data = await getChimeraStatus();
+    return res.json({ success: true, chimera: updated, data });
+  } catch (err: any) {
+    console.error('[Chimera] Erro ao selar Runa da Quimera:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/chimeras/claim', async (req: Request, res: Response) => {
+  try {
+    const chimeraId = Number(req.body?.chimeraId);
+    if (!chimeraId) {
+      return res.status(400).json({ success: false, error: 'chimeraId é obrigatório.' });
+    }
+    const prevXp = await getQuickXpSnapshot().catch(() => null);
+    const claimed = await claimChimeraContract(chimeraId);
+    await evaluateBingoOnChimeraClaim({
+      chimeraId: claimed.id,
+      jackpotsHitCount: Number(claimed.matchDetails?.jackpotsHitCount || 0),
+    }).catch((bErr: any) => console.warn('[Bingo] Erro ao avaliar Quimera:', bErr?.message));
+    const [data, xpStatus] = await Promise.all([
+      getChimeraStatus(),
+      getQuickXpSnapshot().catch(() => null),
+    ]);
+    const xpGain = computeXpGainEvent(prevXp, xpStatus);
+    return res.json({ success: true, claimed, data, xpStatus, xpGain });
+  } catch (err: any) {
+    console.error('[Chimera] Erro ao colher XP da Quimera:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/chimeras/pillar-action', async (req: Request, res: Response) => {
+  try {
+    const chimeraId = Number(req.body?.chimeraId);
+    const pillar = String(req.body?.pillar || '') as 'year' | 'country' | 'genre' | 'tag';
+    const actionType = String(req.body?.actionType || '') as 'transmute' | 'sacrifice';
+    if (!chimeraId || !['year', 'country', 'genre', 'tag'].includes(pillar) || !['transmute', 'sacrifice'].includes(actionType)) {
+      return res.status(400).json({ success: false, error: 'chimeraId, pillar e actionType válidos são obrigatórios.' });
+    }
+    const updated = await applyChimeraPillarAction(chimeraId, pillar, actionType);
+    const data = await getChimeraStatus();
+    return res.json({ success: true, chimera: updated, data });
+  } catch (err: any) {
+    console.error('[Chimera] Erro ao aplicar poder de pilar na Quimera:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/chimeras/decline', async (req: Request, res: Response) => {
+  try {
+    const chimeraId = Number(req.body?.chimeraId);
+    if (!chimeraId) {
+      return res.status(400).json({ success: false, error: 'chimeraId é obrigatório.' });
+    }
+    await declineChimeraContract(chimeraId);
+    const data = await getChimeraStatus();
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[Chimera] Erro ao declinar Quimera:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/chimeras/discard', async (req: Request, res: Response) => {
+  try {
+    const chimeraId = Number(req.body?.chimeraId);
+    if (!chimeraId) {
+      return res.status(400).json({ success: false, error: 'chimeraId é obrigatório.' });
+    }
+    await discardChimeraContract(chimeraId);
+    const data = await getChimeraStatus();
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[Chimera] Erro ao descartar Quimera:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/chimeras/lab/grant-chip', async (req: Request, res: Response) => {
+  try {
+    const amount = Number(req.body?.amount || 1);
+    const chipType = req.body?.type === 'decline' ? 'decline' : 'forge';
+    await labAddChimeraChip(amount, chipType);
+    const data = await getChimeraStatus();
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[Chimera] Erro ao recarregar ficha no Lab:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/chimeras/lab/simulate-match', async (req: Request, res: Response) => {
+  try {
+    const chimeraId = Number(req.body?.chimeraId);
+    if (!chimeraId) {
+      return res.status(400).json({ success: false, error: 'chimeraId é obrigatório.' });
+    }
+    const mode = req.body?.mode === 'full_jackpot' ? 'full_jackpot' : 'normal';
+    const simulated = await labSimulateMatchChimera(chimeraId, mode);
+    const data = await getChimeraStatus();
+    return res.json({ success: true, simulated, data });
+  } catch (err: any) {
+    console.error('[Chimera] Erro ao simular match no Lab:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/chimeras/lab/reset', async (_req: Request, res: Response) => {
+  try {
+    await labResetChimeras();
+    const [data, xpStatus] = await Promise.all([
+      getChimeraStatus(),
+      getQuickXpSnapshot().catch(() => null),
+    ]);
+    return res.json({ success: true, data, xpStatus });
+  } catch (err: any) {
+    console.error('[Chimera] Erro ao resetar Quimera no Lab:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ============================================================================
+// BINGO MENSAL 4×4 (GUILDA DO DESTINO)
+// ============================================================================
+
+app.post('/api/bingo/class-power', async (req: Request, res: Response) => {
+  try {
+    const classId = String(req.body?.classId || '').trim();
+    const boardId = req.body?.boardId ? Number(req.body.boardId) : undefined;
+    const squareIndex =
+      req.body?.squareIndex !== undefined && req.body?.squareIndex !== null
+        ? Number(req.body.squareIndex)
+        : undefined;
+    const chosenGoalKey =
+      req.body?.chosenGoalKey !== undefined && req.body?.chosenGoalKey !== null
+        ? String(req.body.chosenGoalKey).trim()
+        : undefined;
+    const data = await activateBingoClassPower({
+      classId,
+      boardId,
+      squareIndex,
+      chosenGoalKey,
+    });
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    return res.status(400).json({ success: false, error: err?.message || 'Erro ao ativar poder nos Pergaminhos.' });
+  }
+});
+
+app.get('/api/bingo/status', async (_req: Request, res: Response) => {
+  try {
+    const data = await getBingoStatus();
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[Bingo] Erro ao carregar status do Bingo Mensal:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/bingo/forge', async (_req: Request, res: Response) => {
+  try {
+    const forged = await forgeBingoBoard();
+    const data = await getBingoStatus();
+    return res.json({ success: true, board: forged.board, data });
+  } catch (err: any) {
+    console.error('[Bingo] Erro ao sortear cartela de Bingo:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/bingo/archive', async (req: Request, res: Response) => {
+  try {
+    const boardId = Number(req.body?.boardId);
+    if (!boardId) {
+      return res.status(400).json({ success: false, error: 'boardId é obrigatório.' });
+    }
+    await archiveExpiredBingoBoard(boardId);
+    const data = await getBingoStatus();
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[Bingo] Erro ao arquivar cartela expirada:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/bingo/action', async (req: Request, res: Response) => {
+  try {
+    const boardId = Number(req.body?.boardId);
+    const action = String(req.body?.action || '') as 'board_reroll' | 'square_reroll' | 'upgrade' | 'downgrade';
+    const squareIndex = req.body?.squareIndex !== undefined ? Number(req.body.squareIndex) : undefined;
+    if (!boardId || !['board_reroll', 'square_reroll', 'upgrade', 'downgrade'].includes(action)) {
+      return res.status(400).json({ success: false, error: 'boardId e action válidos são obrigatórios.' });
+    }
+    const updated = await applyBingoBoardAction({ boardId, action, squareIndex });
+    const data = await getBingoStatus();
+    return res.json({ success: true, ...updated, data });
+  } catch (err: any) {
+    console.error('[Bingo] Erro ao aplicar ficha na cartela:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/bingo/claim', async (req: Request, res: Response) => {
+  try {
+    const boardId = Number(req.body?.boardId);
+    const targetType = String(req.body?.targetType || 'all') as 'square' | 'line' | 'blackout' | 'all';
+    const targetId = req.body?.targetId;
+    if (!boardId || !['square', 'line', 'blackout', 'all'].includes(targetType)) {
+      return res.status(400).json({ success: false, error: 'boardId e targetType válidos são obrigatórios.' });
+    }
+    const prevXp = await getQuickXpSnapshot().catch(() => null);
+    const claimed = await claimBingoReward({ boardId, targetType, targetId });
+    const [data, xpStatus] = await Promise.all([
+      getBingoStatus(),
+      getQuickXpSnapshot().catch(() => null),
+    ]);
+    const xpGain = computeXpGainEvent(prevXp, xpStatus);
+    return res.json({ success: true, ...claimed, data, xpStatus, xpGain });
+  } catch (err: any) {
+    console.error('[Bingo] Erro ao colher XP do Bingo:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/bingo/lab/grant-chip', async (req: Request, res: Response) => {
+  try {
+    const chipType = String(req.body?.chipType || req.body?.type || 'forge') as BingoChipType | 'all';
+    const amount = Number(req.body?.amount || 1);
+    const validTypes: Array<BingoChipType | 'all'> = ['forge', 'board_reroll', 'square_reroll', 'upgrade', 'downgrade', 'all'];
+    if (!validTypes.includes(chipType)) {
+      return res.status(400).json({ success: false, error: 'chipType inválido.' });
+    }
+    await labAddBingoChip(chipType, amount);
+    const data = await getBingoStatus();
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[Bingo] Erro ao recarregar ficha no Lab:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/bingo/lab/simulate', async (req: Request, res: Response) => {
+  try {
+    const boardId = Number(req.body?.boardId);
+    const mode = String(req.body?.mode || 'complete_square') as 'complete_square' | 'complete_line' | 'advance_all' | 'almost_blackout';
+    const squareIndex = req.body?.squareIndex !== undefined ? Number(req.body.squareIndex) : undefined;
+    if (!boardId || !['complete_square', 'complete_line', 'advance_all', 'almost_blackout'].includes(mode)) {
+      return res.status(400).json({ success: false, error: 'boardId e mode válidos são obrigatórios.' });
+    }
+    const board = await labSimulateBingoProgress({ boardId, mode, squareIndex });
+    const data = await getBingoStatus();
+    return res.json({ success: true, board, data });
+  } catch (err: any) {
+    console.error('[Bingo] Erro ao simular progresso no Bingo:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/bingo/lab/simulate-month', async (_req: Request, res: Response) => {
+  try {
+    await labSimulateBingoMonthRollover();
+    const data = await getBingoStatus();
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[Bingo] Erro ao simular virada de mês no Bingo:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/bingo/lab/reset', async (_req: Request, res: Response) => {
+  try {
+    await labResetBingo();
+    const [data, xpStatus] = await Promise.all([
+      getBingoStatus(),
+      getQuickXpSnapshot().catch(() => null),
+    ]);
+    return res.json({ success: true, data, xpStatus });
+  } catch (err: any) {
+    console.error('[Bingo] Erro ao resetar Bingo no Lab:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Ponto único de entrada do módulo isolado de Animes, Séries & Doramas
 const tvMountRouter = express.Router();
 if (process.env.ENABLE_ANIME_MODULE === 'true') {
@@ -2020,6 +2838,9 @@ app.listen(PORT, '0.0.0.0', async () => {
     console.log(
       `[Trophies] Motor PS5 iniciado com sucesso! Desbloqueados: ${initialTrophies.unlockedCount}/${initialTrophies.totalTrophies} (${initialTrophies.overallPercentage}%)`
     );
+    await ensurePoolPopulatedIfEmpty();
+    await ensureChimeraTables();
+    await ensureBingoTables();
   } catch (tErr: any) {
     console.error('[Trophies] Erro ao inicializar troféus/universos no boot:', tErr.message);
   }

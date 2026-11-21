@@ -834,6 +834,50 @@ export function computeXpGainEvent(prev, next) {
     });
   }
 
+  const prevSecretRounds = prev.sources?.secretDraw?.completedRoundsMap || {};
+  const nextSecretRounds = next.sources?.secretDraw?.completedRoundsMap || {};
+  Object.entries(nextSecretRounds).forEach(([k, entry]) => {
+    if (!prevSecretRounds[k] && entry?.xp > 0) {
+      tags.push({
+        type: 'secret_draw',
+        icon: '🃏',
+        label: `+${entry.xp} XP Sessão Secreta (${entry.title})`,
+        xp: entry.xp,
+        rarityOrTier: entry.difficulty || 'common',
+      });
+    }
+  });
+
+  const prevChimeraClaimed = prev.sources?.chimera?.claimedMap || {};
+  const nextChimeraClaimed = next.sources?.chimera?.claimedMap || {};
+  Object.entries(nextChimeraClaimed).forEach(([k, entry]) => {
+    if (!prevChimeraClaimed[k] && entry?.xp > 0) {
+      tags.push({
+        type: 'chimera',
+        icon: '🧪',
+        label: `+${entry.xp} XP Quimera Cinéfila (${entry.movieTitle})`,
+        xp: entry.xp,
+        rarityOrTier: entry.jackpotsHitCount >= 2 ? 'gold' : 'epic',
+      });
+    }
+  });
+
+  const prevBingoClaimed = prev.sources?.bingo?.claimedMap || {};
+  const nextBingoClaimed = next.sources?.bingo?.claimedMap || {};
+  Object.entries(nextBingoClaimed).forEach(([k, entry]) => {
+    const prevEntry = prevBingoClaimed[k];
+    const diffXp = Math.max(0, Number(entry?.xp || 0) - Number(prevEntry?.xp || 0));
+    if (diffXp > 0) {
+      tags.push({
+        type: 'bingo',
+        icon: '🎯',
+        label: `+${diffXp} XP Bingo Mensal (${entry.monthKey})`,
+        xp: diffXp,
+        rarityOrTier: 'gold',
+      });
+    }
+  });
+
   if (tags.length === 0) {
     tags.push({
       type: 'movie',
@@ -1156,6 +1200,8 @@ export function mergeXpGainEvents(baseEvent, incomingEvent) {
         label = `+${sumXp.toLocaleString('pt-BR')} XP Mega-Sagas Míticas`;
       } else if (inTag.type === 'walk_of_fame') {
         label = `+${sumXp.toLocaleString('pt-BR')} XP Calçada da Fama`;
+      } else if (inTag.type === 'chimera') {
+        label = `+${sumXp.toLocaleString('pt-BR')} XP Quimera Cinéfila`;
       }
       mergedTags[existingIndex] = {
         ...existing,

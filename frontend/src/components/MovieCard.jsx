@@ -72,6 +72,49 @@ const formatVotes = (num) => {
   return cleanNum.toString();
 };
 
+const SECRET_DRAW_BADGE_META = {
+  common: {
+    suit: '♣',
+    label: 'Comum',
+    shortLabel: 'Comum',
+    pillCls: 'bg-emerald-950/85 border-emerald-400/70 text-emerald-200 shadow-[0_0_12px_rgba(16,185,129,0.45)]',
+    hoverCls: 'bg-emerald-950/50 border-emerald-500/40 text-emerald-300',
+    defaultFrame: 'border-emerald-400/45 border-2 hover:border-emerald-300 hover:shadow-[0_0_22px_rgba(16,185,129,0.5)]',
+  },
+  medium: {
+    suit: '♦',
+    label: 'Mediano',
+    shortLabel: 'Médio',
+    pillCls: 'bg-sky-950/85 border-sky-400/75 text-sky-200 shadow-[0_0_12px_rgba(56,189,248,0.45)]',
+    hoverCls: 'bg-sky-950/50 border-sky-500/40 text-sky-300',
+    defaultFrame: 'border-sky-400/45 border-2 hover:border-sky-300 hover:shadow-[0_0_22px_rgba(56,189,248,0.55)]',
+  },
+  hard: {
+    suit: '♠',
+    label: 'Difícil',
+    shortLabel: 'Dif.',
+    pillCls: 'bg-purple-950/85 border-purple-400/75 text-purple-200 shadow-[0_0_14px_rgba(168,85,247,0.5)]',
+    hoverCls: 'bg-purple-950/50 border-purple-500/45 text-purple-300',
+    defaultFrame: 'border-purple-400/50 border-2 hover:border-purple-300 hover:shadow-[0_0_24px_rgba(168,85,247,0.55)]',
+  },
+  very_hard: {
+    suit: '♥',
+    label: 'Muito Difícil',
+    shortLabel: 'M.Dif',
+    pillCls: 'bg-amber-950/90 border-amber-400/80 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.55)]',
+    hoverCls: 'bg-amber-950/50 border-amber-500/45 text-amber-300',
+    defaultFrame: 'border-amber-400/55 border-2 hover:border-amber-300 hover:shadow-[0_0_26px_rgba(245,158,11,0.6)]',
+  },
+  exotic: {
+    suit: '★',
+    label: 'Exótico',
+    shortLabel: 'Exót.',
+    pillCls: 'bg-gradient-to-r from-rose-900/95 via-fuchsia-900/95 to-amber-900/95 border-rose-300/85 text-rose-100 shadow-[0_0_18px_rgba(244,63,94,0.65)] secret-exotic-holo',
+    hoverCls: 'bg-gradient-to-r from-rose-950/70 via-fuchsia-950/70 to-amber-950/70 border-rose-400/55 text-rose-200 secret-exotic-holo',
+    defaultFrame: 'border-rose-400/60 border-2 hover:border-rose-300 hover:shadow-[0_0_30px_rgba(244,63,94,0.65)]',
+  },
+};
+
 export default function MovieCard({ movie, onEdit, onDelete, gridCols = 5 }) {
   const isCompact7 = gridCols === 7;
   const isCompact10 = gridCols === 10;
@@ -197,6 +240,9 @@ export default function MovieCard({ movie, onEdit, onDelete, gridCols = 5 }) {
 
   const isOscarWinner = (Number(oscar_wins) || 0) > 0;
   const isOscarNominee = (Number(oscar_nominations) || 0) > 0;
+  const secretDrawDifficulty = movie.secret_draw_difficulty || null;
+  const secretDrawXp = movie.secret_draw_xp || null;
+  const secretMeta = secretDrawDifficulty ? SECRET_DRAW_BADGE_META[secretDrawDifficulty] || null : null;
 
   // Detecta Documentário, Biografia e História respeitando a ordem exata listada nos gêneros
   const stripGenreAccents = (s) =>
@@ -525,6 +571,8 @@ export default function MovieCard({ movie, onEdit, onDelete, gridCols = 5 }) {
     borderGlowClasses = `border-violet-600/20 border-2 hover:border-violet-600 ${isHovered ? 'hover:shadow-[0_0_20px_#7c3aed,_inset_0_0_10px_rgba(124,58,237,0.3)]' : ''}`;
   } else if (cardTheme === 'arquetipo-especulativo') {
     borderGlowClasses = `border-emerald-400/20 border-2 hover:border-emerald-400 ${isHovered ? 'hover:shadow-[0_0_20px_#34d399,_inset_0_0_10px_rgba(52,211,153,0.3)]' : ''}`;
+  } else if (secretMeta) {
+    borderGlowClasses = secretMeta.defaultFrame;
   }
 
   // Fundo Temático no Hover
@@ -1770,6 +1818,34 @@ export default function MovieCard({ movie, onEdit, onDelete, gridCols = 5 }) {
         </div>
       )}
 
+      {/* Selo de Dificuldade da Sessão Secreta na Frente do Card */}
+      {secretMeta && (
+        <div
+          className={`absolute ${
+            isOscarWinner || isOscarNominee
+              ? isCompact10
+                ? 'top-7 left-1.5'
+                : isCompact7
+                  ? 'top-9 left-2'
+                  : 'top-12 left-2.5'
+              : isCompact10
+                ? 'top-1.5 left-1.5'
+                : isCompact7
+                  ? 'top-2 left-2'
+                  : 'top-2.5 left-2.5'
+          } z-20 group-hover:opacity-0 transition-opacity duration-300 pointer-events-none select-none`}
+        >
+          <span
+            className={`inline-flex items-center gap-1 rounded-full backdrop-blur-md border font-black uppercase tracking-wider ${
+              isCompact10 ? 'px-1.5 py-0.5 text-[7px]' : isCompact7 ? 'px-2 py-0.5 text-[8px]' : 'px-2.5 py-0.5 text-[9.5px]'
+            } ${secretMeta.pillCls}`}
+          >
+            <span>{secretMeta.suit}</span>
+            <span>{isCompact10 ? secretMeta.shortLabel : secretMeta.label}</span>
+          </span>
+        </div>
+      )}
+
       {/* Rating Badge */}
       <div className={getVotesBadgeClass()}>
         <span>⭐</span>
@@ -2234,6 +2310,15 @@ export default function MovieCard({ movie, onEdit, onDelete, gridCols = 5 }) {
             {cardTheme === 'oscar-nominee' && (
               <div className={`bg-blue-955/40 border border-blue-500/40 rounded-lg ${isCompact10 ? 'px-1.5 py-0.5 text-[7px]' : isCompact7 ? 'px-2 py-0.5 text-[8.5px]' : 'px-3 py-1 text-[10px]'} flex items-center gap-1.5 font-mono tracking-wider text-blue-300 select-none mt-0.5 shrink-0 w-fit`}>
                 <span>🎬 {oscar_nominations} {isCompact10 ? 'IND.' : 'INDICAÇÕES AO OSCAR'}</span>
+              </div>
+            )}
+
+            {/* Placar de Dificuldade da Sessão Secreta no Hover */}
+            {secretMeta && (
+              <div className={`rounded-lg border ${isCompact10 ? 'px-1.5 py-0.5 text-[7px]' : isCompact7 ? 'px-2 py-0.5 text-[8px]' : 'px-2.5 py-0.5 text-[9.5px]'} flex items-center gap-1.5 font-mono font-bold tracking-wider select-none mt-0.5 shrink-0 w-fit ${secretMeta.hoverCls}`}>
+                <span>{secretMeta.suit}</span>
+                <span>Sessão: {isCompact10 ? secretMeta.shortLabel : secretMeta.label}</span>
+                {secretDrawXp && !isCompact10 && <span>• +{secretDrawXp} XP</span>}
               </div>
             )}
 

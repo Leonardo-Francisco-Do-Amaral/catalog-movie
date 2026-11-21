@@ -30,12 +30,9 @@ import {
   CheckCircle2,
   Save,
   Search,
-  BookOpen,
-  X,
 } from 'lucide-react';
 import { getCountryIsoFromName } from './InteractiveGlobe3D';
 import TrophyChecklistModal from './TrophyChecklistModal';
-import { InfiniteStarsRow } from './TrophyBadges';
 import {
   TROPHY_XP_BY_TIER,
   TROPHY_TIER_META,
@@ -52,6 +49,7 @@ import {
   computeRpgAndGuilds,
   computeUniverseOverview,
   computeUniverseRelics,
+  SECRET_DRAW_SOR_BY_DIFFICULTY,
 } from '../utils/analyticsEngine';
 import {
   ACTOR_RANK_ORDER,
@@ -343,16 +341,13 @@ export default function AnalyticsDashboard({
   const [compareMode, setCompareMode] = useState('combined'); // 'combined' | 'grid' | 'table'
   const [showFullRoadmap, setShowFullRoadmap] = useState(false);
   const [inspectingTrophy, setInspectingTrophy] = useState(null);
-  const [isGrimoireOpen, setIsGrimoireOpen] = useState(false);
-  const [equippedClassId, setEquippedClassId] = useState(null);
-  const [grimoireSearch, setGrimoireSearch] = useState('');
-  const [showAttributeHelp, setShowAttributeHelp] = useState(false);
 
   const [liveXp, setLiveXp] = useState(xpStatusProp);
   const [trophiesList, setTrophiesList] = useState([]);
   const [worldOriginMap, setWorldOriginMap] = useState({});
   const [universeCodex, setUniverseCodex] = useState(null);
   const [walkOfFameData, setWalkOfFameData] = useState(null);
+  const [secretDrawData, setSecretDrawData] = useState(null);
   const [countryViewMode, setCountryViewMode] = useState('coproductions'); // 'coproductions' | 'origin'
 
   const isYearFilterActive = selectedYear !== 'Geral';
@@ -369,7 +364,7 @@ export default function AnalyticsDashboard({
     }
     return [
       { id: 'all', label: '✨ Visão Geral Completa' },
-      { id: 'xp_rpg', label: '⚡ XP & Ficha RPG' },
+      { id: 'xp_rpg', label: '⚡ XP & Drops' },
       { id: 'pantheon', label: '⭐ Panteão & Minha Nota' },
       { id: 'relics', label: '💎 Relíquias & Recordes' },
       { id: 'years', label: '📅 Anos & Gravações' },
@@ -394,12 +389,13 @@ export default function AnalyticsDashboard({
     let mounted = true;
     const loadServerInsights = async () => {
       try {
-        const [xpRes, trRes, worldRes, uniRes, wofRes] = await Promise.allSettled([
+        const [xpRes, trRes, worldRes, uniRes, wofRes, secretRes] = await Promise.allSettled([
           axios.get(`${API_BASE_URL}/xp`),
           axios.get(`${API_BASE_URL}/trophies`),
           axios.get(`${API_BASE_URL}/challenge/world-195`),
           axios.get(`${API_BASE_URL}/universes`),
           axios.get(`${API_BASE_URL}/walk-of-fame`),
+          axios.get(`${API_BASE_URL}/secret-draw/status`),
         ]);
         if (!mounted) return;
         if (xpRes.status === 'fulfilled' && xpRes.value.data?.success && xpRes.value.data?.data) {
@@ -410,6 +406,9 @@ export default function AnalyticsDashboard({
         }
         if (wofRes.status === 'fulfilled' && wofRes.value.data?.success && wofRes.value.data?.data) {
           setWalkOfFameData(wofRes.value.data.data);
+        }
+        if (secretRes.status === 'fulfilled' && secretRes.value.data?.success && secretRes.value.data?.data) {
+          setSecretDrawData(secretRes.value.data.data);
         }
         if (worldRes.status === 'fulfilled' && worldRes.value.data?.success && worldRes.value.data?.data?.catalogMovies) {
           const countryMetaByCode = {};
@@ -480,8 +479,8 @@ export default function AnalyticsDashboard({
 
   // Motores Analíticos Principais
   const rpgData = useMemo(
-    () => computeRpgAndGuilds(filteredMovies, movies, liveXp, trophiesList, walkOfFameData),
-    [filteredMovies, movies, liveXp, trophiesList, walkOfFameData]
+    () => computeRpgAndGuilds(filteredMovies, movies, liveXp, trophiesList, walkOfFameData, secretDrawData),
+    [filteredMovies, movies, liveXp, trophiesList, walkOfFameData, secretDrawData]
   );
 
   const pantheon = useMemo(
@@ -676,32 +675,12 @@ export default function AnalyticsDashboard({
 
   const {
     activeXp,
-    characterClass,
-    totalStatPoints,
     campaignKpis,
-    rpgAttributes,
     audioFactions,
     guilds,
     trophyInsights,
     levelRoadmap,
   } = rpgData;
-
-  const activeDisplayClass = useMemo(() => {
-    if (equippedClassId && characterClass?.allClasses) {
-      const found = characterClass.allClasses.find((c) => c.id === equippedClassId);
-      if (found) {
-        return {
-          ...characterClass,
-          ...found,
-          isCustomEquipped: true,
-        };
-      }
-    }
-    return {
-      ...characterClass,
-      isCustomEquipped: false,
-    };
-  }, [equippedClassId, characterClass]);
 
   const xpSources = activeXp?.sources || {};
   const totalXp = Math.max(1, activeXp?.totalXp || 0);
@@ -712,6 +691,9 @@ export default function AnalyticsDashboard({
   const timeMachineXp = xpSources.timeMachine?.totalXp || 0;
   const universesXp = xpSources.universes?.totalXp || 0;
   const walkOfFameXp = xpSources.walkOfFame?.totalXp || 0;
+  const secretDrawXp = xpSources.secretDraw?.totalXp || 0;
+  const chimeraXp = xpSources.chimera?.totalXp || 0;
+  const bingoXp = xpSources.bingo?.totalXp || 0;
 
   const universeOverview = useMemo(
     () => computeUniverseOverview(universeCodex, xpSources.universes),
@@ -877,6 +859,64 @@ export default function AnalyticsDashboard({
   const pctTimeMachineXp = ((timeMachineXp / totalXp) * 100).toFixed(1);
   const pctUniversesXp = ((universesXp / totalXp) * 100).toFixed(1);
   const pctWalkOfFameXp = ((walkOfFameXp / totalXp) * 100).toFixed(1);
+  const pctSecretDrawXp = ((secretDrawXp / totalXp) * 100).toFixed(1);
+  const pctChimeraXp = ((chimeraXp / totalXp) * 100).toFixed(1);
+  const pctBingoXp = ((bingoXp / totalXp) * 100).toFixed(1);
+
+  const secretDrawOverview = useMemo(() => {
+    const xpSecret = secretDrawData?.xpSummary || xpSources.secretDraw || {};
+    const byDiff = xpSecret?.byDifficulty || {};
+    const pool = secretDrawData?.poolSummary || {};
+    const stats = secretDrawData?.deckStats || {};
+    const wallet = secretDrawData?.chipsWallet || {};
+
+    const tiersMeta = [
+      { key: 'exotic', icon: '★', label: 'Exótico', xpEach: 150, color: 'text-rose-300', barColor: 'bg-rose-400' },
+      { key: 'very_hard', icon: '♥', label: 'Muito Difícil', xpEach: 100, color: 'text-amber-300', barColor: 'bg-amber-400' },
+      { key: 'hard', icon: '♠', label: 'Difícil', xpEach: 70, color: 'text-purple-300', barColor: 'bg-purple-400' },
+      { key: 'medium', icon: '♦', label: 'Mediano', xpEach: 45, color: 'text-sky-300', barColor: 'bg-sky-400' },
+      { key: 'common', icon: '♣', label: 'Comum', xpEach: 35, color: 'text-emerald-300', barColor: 'bg-emerald-400' },
+    ];
+
+    const completedCount = Number(xpSecret?.completedCount || 0);
+    let sorTotal = 0;
+    const tierRows = tiersMeta.map((meta) => {
+      const item = byDiff[meta.key] || { count: 0, totalXp: 0 };
+      const count = Number(item.count || 0);
+      const earnedXp = Number(item.totalXp || 0);
+      const sorWeight = SECRET_DRAW_SOR_BY_DIFFICULTY[meta.key] ?? 0.2;
+      const sorEarned = Math.round(count * sorWeight * 10) / 10;
+      sorTotal += sorEarned;
+      const pct = completedCount > 0 ? Math.min(100, Math.round((count / completedCount) * 100)) : 0;
+      return {
+        ...meta,
+        count,
+        earnedXp,
+        sorWeight,
+        sorEarned,
+        pct,
+      };
+    });
+    sorTotal = Math.round(sorTotal * 10) / 10;
+
+    return {
+      completedCount,
+      totalXp: Number(xpSecret?.totalXp || secretDrawXp || 0),
+      sorTotal,
+      activeCount: Number(secretDrawData?.activeWatchCount ?? stats.activeRoundsCount ?? 0),
+      activeLimit: Number(secretDrawData?.activeWatchLimit || 10),
+      chipsRemaining: Number(wallet.chipsRemaining ?? 2),
+      chipsAllowance: Number(wallet.weeklyAllowance ?? 2),
+      boomerangRemaining: Number(wallet.boomerangChipsRemaining ?? 2),
+      boomerangAllowance: Number(wallet.boomerangAllowance ?? 2),
+      availableCount: Number(pool.availableCount || 0),
+      totalUniqueRows: Number(pool.totalUniqueRows || 0),
+      watchedCount: Number(pool.watchedCount || 0),
+      declinedCount: Number(pool.declinedCount ?? stats.declinedRoundsCount ?? 0),
+      boomerangCount: Number(stats.boomerangRoundsCount || 0),
+      tierRows,
+    };
+  }, [secretDrawData, xpSources.secretDraw, secretDrawXp]);
 
   const showSection = (id) => {
     if (isYearFilterActive && (id === 'xp_rpg' || id === 'checkpoints')) {
@@ -1156,7 +1196,7 @@ export default function AnalyticsDashboard({
                     Anatomia Completa do XP — De Onde Vem o Seu Poder?
                   </span>
                   <span className="text-[11px] font-mono text-zinc-400">
-                    6 Sistemas Integrados • 100% Tempo Real
+                    8 Sistemas Integrados • 100% Tempo Real
                   </span>
                 </div>
 
@@ -1189,8 +1229,23 @@ export default function AnalyticsDashboard({
                   />
                   <div
                     style={{ width: `${pctWalkOfFameXp}%` }}
-                    className="h-full bg-rose-400 rounded-r-full transition-all"
+                    className="h-full bg-rose-400 transition-all"
                     title={`Álbum da Fama: ${walkOfFameXp} XP (${pctWalkOfFameXp}%)`}
+                  />
+                  <div
+                    style={{ width: `${pctSecretDrawXp}%` }}
+                    className="h-full bg-fuchsia-400 transition-all"
+                    title={`Sessão Secreta: ${secretDrawXp} XP (${pctSecretDrawXp}%)`}
+                  />
+                  <div
+                    style={{ width: `${pctChimeraXp}%` }}
+                    className="h-full bg-emerald-300 transition-all"
+                    title={`Quimera Cinéfila: ${chimeraXp} XP (${pctChimeraXp}%)`}
+                  />
+                  <div
+                    style={{ width: `${pctBingoXp}%` }}
+                    className="h-full bg-amber-300 rounded-r-full transition-all"
+                    title={`Bingo Mensal: ${bingoXp} XP (${pctBingoXp}%)`}
                   />
                 </div>
 
@@ -1258,6 +1313,36 @@ export default function AnalyticsDashboard({
                     </div>
                     <span className="text-xs font-mono font-black text-rose-300">
                       +{walkOfFameXp.toLocaleString('pt-BR')} XP ({pctWalkOfFameXp}%)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-xl bg-zinc-950/90 border border-fuchsia-500/30 px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-fuchsia-400" />
+                      <span className="text-xs font-bold text-zinc-200">🃏 Sessão Secreta</span>
+                    </div>
+                    <span className="text-xs font-mono font-black text-fuchsia-300">
+                      +{secretDrawXp.toLocaleString('pt-BR')} XP ({pctSecretDrawXp}%)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-xl bg-zinc-950/90 border border-emerald-500/30 px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-300" />
+                      <span className="text-xs font-bold text-zinc-200">🧬 Quimera Cinéfila</span>
+                    </div>
+                    <span className="text-xs font-mono font-black text-emerald-300">
+                      +{chimeraXp.toLocaleString('pt-BR')} XP ({pctChimeraXp}%)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-xl bg-zinc-950/90 border border-amber-500/30 px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-300" />
+                      <span className="text-xs font-bold text-zinc-200">🎯 Bingo Mensal</span>
+                    </div>
+                    <span className="text-xs font-mono font-black text-amber-300">
+                      +{bingoXp.toLocaleString('pt-BR')} XP ({pctBingoXp}%)
                     </span>
                   </div>
                 </div>
@@ -1477,7 +1562,10 @@ export default function AnalyticsDashboard({
                 </button>
               )}
             </div>
+          </div>
 
+          {/* LINHA CENTRAL (3 SUBSISTEMAS: MÁQUINA DO TEMPO + UNIVERSOS + SESSÃO SECRETA -> LAYOUT 2, 3, 3) */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
             {/* Subsistema 3: Máquina do Tempo por Era & Décadas */}
             <div className="rounded-3xl bg-zinc-950/90 border border-cyan-500/30 p-5 flex flex-col justify-between gap-4">
               <div className="flex flex-col gap-3">
@@ -1651,6 +1739,100 @@ export default function AnalyticsDashboard({
                   className="relative z-10 w-full py-2.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-400/40 text-xs font-black uppercase tracking-wider text-indigo-200 flex items-center justify-center gap-1.5 cursor-pointer transition-all"
                 >
                   <span>Abrir Códice dos Universos</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Subsistema 5: Oráculo do Baralho (Sessão Secreta) */}
+            <div className="relative overflow-hidden rounded-3xl bg-zinc-950/90 border border-fuchsia-500/35 p-5 flex flex-col justify-between gap-4">
+              <div className="pointer-events-none absolute -top-16 -right-14 w-48 h-48 rounded-full bg-fuchsia-500/10 blur-3xl" />
+
+              <div className="relative z-10 flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-2 border-b border-zinc-800/80 pb-3">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-fuchsia-400">
+                      Oráculo do Baralho
+                    </span>
+                    <h3 className="text-base font-black text-white">
+                      🃏 Sessão Secreta
+                    </h3>
+                    <div className="text-[11px] font-mono text-zinc-400 mt-0.5">
+                      🎯 Fila {secretDrawOverview.activeCount}/{secretDrawOverview.activeLimit} • 🎟️{' '}
+                      {secretDrawOverview.chipsRemaining}/{secretDrawOverview.chipsAllowance} • 🪃{' '}
+                      {secretDrawOverview.boomerangRemaining}/{secretDrawOverview.boomerangAllowance}
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="text-xs font-mono font-black px-2.5 py-1 rounded-xl bg-fuchsia-500/20 border border-fuchsia-400/40 text-fuchsia-200">
+                      +{secretDrawOverview.totalXp.toLocaleString('pt-BR')} XP
+                    </span>
+                    <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-400/35 text-amber-200">
+                      🍀 +{secretDrawOverview.sorTotal.toFixed(1)} SOR
+                    </span>
+                  </div>
+                </div>
+
+                {/* Radar do Baralho & Fila */}
+                <div className="rounded-xl bg-zinc-900/80 border border-fuchsia-500/25 px-3 py-2.5 flex flex-col gap-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-300 font-bold">
+                      🃏 Baralho ({secretDrawOverview.availableCount} disponíveis):
+                    </span>
+                    <span className="font-mono font-black text-fuchsia-300">
+                      {secretDrawOverview.completedCount} concluído{secretDrawOverview.completedCount === 1 ? '' : 's'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                    <span>📋 Planilha Única:</span>
+                    <span className="font-mono font-bold text-zinc-200">
+                      {secretDrawOverview.totalUniqueRows.toLocaleString('pt-BR')} ({secretDrawOverview.watchedCount} já vistas)
+                    </span>
+                  </div>
+                  <div className="pt-0.5 flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-sky-500/15 border border-sky-400/35 text-sky-200">
+                      🪃 {secretDrawOverview.boomerangCount} Bumerangue
+                    </span>
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-rose-500/15 border border-rose-400/35 text-rose-200">
+                      ✂️ {secretDrawOverview.declinedCount} Declinada(s)
+                    </span>
+                  </div>
+                </div>
+
+                {/* Quebra por Naipe de Dificuldade (XP + SOR) */}
+                <div className="flex flex-col gap-2">
+                  {secretDrawOverview.tierRows.map((row) => (
+                    <div key={row.key} className="rounded-xl bg-zinc-900/70 border border-zinc-800/90 px-3 py-2 flex flex-col gap-1">
+                      <div className="flex items-center justify-between text-xs gap-2">
+                        <span className={`font-black truncate ${row.color}`}>
+                          {row.icon} {row.label}{' '}
+                          <span className="text-[10px] text-zinc-500 font-mono">
+                            ({row.xpEach} XP • +{row.sorWeight.toFixed(1)} SOR)
+                          </span>
+                        </span>
+                        <span className="font-mono font-bold text-zinc-200 shrink-0">
+                          {row.count}
+                          <span className="text-fuchsia-300 ml-1.5">+{row.earnedXp} XP</span>
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 rounded-full bg-zinc-950 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${row.barColor}`}
+                          style={{ width: `${row.pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {onNavigateTab && (
+                <button
+                  type="button"
+                  onClick={() => onNavigateTab('guilda', 'secret_draw')}
+                  className="relative z-10 w-full py-2.5 rounded-xl bg-fuchsia-500/15 hover:bg-fuchsia-500/25 border border-fuchsia-400/40 text-xs font-black uppercase tracking-wider text-fuchsia-200 flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                >
+                  <span>Abrir Sessão Secreta</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
               )}
@@ -1885,279 +2067,26 @@ export default function AnalyticsDashboard({
             </div>
           </div>
 
-          {/* FICHA DE ATRIBUTOS POR PONTOS & CLASSE DO PERSONAGEM */}
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
-            {/* Coluna da Esquerda (Card da Classe do Personagem - 6 colunas) */}
-            <div className="xl:col-span-6 rounded-3xl bg-gradient-to-br from-zinc-950 via-zinc-900/90 to-zinc-950 border border-amber-500/35 p-5 sm:p-6 flex flex-col justify-between gap-4 shadow-xl relative overflow-hidden">
-              <div className="pointer-events-none absolute -top-20 -right-16 w-60 h-60 bg-amber-500/10 rounded-full blur-3xl" />
-
-              <div className="relative z-10 flex flex-col gap-4">
-                {/* Topo: Emblema e Badge da Classe */}
-                <div className="flex items-start justify-between gap-3 border-b border-zinc-800/80 pb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500/20 via-purple-500/15 to-cyan-500/20 border border-amber-400/50 flex items-center justify-center text-3xl shrink-0 shadow-[0_0_25px_rgba(245,158,11,0.2)]">
-                      {activeDisplayClass.classIcon}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/40">
-                          Classe #{activeDisplayClass.orderIndex || 11} de {characterClass.totalClassesCount || 20} • {activeDisplayClass.unlockPts} pts
-                        </span>
-                        {activeDisplayClass.isCustomEquipped ? (
-                          <span className="text-[10px] font-mono font-bold text-amber-300 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/40">
-                            Equipada Manualmente
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-mono font-bold text-emerald-300 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40">
-                            Classe Atual (Desbloqueada)
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="text-xl sm:text-2xl font-black text-white mt-0.5">
-                        {activeDisplayClass.className}
-                      </h3>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                    {(activeDisplayClass.classStars || 0) > 0 && (
-                      <InfiniteStarsRow count={activeDisplayClass.classStars} compact maxVisible={5} />
-                    )}
-                    <span className="text-xs font-mono font-black px-3 py-1.5 rounded-xl bg-zinc-900 border border-amber-400/35 text-amber-300">
-                      {totalStatPoints} pts
-                    </span>
-                  </div>
-                </div>
-
-                {/* Subtítulo / Título de Honra */}
-                <div className="text-xs font-bold text-cyan-300 flex items-center justify-between">
-                  <span>{activeDisplayClass.titleFlavor}</span>
-                  {activeDisplayClass.isCustomEquipped && (
-                    <button
-                      type="button"
-                      onClick={() => setEquippedClassId(null)}
-                      className="text-[10px] text-zinc-400 hover:text-amber-300 underline cursor-pointer"
-                    >
-                      Restaurar Automático
-                    </button>
-                  )}
-                </div>
-
-                {/* Lore / História Cômica */}
-                <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800/90 p-3.5 text-xs text-zinc-300 leading-relaxed italic relative">
-                  <span className="text-amber-400 font-serif text-lg leading-none mr-1">“</span>
-                  {activeDisplayClass.lore}
-                  <span className="text-amber-400 font-serif text-lg leading-none ml-1">”</span>
-                </div>
-
-                {/* Destaques: Filme Favorito / Arma Relíquia + Habilidade Passiva (Espaçoso e Sem Cortes) */}
-                <div className="flex flex-col gap-3">
-                  <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800/90 p-4 flex flex-col gap-1.5 shadow-sm">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 flex items-center gap-1.5">
-                      <span>🎬</span>
-                      <span>Filme Favorito / Relíquia Sagrada:</span>
-                    </span>
-                    <p className="text-xs font-medium text-white leading-relaxed">
-                      {activeDisplayClass.favoriteMovie}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800/90 p-4 flex flex-col gap-1.5 shadow-sm">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-cyan-300 flex items-center gap-1.5">
-                      <span>✨</span>
-                      <span>Habilidade Passiva:</span>
-                    </span>
-                    <p className="text-xs font-medium text-zinc-200 leading-relaxed">
-                      {activeDisplayClass.passiveSkill}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Próxima Classe a Desbloquear na Trilha Linear */}
-                {characterClass.nextClassToUnlock ? (
-                  <div className="rounded-2xl bg-gradient-to-r from-purple-950/40 via-zinc-900/80 to-purple-950/30 border border-purple-500/40 p-3.5 flex items-center justify-between gap-3 text-xs shadow-md">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-400/50 flex items-center justify-center text-xl shrink-0 shadow-[0_0_15px_rgba(168,85,247,0.25)]">
-                        {characterClass.nextClassToUnlock.classIcon}
-                      </div>
-                      <div className="min-w-0">
-                        <span className="text-zinc-400 text-[10px] font-black uppercase tracking-wider block">
-                          🔒 Próxima Classe a Desbloquear:
-                        </span>
-                        <span className="text-purple-200 font-black text-sm block leading-snug">
-                          {characterClass.nextClassToUnlock.className}
-                        </span>
-                        <span className="text-zinc-400 text-[11px] block mt-0.5">
-                          {characterClass.nextClassToUnlock.titleFlavor}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0 font-mono">
-                      <span className="text-amber-300 font-black text-sm">
-                        +{characterClass.nextClassToUnlock.ptsRemaining} pts
-                      </span>
-                      <span className="text-zinc-500 text-[10px] block font-sans">
-                        Requer {characterClass.nextClassToUnlock.unlockPts} pts
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-2xl bg-amber-500/10 border border-amber-400/40 p-3.5 flex items-center gap-3 text-xs">
-                    <div className="text-2xl">👑</div>
-                    <div>
-                      <span className="text-amber-300 font-black block">Trilha Lendária Completa!</span>
-                      <span className="text-zinc-400 text-[11px] block">
-                        Você desbloqueou todas as {characterClass.totalClassesCount || 20} classes cinematográficas da jornada!
-                      </span>
-                    </div>
-                  </div>
-                )}
+          {/* Chamada Rápida para a Classe RPG & Atributos na Guilda do Destino */}
+          {onNavigateTab && (
+            <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-950/30 via-zinc-950 to-indigo-950/30 px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3 text-xs text-zinc-200">
+                <span className="text-xl">⚔️</span>
+                <span>
+                  Sua <strong className="text-amber-300">Classe Cinéfila, Grimório (20 Classes) &amp; Ficha de Atributos (AGI–CAR)</strong> foram movidos para o salão{' '}
+                  <strong className="text-white">Guilda do Destino</strong>!
+                </span>
               </div>
-
-              {/* Barra de Pontos Totais de Atributo + Acesso ao Grimório */}
-              <div className="relative z-10 pt-2 border-t border-zinc-800/80 flex flex-col gap-2">
-                <div className="flex items-center justify-between text-[11px] font-mono gap-2 flex-wrap">
-                  <span className="text-zinc-400 font-bold">
-                    Pontos Totais de Atributo Investidos:
-                  </span>
-                  <span className="text-amber-300 font-black flex items-center gap-2">
-                    {(activeDisplayClass.classStars || 0) > 0 ? (
-                      <>
-                        <span>
-                          Ciclo {activeDisplayClass.classCycleScore} / {activeDisplayClass.maxPossibleStats} ({activeDisplayClass.classCyclePct}%)
-                        </span>
-                        <span className="text-cyan-300">• Total: {totalStatPoints} pts</span>
-                      </>
-                    ) : (
-                      <span>
-                        {totalStatPoints} / {activeDisplayClass.maxPossibleStats} pts ({activeDisplayClass.statsProgressPct}%)
-                      </span>
-                    )}
-                  </span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-zinc-950 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-700 ${
-                      (activeDisplayClass.classStars || 0) > 0
-                        ? 'bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-amber-300'
-                        : 'bg-gradient-to-r from-amber-500 via-purple-400 to-cyan-400'
-                    }`}
-                    style={{
-                      width: `${
-                        (activeDisplayClass.classStars || 0) > 0
-                          ? activeDisplayClass.classCyclePct
-                          : activeDisplayClass.statsProgressPct
-                      }%`,
-                    }}
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setIsGrimoireOpen(true)}
-                  className="w-full py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-amber-500/40 text-xs font-black uppercase tracking-wider text-amber-200 hover:text-amber-100 flex items-center justify-center gap-2 cursor-pointer transition-all shadow-md group mt-1"
-                >
-                  <BookOpen className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
-                  <span>📖 Grimório Completo das {characterClass.totalClassesCount || 20} Classes Cinéfilas</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => onNavigateTab('guilda', 'class')}
+                className="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-200 text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-all"
+              >
+                <span>Abrir Classe &amp; Atributos</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
             </div>
-
-            {/* Coluna da Direita (Os 7 Atributos em Linhas com Barra de XP - 6 colunas) */}
-            <div className="xl:col-span-6 rounded-3xl bg-zinc-950/90 border border-zinc-800/90 p-5 sm:p-6 flex flex-col justify-between gap-3 shadow-xl">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800/80 pb-3">
-                <div>
-                  <span className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-2">
-                    ⚔️ Ficha de Atributos do Personagem
-                  </span>
-                  <p className="text-[11px] text-zinc-500 mt-0.5">
-                    Pontuação individual baseada nos feitos reais do seu acervo
-                  </p>
-                </div>
-                {/* Legenda de Ranks com SS+ e SS++ */}
-                <div className="flex items-center gap-1 font-mono text-[9px] font-black px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 flex-wrap">
-                  <span className="text-emerald-400" title="C: Iniciante">C</span>
-                  <span>•</span>
-                  <span className="text-cyan-400" title="B: Intermediário">B</span>
-                  <span>•</span>
-                  <span className="text-purple-400" title="A: Veterano">A</span>
-                  <span>•</span>
-                  <span className="text-amber-400" title="S: Lendário">S</span>
-                  <span>•</span>
-                  <span className="text-rose-400" title="SS: Supremo">SS</span>
-                  <span>•</span>
-                  <span className="text-fuchsia-300 font-extrabold" title="SS+: Cósmico">SS+</span>
-                  <span>•</span>
-                  <span className="text-yellow-200 font-extrabold animate-pulse" title="SS++: Mítico Supremo">SS++</span>
-                </div>
-              </div>
-
-              {/* Lista dos 7 Atributos na Ordem Clássica com Mini-Barras de XP */}
-              <div className="flex flex-col gap-2.5">
-                {rpgAttributes.map((attr) => (
-                  <div
-                    key={attr.key}
-                    className={`rounded-2xl p-3 flex flex-col gap-1.5 transition-all ${
-                      (attr.stars || 0) > 0
-                        ? 'bg-zinc-900/85 border border-cyan-400/45 shadow-[0_0_16px_rgba(34,211,238,0.12)] hover:border-cyan-300/70'
-                        : 'bg-zinc-900/70 border border-zinc-800/80 hover:border-zinc-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs font-mono font-black px-2 py-0.5 rounded-md bg-zinc-950 border border-zinc-800 text-amber-300">
-                          {attr.key}
-                        </span>
-                        <span className="font-black text-white flex items-center gap-1 truncate">
-                          <span>{attr.icon}</span>
-                          <span className="truncate">{attr.label}</span>
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setShowAttributeHelp(true)}
-                          className="w-4 h-4 rounded-full bg-zinc-800 hover:bg-amber-500/20 text-zinc-400 hover:text-amber-300 border border-zinc-700 hover:border-amber-500/40 flex items-center justify-center text-[10px] font-black cursor-pointer transition-all shrink-0"
-                          title={`Ver fórmula de ${attr.label}`}
-                        >
-                          ?
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="font-mono text-sm font-black text-white">
-                          {attr.score} <span className="text-[10px] text-zinc-500 font-normal">/ 99</span>
-                        </span>
-                        {(attr.stars || 0) > 0 && (
-                          <span className="text-[10px] font-mono text-cyan-300 font-bold" title="Pontuação real acumulada sem reset">
-                            ({attr.rawScore} pts)
-                          </span>
-                        )}
-                        <InfiniteStarsRow count={attr.stars || 0} compact maxVisible={4} />
-                        <span className={`text-[10px] font-black px-2 py-0.5 rounded border ${attr.color}`}>
-                          {attr.grade}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Barra de XP do Atributo */}
-                    <div className="w-full h-1.5 rounded-full bg-zinc-950 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full bg-gradient-to-r ${attr.barColor || 'from-amber-400 to-yellow-300'}`}
-                        style={{ width: `${attr.barPct ?? Math.min(100, Math.max(2, attr.score))}%` }}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between text-[10px] text-zinc-400 font-mono">
-                      <span className="truncate">{attr.desc}</span>
-                      {attr.formulaSummary && (
-                        <span className="text-amber-400/80 font-mono text-[9px] shrink-0 ml-2 hidden sm:inline">
-                          {attr.formulaSummary}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Quests Quase em 100% + Maestria por Categoria */}
           <div className="rounded-3xl bg-zinc-950/90 border border-zinc-800/90 p-5 sm:p-6 flex flex-col justify-between gap-4 shadow-xl">
@@ -3393,368 +3322,6 @@ export default function AnalyticsDashboard({
           trophy={inspectingTrophy}
           onClose={() => setInspectingTrophy(null)}
         />
-      )}
-
-      {/* MODAL DA TRILHA DE CLASSES CINÉFILAS */}
-      {isGrimoireOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="relative w-full max-w-4xl max-h-[90vh] bg-zinc-950 border border-amber-500/40 rounded-3xl shadow-2xl flex flex-col overflow-hidden">
-            {/* Topo do Modal */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900/60">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-xl">
-                  📖
-                </div>
-                <div>
-                  <h2 className="text-lg font-black text-white flex items-center gap-2">
-                    Trilha das {characterClass.totalClassesCount || 20} Classes Cinéfilas
-                  </h2>
-                  <p className="text-xs text-zinc-400">
-                    Desbloqueie novas classes acumulando pontos de atributo na sua jornada. Você pode equipar qualquer classe já conquistada!
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsGrimoireOpen(false)}
-                className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 cursor-pointer transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Barra de Busca & Status de Equipamento */}
-            <div className="px-6 py-3 border-b border-zinc-800/80 bg-zinc-900/30 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="relative w-full sm:w-80">
-                <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={grimoireSearch}
-                  onChange={(e) => setGrimoireSearch(e.target.value)}
-                  placeholder="Buscar por classe, filme ou passiva..."
-                  className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400/60"
-                />
-              </div>
-
-              <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end text-xs">
-                {equippedClassId && (
-                  <button
-                    type="button"
-                    onClick={() => setEquippedClassId(null)}
-                    className="font-black text-amber-400 hover:text-amber-300 underline cursor-pointer"
-                  >
-                    Restaurar Mais Alta Desbloqueada
-                  </button>
-                )}
-                <span className="font-mono text-zinc-400">
-                  <strong className="text-amber-300">{characterClass.unlockedClassesCount || 11}</strong> / {characterClass.totalClassesCount || 20} Desbloqueadas
-                </span>
-              </div>
-            </div>
-
-            {/* Conteúdo do Grimório (Grid das 20 Classes em Ordem de Desbloqueio) */}
-            <div className="p-4 sm:p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(characterClass.allClasses || [])
-                .filter((cls) => {
-                  if (!grimoireSearch) return true;
-                  const q = grimoireSearch.toLowerCase();
-                  return (
-                    cls.className.toLowerCase().includes(q) ||
-                    cls.titleFlavor.toLowerCase().includes(q) ||
-                    cls.lore.toLowerCase().includes(q) ||
-                    cls.favoriteMovie.toLowerCase().includes(q) ||
-                    cls.passiveSkill.toLowerCase().includes(q)
-                  );
-                })
-                .map((cls) => {
-                  const isEquipped = activeDisplayClass.id === cls.id;
-                  const isUnlocked = cls.isUnlocked;
-
-                  return (
-                    <div
-                      key={cls.id}
-                      className={`rounded-2xl p-4 border flex flex-col justify-between gap-3 transition-all ${
-                        !isUnlocked
-                          ? 'bg-zinc-950/40 border-zinc-800/40 opacity-55 border-dashed'
-                          : isEquipped
-                          ? 'bg-amber-500/10 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
-                          : 'bg-zinc-900/60 border-zinc-800/80 hover:border-zinc-700'
-                      }`}
-                    >
-                      <div className="flex flex-col gap-2.5">
-                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
-                          <div className="flex items-start gap-2.5 min-w-0">
-                            <span className={`text-2xl p-2 rounded-xl bg-zinc-950 border shrink-0 ${isUnlocked ? 'border-zinc-800' : 'border-zinc-800/60 grayscale'}`}>
-                              {cls.classIcon}
-                            </span>
-                            <div className="min-w-0">
-                              <h4 className="text-sm font-black text-white leading-snug">
-                                {cls.className}
-                              </h4>
-                              <p className="text-[11px] font-bold text-amber-300/90 mt-0.5 leading-snug">
-                                {cls.titleFlavor}
-                              </p>
-                            </div>
-                          </div>
-
-                          <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-full border shrink-0 self-start ${
-                            isUnlocked
-                              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/35'
-                              : 'bg-zinc-800 text-zinc-400 border-zinc-700'
-                          }`}>
-                            {isUnlocked ? `✅ Desbloqueada (${cls.unlockPts} pts)` : `🔒 Requer ${cls.unlockPts} pts`}
-                          </span>
-                        </div>
-
-                        {/* Lore sem cortes */}
-                        <p className="text-xs text-zinc-300 italic bg-zinc-950/60 rounded-xl p-3 border border-zinc-800/60 leading-relaxed">
-                          “{cls.lore}”
-                        </p>
-
-                        {/* Destaques sem cortes */}
-                        <div className="text-[11px] flex flex-col gap-2 text-zinc-300">
-                          <div className="rounded-xl bg-zinc-950/40 p-2.5 border border-zinc-800/40 flex flex-col gap-0.5">
-                            <span className="text-[10px] font-black uppercase text-amber-400">🎬 Filme Favorito / Relíquia:</span>
-                            <span className="text-zinc-100 font-medium leading-relaxed">{cls.favoriteMovie}</span>
-                          </div>
-                          <div className="rounded-xl bg-zinc-950/40 p-2.5 border border-zinc-800/40 flex flex-col gap-0.5">
-                            <span className="text-[10px] font-black uppercase text-cyan-300">✨ Habilidade Passiva:</span>
-                            <span className="text-zinc-200 leading-relaxed">{cls.passiveSkill}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-mono text-zinc-400">
-                          {isUnlocked ? (
-                            isEquipped ? '👑 Atualmente Equipada' : 'Desbloqueada para uso'
-                          ) : (
-                            <span className="text-amber-400/90 font-bold">Faltam {cls.ptsRemaining} pts de atributo</span>
-                          )}
-                        </span>
-
-                        {isUnlocked ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEquippedClassId(cls.id);
-                              setIsGrimoireOpen(false);
-                            }}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer transition-all ${
-                              isEquipped
-                                ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
-                                : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700'
-                            }`}
-                          >
-                            {isEquipped ? 'Equipada' : 'Equipar Classe'}
-                          </button>
-                        ) : (
-                          <span className="px-3 py-1.5 rounded-xl text-xs font-mono font-bold text-zinc-500 bg-zinc-900 border border-zinc-800 flex items-center gap-1 cursor-not-allowed">
-                            <Lock className="w-3 h-3" /> Bloqueada
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL DE EXPLICAÇÃO DAS FÓRMULAS DE ATRIBUTO (?) */}
-      {showAttributeHelp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="relative w-full max-w-3xl max-h-[90vh] bg-zinc-950 border border-amber-500/50 rounded-3xl shadow-2xl flex flex-col overflow-hidden">
-            {/* Topo do Modal */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900/60">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-xl font-black text-amber-300">
-                  ?
-                </div>
-                <div>
-                  <h2 className="text-lg font-black text-white">
-                    Como Ganhar Cada Ponto de Atributo?
-                  </h2>
-                  <p className="text-xs text-zinc-400">
-                    Regras e métricas oficiais que calculam sua pontuação (0–99 por ciclo + ★ infinitas)
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowAttributeHelp(false)}
-                className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 cursor-pointer transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Conteúdo Explicativo das 7 Fórmulas */}
-            <div className="p-4 sm:p-6 overflow-y-auto flex flex-col gap-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                {/* AGI */}
-                <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800 p-4 flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-amber-300 flex items-center gap-1.5">
-                      <span>⚡</span> AGI • Vigor de Tela (Agilidade)
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-cyan-300">
-                      Ciclo 0–99 + ★
-                    </span>
-                  </div>
-                  <p className="text-xs text-zinc-300 leading-relaxed">
-                    Mede sua resistência física e fôlego de maratona com filmes longos.
-                  </p>
-                  <div className="rounded-xl bg-zinc-950/80 p-2.5 border border-zinc-800/80 text-[11px] font-mono flex flex-col gap-1 text-zinc-300">
-                    <div>• Filme com duração <strong>&gt; 120 min</strong>: <strong>+0.2 AGI</strong></div>
-                    <div>• Filme com duração <strong>&gt; 140 min</strong>: <strong>+0.4 AGI</strong></div>
-                    <div>• Filme com duração <strong>&gt; 170 min</strong>: <strong>+1.0 AGI</strong></div>
-                  </div>
-                </div>
-
-                {/* INT */}
-                <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800 p-4 flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-cyan-300 flex items-center gap-1.5">
-                      <span>🧠</span> INT • Sabedoria Temporal (Inteligência)
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-cyan-300">
-                      Ciclo 0–99 + ★
-                    </span>
-                  </div>
-                  <p className="text-xs text-zinc-300 leading-relaxed">
-                    Mede seu alcance cronológico, história do cinema e clássicos.
-                  </p>
-                  <div className="rounded-xl bg-zinc-950/80 p-2.5 border border-zinc-800/80 text-[11px] font-mono flex flex-col gap-1 text-zinc-300">
-                    <div>• Ano Inédito na Máquina do Tempo: <strong>+0.8 INT</strong> (Década: <strong>+1.5 INT</strong>)</div>
-                    <div>• Filme Pré-2000 (1980–1999): <strong>+0.3 INT</strong></div>
-                    <div>• Filme Pré-1980 (1950–1979): <strong>+0.5 INT</strong></div>
-                    <div>• Filme Pré-1950 (Antes de 1950): <strong>+0.7 INT</strong></div>
-                  </div>
-                </div>
-
-                {/* DES */}
-                <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800 p-4 flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-emerald-300 flex items-center gap-1.5">
-                      <span>🌍</span> DES • Diplomacia Global (Destreza)
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-cyan-300">
-                      Ciclo 0–99 + ★
-                    </span>
-                  </div>
-                  <p className="text-xs text-zinc-300 leading-relaxed">
-                    Mede sua exploração internacional fora do circuito tradicional.
-                  </p>
-                  <div className="rounded-xl bg-zinc-950/80 p-2.5 border border-zinc-800/80 text-[11px] font-mono flex flex-col gap-1 text-zinc-300">
-                    <div>• Filme <strong>fora do eixo EUA/Brasil</strong>: <strong>+0.2 DES</strong></div>
-                    <div>• <strong>Expandir Nova Nação ONU</strong> no Desafio 195: <strong>+1.0 DES</strong></div>
-                  </div>
-                </div>
-
-                {/* SOR */}
-                <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800 p-4 flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-rose-300 flex items-center gap-1.5">
-                      <span>🎯</span> SOR • Olhar Clínico (Sorte / Precisão)
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-cyan-300">
-                      Ciclo 0–99 + ★
-                    </span>
-                  </div>
-                  <p className="text-xs text-zinc-300 leading-relaxed">
-                    Mede o volume do seu acervo e capacidade de garimpar extremos.
-                  </p>
-                  <div className="rounded-xl bg-zinc-950/80 p-2.5 border border-zinc-800/80 text-[11px] font-mono flex flex-col gap-1 text-zinc-300">
-                    <div>• Toda catalogação que amplia seu acervo: <strong>+0.2 SOR</strong></div>
-                    <div>• Nota extrema (Obra-prima <strong>&ge; 9.5</strong> ou Trash <strong>&le; 4.0</strong>): <strong>+0.8 SOR</strong></div>
-                  </div>
-                </div>
-
-                {/* VIT */}
-                <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800 p-4 flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-purple-300 flex items-center gap-1.5">
-                      <span>🛡️</span> VIT • Caça-Troféus (Vitalidade)
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-cyan-300">
-                      Ciclo 0–99 + ★
-                    </span>
-                  </div>
-                  <p className="text-xs text-zinc-300 leading-relaxed">
-                    Pontos concedidos exclusivamente ao desbloquear troféus:
-                  </p>
-                  <div className="rounded-xl bg-zinc-950/80 p-2.5 border border-zinc-800/80 text-[11px] font-mono flex flex-col gap-1 text-zinc-300">
-                    <div>• 🥉 Bronze: <strong>+0.2 VIT</strong> | 🥈 Prata: <strong>+0.4 VIT</strong></div>
-                    <div>• 🔮 Épico: <strong>+0.6 VIT</strong> | 🥇 Ouro: <strong>+0.8 VIT</strong></div>
-                    <div>• 💎 Mítico: <strong>+1.0 VIT</strong> | 🏆 Platina: <strong>+3.0 VIT</strong></div>
-                    <div>• 🌟 Estrela Infinita (★): <strong>+0.5 VIT por ★</strong></div>
-                  </div>
-                </div>
-
-                {/* FOR */}
-                <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800 p-4 flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-yellow-300 flex items-center gap-1.5">
-                      <span>👑</span> FOR • Prestígio Áureo (Força)
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-cyan-300">
-                      Ciclo 0–99 + ★
-                    </span>
-                  </div>
-                  <p className="text-xs text-zinc-300 leading-relaxed">
-                    Mede o prestígio e reconhecimento oficial da Academia (sem critério de nota).
-                  </p>
-                  <div className="rounded-xl bg-zinc-950/80 p-2.5 border border-zinc-800/80 text-[11px] font-mono flex flex-col gap-1 text-zinc-300">
-                    <div>• Cada <strong>Indicação ao Oscar</strong>: <strong>+0.2 FOR</strong></div>
-                    <div>• Cada <strong>Vitória / Estatueta do Oscar</strong>: <strong>+0.4 FOR</strong></div>
-                  </div>
-                </div>
-
-                {/* CAR */}
-                <div className="rounded-2xl bg-zinc-900/70 border border-rose-500/35 p-4 flex flex-col gap-2 md:col-span-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-rose-300 flex items-center gap-1.5">
-                      <span>🌟</span> CAR • Aura de Estrela (Carisma)
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-cyan-300">
-                      Ciclo 0–99 + ★
-                    </span>
-                  </div>
-                  <p className="text-xs text-zinc-300 leading-relaxed">
-                    Mede o brilho da sua coleção de figurinhas <strong>efetivamente coladas</strong> no Álbum da Fama (Atores, Vozes, Casais &amp; Diretores):
-                  </p>
-                  <div className="rounded-xl bg-zinc-950/80 p-2.5 border border-zinc-800/80 text-[11px] font-mono grid grid-cols-1 sm:grid-cols-2 gap-1 text-zinc-300">
-                    <div>• 🥉 Rank D: <strong>+0.1 CAR</strong> | 🥈 Rank C: <strong>+0.2 CAR</strong></div>
-                    <div>• 🔮 Rank B: <strong>+0.3 CAR</strong> | 🏆 Rank A: <strong>+0.4 CAR</strong></div>
-                    <div>• ❤️‍🔥 Rank A+ / 🌟 Rank X: <strong>+0.5 CAR</strong></div>
-                    <div>• 💎 Rank S: <strong>+0.6 CAR</strong> | 👑 Rank SS: <strong>+0.7 CAR</strong></div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Box de Resumo da Progressão */}
-              <div className="rounded-2xl bg-gradient-to-r from-amber-500/15 via-purple-500/15 to-cyan-500/15 border border-amber-500/35 p-4 text-xs text-zinc-200 leading-relaxed">
-                <span className="font-black text-amber-300 uppercase tracking-wider block mb-1">
-                  🌟 Ranks Infinitos e Soma Total de Pontos
-                </span>
-                A soma real dos seus 7 atributos continua subindo sem parar para desbloquear as <strong>{characterClass.totalClassesCount || 20} Classes Cinéfilas</strong>! Ao atingir <strong>100 pts</strong> em um atributo (além do SS++ / 99), você ganha uma <strong>Estrela Infinita (★)</strong>, a barra reinicia do <strong>0 ao 99</strong> para subir novamente do C ao SS++, e sua pontuação total acumulada continua sendo somada! Passando de <strong>693 pts</strong> totais, a sua Classe também conquista Estrelas de Prestígio.
-              </div>
-            </div>
-
-            {/* Rodapé do Modal */}
-            <div className="px-6 py-3 border-t border-zinc-800 bg-zinc-900/40 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setShowAttributeHelp(false)}
-                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase tracking-wider cursor-pointer transition-all"
-              >
-                Entendido!
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       <style>{`

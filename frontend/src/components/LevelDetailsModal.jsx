@@ -83,6 +83,20 @@ export default function LevelDetailsModal({
     extraStarsXp: 0,
     totalXp: 0,
   };
+  const secretDrawSource = sources?.secretDraw || {
+    completedCount: 0,
+    totalXp: 0,
+    byDifficulty: {},
+  };
+  const chimeraSource = sources?.chimera || {
+    completedCount: 0,
+    totalXp: 0,
+  };
+  const bingoSource = sources?.bingo || {
+    completedBoardsCount: 0,
+    claimedRewardsCount: 0,
+    totalXp: 0,
+  };
   const completedDecadesCount = Object.keys(timeMachineSource.completedDecades || {}).length;
 
   const tierKeys = ['platinum', 'mythic', 'gold', 'epic', 'silver', 'bronze'];
@@ -710,6 +724,111 @@ export default function LevelDetailsModal({
                     </div>
                     <div className="text-[9px] text-zinc-500 font-mono">(D +0.1 até SS +0.7 • X +0.5)</div>
                   </div>
+                </div>
+              </div>
+
+              {/* Fonte 7: Sessão Secreta (Cartas Misteriosas da Planilha) */}
+              <div className="bg-zinc-900/65 border border-fuchsia-500/30 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl select-none">🃏</span>
+                  <div>
+                    <div className="text-xs font-black text-zinc-100 uppercase tracking-wide flex items-center gap-2 flex-wrap">
+                      <span>XP da Sessão Secreta</span>
+                      <span className="text-[10px] font-mono text-fuchsia-300 bg-fuchsia-500/10 border border-fuchsia-500/30 px-2 py-0.2 rounded-full">
+                        {secretDrawSource.completedCount || 0} cartas concluídas
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-zinc-400">
+                      Recompensas extras ao assistir e cadastrar cartas sorteadas (Comum 35 até Exótico 150 XP).
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  {onNavigateTab && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onNavigateTab('guilda', 'secret_draw');
+                        onClose();
+                      }}
+                      className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/35 hover:bg-fuchsia-500/25 transition-colors cursor-pointer"
+                    >
+                      Abrir Sessão
+                    </button>
+                  )}
+                  <span className="font-mono text-sm font-black text-fuchsia-300 bg-fuchsia-500/10 border border-fuchsia-500/30 px-3 py-1 rounded-xl">
+                    +{(secretDrawSource.totalXp || 0).toLocaleString('pt-BR')} XP
+                  </span>
+                </div>
+              </div>
+
+              {/* Fonte 8: Quimera Cinéfila */}
+              <div className="bg-zinc-900/65 border border-emerald-500/30 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl select-none">🧬</span>
+                  <div>
+                    <div className="text-xs font-black text-zinc-100 uppercase tracking-wide flex items-center gap-2 flex-wrap">
+                      <span>XP da Quimera Cinéfila</span>
+                      <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.2 rounded-full">
+                        {chimeraSource.completedCount || 0} quimeras despertadas
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-zinc-400">
+                      Contratos híbridos de Era + Bloco + Gênero + Tag com bônus Jackpot e Runas do Destino.
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  {onNavigateTab && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onNavigateTab('guilda', 'chimera');
+                        onClose();
+                      }}
+                      className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/35 hover:bg-emerald-500/25 transition-colors cursor-pointer"
+                    >
+                      Abrir Quimera
+                    </button>
+                  )}
+                  <span className="font-mono text-sm font-black text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-xl">
+                    +{(chimeraSource.totalXp || 0).toLocaleString('pt-BR')} XP
+                  </span>
+                </div>
+              </div>
+
+              {/* Fonte 9: Bingo Mensal 4×4 */}
+              <div className="bg-zinc-900/65 border border-amber-500/30 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl select-none">🎯</span>
+                  <div>
+                    <div className="text-xs font-black text-zinc-100 uppercase tracking-wide flex items-center gap-2 flex-wrap">
+                      <span>XP do Bingo Mensal 4×4</span>
+                      <span className="text-[10px] font-mono text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-0.2 rounded-full">
+                        {bingoSource.claimedRewardsCount || 0} recompensas ({bingoSource.completedBoardsCount || 0} cartelas 16/16)
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-zinc-400">
+                      Casas, linhas (+75 XP) e cartela cheia 4×4 (+200 XP) conectando todo o catálogo.
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  {onNavigateTab && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onNavigateTab('guilda', 'bingo');
+                        onClose();
+                      }}
+                      className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/35 hover:bg-amber-500/25 transition-colors cursor-pointer"
+                    >
+                      Abrir Bingo
+                    </button>
+                  )}
+                  <span className="font-mono text-sm font-black text-amber-300 bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-xl">
+                    +{(bingoSource.totalXp || 0).toLocaleString('pt-BR')} XP
+                  </span>
                 </div>
               </div>
             </div>

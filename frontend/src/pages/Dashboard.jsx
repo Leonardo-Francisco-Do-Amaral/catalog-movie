@@ -10,6 +10,7 @@ const TimeMachinePage = React.lazy(() => import('../components/TimeMachinePage')
 const TrophiesPage = React.lazy(() => import('./TrophiesPage'));
 const UniverseCodexPage = React.lazy(() => import('./UniverseCodexPage'));
 const WalkOfFamePage = React.lazy(() => import('./WalkOfFamePage'));
+const GuildaDestinoPage = React.lazy(() => import('./GuildaDestinoPage'));
 import WalkOfFamePackToast from '../components/WalkOfFamePackToast';
 import PS5TrophyToastContainer, { triggerPS5TrophyToast, triggerTrophyBatch } from '../components/PS5TrophyToastContainer';
 import TimeMachineToastContainer from '../components/TimeMachineToastContainer';
@@ -216,9 +217,15 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
   const [editingMovie, setEditingMovie] = useState(null);
   const [reviewSearchQuery, setReviewSearchQuery] = useState('');
   const [initialReleaseYear, setInitialReleaseYear] = useState('');
+  const [initialTmdbId, setInitialTmdbId] = useState(null);
+  const [activeSecretDrawCard, setActiveSecretDrawCard] = useState(null);
+  const [secretDrawRefreshKey, setSecretDrawRefreshKey] = useState(0);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [reviewedMovieIds, setReviewedMovieIds] = useState([]);
   const [walkOfFamePacks, setWalkOfFamePacks] = useState([]);
+  const [secretReadyCount, setSecretReadyCount] = useState(0);
+  const [chimeraReadyCount, setChimeraReadyCount] = useState(0);
+  const [bingoReadyCount, setBingoReadyCount] = useState(0);
   const [toastWalkOfFamePacks, setToastWalkOfFamePacks] = useState([]);
   const [walkOfFameRefreshKey, setWalkOfFameRefreshKey] = useState(0);
   const activeTabRef = useRef(activeTab);
@@ -249,6 +256,27 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
     } catch {
       // ignora erro se backend estiver offline
     }
+  }, []);
+
+  const fetchGuildReadyCounts = useCallback(async (onlyTarget = 'all') => {
+    const loaders = [
+      { key: 'secret', url: `${API_BASE_URL}/secret-draw/status`, setter: setSecretReadyCount },
+      { key: 'chimera', url: `${API_BASE_URL}/chimeras/status`, setter: setChimeraReadyCount },
+      { key: 'bingo', url: `${API_BASE_URL}/bingo/status`, setter: setBingoReadyCount },
+    ].filter((item) => onlyTarget === 'all' || item.key === onlyTarget);
+
+    await Promise.allSettled(
+      loaders.map(async ({ url, setter }) => {
+        try {
+          const res = await axios.get(url);
+          if (res.data?.success && res.data?.data) {
+            setter(Number(res.data.data.readyToClaimCount || 0));
+          }
+        } catch {
+          // ignora erro se backend estiver offline
+        }
+      })
+    );
   }, []);
 
   const checkMovieWalkOfFamePacks = useCallback(
@@ -492,6 +520,7 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
   const [usingMock, setUsingMock] = useState(false);
   const [xpStatus, setXpStatus] = useState(null);
   const [walkOfFameScope, setWalkOfFameScope] = useState('actors');
+  const [guildaSubTab, setGuildaSubTab] = useState('class');
 
   const handleNavigateTab = useCallback((nextTab, nextScope = null) => {
     if (nextTab === 'directors_album') {
@@ -501,6 +530,16 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
     }
     if (nextTab === 'walk_of_fame' && nextScope) {
       setWalkOfFameScope(['directors', 'dubladores'].includes(nextScope) ? nextScope : 'actors');
+    }
+    if (nextTab === 'secret_draw' || nextTab === 'chimera') {
+      setGuildaSubTab(nextTab);
+      setActiveTab('guilda');
+      return;
+    }
+    if (nextTab === 'guilda') {
+      setGuildaSubTab(['class', 'secret_draw', 'chimera'].includes(nextScope) ? nextScope : 'class');
+      setActiveTab('guilda');
+      return;
     }
     setActiveTab(nextTab);
   }, []);
@@ -536,6 +575,15 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
       } else if (h === '#album' || h === '#walk_of_fame') {
         setWalkOfFameScope('actors');
         setActiveTab('walk_of_fame');
+      } else if (h === '#guilda' || h === '#rpg' || h === '#guilda-destino') {
+        setGuildaSubTab('class');
+        setActiveTab('guilda');
+      } else if (h === '#secret' || h === '#sessao-secreta' || h === '#secret_draw') {
+        setGuildaSubTab('secret_draw');
+        setActiveTab('guilda');
+      } else if (h === '#chimera' || h === '#quimera' || h === '#quimera-cinefila') {
+        setGuildaSubTab('chimera');
+        setActiveTab('guilda');
       }
     };
     checkHashTab();
@@ -675,7 +723,22 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
 
   useEffect(() => {
     fetchWalkOfFamePacks();
-  }, [fetchWalkOfFamePacks]);
+    fetchGuildReadyCounts();
+  }, [fetchWalkOfFamePacks, fetchGuildReadyCounts]);
+
+  useEffect(() => {
+    const onSecretSync = () => fetchGuildReadyCounts('secret');
+    const onChimeraSync = () => fetchGuildReadyCounts('chimera');
+    const onBingoSync = () => fetchGuildReadyCounts('bingo');
+    window.addEventListener('cine-secret-draw-sync', onSecretSync);
+    window.addEventListener('cine-chimera-sync', onChimeraSync);
+    window.addEventListener('cine-bingo-sync', onBingoSync);
+    return () => {
+      window.removeEventListener('cine-secret-draw-sync', onSecretSync);
+      window.removeEventListener('cine-chimera-sync', onChimeraSync);
+      window.removeEventListener('cine-bingo-sync', onBingoSync);
+    };
+  }, [fetchGuildReadyCounts]);
 
   // Extrai tags, gêneros, países e áudios únicos de todos os filmes da base para os filtros
   useEffect(() => {
@@ -1240,6 +1303,8 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
         clearFilters={clearFilters}
         onAddMovie={() => {
           setEditingMovie(null);
+          setInitialReleaseYear('');
+          setInitialTmdbId(null);
           setReviewSearchQuery('');
           setIsFormOpen(true);
         }}
@@ -1258,6 +1323,8 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
         platformCounts={platformCounts}
         audioCounts={audioCounts}
         walkOfFamePackCount={walkOfFamePacks.length}
+        chimeraReadyCount={chimeraReadyCount}
+        guildReadyCount={secretReadyCount + chimeraReadyCount + bingoReadyCount}
         modeSwitcher={modeSwitcher}
         onLockApp={onLockApp}
       />
@@ -1285,6 +1352,7 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
           activeTab === 'trophies' ||
           activeTab === 'walk_of_fame' ||
           activeTab === 'universes' ||
+          activeTab === 'guilda' ||
           activeTab === 'time_machine' ? (
           <Suspense
             fallback={
@@ -1308,6 +1376,7 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
                 onOpenAddMovieForCountry={(_countryName, wishTitle) => {
                   setEditingMovie(null);
                   setInitialReleaseYear('');
+                  setInitialTmdbId(null);
                   setReviewSearchQuery(wishTitle || '');
                   setIsFormOpen(true);
                 }}
@@ -1326,6 +1395,7 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
                 onOpenAddMovieForStar={(title, year) => {
                   setEditingMovie(null);
                   setInitialReleaseYear(year ? String(year) : '');
+                  setInitialTmdbId(null);
                   setReviewSearchQuery(title || '');
                   setIsFormOpen(true);
                 }}
@@ -1336,7 +1406,43 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
                 onOpenAddMovieForUniverse={(movieTitle, releaseYear) => {
                   setEditingMovie(null);
                   setInitialReleaseYear(releaseYear ? String(releaseYear) : '');
+                  setInitialTmdbId(null);
                   setReviewSearchQuery(movieTitle || '');
+                  setIsFormOpen(true);
+                }}
+              />
+            ) : activeTab === 'guilda' ? (
+              <GuildaDestinoPage
+                movies={allMovies}
+                xpStatus={xpStatus}
+                initialSubTab={guildaSubTab}
+                onSubTabChange={setGuildaSubTab}
+                secretDrawRefreshKey={secretDrawRefreshKey}
+                secretReadyCount={secretReadyCount}
+                onSecretReadyCountChange={setSecretReadyCount}
+                chimeraReadyCount={chimeraReadyCount}
+                onChimeraReadyCountChange={setChimeraReadyCount}
+                bingoReadyCount={bingoReadyCount}
+                onBingoReadyCountChange={setBingoReadyCount}
+                onXpStatusChange={(nextXp) => {
+                  if (nextXp) applyXpStatus(nextXp);
+                }}
+                onOpenAddMovieForSecretCard={(card) => {
+                  setEditingMovie(null);
+                  setActiveSecretDrawCard(card || null);
+                  const relY = card?.resolved?.releaseYear || card?.planilha?.parsedYear;
+                  setInitialReleaseYear(relY ? String(relY) : '');
+                  setInitialTmdbId(card?.resolved?.tmdbId || null);
+                  setReviewSearchQuery(card?.resolved?.title || card?.planilha?.cleanedTitle || '');
+                  setIsFormOpen(true);
+                }}
+                onOpenAddMovieForChimera={(sug) => {
+                  setEditingMovie(null);
+                  setActiveSecretDrawCard(null);
+                  const relY = sug?.releaseYear;
+                  setInitialReleaseYear(relY ? String(relY) : '');
+                  setInitialTmdbId(sug?.tmdbId || null);
+                  setReviewSearchQuery(sug?.title || sug?.originalTitle || '');
                   setIsFormOpen(true);
                 }}
               />
@@ -1347,6 +1453,7 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
                 onOpenAddMovieForYear={(yearNumber, wishTitle) => {
                   setEditingMovie(null);
                   setInitialReleaseYear(yearNumber ? String(yearNumber) : '');
+                  setInitialTmdbId(null);
                   setReviewSearchQuery(wishTitle || '');
                   setIsFormOpen(true);
                 }}
@@ -1557,10 +1664,14 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
           setEditingMovie(null);
           setReviewSearchQuery('');
           setInitialReleaseYear('');
+          setInitialTmdbId(null);
+          setActiveSecretDrawCard(null);
         }}
         movie={editingMovie}
         initialSearchQuery={reviewSearchQuery}
         initialReleaseYear={initialReleaseYear}
+        initialTmdbId={initialTmdbId}
+        secretDrawCard={activeSecretDrawCard}
         allTags={allTags}
         allPlatforms={allPlatforms}
         existingMovies={allMovies}
@@ -1578,6 +1689,9 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
           // O MovieFormModal já disparou as notificações de troféus e XP diretamente.
           // Aqui apenas atualizamos a listagem de filmes sem re-disparar scans redundantes.
           fetchData({ runTrophyScan: !updatedXpStatus, silent: true });
+          setSecretDrawRefreshKey((k) => k + 1);
+          fetchGuildReadyCounts();
+          window.dispatchEvent(new CustomEvent('cine-bingo-sync'));
 
           const savedMovieId = savedMovie?.movie_id || savedMovie?.id || null;
           const savedMovieTitle = savedMovie?.title || null;

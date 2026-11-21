@@ -8270,6 +8270,35 @@ export const WALK_OF_FAME_CURATED_MOVIES: Record<string, WalkCuratedMovieReq[]> 
     { "name": "Coringa: Delírio a Dois (2024)", "patterns": ["delirio a dois", "delírio a dois", "folie a deux", "folie à deux"], "year": 2024, "character": "Arthur Fleck / Coringa", "memberNames": ["Joaquin Phoenix"] }
   ],
 
+  "cf_stewart_mckellen": [
+    { "name": "X-Men: O Filme (2000)", "patterns": ["x-men: o filme", "x-men o filme", "x-men", "x men"], "year": 2000, "exclude": ["x-men 2", "x2", "confronto final", "dias de um futuro", "apocalypse", "primeira classe", "first class", "origens", "origins", "dark phoenix", "fenix negra", "deadpool"], "character": "Professor Xavier & Magneto", "memberNames": ["Sir Patrick Stewart", "Sir Ian McKellen"] },
+    { "name": "X-Men 2 (2003)", "patterns": ["x-men 2", "x2", "x men 2", "x-men ii"], "year": 2003, "character": "Professor Xavier & Magneto", "memberNames": ["Sir Patrick Stewart", "Sir Ian McKellen"] },
+    { "name": "X-Men: O Confronto Final (2006)", "patterns": ["confronto final", "the last stand", "x-men 3", "x-men iii", "x men 3"], "year": 2006, "character": "Professor Xavier & Magneto", "memberNames": ["Sir Patrick Stewart", "Sir Ian McKellen"] },
+    { "name": "Wolverine: Imortal (2013)", "patterns": ["wolverine imortal", "wolverine: imortal", "the wolverine"], "year": 2013, "exclude": ["origens", "origins", "deadpool"], "character": "Professor Xavier & Magneto (Cena Pós-Créditos)", "memberNames": ["Sir Patrick Stewart", "Sir Ian McKellen"] },
+    { "name": "X-Men: Dias de um Futuro Esquecido (2014)", "patterns": ["dias de um futuro esquecido", "days of future past"], "year": 2014, "character": "Professor Xavier & Magneto", "memberNames": ["Sir Patrick Stewart", "Sir Ian McKellen"] },
+    { "name": "Logan (2017)", "patterns": ["logan"], "year": 2017, "exclude": ["lucky logan", "logan lucky"], "character": "Professor Charles Xavier", "memberNames": ["Sir Patrick Stewart"] },
+    { "name": "Doutor Estranho no Multiverso da Loucura (2022)", "patterns": ["multiverso da loucura", "multiverse of madness"], "year": 2022, "character": "Professor Charles Xavier (Terra-838)", "memberNames": ["Sir Patrick Stewart"] },
+    { "name": "Sala Verde (2015)", "patterns": ["sala verde", "green room"], "year": 2015, "character": "Darcy Banker", "memberNames": ["Sir Patrick Stewart"] },
+    { "name": "Jornada nas Estrelas: Generations (1994)", "patterns": ["star trek generations", "star trek: generations", "jornada nas estrelas: generations", "novas geracoes", "novas gerações"], "year": 1994, "character": "Capitão Jean-Luc Picard", "memberNames": ["Sir Patrick Stewart"] },
+    { "name": "Jornada nas Estrelas: Primeiro Contato (1996)", "patterns": ["primeiro contato", "first contact"], "year": 1996, "character": "Capitão Jean-Luc Picard", "memberNames": ["Sir Patrick Stewart"] },
+    { "name": "Jornada nas Estrelas: Insurreição (1998)", "patterns": ["star trek: insurreicao", "jornada nas estrelas: insurreicao", "insurreição", "insurrection"], "year": 1998, "character": "Capitão Jean-Luc Picard", "memberNames": ["Sir Patrick Stewart"] },
+    { "name": "Jornada nas Estrelas: Nêmesis (2002)", "patterns": ["star trek: nemesis", "jornada nas estrelas: nemesis", "nêmesis", "nemesis"], "year": 2002, "character": "Capitão Jean-Luc Picard", "memberNames": ["Sir Patrick Stewart"] },
+    { "name": "O Menino Que Queria Ser Rei (2019)", "patterns": ["o menino que queria ser rei", "the kid who would be king"], "year": 2019, "character": "Merlin (idoso)", "memberNames": ["Sir Patrick Stewart"] },
+    { "name": "Duna (1984)", "patterns": ["duna", "dune"], "year": 1984, "exclude": ["parte dois", "part two", "parte 2", "2021", "2024"], "character": "Gurney Halleck", "memberNames": ["Sir Patrick Stewart"] },
+    { "name": "Excalibur (1981)", "patterns": ["excalibur"], "year": 1981, "character": "Rei Leodegrance", "memberNames": ["Sir Patrick Stewart"] },
+    { "name": "O Senhor dos Anéis: A Sociedade do Anel (2001)", "patterns": ["a sociedade do anel", "sociedade do anel", "the fellowship of the ring", "fellowship of the ring"], "year": 2001, "character": "Gandalf, o Cinzento (Indicado ao Oscar)", "memberNames": ["Sir Ian McKellen"] },
+    { "name": "O Senhor dos Anéis: As Duas Torres (2002)", "patterns": ["as duas torres", "duas torres", "the two towers", "two towers"], "year": 2002, "character": "Gandalf, o Branco", "memberNames": ["Sir Ian McKellen"] },
+    { "name": "O Senhor dos Anéis: O Retorno do Rei (2003)", "patterns": ["o retorno do rei", "retorno do rei", "the return of the king", "return of the king"], "year": 2003, "character": "Gandalf, o Branco", "memberNames": ["Sir Ian McKellen"] },
+    { "name": "O Hobbit: Uma Jornada Inesperada (2012)", "patterns": ["uma jornada inesperada", "an unexpected journey"], "year": 2012, "character": "Gandalf, o Cinzento", "memberNames": ["Sir Ian McKellen"] },
+    { "name": "O Hobbit: A Desolação de Smaug (2013)", "patterns": ["a desolacao de smaug", "a desolação de smaug", "desolation of smaug"], "year": 2013, "character": "Gandalf, o Cinzento", "memberNames": ["Sir Ian McKellen"] },
+    { "name": "O Hobbit: A Batalha dos Cinco Exércitos (2014)", "patterns": ["batalha dos cinco exercitos", "batalha dos cinco exércitos", "battle of the five armies"], "year": 2014, "character": "Gandalf, o Cinzento", "memberNames": ["Sir Ian McKellen"] },
+    { "name": "Deuses e Monstros (1998)", "patterns": ["deuses e monstros", "gods and monsters"], "year": 1998, "character": "James Whale (Indicado ao Oscar)", "memberNames": ["Sir Ian McKellen"] },
+    { "name": "O Aprendiz (1998)", "patterns": ["o aprendiz", "apt pupil"], "year": 1998, "exclude": ["trump", "the apprentice", "feiticeiro"], "character": "Kurt Dussander / Arthur Denker", "memberNames": ["Sir Ian McKellen"] },
+    { "name": "Sr. Holmes (2015)", "patterns": ["sr. holmes", "sr holmes", "mr. holmes", "mr holmes"], "year": 2015, "character": "Sherlock Holmes", "memberNames": ["Sir Ian McKellen"] },
+    { "name": "A Grande Mentira (2019)", "patterns": ["a grande mentira", "the good liar"], "year": 2019, "exclude": ["mentiroso", "carrey"], "character": "Roy Courtnay", "memberNames": ["Sir Ian McKellen"] },
+    { "name": "Ricardo III (1995)", "patterns": ["ricardo iii", "richard iii"], "year": 1995, "character": "Rei Ricardo III", "memberNames": ["Sir Ian McKellen"] }
+  ],
+
   "cf_robert_pattinson": [
     { "name": "The Batman (2022)", "patterns": ["the batman", "batman"], "year": 2022, "exclude": ["batman vs superman", "arkham", "batalha dos super filhos", "1989", "o retorno", "robin", "begins", "cavaleiro das trevas", "dark knight"], "character": "Bruce Wayne / Batman" },
     { "name": "Crepúsculo (2008)", "patterns": ["crepusculo", "crepúsculo", "twilight"], "year": 2008, "exclude": ["lua nova", "eclipse", "amanhecer"], "character": "Edward Cullen" },

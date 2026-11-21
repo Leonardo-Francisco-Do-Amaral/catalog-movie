@@ -19,6 +19,30 @@ function getTagBadgeStyle(tag) {
   if (tag.type === 'walk_of_fame') {
     return 'bg-amber-500/20 text-amber-200 border-amber-400/60 shadow-[0_0_12px_rgba(251,191,36,0.22)]';
   }
+  if (tag.type === 'chimera') {
+    return tag.rarityOrTier === 'gold'
+      ? 'bg-emerald-500/25 text-amber-100 border-amber-400/70 shadow-[0_0_14px_rgba(16,185,129,0.28)]'
+      : 'bg-emerald-500/20 text-emerald-100 border-emerald-400/60 shadow-[0_0_12px_rgba(16,185,129,0.22)]';
+  }
+  if (tag.type === 'bingo') {
+    return tag.rarityOrTier === 'gold'
+      ? 'bg-amber-500/25 text-amber-100 border-amber-300/75 shadow-[0_0_14px_rgba(245,158,11,0.3)]'
+      : 'bg-sky-500/20 text-sky-100 border-sky-400/60 shadow-[0_0_12px_rgba(56,189,248,0.22)]';
+  }
+  if (tag.type === 'secret_draw') {
+    switch (tag.rarityOrTier) {
+      case 'exotic':
+        return 'bg-rose-500/25 text-rose-100 border-rose-400/70 shadow-[0_0_14px_rgba(244,63,94,0.3)]';
+      case 'very_hard':
+        return 'bg-amber-500/25 text-amber-100 border-amber-400/70 shadow-[0_0_12px_rgba(245,158,11,0.25)]';
+      case 'hard':
+        return 'bg-purple-500/25 text-purple-100 border-purple-400/65';
+      case 'medium':
+        return 'bg-sky-500/20 text-sky-100 border-sky-400/60';
+      default:
+        return 'bg-emerald-500/20 text-emerald-100 border-emerald-400/60';
+    }
+  }
   if (tag.type === 'country' || tag.type === 'time_machine') {
     switch (tag.rarityOrTier) {
       case 'mythic':

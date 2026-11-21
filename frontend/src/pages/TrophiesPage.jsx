@@ -10,6 +10,7 @@ import {
   Settings,
   RefreshCw,
   ChevronRight,
+  Flame,
 } from 'lucide-react';
 import { isAudioMuted, toggleAudioMute } from '../utils/trophyAudio';
 import { triggerPS5TrophyToast, TIER_THEMES } from '../components/PS5TrophyToastContainer';

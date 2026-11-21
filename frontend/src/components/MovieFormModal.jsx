@@ -70,6 +70,8 @@ export default function MovieFormModal({
   allPlatforms = [],
   initialSearchQuery = '',
   initialReleaseYear = '',
+  initialTmdbId = null,
+  secretDrawCard = null,
   existingMovies = [],
   prevXpStatus = null,
   onApiRefreshed = null
@@ -315,7 +317,12 @@ export default function MovieFormModal({
           review_notes: ''
         });
       }
-      setSearchQuery(initialSearchQuery || '');
+      if (!movie && initialTmdbId) {
+        setSearchQuery('');
+        handleSelectTmdbMovie(initialTmdbId);
+      } else {
+        setSearchQuery(initialSearchQuery || '');
+      }
       setSearchResults([]);
       setCountrySearchQuery('');
       setTagSearchQuery('');
@@ -323,7 +330,7 @@ export default function MovieFormModal({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, movie, initialSearchQuery, initialReleaseYear]);
+  }, [isOpen, movie, initialSearchQuery, initialReleaseYear, initialTmdbId]);
 
   // Busca na API TMDB do backend
   useEffect(() => {
@@ -736,6 +743,12 @@ export default function MovieFormModal({
         triggerUniverseVictory(universeVictories);
       }
 
+      if (!ghostRun && Array.isArray(resData.chimeraMatched) && resData.chimeraMatched.length > 0 && typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('cine-chimera-sync', { detail: { matched: resData.chimeraMatched } })
+        );
+      }
+
       if (!ghostRun) {
         onSave(newlyUnlocked, savedMovie, resData.xpStatus);
       }
@@ -783,7 +796,7 @@ export default function MovieFormModal({
         
         {/* Cabeçalho */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-800/80 bg-zinc-950/40 gap-2">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <div className="bg-amber-500/10 border border-amber-500/20 p-2 rounded-xl">
               <Film className="w-5 h-5 text-amber-500" />
             </div>
@@ -796,6 +809,26 @@ export default function MovieFormModal({
                 Uploads Locais & Sincronizadores Ativos
               </p>
             </div>
+            {!isEditMode && secretDrawCard && (() => {
+              const diffStyleMap = {
+                common: 'bg-emerald-500/20 border-emerald-400/55 text-emerald-200',
+                medium: 'bg-sky-500/20 border-sky-400/60 text-sky-200',
+                hard: 'bg-purple-500/25 border-purple-400/65 text-purple-200',
+                very_hard: 'bg-amber-500/25 border-amber-400/70 text-amber-200',
+                exotic: 'bg-gradient-to-r from-rose-500/30 via-fuchsia-500/30 to-amber-500/30 border-rose-300/75 text-rose-100 secret-exotic-holo',
+              };
+              const suitMap = { common: '♣', medium: '♦', hard: '♠', very_hard: '♥', exotic: '★' };
+              const diff = secretDrawCard.difficulty || 'common';
+              return (
+                <div className={`ml-1 px-3 py-1.5 rounded-xl border text-[11px] font-black flex items-center gap-1.5 shadow-lg ${diffStyleMap[diff] || diffStyleMap.common}`}>
+                  <span>{suitMap[diff] || '🃏'}</span>
+                  <span>Sessão Secreta • {secretDrawCard.difficultyLabel || diff}</span>
+                  <span className="font-mono text-[10px] bg-black/40 px-1.5 py-0.5 rounded-md border border-white/15">
+                    +{secretDrawCard.xpReward || 35} XP Travados
+                  </span>
+                </div>
+              );
+            })()}
           </div>
           <button 
             onClick={onClose}

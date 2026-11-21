@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc && node -e \"const fs=require('fs'),p=require('path');fs.mkdirSync(p.join('dist','data'),{recursive:true});if(fs.existsSync(p.join('src','data','universePosterCache.json')))fs.copyFileSync(p.join('src','data','universePosterCache.json'),p.join('dist','data','universePosterCache.json'));\"",
+    "build": "tsc && node -e \"const fs=require('fs'),p=require('path');fs.mkdirSync(p.join('dist','data'),{recursive:true});for(const f of ['universePosterCache.json','sorteio.xlsx']){const src=p.join('src','data',f);if(fs.existsSync(src))fs.copyFileSync(src,p.join('dist','data',f));}\"",
     "start": "node dist/index.js"
   },
   "keywords": [],

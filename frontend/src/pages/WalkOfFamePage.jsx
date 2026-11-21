@@ -363,6 +363,22 @@ export default function WalkOfFamePage({
     setTimeout(() => setJustStuckId((curr) => (curr === starId ? null : curr)), 2450);
   }, []);
 
+  const publishWalkMutationEffects = useCallback((mutationData, { allowEmptyStatsToast = false } = {}) => {
+    if (!mutationData) return;
+    if (mutationData.xpStatus) {
+      dispatchXpStatusUpdate(mutationData.xpStatus);
+    }
+    window.dispatchEvent(new CustomEvent('cine-bingo-sync'));
+    if (!mutationData.xpGain) return;
+    const hasDelta =
+      allowEmptyStatsToast ||
+      mutationData.xpGain.gainedXp > 0 ||
+      (mutationData.xpGain.statGains?.length || 0) > 0;
+    if (hasDelta) {
+      triggerXPGainToast(mutationData.xpGain, mutationData.xpStatus || null, true);
+    }
+  }, []);
+
   const handleStick = useCallback(
     async (starId) => {
       try {
@@ -372,21 +388,13 @@ export default function WalkOfFamePage({
         if (res.data?.success && res.data?.data) {
           applyPayload(res.data.data);
           triggerCardPasteAnim(starId);
-          if (res.data.data.xpStatus) {
-            dispatchXpStatusUpdate(res.data.data.xpStatus);
-          }
-          if (
-            res.data.data.xpGain &&
-            (res.data.data.xpGain.gainedXp > 0 || (res.data.data.xpGain.statGains?.length || 0) > 0)
-          ) {
-            triggerXPGainToast(res.data.data.xpGain, res.data.data.xpStatus || null, true);
-          }
+          publishWalkMutationEffects(res.data.data);
         }
       } catch (err) {
         console.warn('[WalkOfFame] Não foi possível colar:', err?.response?.data?.error || err.message);
       }
     },
-    [applyPayload, triggerCardPasteAnim]
+    [applyPayload, triggerCardPasteAnim, publishWalkMutationEffects]
   );
 
   const handleUnstick = useCallback(
@@ -430,12 +438,7 @@ export default function WalkOfFamePage({
         if (res.data?.success && res.data?.data) {
           applyPayload(res.data.data);
           triggerCardPasteAnim(pack.star.id);
-          if (res.data.data.xpStatus) {
-            dispatchXpStatusUpdate(res.data.data.xpStatus);
-          }
-          if (res.data.data.xpGain) {
-            triggerXPGainToast(res.data.data.xpGain, res.data.data.xpStatus || null, true);
-          }
+          publishWalkMutationEffects(res.data.data, { allowEmptyStatsToast: true });
           const remaining = res.data.data.pendingPacks || [];
           setActivePackModal(null);
           setNextPackChoiceCount(remaining.length);
@@ -448,7 +451,7 @@ export default function WalkOfFamePage({
         setNextPackChoiceCount(0);
       }
     },
-    [applyPayload, triggerCardPasteAnim]
+    [applyPayload, triggerCardPasteAnim, publishWalkMutationEffects]
   );
 
   const handleSavePackForLater = useCallback(
@@ -466,12 +469,7 @@ export default function WalkOfFamePage({
         });
         if (res.data?.success && res.data?.data) {
           applyPayload(res.data.data);
-          if (res.data.data.xpStatus) {
-            dispatchXpStatusUpdate(res.data.data.xpStatus);
-          }
-          if (res.data.data.xpGain) {
-            triggerXPGainToast(res.data.data.xpGain, res.data.data.xpStatus || null, true);
-          }
+          publishWalkMutationEffects(res.data.data, { allowEmptyStatsToast: true });
           const remaining = res.data.data.pendingPacks || [];
           setActivePackModal(null);
           setNextPackChoiceCount(remaining.length);
@@ -484,7 +482,7 @@ export default function WalkOfFamePage({
         setNextPackChoiceCount(0);
       }
     },
-    [applyPayload]
+    [applyPayload, publishWalkMutationEffects]
   );
 
   const allActorStars = useMemo(() => {
@@ -815,15 +813,7 @@ export default function WalkOfFamePage({
       });
       if (res.data?.success && res.data?.data) {
         applyPayload(res.data.data);
-        if (res.data.data.xpStatus) {
-          dispatchXpStatusUpdate(res.data.data.xpStatus);
-        }
-        if (
-          res.data.data.xpGain &&
-          (res.data.data.xpGain.gainedXp > 0 || (res.data.data.xpGain.statGains?.length || 0) > 0)
-        ) {
-          triggerXPGainToast(res.data.data.xpGain, res.data.data.xpStatus || null, true);
-        }
+        publishWalkMutationEffects(res.data.data);
       }
     } catch (err) {
       console.warn('[WalkOfFame] Não foi possível colar figurinhas em lote:', err?.response?.data?.error || err.message);

@@ -25,6 +25,31 @@ import {
   resolveRpgRankFromTier,
   getWalkCarPointsForRank,
 } from '../data/walkOfFameData';
+import {
+  EMPTY_SECRET_DRAW_XP_SUMMARY,
+  getQuickSecretDrawXpSummary,
+  SECRET_DRAW_DIFFICULTY_META,
+  SecretDrawDifficulty,
+  SecretDrawXpSummary,
+} from './secretDrawService';
+import {
+  ChimeraXpSummary,
+  EMPTY_CHIMERA_XP_SUMMARY,
+  getQuickChimeraXpSummary,
+} from './chimeraService';
+import {
+  BingoXpSummary,
+  EMPTY_BINGO_XP_SUMMARY,
+  getQuickBingoXpSummary,
+} from './bingoService';
+
+export const SECRET_DRAW_SOR_BY_DIFFICULTY: Record<SecretDrawDifficulty, number> = {
+  common: 0.2,
+  medium: 0.4,
+  hard: 0.6,
+  very_hard: 1.0,
+  exotic: 1.3,
+};
 
 export type WorldChallengePayload = Awaited<ReturnType<typeof buildWorldChallengePayload>>;
 export type TimeMachinePayload = Awaited<ReturnType<typeof buildTimeMachinePayload>>;
@@ -236,6 +261,9 @@ export interface UserXpStatus extends LevelProgressInfo {
     timeMachine: TimeMachineXpSummary;
     universes: UniverseXpSummary;
     walkOfFame: WalkOfFameXpSummary;
+    secretDraw: SecretDrawXpSummary;
+    chimera: ChimeraXpSummary;
+    bingo: BingoXpSummary;
   };
 }
 
@@ -250,7 +278,10 @@ export interface XpGainTag {
     | 'universe_checkpoint'
     | 'universe_saga'
     | 'universe_mega'
-    | 'walk_of_fame';
+    | 'walk_of_fame'
+    | 'secret_draw'
+    | 'chimera'
+    | 'bingo';
   icon: string;
   label: string;
   xp: number;
@@ -435,7 +466,10 @@ export function buildUserXpStatus(
   worldData: WorldChallengePayload,
   trophiesList: Array<{ id: string; kind?: string; title: string; tier: TrophyTier; is_unlocked: boolean; extra_stars?: number; ranks?: any[] }>,
   universeSummary: UniverseXpSummary = EMPTY_UNIVERSE_XP_SUMMARY,
-  walkOfFameSummary: WalkOfFameXpSummary = EMPTY_WALK_OF_FAME_XP_SUMMARY
+  walkOfFameSummary: WalkOfFameXpSummary = EMPTY_WALK_OF_FAME_XP_SUMMARY,
+  secretDrawSummary: SecretDrawXpSummary = EMPTY_SECRET_DRAW_XP_SUMMARY,
+  chimeraSummary: ChimeraXpSummary = EMPTY_CHIMERA_XP_SUMMARY,
+  bingoSummary: BingoXpSummary = EMPTY_BINGO_XP_SUMMARY
 ): UserXpStatus {
   // 1. XP por Filmes Cadastrados (cada filme único = +10 XP)
   const moviesCount = Array.isArray(worldData.catalogMovies) ? worldData.catalogMovies.length : 0;
@@ -592,13 +626,25 @@ export function buildUserXpStatus(
   // 6. XP da Calçada da Fama (Computado exclusivamente ao abrir pacotinhos)
   const safeWalkOfFameSummary = walkOfFameSummary || EMPTY_WALK_OF_FAME_XP_SUMMARY;
 
+  // 7. XP da Sessão Secreta (Cartas concluídas)
+  const safeSecretDrawSummary = secretDrawSummary || EMPTY_SECRET_DRAW_XP_SUMMARY;
+
+  // 8. XP da Quimera Cinéfila (Contratos despertados & colhidos)
+  const safeChimeraSummary = chimeraSummary || EMPTY_CHIMERA_XP_SUMMARY;
+
+  // 9. XP do Bingo Mensal (Casas, Linhas e Cartela Cheia recolhidos)
+  const safeBingoSummary = bingoSummary || EMPTY_BINGO_XP_SUMMARY;
+
   const totalXp =
     moviesXp +
     countriesXp +
     trophiesXp +
     timeMachineSummary.totalXp +
     universesSummary.totalXp +
-    safeWalkOfFameSummary.totalXp;
+    safeWalkOfFameSummary.totalXp +
+    safeSecretDrawSummary.totalXp +
+    safeChimeraSummary.totalXp +
+    safeBingoSummary.totalXp;
   const levelInfo = calculateLevelFromXp(totalXp);
 
   return {
@@ -632,6 +678,9 @@ export function buildUserXpStatus(
       timeMachine: timeMachineSummary,
       universes: universesSummary,
       walkOfFame: safeWalkOfFameSummary,
+      secretDraw: safeSecretDrawSummary,
+      chimera: safeChimeraSummary,
+      bingo: safeBingoSummary,
     },
   };
 }
@@ -882,7 +931,7 @@ function parseRanksForXp(ranksConfigRaw: unknown, ranksStateRaw: unknown, fallba
 export async function getQuickXpSnapshot(
   options: { worldData?: WorldChallengePayload; trophiesOverride?: any[] } = {}
 ): Promise<UserXpStatus> {
-  const [worldData, trophiesRes, universeSummary, walkOfFameSummary] = await Promise.all([
+  const [worldData, trophiesRes, universeSummary, walkOfFameSummary, secretDrawSummary, chimeraSummary, bingoSummary] = await Promise.all([
     options.worldData ? Promise.resolve(options.worldData) : buildWorldChallengePayload(),
     options.trophiesOverride
       ? Promise.resolve(null)
@@ -894,6 +943,9 @@ export async function getQuickXpSnapshot(
         `),
     getQuickUniverseXpSummary().catch(() => EMPTY_UNIVERSE_XP_SUMMARY),
     getQuickWalkOfFameXpSummary().catch(() => EMPTY_WALK_OF_FAME_XP_SUMMARY),
+    getQuickSecretDrawXpSummary().catch(() => EMPTY_SECRET_DRAW_XP_SUMMARY),
+    getQuickChimeraXpSummary().catch(() => EMPTY_CHIMERA_XP_SUMMARY),
+    getQuickBingoXpSummary().catch(() => EMPTY_BINGO_XP_SUMMARY),
   ]);
 
   const trophiesList = options.trophiesOverride
@@ -911,7 +963,7 @@ export async function getQuickXpSnapshot(
             : undefined,
       }));
 
-  return buildUserXpStatus(worldData, trophiesList, universeSummary, walkOfFameSummary);
+  return buildUserXpStatus(worldData, trophiesList, universeSummary, walkOfFameSummary, secretDrawSummary, chimeraSummary, bingoSummary);
 }
 
 /**
@@ -1193,15 +1245,82 @@ export function computeXpGainEvent(
     });
   }
 
+  // 5b. Ganhos da Sessão Secreta (Cartas concluídas)
+  const prevSecret = prev.sources?.secretDraw || EMPTY_SECRET_DRAW_XP_SUMMARY;
+  const nextSecret = next.sources?.secretDraw || EMPTY_SECRET_DRAW_XP_SUMMARY;
+  const newSecretEntries = Object.entries(nextSecret.completedRoundsMap || {})
+    .filter(([k]) => !prevSecret.completedRoundsMap?.[k])
+    .map(([, val]) => val);
+
+  for (const entry of newSecretEntries) {
+    const meta = SECRET_DRAW_DIFFICULTY_META[entry.difficulty] || SECRET_DRAW_DIFFICULTY_META.common;
+    tags.push({
+      type: 'secret_draw',
+      icon: meta.icon || '🃏',
+      label: `+${entry.xp} XP Sessão Secreta (${meta.label}: ${entry.title})`,
+      xp: entry.xp,
+      rarityOrTier: entry.difficulty,
+    });
+  }
+
+  // 5c. Ganhos da Quimera Cinéfila (Contratos despertados e recolhidos)
+  const prevChimera = prev.sources?.chimera || EMPTY_CHIMERA_XP_SUMMARY;
+  const nextChimera = next.sources?.chimera || EMPTY_CHIMERA_XP_SUMMARY;
+  const newChimeraEntries = Object.entries(nextChimera.claimedMap || {})
+    .filter(([k]) => !prevChimera.claimedMap?.[k])
+    .map(([, val]) => val);
+
+  for (const entry of newChimeraEntries) {
+    tags.push({
+      type: 'chimera',
+      icon: '🧪',
+      label: `+${entry.xp} XP Quimera Cinéfila (${entry.movieTitle}${
+        entry.jackpotsHitCount > 0 ? ` • 🎰 ${entry.jackpotsHitCount}/4 Jackpots` : ''
+      })`,
+      xp: entry.xp,
+      rarityOrTier: entry.jackpotsHitCount >= 2 ? 'gold' : 'epic',
+    });
+  }
+
+  // 5d. Ganhos do Bingo Mensal (Casas, Linhas e Cartela Cheia recolhidos)
+  const prevBingo = prev.sources?.bingo || EMPTY_BINGO_XP_SUMMARY;
+  const nextBingo = next.sources?.bingo || EMPTY_BINGO_XP_SUMMARY;
+  for (const [k, entry] of Object.entries(nextBingo.claimedMap || {})) {
+    const prevEntry = prevBingo.claimedMap?.[k];
+    const diffXp = Math.max(0, Number(entry.xp || 0) - Number(prevEntry?.xp || 0));
+    if (diffXp > 0) {
+      const sqDelta = Math.max(0, Number(entry.completedSquares || 0) - Number(prevEntry?.completedSquares || 0));
+      const lnDelta = Math.max(0, Number(entry.completedLines || 0) - Number(prevEntry?.completedLines || 0));
+      const suffix =
+        lnDelta > 0
+          ? `• ${lnDelta} linha${lnDelta > 1 ? 's' : ''}`
+          : sqDelta > 0
+            ? `• ${sqDelta} casa${sqDelta > 1 ? 's' : ''}`
+            : `(${entry.monthKey})`;
+      tags.push({
+        type: 'bingo',
+        icon: '🎯',
+        label: `+${diffXp} XP Bingo Mensal ${suffix}`,
+        xp: diffXp,
+        rarityOrTier: lnDelta > 0 || entry.completedLines >= 1 ? 'gold' : 'epic',
+      });
+    }
+  }
+
   // 6. Ganhos de Atributos RPG Cinéfilo baseados exclusivamente no que mudou neste evento de XP
   const statGains: XpStatGain[] = [];
-  if (movieDiff > 0) {
-    const sorPoints = Math.round(movieDiff * 0.2 * 10) / 10;
+  const sorGainFromMovies = movieDiff > 0 ? movieDiff * 0.2 : 0;
+  const sorGainFromSecret = newSecretEntries.reduce(
+    (sum, entry) => sum + (SECRET_DRAW_SOR_BY_DIFFICULTY[entry.difficulty] ?? 0.2),
+    0
+  );
+  const totalSorPoints = Math.round((sorGainFromMovies + sorGainFromSecret) * 10) / 10;
+  if (totalSorPoints > 0) {
     statGains.push({
       key: 'SOR',
       icon: '🎯',
-      label: `+${sorPoints.toFixed(1)} SOR`,
-      gain: sorPoints,
+      label: `+${totalSorPoints.toFixed(1)} SOR`,
+      gain: totalSorPoints,
     });
   }
   if (newYearUnlocks.length > 0) {

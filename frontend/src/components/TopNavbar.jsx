@@ -151,6 +151,8 @@ export default function TopNavbar({
   platformCounts = {},
   audioCounts = {},
   walkOfFamePackCount = 0,
+  chimeraReadyCount = 0,
+  guildReadyCount = 0,
   modeSwitcher = null,
   onLockApp = null
 }) {
@@ -513,13 +515,13 @@ export default function TopNavbar({
   return (
     <header
       ref={navRef}
-      className="sticky top-0 z-40 w-full bg-zinc-950/88 backdrop-blur-xl border-b border-zinc-800/80 shadow-[0_8px_30px_rgba(0,0,0,0.6)]"
+      className="sticky top-0 z-40 w-full bg-zinc-950/92 backdrop-blur-xl border-b border-zinc-800/80 shadow-[0_8px_30px_rgba(0,0,0,0.6)]"
     >
-      {/* LINHA 1: Logo + Abas + Busca + Ficha RPG + Adicionar Filme */}
-      <div className="px-3 sm:px-6 lg:px-10 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
+      {/* LINHA 1: Esquerda (Marca + Modo) | Centro (Busca) | Direita (XP + Ações) */}
+      <div className="px-3 sm:px-6 lg:px-10 pt-2.5 pb-2 flex flex-wrap md:flex-nowrap items-center justify-between gap-2.5 sm:gap-3">
         
-        {/* Esquerda: Marca + Alternador de Abas */}
-        <div className="flex items-center gap-2.5 sm:gap-4 flex-wrap max-w-full min-w-0">
+        {/* Esquerda: Marca + Alternador Filmes/Séries */}
+        <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
           <button
             type="button"
             onClick={() => {
@@ -537,124 +539,10 @@ export default function TopNavbar({
           </button>
 
           {modeSwitcher}
-
-          {/* Alternador de Abas (HUD Gamer — deslize horizontal no celular) */}
-          <div className="w-full md:w-auto max-w-full overflow-x-auto scrollbar-hide flex items-center flex-nowrap md:flex-wrap gap-1 bg-zinc-900/70 p-1 rounded-xl border border-zinc-800/60">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('catalog');
-                setOpenDropdown(null);
-              }}
-              className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
-                activeTab === 'catalog'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
-                  : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              🎥 Catálogo
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('analytics');
-                setOpenDropdown(null);
-              }}
-              className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
-                activeTab === 'analytics'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
-                  : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              📊 Estatísticas
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('challenge');
-                setOpenDropdown(null);
-              }}
-              className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
-                activeTab === 'challenge'
-                  ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
-                  : 'text-emerald-400/90 hover:text-emerald-300 hover:bg-emerald-500/10'
-              }`}
-            >
-              🌍 Desafio 195
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('walk_of_fame');
-                setOpenDropdown(null);
-              }}
-              title={
-                walkOfFamePackCount > 0
-                  ? `${walkOfFamePackCount} pacotinho(s) misterioso(s) aguardando abertura no Álbum da Fama`
-                  : 'Álbum da Fama: Atores, Vozes, Casais & Diretores'
-              }
-              className={`inline-flex items-center px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
-                activeTab === 'walk_of_fame'
-                  ? 'bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 shadow-md shadow-amber-400/25'
-                  : walkOfFamePackCount > 0
-                  ? 'text-amber-200 bg-rose-500/15 ring-1 ring-rose-400/60 hover:bg-rose-500/25 shadow-[0_0_16px_rgba(244,63,94,0.28)]'
-                  : 'text-amber-300/90 hover:text-amber-200 hover:bg-amber-400/10'
-              }`}
-            >
-              <span>📖 Álbum da Fama</span>
-              {walkOfFamePackCount > 0 && (
-                <span className="ml-1.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[9px] font-black animate-pulse shadow">
-                  🎁 {walkOfFamePackCount}
-                </span>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('trophies');
-                setOpenDropdown(null);
-              }}
-              className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
-                activeTab === 'trophies'
-                  ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/25'
-                  : 'text-amber-400/90 hover:text-amber-300 hover:bg-amber-400/10'
-              }`}
-            >
-              🏆 Troféus
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('time_machine');
-                setOpenDropdown(null);
-              }}
-              className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
-                activeTab === 'time_machine'
-                  ? 'bg-cyan-400 text-slate-950 shadow-md shadow-cyan-400/25'
-                  : 'text-cyan-300/90 hover:text-cyan-200 hover:bg-cyan-400/10'
-              }`}
-            >
-              ⏳ Máquina do Tempo
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('universes');
-                setOpenDropdown(null);
-              }}
-              className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
-                activeTab === 'universes'
-                  ? 'bg-indigo-400 text-slate-950 shadow-md shadow-indigo-400/25'
-                  : 'text-indigo-300/90 hover:text-indigo-200 hover:bg-indigo-400/10'
-              }`}
-            >
-              🌌 Códice dos Universos
-            </button>
-          </div>
         </div>
 
         {/* Centro: Barra de Pesquisa Rápida */}
-        <div className="flex-1 min-w-0 md:min-w-[220px] max-w-md mx-auto lg:mx-4 order-3 md:order-2 w-full md:w-auto">
+        <div className="flex-1 min-w-[200px] max-w-md mx-auto md:mx-3 order-3 md:order-2 w-full md:w-auto">
           <div className="relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500/80 pointer-events-none" />
             <input
@@ -687,8 +575,8 @@ export default function TopNavbar({
           </div>
         </div>
 
-        {/* Direita: Ficha RPG Popover + Botão Mobile Filtros + Adicionar Filme */}
-        <div className="flex items-center gap-2.5 order-2 md:order-3">
+        {/* Direita: Ficha RPG + Botão Mobile Filtros + Planilha + Adicionar + Lock */}
+        <div className="flex items-center gap-2 sm:gap-2.5 order-2 md:order-3 shrink-0">
           
           {/* Mini HUD RPG (Abre o Modal Detalhado de Nível, Troféus e XP) */}
           <div className="relative">
@@ -710,7 +598,7 @@ export default function TopNavbar({
                 <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider">
                   <span className="text-amber-400 shrink-0">LVL {rpgStats.level}</span>
                   <span className="text-zinc-600 hidden sm:inline">•</span>
-                  <span className="text-zinc-200 max-w-[140px] lg:max-w-[200px] xl:max-w-[250px] truncate hidden sm:inline">
+                  <span className="text-zinc-200 max-w-[140px] lg:max-w-[190px] xl:max-w-[230px] truncate hidden sm:inline">
                     {rpgStats.className}
                   </span>
                 </div>
@@ -781,6 +669,154 @@ export default function TopNavbar({
               <Lock className="w-4 h-4" />
             </button>
           )}
+        </div>
+      </div>
+
+      {/* LINHA 2: Barra de Navegação das Abas (Limpa, Alinhada e Centralizada) */}
+      <div className="px-3 sm:px-6 lg:px-10 pb-2.5 flex items-center justify-center border-t border-zinc-900/90 pt-1.5">
+        <div className="w-full max-w-fit overflow-x-auto scrollbar-hide flex items-center flex-nowrap gap-1 bg-zinc-900/75 p-1 rounded-xl border border-zinc-800/75">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('catalog');
+              setOpenDropdown(null);
+            }}
+            className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
+              activeTab === 'catalog'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            🎥 Catálogo
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('analytics');
+              setOpenDropdown(null);
+            }}
+            className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
+              activeTab === 'analytics'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            📊 Estatísticas
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('challenge');
+              setOpenDropdown(null);
+            }}
+            className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
+              activeTab === 'challenge'
+                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                : 'text-emerald-400/90 hover:text-emerald-300 hover:bg-emerald-500/10'
+            }`}
+          >
+            🌍 Desafio 195
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('walk_of_fame');
+              setOpenDropdown(null);
+            }}
+            title={
+              walkOfFamePackCount > 0
+                ? `${walkOfFamePackCount} pacotinho(s) misterioso(s) aguardando abertura no Álbum da Fama`
+                : 'Álbum da Fama: Atores, Vozes, Casais & Diretores'
+            }
+            className={`inline-flex items-center px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
+              activeTab === 'walk_of_fame'
+                ? 'bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 shadow-md shadow-amber-400/25'
+                : walkOfFamePackCount > 0
+                ? 'text-amber-200 bg-rose-500/15 ring-1 ring-rose-400/60 hover:bg-rose-500/25 shadow-[0_0_16px_rgba(244,63,94,0.28)]'
+                : 'text-amber-300/90 hover:text-amber-200 hover:bg-amber-400/10'
+            }`}
+          >
+            <span>📖 Álbum da Fama</span>
+            {walkOfFamePackCount > 0 && (
+              <span className="ml-1.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[9px] font-black animate-pulse shadow">
+                🎁 {walkOfFamePackCount}
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('trophies');
+              setOpenDropdown(null);
+            }}
+            className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
+              activeTab === 'trophies'
+                ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/25'
+                : 'text-amber-400/90 hover:text-amber-300 hover:bg-amber-400/10'
+            }`}
+          >
+            🏆 Troféus
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('time_machine');
+              setOpenDropdown(null);
+            }}
+            className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
+              activeTab === 'time_machine'
+                ? 'bg-cyan-400 text-slate-950 shadow-md shadow-cyan-400/25'
+                : 'text-cyan-300/90 hover:text-cyan-200 hover:bg-cyan-400/10'
+            }`}
+          >
+            ⏳ Máquina do Tempo
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('universes');
+              setOpenDropdown(null);
+            }}
+            className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
+              activeTab === 'universes'
+                ? 'bg-indigo-400 text-slate-950 shadow-md shadow-indigo-400/25'
+                : 'text-indigo-300/90 hover:text-indigo-200 hover:bg-indigo-400/10'
+            }`}
+          >
+            🌌 Códice dos Universos
+          </button>
+
+          {(() => {
+            const totalGuildBadgeCount = Number(guildReadyCount || chimeraReadyCount || 0);
+            return (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('guilda');
+                  setOpenDropdown(null);
+                }}
+                title={
+                  totalGuildBadgeCount > 0
+                    ? `Guilda do Destino • ${totalGuildBadgeCount} recompensa(s) pronta(s) para colher XP!`
+                    : 'Guilda do Destino: Classe RPG, Atributos, Sessão Secreta, Quimera Cinéfila & Bingo Mensal'
+                }
+                className={`inline-flex items-center px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
+                  activeTab === 'guilda'
+                    ? 'bg-gradient-to-r from-amber-400 via-fuchsia-500 to-emerald-400 text-slate-950 shadow-md shadow-amber-400/25'
+                    : totalGuildBadgeCount > 0
+                    ? 'text-amber-200 bg-amber-500/15 ring-1 ring-amber-400/70 hover:bg-amber-500/25 shadow-[0_0_18px_rgba(251,191,36,0.35)]'
+                    : 'text-amber-200/90 hover:text-white hover:bg-amber-500/15'
+                }`}
+              >
+                <span>⚔️ Guilda do Destino</span>
+                {totalGuildBadgeCount > 0 && (
+                  <span className="ml-1.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[9px] font-black animate-pulse shadow">
+                    ✨ {totalGuildBadgeCount}
+                  </span>
+                )}
+              </button>
+            );
+          })()}
         </div>
       </div>
 

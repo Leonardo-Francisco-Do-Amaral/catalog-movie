@@ -911,3 +911,1250 @@ html, body, #root {
   visibility: visible;
   transition: visibility 0s;
 }
+
+/* ============================================================================
+   SESSÃO SECRETA — ANIMAÇÕES DE BARALHO, EMBARALHAR, DISTRIBUIR & FLIP 3D
+   ============================================================================ */
+.secret-card-scene {
+  perspective: 1400px;
+}
+
+.secret-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.8s cubic-bezier(0.22, 1.22, 0.36, 1);
+  will-change: transform;
+}
+
+.secret-card-inner.is-flipped {
+  transform: rotateY(180deg);
+}
+
+/* Modos distintos de transição 3D SEM filter dentro de preserve-3d! */
+.secret-card-inner.secret-mode-portal {
+  transition: transform 0.86s cubic-bezier(0.2, 1.28, 0.32, 1);
+}
+
+.secret-card-inner.secret-mode-tornado {
+  transition: transform 0.92s cubic-bezier(0.22, 1.12, 0.36, 1);
+}
+
+.secret-card-inner.secret-mode-tornado.is-flipped {
+  transform: rotateY(540deg);
+}
+
+.secret-card-inner.secret-mode-wax {
+  transition: transform 0.72s cubic-bezier(0.18, 1.32, 0.32, 1);
+}
+
+.secret-card-inner.secret-mode-wax.is-flipped {
+  transition-delay: 0.28s;
+}
+
+.secret-card-inner.secret-mode-prism {
+  transition: transform 1.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.secret-card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.secret-card-face-back {
+  z-index: 2;
+  pointer-events: auto;
+}
+
+.secret-card-inner.is-flipped .secret-card-face-back {
+  pointer-events: none;
+}
+
+.secret-card-face-front {
+  transform: rotateY(180deg);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.secret-card-inner.is-flipped .secret-card-face-front {
+  pointer-events: auto;
+}
+
+/* Deal animado SEM filter para nunca achatar preserve-3d nos filhos */
+@keyframes secretCardDealIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -140px, 0) scale(0.32) rotate(-24deg);
+  }
+  65% {
+    opacity: 1;
+    transform: translate3d(0, 8px, 0) scale(1.04) rotate(2deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+}
+
+.secret-card-deal-in {
+  animation: secretCardDealIn 0.68s cubic-bezier(0.22, 1.18, 0.36, 1) both;
+}
+
+/* Embaralhamento realista estilo Croupier Riffle Shuffle */
+@keyframes secretRiffleStackLeft {
+  0%, 100% {
+    transform: translate3d(-64px, 0, 0) rotate(-10deg);
+  }
+  50% {
+    transform: translate3d(-58px, -3px, 0) rotate(-12deg);
+  }
+}
+
+@keyframes secretRiffleStackRight {
+  0%, 100% {
+    transform: translate3d(64px, 0, 0) rotate(10deg);
+  }
+  50% {
+    transform: translate3d(58px, -3px, 0) rotate(12deg);
+  }
+}
+
+@keyframes secretRiffleLeafFromLeft {
+  0% {
+    opacity: 0;
+    transform: translate3d(-64px, 0, 0) rotate(-11deg) scale(0.98);
+  }
+  18% {
+    opacity: 1;
+    transform: translate3d(-32px, -24px, 0) rotate(-5deg) scale(1.02);
+  }
+  58% {
+    opacity: 1;
+    transform: translate3d(0px, -6px, 0) rotate(0deg) scale(1);
+  }
+  82% {
+    opacity: 0.9;
+    transform: translate3d(0px, 2px, 0) rotate(0deg) scale(0.99);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0px, 4px, 0) rotate(0deg) scale(0.98);
+  }
+}
+
+@keyframes secretRiffleLeafFromRight {
+  0% {
+    opacity: 0;
+    transform: translate3d(64px, 0, 0) rotate(11deg) scale(0.98);
+  }
+  18% {
+    opacity: 1;
+    transform: translate3d(32px, -24px, 0) rotate(5deg) scale(1.02);
+  }
+  58% {
+    opacity: 1;
+    transform: translate3d(0px, -6px, 0) rotate(0deg) scale(1);
+  }
+  82% {
+    opacity: 0.9;
+    transform: translate3d(0px, 2px, 0) rotate(0deg) scale(0.99);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0px, 4px, 0) rotate(0deg) scale(0.98);
+  }
+}
+
+@keyframes secretDeckCenterPulse {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -3px, 0) scale(1.015);
+  }
+}
+
+.secret-riffle-left-stack {
+  animation: secretRiffleStackLeft 0.7s ease-in-out infinite;
+}
+
+.secret-riffle-right-stack {
+  animation: secretRiffleStackRight 0.7s ease-in-out infinite;
+}
+
+.secret-riffle-center-stack {
+  animation: secretDeckCenterPulse 0.45s ease-in-out infinite;
+}
+
+.secret-riffle-leaf-left {
+  animation: secretRiffleLeafFromLeft 0.78s cubic-bezier(0.25, 0.85, 0.35, 1) infinite;
+}
+
+.secret-riffle-leaf-right {
+  animation: secretRiffleLeafFromRight 0.78s cubic-bezier(0.25, 0.85, 0.35, 1) infinite;
+}
+
+/* ============================================================================
+   5 ANIMAÇÕES DE SELEÇÃO / REVELAÇÃO DA CARTA (CINÉTICA NO WRAPPER, 3D PURO NO INNER)
+   ============================================================================ */
+@keyframes secretMotionClassic {
+  0% { transform: scale(1) translateY(0); }
+  45% { transform: scale(1.07) translateY(-14px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+.secret-motion-classic {
+  animation: secretMotionClassic 0.8s cubic-bezier(0.22, 1.2, 0.36, 1) forwards;
+}
+
+/* Modo 2: Portal Arcano */
+@keyframes secretMotionPortal {
+  0% { transform: scale(1) rotateZ(0deg); }
+  25% { transform: scale(0.84) rotateZ(-6deg) translateY(8px); }
+  62% { transform: scale(1.13) rotateZ(2deg) translateY(-20px); }
+  100% { transform: scale(1) rotateZ(0deg) translateY(0); }
+}
+
+.secret-motion-portal {
+  animation: secretMotionPortal 0.92s cubic-bezier(0.18, 1.25, 0.32, 1) forwards;
+}
+
+@keyframes secretPortalVortexSpin {
+  0% {
+    opacity: 0;
+    transform: scale(0.32) rotate(0deg);
+  }
+  28% {
+    opacity: 1;
+    transform: scale(1.08) rotate(130deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.55) rotate(340deg);
+  }
+}
+
+.secret-portal-vortex {
+  animation: secretPortalVortexSpin 0.95s ease-out forwards;
+}
+
+/* Modo 3: Tornado & Batida na Mesa */
+@keyframes secretMotionTornado {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  38% { transform: translate3d(0, -56px, 0) scale(1.14) rotateZ(-4deg); }
+  74% { transform: translate3d(0, 10px, 0) scale(0.94) rotateZ(2deg); }
+  88% { transform: translate3d(0, -5px, 0) scale(1.03); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+.secret-motion-tornado {
+  animation: secretMotionTornado 0.94s cubic-bezier(0.22, 1.12, 0.36, 1) forwards;
+}
+
+@keyframes secretSlamShockwave {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  58% {
+    opacity: 0;
+  }
+  72% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.65);
+  }
+}
+
+.secret-slam-shockwave {
+  animation: secretSlamShockwave 1s ease-out forwards;
+}
+
+/* Modo 4: Selo Quebrado & Rasgo Dourado */
+@keyframes secretMotionWax {
+  0% { transform: translate3d(0, 0, 0) rotateZ(0deg); }
+  8% { transform: translate3d(-5px, -3px, 0) rotateZ(-2.5deg); }
+  16% { transform: translate3d(6px, 2px, 0) rotateZ(2.8deg); }
+  24% { transform: translate3d(-6px, 1px, 0) rotateZ(-2.5deg) scale(1.04); }
+  34% { transform: translate3d(0, 4px, 0) scale(0.92); }
+  66% { transform: translate3d(0, -18px, 0) scale(1.11); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+.secret-motion-wax {
+  animation: secretMotionWax 1.02s cubic-bezier(0.2, 1.25, 0.32, 1) forwards;
+}
+
+@keyframes secretWaxFlashPop {
+  0%, 24% {
+    opacity: 0;
+    transform: scale(0.75);
+  }
+  34% {
+    opacity: 0.95;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.38);
+  }
+}
+
+.secret-wax-flash {
+  animation: secretWaxFlashPop 0.95s ease-out forwards;
+}
+
+@keyframes secretWaxShardFly {
+  0%, 28% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.3) rotate(0deg);
+  }
+  36% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--tx, 0px), var(--ty, -92px), 0) scale(1.25) rotate(var(--rot, 160deg));
+  }
+}
+
+.secret-wax-shard {
+  animation: secretWaxShardFly 1.05s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Modo 5: Prisma Slow-Mo Cinematográfico */
+@keyframes secretMotionPrism {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  45% { transform: translate3d(0, -28px, 0) scale(1.1); }
+  85% { transform: translate3d(0, -8px, 0) scale(1.04); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+.secret-motion-prism {
+  animation: secretMotionPrism 1.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes secretPrismBeamCross {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.15) rotate(var(--beam-rot, 32deg));
+  }
+  36% {
+    opacity: 1;
+    transform: scaleX(1.15) rotate(var(--beam-rot, 32deg));
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(1.5) rotate(var(--beam-rot, 32deg));
+  }
+}
+
+.secret-prism-beam {
+  animation: secretPrismBeamCross 1.2s ease-out forwards;
+}
+
+@keyframes secretFlipBurstPop {
+  0% {
+    opacity: 0.95;
+    transform: scale(0.55);
+  }
+  65% {
+    opacity: 0.7;
+    transform: scale(1.18);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.42);
+  }
+}
+
+.secret-flip-burst-ring {
+  animation: secretFlipBurstPop 0.85s ease-out forwards;
+}
+
+@keyframes secretSuitParticle {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.4) rotate(0deg);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--tx, 0px), var(--ty, -70px), 0) scale(1.25) rotate(var(--rot, 120deg));
+  }
+}
+
+.secret-suit-particle {
+  animation: secretSuitParticle 0.95s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes secretFoilSweep {
+  0% {
+    transform: translateX(-140%) skewX(-22deg);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateX(220%) skewX(-22deg);
+    opacity: 0;
+  }
+}
+
+.secret-foil-sweep {
+  animation: secretFoilSweep 1.1s ease-out 0.25s 1;
+}
+
+@keyframes secretExoticHolo {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.secret-exotic-holo {
+  background-size: 200% 200%;
+  animation: secretExoticHolo 4s ease infinite;
+}
+
+@keyframes secretCatalogEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(-18px) scale(0.92);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(3px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.secret-catalog-enter {
+  animation: secretCatalogEnter 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes secretOrbitSpin {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.secret-rarity-shell {
+  position: relative;
+  overflow: hidden;
+  padding: 2px;
+  border-radius: 16px;
+}
+
+.secret-rarity-shell::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 220%;
+  height: 220%;
+  pointer-events: none;
+  z-index: 0;
+  animation: secretOrbitSpin 5.5s linear infinite;
+}
+
+.secret-shell-common::before {
+  background: conic-gradient(from 0deg, transparent 0deg 220deg, rgba(16, 185, 129, 0.25) 260deg, rgba(52, 211, 153, 0.95) 315deg, rgba(167, 243, 208, 0.95) 340deg, transparent 360deg);
+  animation-duration: 7s;
+}
+
+.secret-shell-medium::before {
+  background: conic-gradient(from 0deg, transparent 0deg 170deg, rgba(56, 189, 248, 0.35) 230deg, rgba(186, 230, 253, 0.98) 295deg, rgba(14, 165, 233, 0.95) 340deg, transparent 360deg);
+  animation-duration: 5.5s;
+}
+
+.secret-shell-hard::before {
+  background: conic-gradient(from 0deg, rgba(168, 85, 247, 0.2) 0deg 130deg, #a855f7 190deg, #e879f9 240deg, rgba(88, 28, 135, 0.25) 280deg, #c084fc 330deg, rgba(168, 85, 247, 0.2) 360deg);
+  animation-duration: 4.2s;
+}
+
+.secret-shell-very_hard::before {
+  background: conic-gradient(from 0deg, rgba(245, 158, 11, 0.25) 0deg 90deg, #f97316 160deg, #fde047 220deg, #ef4444 275deg, #fbbf24 330deg, rgba(245, 158, 11, 0.25) 360deg);
+  animation-duration: 3.4s;
+}
+
+.secret-shell-exotic::before {
+  background: conic-gradient(from 0deg, #f43f5e, #d946ef, #38bdf8, #34d399, #facc15, #fb7185, #f43f5e);
+  animation-duration: 2.8s;
+}
+
+@keyframes secretAuraSweepLoop {
+  0% {
+    transform: translateX(-160%) skewX(-24deg);
+    opacity: 0;
+  }
+  16% {
+    opacity: 0.65;
+  }
+  38% {
+    transform: translateX(240%) skewX(-24deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(240%) skewX(-24deg);
+    opacity: 0;
+  }
+}
+
+.secret-aura-sweep {
+  animation: secretAuraSweepLoop 4.2s ease-in-out infinite;
+}
+
+@keyframes secretMoteRise {
+  0% {
+    transform: translateY(0) scale(0.5);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-68px) translateX(var(--mx, 6px)) scale(1.1);
+    opacity: 0;
+  }
+}
+
+.secret-mote-rise {
+  animation: secretMoteRise 2.4s ease-out infinite;
+}
+
+/* EFEITO CRIATIVO DE DECLÍNIO: RASGO DIAGONAL + DUAS METADES + VÓRTICE DIMENSIONAL */
+@keyframes secretDeclineSlashBeam {
+  0% {
+    opacity: 0;
+    transform: rotate(-38deg) scaleX(0);
+  }
+  22% {
+    opacity: 1;
+    transform: rotate(-38deg) scaleX(1.35);
+  }
+  65% {
+    opacity: 0.85;
+    transform: rotate(-38deg) scaleX(1.45);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(-38deg) scaleX(1.6);
+  }
+}
+
+.secret-decline-slash-line {
+  animation: secretDeclineSlashBeam 0.72s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes secretDeclineHalfTopSlice {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  25% {
+    transform: translate3d(-12px, -10px, 0) rotate(-6deg) scale(1.03);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate3d(14px, 14px, 0) rotate(-145deg) scale(0.05);
+    opacity: 0;
+  }
+}
+
+@keyframes secretDeclineHalfBottomSlice {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  25% {
+    transform: translate3d(12px, 10px, 0) rotate(6deg) scale(1.03);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate3d(-14px, -14px, 0) rotate(145deg) scale(0.05);
+    opacity: 0;
+  }
+}
+
+.secret-decline-half-a {
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  animation: secretDeclineHalfTopSlice 0.92s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.secret-decline-half-b {
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  animation: secretDeclineHalfBottomSlice 0.92s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes secretDeclineVoidPortal {
+  0% {
+    opacity: 0;
+    transform: scale(0.15) rotate(0deg);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1.18) rotate(180deg);
+  }
+  80% {
+    opacity: 0.85;
+    transform: scale(0.7) rotate(420deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.05) rotate(580deg);
+  }
+}
+
+.secret-decline-vortex-portal {
+  animation: secretDeclineVoidPortal 0.95s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes secretDeclineShredSpark {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(0.8) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx, 0px), var(--dy, -70px), 0) scale(1.3) rotate(var(--rot, 180deg));
+  }
+}
+
+.secret-decline-shred {
+  animation: secretDeclineShredSpark 0.88s ease-out forwards;
+}
+
+/* ============================================================================
+   EFEITO BUMERANGUE (RETORNO EM ARCO AO BARALHO — VOLTA A SER SORTEÁVEL)
+   ============================================================================ */
+@keyframes secretBoomerangFlight {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+    filter: brightness(1);
+  }
+  32% {
+    opacity: 1;
+    transform: translate3d(28px, -26px, 0) rotate(165deg) scale(0.86);
+    filter: brightness(1.3) drop-shadow(0 0 18px rgba(56, 189, 248, 0.9));
+  }
+  68% {
+    opacity: 0.9;
+    transform: translate3d(-20px, -10px, 0) rotate(390deg) scale(0.5);
+    filter: brightness(1.5) drop-shadow(0 0 24px rgba(129, 140, 248, 0.95));
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(560deg) scale(0.06);
+    filter: brightness(1.8);
+  }
+}
+
+.secret-boomerang-card {
+  animation: secretBoomerangFlight 0.92s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes secretBoomerangArcRing {
+  0% {
+    opacity: 0;
+    transform: scale(0.25) rotate(0deg);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1.16) rotate(-180deg);
+  }
+  80% {
+    opacity: 0.85;
+    transform: scale(0.65) rotate(-400deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.05) rotate(-540deg);
+  }
+}
+
+.secret-boomerang-ring {
+  animation: secretBoomerangArcRing 0.94s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes secretBoomerangSparkFly {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(0.9) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx, 0px), var(--dy, -65px), 0) scale(1.25) rotate(var(--rot, -240deg));
+  }
+}
+
+.secret-boomerang-spark {
+  animation: secretBoomerangSparkFly 0.88s ease-out forwards;
+}
+
+@keyframes chimeraForgeReelBlur {
+  0%, 100% {
+    transform: translateY(0);
+    filter: brightness(1);
+  }
+  50% {
+    transform: translateY(-3px);
+    filter: brightness(1.32);
+  }
+}
+
+.chimera-reel-spinning {
+  animation: chimeraForgeReelBlur 0.18s ease-in-out infinite;
+}
+
+@keyframes chimeraGoldenAura {
+  0%, 100% {
+    box-shadow: 0 0 26px rgba(251, 191, 36, 0.28), inset 0 0 18px rgba(251, 191, 36, 0.08);
+  }
+  50% {
+    box-shadow: 0 0 42px rgba(245, 158, 11, 0.48), inset 0 0 28px rgba(251, 191, 36, 0.18);
+  }
+}
+
+.chimera-golden-ready {
+  animation: chimeraGoldenAura 2.4s ease-in-out infinite;
+}
+
+@keyframes chimeraJackpotPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.76) translateY(8px);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.06) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.chimera-jackpot-pop {
+  animation: chimeraJackpotPop 0.42s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes chimeraWaxSlam {
+  0% {
+    opacity: 0;
+    transform: scale(1.9) rotate(-14deg) translateY(-10px);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(0.95) rotate(2deg) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-1deg) translateY(0);
+  }
+}
+
+.chimera-wax-slam {
+  animation: chimeraWaxSlam 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes chimeraDiceTumble {
+  0% {
+    transform: rotate(0deg) scale(0.92);
+  }
+  25% {
+    transform: rotate(110deg) scale(1.1) translateY(-6px);
+  }
+  50% {
+    transform: rotate(215deg) scale(0.96) translateY(2px);
+  }
+  75% {
+    transform: rotate(315deg) scale(1.08) translateY(-4px);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+.chimera-dice-tumbling {
+  animation: chimeraDiceTumble 0.42s linear infinite;
+}
+
+@keyframes chimeraBubbleRise {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.5);
+  }
+  35% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-44px) scale(1.15);
+  }
+}
+
+.chimera-bubble {
+  animation: chimeraBubbleRise 1.6s ease-out infinite;
+}
+
+@keyframes chimeraRuneFloat {
+  0%, 100% {
+    transform: translateY(0);
+    box-shadow: 0 0 18px rgba(168, 85, 247, 0.22);
+  }
+  50% {
+    transform: translateY(-4px);
+    box-shadow: 0 0 32px rgba(251, 191, 36, 0.38);
+  }
+}
+
+.chimera-rune-Mystery {
+  animation: chimeraRuneFloat 2s ease-in-out infinite;
+}
+
+@keyframes chimeraDiceArenaThrow {
+  0% {
+    opacity: 0;
+    transform: translate3d(-140px, -55px, 0) scale(0.5) rotate(-460deg);
+  }
+  42% {
+    opacity: 1;
+    transform: translate3d(-32px, 14px, 0) scale(1.14) rotate(-200deg);
+  }
+  68% {
+    transform: translate3d(10px, -20px, 0) scale(1.06) rotate(-75deg);
+  }
+  86% {
+    transform: translate3d(-3px, 4px, 0) scale(0.96) rotate(-12deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+}
+
+.chimera-dice-throw {
+  animation: chimeraDiceArenaThrow 1.15s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes chimeraImpactShockwave {
+  0% {
+    opacity: 0.95;
+    transform: scale(0.35);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.5);
+  }
+}
+
+.chimera-impact-ring {
+  animation: chimeraImpactShockwave 0.78s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes chimeraLegendaryGlow {
+  0%, 100% {
+    box-shadow: 0 0 22px rgba(251, 191, 36, 0.35), inset 0 0 12px rgba(251, 191, 36, 0.12);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(251, 191, 36, 0.72), inset 0 0 24px rgba(253, 224, 71, 0.25);
+  }
+}
+
+.chimera-rune-legendary {
+  animation: chimeraLegendaryGlow 1.9s ease-in-out infinite;
+}
+
+@keyframes chimeraBg3SpinLoop {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.06);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+.chimera-bg3-spinning {
+  animation: chimeraBg3SpinLoop 0.72s linear infinite;
+}
+
+@keyframes chimeraCoinBurst {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(0.5) rotate(0deg);
+  }
+  45% {
+    opacity: 1;
+    transform: translate3d(var(--tx, 0px), var(--ty, -100px), 0) scale(1.25) rotate(var(--rot, 180deg));
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(calc(var(--tx, 0px) * 1.35), calc(var(--ty, -100px) + 55px), 0) scale(0.45) rotate(calc(var(--rot, 180deg) * 1.8));
+  }
+}
+
+.chimera-coin-particle {
+  animation: chimeraCoinBurst 1.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes chimeraSlashSweep {
+  0% {
+    opacity: 0;
+    transform: translateX(-140%) skewX(-22deg);
+  }
+  35% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(220%) skewX(-22deg);
+  }
+}
+
+.chimera-slash-effect {
+  animation: chimeraSlashSweep 0.75s ease-out forwards;
+}
+
+@keyframes chimeraJackpotPulseBanner {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 24px rgba(251, 191, 36, 0.35);
+  }
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 0 46px rgba(253, 224, 71, 0.75);
+  }
+}
+
+.chimera-jackpot-banner {
+  animation: chimeraJackpotPulseBanner 1.3s ease-in-out infinite;
+}
+
+@keyframes chimeraRevealCommon {
+  0% {
+    opacity: 0;
+    transform: scale(0.84) rotateY(70deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotateY(0deg);
+    box-shadow: 0 0 22px rgba(228, 228, 231, 0.25);
+  }
+}
+
+.chimera-reveal-common {
+  animation: chimeraRevealCommon 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes chimeraRevealRare {
+  0% {
+    opacity: 0;
+    transform: scale(0.7) rotate(-8deg);
+    filter: brightness(1.8);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.08) rotate(2deg);
+    box-shadow: 0 0 42px rgba(56, 189, 248, 0.72);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+    filter: brightness(1);
+    box-shadow: 0 0 28px rgba(56, 189, 248, 0.38);
+  }
+}
+
+.chimera-reveal-rare {
+  animation: chimeraRevealRare 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes chimeraRevealLegendary {
+  0% {
+    opacity: 0;
+    transform: scale(0.55) rotate(12deg);
+    filter: brightness(2.2);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.13) rotate(-3deg);
+    box-shadow: 0 0 65px rgba(251, 191, 36, 0.95);
+  }
+  75% {
+    transform: scale(0.98) rotate(1deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+    filter: brightness(1);
+    box-shadow: 0 0 40px rgba(251, 191, 36, 0.65);
+  }
+}
+
+.chimera-reveal-legendary {
+  animation: chimeraRevealLegendary 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes bingoCageSpin {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(90deg) scale(1.03);
+  }
+  50% {
+    transform: rotate(180deg) scale(1);
+  }
+  75% {
+    transform: rotate(270deg) scale(1.03);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+.bingo-cage-spin {
+  animation: bingoCageSpin 0.72s linear infinite;
+}
+
+@keyframes bingoBallBounce {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(7px, -10px) scale(1.08);
+  }
+  50% {
+    transform: translate(-8px, -4px) scale(0.96);
+  }
+  75% {
+    transform: translate(5px, 8px) scale(1.04);
+  }
+}
+
+.bingo-ball-bounce {
+  animation: bingoBallBounce 0.42s ease-in-out infinite;
+}
+
+@keyframes bingoStampSlam {
+  0% {
+    opacity: 0;
+    transform: scale(1.9) rotate(-18deg);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(0.92) rotate(-8deg);
+  }
+  80% {
+    transform: scale(1.04) rotate(-11deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-10deg);
+  }
+}
+
+.bingo-stamp-slam {
+  animation: bingoStampSlam 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes bingoDaubGlow {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.35), inset 0 0 12px rgba(251, 191, 36, 0.18);
+  }
+  50% {
+    box-shadow: 0 0 26px rgba(251, 191, 36, 0.7), inset 0 0 18px rgba(251, 191, 36, 0.3);
+  }
+}
+
+.bingo-daub-pulse {
+  animation: bingoDaubGlow 1.6s ease-in-out infinite;
+}
+
+@keyframes bingoUpgradeOverclock {
+  0%, 100% {
+    box-shadow: 0 0 14px rgba(249, 115, 22, 0.35), inset 0 0 16px rgba(239, 68, 68, 0.22);
+  }
+  50% {
+    box-shadow: 0 0 26px rgba(251, 146, 60, 0.65), inset 0 0 22px rgba(249, 115, 22, 0.36);
+  }
+}
+
+.bingo-cell-upgraded {
+  animation: bingoUpgradeOverclock 1.8s ease-in-out infinite;
+}
+
+@keyframes bingoDowngradeChill {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.28), inset 0 0 16px rgba(34, 211, 238, 0.16);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(103, 232, 249, 0.52), inset 0 0 22px rgba(56, 189, 248, 0.28);
+  }
+}
+
+.bingo-cell-downgraded {
+  animation: bingoDowngradeChill 2.3s ease-in-out infinite;
+}
+
+.bingo-parchment-font {
+  font-family: 'Palatino Linotype', 'Book Antiqua', Georgia, 'Times New Roman', serif;
+}
+
+.bingo-parchment-sheet {
+  background-color: #160e08;
+  background-image:
+    radial-gradient(ellipse at 50% 30%, rgba(84, 53, 27, 0.52) 0%, rgba(36, 22, 11, 0.88) 58%, rgba(16, 10, 5, 0.98) 100%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(120, 74, 34, 0.07) 0px,
+      rgba(120, 74, 34, 0.07) 42px,
+      rgba(12, 7, 3, 0.16) 42px,
+      rgba(12, 7, 3, 0.16) 84px
+    );
+  box-shadow:
+    inset 0 0 70px rgba(0, 0, 0, 0.84),
+    inset 0 1px 0 rgba(212, 168, 102, 0.16),
+    0 24px 65px rgba(0, 0, 0, 0.92);
+}
+
+.bingo-parchment-cell {
+  background: linear-gradient(155deg, #432d19 0%, #312011 54%, #23160b 100%);
+  box-shadow:
+    inset 0 0 20px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(242, 210, 152, 0.16),
+    0 10px 22px rgba(0, 0, 0, 0.58);
+}
+
+.bingo-parchment-cell-upgraded {
+  background: linear-gradient(155deg, #4b2316 0%, #37160d 55%, #230d08 100%);
+  box-shadow:
+    inset 0 0 22px rgba(249, 115, 22, 0.18),
+    inset 0 1px 0 rgba(253, 186, 116, 0.2),
+    0 10px 22px rgba(0, 0, 0, 0.62);
+}
+
+.bingo-parchment-cell-downgraded {
+  background: linear-gradient(155deg, #1d323b 0%, #14242b 55%, #0d181e 100%);
+  box-shadow:
+    inset 0 0 22px rgba(56, 189, 248, 0.16),
+    inset 0 1px 0 rgba(186, 230, 253, 0.18),
+    0 10px 22px rgba(0, 0, 0, 0.6);
+}
+
+.bingo-scroll-roller {
+  height: 11px;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, #b8915c 0%, #7d572e 42%, #4a3117 82%, #2c1c0c 100%);
+  border: 1px solid rgba(235, 198, 138, 0.28);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 232, 185, 0.35),
+    0 3px 8px rgba(0, 0, 0, 0.65);
+}
+
+.bingo-rolled-scroll-body {
+  background: linear-gradient(180deg, #8c663b 0%, #5b3d20 22%, #3a2411 58%, #26160a 86%, #4a3017 100%);
+  border-top: 1px solid rgba(245, 214, 158, 0.28);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.72);
+  box-shadow:
+    inset 10px 0 16px -8px rgba(0, 0, 0, 0.75),
+    inset -10px 0 16px -8px rgba(0, 0, 0, 0.75),
+    0 10px 24px rgba(0, 0, 0, 0.72);
+}
+
+.bingo-wax-seal {
+  background: radial-gradient(circle at 34% 30%, #dc2626 0%, #991b1b 48%, #5c0b0b 84%, #3b0606 100%);
+  border: 1px solid rgba(254, 202, 202, 0.32);
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.24),
+    inset 0 -3px 6px rgba(40, 0, 0, 0.75),
+    0 4px 10px rgba(0, 0, 0, 0.75);
+}
+
+.bingo-wax-seal-green {
+  background: radial-gradient(circle at 34% 30%, #16a34a 0%, #166534 48%, #0b3b1e 84%, #052211 100%);
+  border: 1px solid rgba(187, 247, 208, 0.32);
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.22),
+    inset 0 -3px 6px rgba(0, 30, 12, 0.75),
+    0 4px 10px rgba(0, 0, 0, 0.75);
+}
+
+@keyframes bingoScrollUnroll {
+  0% {
+    opacity: 0.45;
+    transform: scaleY(0.76);
+  }
+  70% {
+    opacity: 1;
+    transform: scaleY(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+.bingo-scroll-unroll-anim {
+  transform-origin: top center;
+  animation: bingoScrollUnroll 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes parchmentSealStamp {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    box-shadow:
+      inset 0 2px 4px rgba(255, 255, 255, 0.24),
+      inset 0 -3px 6px rgba(40, 0, 0, 0.75),
+      0 0 18px rgba(245, 158, 11, 0.35);
+  }
+  45% {
+    transform: scale(1.12) rotate(-6deg);
+    box-shadow:
+      inset 0 2px 6px rgba(255, 255, 255, 0.32),
+      inset 0 -3px 6px rgba(40, 0, 0, 0.75),
+      0 0 32px rgba(251, 191, 36, 0.7);
+  }
+  70% {
+    transform: scale(0.95) rotate(3deg);
+  }
+}
+
+.parchment-seal-stamp-anim {
+  animation: parchmentSealStamp 0.9s ease-in-out infinite;
+}
+
+@keyframes parchmentScrollFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(var(--scroll-rot, 0deg));
+  }
+  50% {
+    transform: translateY(-4px) rotate(calc(var(--scroll-rot, 0deg) + 4deg));
+  }
+}
+
+.parchment-scroll-float {
+  animation: parchmentScrollFloat 2.6s ease-in-out infinite;
+}

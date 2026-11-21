@@ -13,6 +13,7 @@ import {
   isDirectorStar,
   resolveWalkRpgRankFromTier,
 } from './walkOfFameStickers';
+import { getClassPowers } from './classPowersCatalog';
 
 const UN_COUNTRY_BY_CODE = new Map();
 const UN_COUNTRY_BY_NAME = new Map();
@@ -1219,6 +1220,14 @@ export function computeYearShowdown(filteredMovies = [], allMovies = []) {
   };
 }
 
+export const SECRET_DRAW_SOR_BY_DIFFICULTY = {
+  common: 0.2,
+  medium: 0.4,
+  hard: 0.6,
+  very_hard: 1.0,
+  exotic: 1.3,
+};
+
 export const CHARACTER_TIERS = [
   { grade: 1, min: 0, max: 149, label: '🌱 Grau 1 • Aprendiz Cinéfilo', nextLabel: '⚔️ Grau 2 • Aventureiro das Salas (1ª Classe)', nextMin: 150 },
   { grade: 2, min: 150, max: 249, label: '⚔️ Grau 2 • Aventureiro das Salas (1ª Classe)', nextLabel: '🛡️ Grau 3 • Veterano da Claquete (2ª Classe)', nextMin: 250 },
@@ -1463,6 +1472,7 @@ export function determineCharacterClass(attributes = [], totalStats = 0, _movies
     const ptsRemaining = Math.max(0, cls.unlockPts - totalStats);
     return {
       ...cls,
+      powers: getClassPowers(cls.id),
       orderIndex: idx + 1,
       isUnlocked,
       ptsRemaining,
@@ -1472,6 +1482,18 @@ export function determineCharacterClass(attributes = [], totalStats = 0, _movies
   const unlockedList = evaluatedClasses.filter((c) => c.isUnlocked);
   const highestUnlockedClass = unlockedList[unlockedList.length - 1] || evaluatedClasses[0];
   const nextClassToUnlock = evaluatedClasses.find((c) => !c.isUnlocked) || null;
+
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem('cine_rpg_highest_class_id', String(highestUnlockedClass?.id || 'andarilho_setima_arte'));
+      window.localStorage.setItem(
+        'cine_rpg_unlocked_class_ids',
+        JSON.stringify(unlockedList.map((c) => c.id))
+      );
+    }
+  } catch {
+    // ignore storage errors
+  }
 
   const classStars = totalStats > 693 ? Math.floor(totalStats / 693) : 0;
   const classCycleScore = totalStats > 693 ? totalStats % 693 : totalStats;
@@ -1508,7 +1530,8 @@ export function computeRpgAndGuilds(
   allMovies = [],
   xpStatusProp = null,
   trophiesList = [],
-  walkOfFameData = null
+  walkOfFameData = null,
+  secretDrawStatusData = null
 ) {
   const activeXp = xpStatusProp || calculateClientXpStatus(allMovies, trophiesList.length > 0 ? trophiesList : null);
 
@@ -1675,25 +1698,57 @@ export function computeRpgAndGuilds(
     vitSum = unlockedTrophiesCount * 0.4;
   }
 
-  // 1. Vigor de Tela (AGI): >120m (0.2) + >140m (0.4) + >170m (1.0)
-  const vigorStat = buildInfiniteStatProgress(agiSum);
+  const chimeraStats = activeXp?.sources?.chimera?.statPoints || {};
+  const bingoStats = activeXp?.sources?.bingo?.statPoints || {};
 
-  // 2. Sabedoria Temporal (INT): Anos Máquina do Tempo (0.8 cada) + clássicos pré-2000 (0.3), pré-1980 (0.5), pré-1950 (0.7)
-  const wisdomStat = buildInfiniteStatProgress(tmConquered * 0.8 + intHistoricalSum);
+  const roundStatPts = (v) => Math.round(v * 10) / 10;
 
-  // 3. Diplomacia Global (DES): 1.0 por nação ONU expandida + 0.2 por filme fora do eixo EUA/Brasil
-  const exploreStat = buildInfiniteStatProgress(countriesConquered * 1.0 + foreignCount * 0.2);
+  const agiChimera = Number(chimeraStats.AGI || 0);
+  const agiBingo = Number(bingoStats.AGI || 0);
+  const agiTotalSum = roundStatPts(agiSum + agiChimera + agiBingo);
 
-  // 4. Olhar Clínico (SOR): 0.2 por obra catalogada + 0.8 por nota extrema (>=9.5 ou <=4.0)
-  const precisionStat = buildInfiniteStatProgress(uniqueAll.length * 0.2 + extremeRatingsCount * 0.8);
+  const intChimera = Number(chimeraStats.INT || 0);
+  const intBingo = Number(bingoStats.INT || 0);
+  const intTotalSum = roundStatPts(tmConquered * 0.8 + intHistoricalSum + intChimera + intBingo);
 
-  // 5. Caça-Troféus PS5 (VIT): 0.2 bronze, 0.4 prata, 0.6 épico, 0.8 ouro, 1.0 mítico, 3.0 platina, 0.5 ★ infinita
-  const trophyStat = buildInfiniteStatProgress(vitSum);
+  const desChimera = Number(chimeraStats.DES || 0);
+  const desBingo = Number(bingoStats.DES || 0);
+  const desTotalSum = roundStatPts(countriesConquered * 1.0 + foreignCount * 0.2 + desChimera + desBingo);
 
-  // 6. Prestígio Áureo (FOR): 0.4 por Oscar vencido + 0.2 por indicação (sem critério de nota)
-  const prestigeStat = buildInfiniteStatProgress(oscarWinsTotalAll * 0.4 + oscarNomsTotalAll * 0.2);
+  // 1. Vigor de Tela (AGI): >120m (0.2) + >140m (0.4) + >170m (1.0) + Quimera (Gênero) + Pergaminhos
+  const vigorStat = buildInfiniteStatProgress(agiTotalSum);
 
-  // 7. Aura de Estrela (CAR): figurinhas coladas no Álbum da Fama por Rank
+  // 2. Sabedoria Temporal (INT): Anos Máquina do Tempo (0.8 cada) + clássicos pré-2000/1980/1950 + Quimera (Ano) + Pergaminhos
+  const wisdomStat = buildInfiniteStatProgress(intTotalSum);
+
+  // 3. Diplomacia Global (DES): 1.0 por nação ONU + 0.2 fora eixo EUA/BR + Quimera (País) + Pergaminhos
+  const exploreStat = buildInfiniteStatProgress(desTotalSum);
+
+  // 4. Olhar Clínico & Fortuna (SOR): 0.2 obra + 0.8 nota extrema + Sessão Secreta + Pergaminhos
+  const secretXpBlock = secretDrawStatusData?.xpSummary || activeXp?.sources?.secretDraw || {};
+  const secretByDiff = secretXpBlock?.byDifficulty || {};
+  let secretSorRaw = 0;
+  let secretCompletedCount = 0;
+  for (const [tierKey, weight] of Object.entries(SECRET_DRAW_SOR_BY_DIFFICULTY)) {
+    const cnt = Number(secretByDiff?.[tierKey]?.count || 0);
+    secretCompletedCount += cnt;
+    secretSorRaw += cnt * weight;
+  }
+  const sorBingo = Number(bingoStats.SOR || 0);
+  const sorTotalSum = roundStatPts(uniqueAll.length * 0.2 + extremeRatingsCount * 0.8 + secretSorRaw + sorBingo);
+  const precisionStat = buildInfiniteStatProgress(sorTotalSum);
+
+  // 5. Caça-Troféus PS5 (VIT): Troféus + Estrelas infinitas + Pergaminhos
+  const vitBingo = Number(bingoStats.VIT || 0);
+  const vitTotalSum = roundStatPts(vitSum + vitBingo);
+  const trophyStat = buildInfiniteStatProgress(vitTotalSum);
+
+  // 6. Prestígio Áureo (FOR): 0.4 Oscar vencido + 0.2 indicação + Pergaminhos
+  const forBingo = Number(bingoStats.FOR || 0);
+  const forTotalSum = roundStatPts(oscarWinsTotalAll * 0.4 + oscarNomsTotalAll * 0.2 + forBingo);
+  const prestigeStat = buildInfiniteStatProgress(forTotalSum);
+
+  // 7. Aura de Estrela (CAR): figurinhas coladas no Álbum da Fama + Quimera (Tags) + Pergaminhos
   let carSum = 0;
   let carStuckCount = 0;
   if (Array.isArray(walkOfFameData?.stars) && walkOfFameData.stars.length > 0) {
@@ -1716,8 +1771,17 @@ export function computeRpgAndGuilds(
     carSum = Number(activeXp?.sources?.walkOfFame?.carPoints || 0);
     carStuckCount = Number(activeXp?.sources?.walkOfFame?.stuckCount || 0);
   }
-  carSum = Math.round(carSum * 10) / 10;
-  const charismaStat = buildInfiniteStatProgress(carSum);
+  const carChimera = Number(chimeraStats.CAR || 0);
+  const carBingo = Number(bingoStats.CAR || 0);
+  const carTotalSum = roundStatPts(carSum + carChimera + carBingo);
+  const charismaStat = buildInfiniteStatProgress(carTotalSum);
+
+  const formatGuildBonusSuffix = (chimeraVal, bingoVal) => {
+    const parts = [];
+    if (chimeraVal > 0) parts.push(`Quimera +${chimeraVal.toFixed(1)}`);
+    if (bingoVal > 0) parts.push(`Pergam. +${bingoVal.toFixed(1)}`);
+    return parts.length > 0 ? ` • ${parts.join(' • ')}` : '';
+  };
 
   // 7 Atributos na ordem solicitada inspirada em RPG clássico (AGI, INT, DES, SOR, VIT, FOR, CAR)
   const rpgAttributes = [
@@ -1729,8 +1793,8 @@ export function computeRpgAndGuilds(
       icon: '⚡',
       barColor: 'from-amber-400 to-yellow-300',
       ...vigorStat,
-      desc: `${epic170} gigantes (>170m) • ${epic140} épicos (>140m) • ${epic120} longos (>120m)`,
-      formulaSummary: '>120m: +0.2 | >140m: +0.4 | >170m: +1.0',
+      desc: `${epic170} gigantes (>170m) • ${epic140} épicos (>140m) • ${epic120} longos (>120m)${formatGuildBonusSuffix(agiChimera, agiBingo)}`,
+      formulaSummary: '>120m/+0.2 | >140m/+0.4 | >170m/+1.0 | Quimera Gênero +0.1/+0.5 | Perg. +0.1/+0.2',
     },
     {
       key: 'INT',
@@ -1740,8 +1804,8 @@ export function computeRpgAndGuilds(
       icon: '🧠',
       barColor: 'from-cyan-400 to-blue-400',
       ...wisdomStat,
-      desc: `${tmConquered} anos Máquina do Tempo • ${pre2000EraCount + pre1980EraCount + pre1950EraCount} clássicos históricos`,
-      formulaSummary: 'Ano Inédito: +0.8 | Pré-2000: +0.3 | Pré-1980: +0.5 | Pré-1950: +0.7',
+      desc: `${tmConquered} anos Máquina do Tempo • ${pre2000EraCount + pre1980EraCount + pre1950EraCount} clássicos históricos${formatGuildBonusSuffix(intChimera, intBingo)}`,
+      formulaSummary: 'Ano +0.8 | Pré-2000/80/50 +0.3/+0.5/+0.7 | Quimera Ano +0.1/+0.5 | Perg. +0.1/+0.2',
     },
     {
       key: 'DES',
@@ -1751,19 +1815,19 @@ export function computeRpgAndGuilds(
       icon: '🌍',
       barColor: 'from-emerald-400 to-teal-300',
       ...exploreStat,
-      desc: `${countriesConquered}/195 nações ONU • ${foreignCount} fora EUA/Brasil`,
-      formulaSummary: 'Fora do Eixo EUA/Brasil: +0.2 | Nova Nação ONU Desafio 195: +1.0',
+      desc: `${countriesConquered}/195 nações ONU • ${foreignCount} fora EUA/Brasil${formatGuildBonusSuffix(desChimera, desBingo)}`,
+      formulaSummary: 'Fora EUA/BR +0.2 | Nação ONU +1.0 | Quimera País +0.1/+0.5 | Perg. +0.1/+0.2',
     },
     {
       key: 'SOR',
       subject: 'Sorte (SOR)',
-      label: 'Olhar Clínico (Sorte)',
+      label: 'Olhar Clínico & Fortuna (Sorte)',
       shortName: 'Sorte',
       icon: '🎯',
       barColor: 'from-rose-400 to-pink-400',
       ...precisionStat,
-      desc: `${uniqueAll.length} obras catalogadas • ${extremeRatingsCount} notas extremas`,
-      formulaSummary: 'Obra Catalogada: +0.2 | Nota Extrema (≥9.5 ou ≤4.0): +0.8',
+      desc: `${uniqueAll.length} obras • ${extremeRatingsCount} notas extremas • ${secretCompletedCount} Sessão Secreta${formatGuildBonusSuffix(0, sorBingo)} (${sorTotalSum.toFixed(1)} pts)`,
+      formulaSummary: 'Obra +0.2 | Extrema +0.8 | Secreta +0.2..+1.3 | Perg. +0.1/+0.2',
     },
     {
       key: 'VIT',
@@ -1773,8 +1837,8 @@ export function computeRpgAndGuilds(
       icon: '🛡️',
       barColor: 'from-purple-400 to-violet-300',
       ...trophyStat,
-      desc: `${unlockedTrophiesCount} troféus conquistados${trophyExtraStarsTotal > 0 ? ` + ${trophyExtraStarsTotal}★` : ''} (${vitSum.toFixed(1)} pts)`,
-      formulaSummary: 'Bronze: +0.2 | Prata: +0.4 | Épico: +0.6 | Ouro: +0.8 | Mítico: +1.0 | Platina: +3.0 | ★ Infinita: +0.5',
+      desc: `${unlockedTrophiesCount} troféus conquistados${trophyExtraStarsTotal > 0 ? ` + ${trophyExtraStarsTotal}★` : ''}${formatGuildBonusSuffix(0, vitBingo)} (${vitTotalSum.toFixed(1)} pts)`,
+      formulaSummary: 'Bronze..Platina +0.2..+3.0 | ★ Infinita +0.5 | Perg. +0.1/+0.2',
     },
     {
       key: 'FOR',
@@ -1784,8 +1848,8 @@ export function computeRpgAndGuilds(
       icon: '👑',
       barColor: 'from-yellow-400 to-amber-300',
       ...prestigeStat,
-      desc: `${oscarWinsTotalAll} Oscars ganhos • ${oscarNomsTotalAll} indicações`,
-      formulaSummary: 'Indicação ao Oscar: +0.2 | Vitória no Oscar: +0.4 (Sem critério de nota)',
+      desc: `${oscarWinsTotalAll} Oscars ganhos • ${oscarNomsTotalAll} indicações${formatGuildBonusSuffix(0, forBingo)}`,
+      formulaSummary: 'Indicação +0.2 | Vitória Oscar +0.4 | Perg. +0.1/+0.2',
     },
     {
       key: 'CAR',
@@ -1795,8 +1859,8 @@ export function computeRpgAndGuilds(
       icon: '🌟',
       barColor: 'from-pink-400 via-rose-400 to-amber-300',
       ...charismaStat,
-      desc: `${carStuckCount} figurinhas coladas (${carSum.toFixed(1)} pts)`,
-      formulaSummary: 'Coladas — D: +0.1 | C: +0.2 | B: +0.3 | A: +0.4 | A+/X: +0.5 | S: +0.6 | SS: +0.7',
+      desc: `${carStuckCount} figurinhas coladas${formatGuildBonusSuffix(carChimera, carBingo)} (${carTotalSum.toFixed(1)} pts)`,
+      formulaSummary: 'Coladas D..SS +0.1..+0.7 | Quimera Tags +0.1/+0.5 | Perg. +0.1/+0.2',
     },
   ];
 
@@ -2284,8 +2348,13 @@ export function computeMovieStatGains({
     });
   }
 
-  // 4. Sorte (SOR) - Olhar Clínico (+0.2 por catalogação | +0.8 nota extrema >=9.5 ou <=4.0)
-  const roundedSor = Math.round(Math.max(0, nextContrib.sor - prevContrib.sor) * 10) / 10;
+  // 4. Sorte (SOR) - Olhar Clínico & Fortuna (Catalogar +0.2 | Extrema +0.8 | Sessão Secreta +0.2/+0.4/+0.6/+1.0/+1.3)
+  const prevSecretMap = effectivePrevXp?.sources?.secretDraw?.completedRoundsMap || {};
+  const nextSecretMap = nextXpStatus?.sources?.secretDraw?.completedRoundsMap || {};
+  const sorDeltaFromSecret = Object.entries(nextSecretMap)
+    .filter(([k]) => !prevSecretMap[k])
+    .reduce((sum, [, entry]) => sum + (SECRET_DRAW_SOR_BY_DIFFICULTY[entry?.difficulty] ?? 0.2), 0);
+  const roundedSor = Math.round((Math.max(0, nextContrib.sor - prevContrib.sor) + sorDeltaFromSecret) * 10) / 10;
   if (roundedSor > 0) {
     statGains.push({
       key: 'SOR',
