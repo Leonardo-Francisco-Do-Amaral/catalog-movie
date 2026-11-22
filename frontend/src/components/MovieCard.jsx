@@ -243,6 +243,12 @@ export default function MovieCard({ movie, onEdit, onDelete, gridCols = 5 }) {
   const secretDrawDifficulty = movie.secret_draw_difficulty || null;
   const secretDrawXp = movie.secret_draw_xp || null;
   const secretMeta = secretDrawDifficulty ? SECRET_DRAW_BADGE_META[secretDrawDifficulty] || null : null;
+  const chimeraStatus = movie.chimera_status || null;
+  const chimeraXp = movie.chimera_xp != null ? Number(movie.chimera_xp) : null;
+  const chimeraJackpotsHit =
+    movie.chimera_jackpots_hit != null && Number.isFinite(Number(movie.chimera_jackpots_hit))
+      ? Math.max(0, Number(movie.chimera_jackpots_hit))
+      : null;
 
   // Detecta Documentário, Biografia e História respeitando a ordem exata listada nos gêneros
   const stripGenreAccents = (s) =>
@@ -1818,34 +1824,6 @@ export default function MovieCard({ movie, onEdit, onDelete, gridCols = 5 }) {
         </div>
       )}
 
-      {/* Selo de Dificuldade da Sessão Secreta na Frente do Card */}
-      {secretMeta && (
-        <div
-          className={`absolute ${
-            isOscarWinner || isOscarNominee
-              ? isCompact10
-                ? 'top-7 left-1.5'
-                : isCompact7
-                  ? 'top-9 left-2'
-                  : 'top-12 left-2.5'
-              : isCompact10
-                ? 'top-1.5 left-1.5'
-                : isCompact7
-                  ? 'top-2 left-2'
-                  : 'top-2.5 left-2.5'
-          } z-20 group-hover:opacity-0 transition-opacity duration-300 pointer-events-none select-none`}
-        >
-          <span
-            className={`inline-flex items-center gap-1 rounded-full backdrop-blur-md border font-black uppercase tracking-wider ${
-              isCompact10 ? 'px-1.5 py-0.5 text-[7px]' : isCompact7 ? 'px-2 py-0.5 text-[8px]' : 'px-2.5 py-0.5 text-[9.5px]'
-            } ${secretMeta.pillCls}`}
-          >
-            <span>{secretMeta.suit}</span>
-            <span>{isCompact10 ? secretMeta.shortLabel : secretMeta.label}</span>
-          </span>
-        </div>
-      )}
-
       {/* Rating Badge */}
       <div className={getVotesBadgeClass()}>
         <span>⭐</span>
@@ -1863,8 +1841,38 @@ export default function MovieCard({ movie, onEdit, onDelete, gridCols = 5 }) {
       {/* Gradiente de fundo escuro para legibilidade */}
       <div className="bg-gradient-to-t from-black/95 via-black/45 to-transparent absolute bottom-0 inset-x-0 h-1/3 z-10 pointer-events-none group-hover:opacity-0 transition-opacity duration-300" />
 
-      {/* HUD da Frente - Canto Inferior Esquerdo (Bandeiras) e Direito (Qtd Votos) */}
-      <div className={`absolute ${isCompact10 ? 'bottom-1.5 inset-x-1.5' : isCompact7 ? 'bottom-2 inset-x-2' : 'bottom-2.5 inset-x-2.5'} z-20 flex justify-between items-center group-hover:opacity-0 transition-opacity duration-300 pointer-events-none select-none`}>
+      {/* HUD da Frente - Selos (Sessão Secreta / Quimera) acima da barra de Bandeiras + Votos para nunca colidir com a Nota */}
+      <div className={`absolute ${isCompact10 ? 'bottom-1.5 inset-x-1.5 gap-1' : isCompact7 ? 'bottom-2 inset-x-2 gap-1' : 'bottom-2.5 inset-x-2.5 gap-1.5'} z-20 flex flex-col group-hover:opacity-0 transition-opacity duration-300 pointer-events-none select-none`}>
+        {(secretMeta || chimeraStatus) && (
+          <div className="flex flex-wrap items-center gap-1">
+            {secretMeta && (
+              <span
+                className={`inline-flex items-center gap-1 rounded-full backdrop-blur-md border font-black uppercase tracking-wider ${
+                  isCompact10 ? 'px-1.5 py-0.5 text-[7px]' : isCompact7 ? 'px-2 py-0.5 text-[8px]' : 'px-2.5 py-0.5 text-[9.5px]'
+                } ${secretMeta.pillCls}`}
+              >
+                <span>{secretMeta.suit}</span>
+                <span>{isCompact10 ? secretMeta.shortLabel : secretMeta.label}</span>
+              </span>
+            )}
+            {chimeraStatus && (
+              <span
+                className={`inline-flex items-center gap-1 rounded-full backdrop-blur-md border font-black uppercase tracking-wider bg-gradient-to-r from-emerald-950/90 to-amber-950/90 border-amber-400/75 text-amber-200 shadow-[0_0_12px_rgba(251,191,36,0.4)] ${
+                  isCompact10 ? 'px-1.5 py-0.5 text-[7px]' : isCompact7 ? 'px-2 py-0.5 text-[8px]' : 'px-2.5 py-0.5 text-[9.5px]'
+                }`}
+              >
+                <span>🧬</span>
+                <span>
+                  Quimera
+                  {chimeraJackpotsHit !== null ? ` ${chimeraJackpotsHit}/4` : ''}
+                  {chimeraXp > 0 && !isCompact10 ? ` • +${chimeraXp} XP` : ''}
+                </span>
+              </span>
+            )}
+          </div>
+        )}
+
+        <div className="flex justify-between items-center">
         
         {/* Fila de Bandeiras */}
         <div className={`flex ${isCompact10 ? 'gap-0.5 px-1 py-0.5 min-h-[16px]' : isCompact7 ? 'gap-1 px-1 py-0.5 min-h-[18px]' : 'gap-1 px-1.5 py-0.5 min-h-[22px]'} bg-black/60 backdrop-blur-sm border border-zinc-800/80 rounded items-center`}>
@@ -1898,6 +1906,7 @@ export default function MovieCard({ movie, onEdit, onDelete, gridCols = 5 }) {
         <div className={`bg-black/60 backdrop-blur-sm border border-zinc-800/80 rounded ${isCompact10 ? 'px-1 py-0.5 text-[8.5px] gap-0.5' : isCompact7 ? 'px-1.5 py-0.5 text-[10px] gap-1' : 'px-2 py-0.5 text-xs gap-1'} text-amber-400 font-mono font-bold tracking-wider flex items-center`}>
           <span>👥</span>
           <span>{formatVotes(movie.vote_count)}</span>
+        </div>
         </div>
       </div>
 
@@ -2313,12 +2322,22 @@ export default function MovieCard({ movie, onEdit, onDelete, gridCols = 5 }) {
               </div>
             )}
 
-            {/* Placar de Dificuldade da Sessão Secreta no Hover */}
+            {/* Placar de Dificuldade da Sessão Secreta & Quimera no Hover */}
             {secretMeta && (
               <div className={`rounded-lg border ${isCompact10 ? 'px-1.5 py-0.5 text-[7px]' : isCompact7 ? 'px-2 py-0.5 text-[8px]' : 'px-2.5 py-0.5 text-[9.5px]'} flex items-center gap-1.5 font-mono font-bold tracking-wider select-none mt-0.5 shrink-0 w-fit ${secretMeta.hoverCls}`}>
                 <span>{secretMeta.suit}</span>
                 <span>Sessão: {isCompact10 ? secretMeta.shortLabel : secretMeta.label}</span>
                 {secretDrawXp && !isCompact10 && <span>• +{secretDrawXp} XP</span>}
+              </div>
+            )}
+            {chimeraStatus && (
+              <div className={`rounded-lg border ${isCompact10 ? 'px-1.5 py-0.5 text-[7px]' : isCompact7 ? 'px-2 py-0.5 text-[8px]' : 'px-2.5 py-0.5 text-[9.5px]'} flex items-center gap-1.5 font-mono font-bold tracking-wider select-none mt-0.5 shrink-0 w-fit bg-emerald-950/60 border-amber-400/55 text-amber-200`}>
+                <span>🧬</span>
+                <span>Quimera</span>
+                {chimeraJackpotsHit !== null && (
+                  <span className="text-amber-300">• 🎰 {chimeraJackpotsHit}/4</span>
+                )}
+                {chimeraXp > 0 && <span>• +{chimeraXp} XP</span>}
               </div>
             )}
 

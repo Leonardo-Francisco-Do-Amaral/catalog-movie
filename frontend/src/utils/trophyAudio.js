@@ -6,6 +6,7 @@
 
 let audioCtx = null;
 let activeAudioEl = null;
+let activeFireCracklingEl = null;
 const activeConcurrentAudioEls = new Set();
 let activeDelayTimer = null;
 let audioSequenceToken = 0;
@@ -87,10 +88,24 @@ export function stopChimeraDiceLoopSound() {
   stopWebAudioLoopChannel('chimera_dice');
 }
 
+export function stopSecretFireCracklingSound() {
+  if (!activeFireCracklingEl) return;
+  try {
+    activeFireCracklingEl.onended = null;
+    activeFireCracklingEl.onerror = null;
+    activeFireCracklingEl.pause();
+    activeFireCracklingEl.currentTime = 0;
+  } catch {
+    // ignore cleanup
+  }
+  activeFireCracklingEl = null;
+}
+
 export function stopAllTrophyAudio() {
   audioSequenceToken += 1;
   stopSecretShuffleSound();
   stopChimeraDiceLoopSound();
+  stopSecretFireCracklingSound();
   if (activeDelayTimer) {
     clearTimeout(activeDelayTimer);
     activeDelayTimer = null;
@@ -147,6 +162,7 @@ const SOUND_PATHS = {
   secretDraw: {
     shuffle: '/sounds/extras-memes/banco-reserva/card-ruffle.mp3',
     flip: '/sounds/extras-memes/banco-reserva/card-flip.mp3',
+    fireCrackling: '/sounds/extras-memes/banco-reserva/fire-crackling.mp3',
   },
   chimera: {
     dice: '/sounds/extras-memes/banco-reserva/dice.mp3',
@@ -298,7 +314,10 @@ function playAudioFile(url, { volume = 0.85, interrupt = true, onEnded = null, o
     if (playPromise && typeof playPromise.catch === 'function') {
       playPromise.catch((err) => {
         activeConcurrentAudioEls.delete(audio);
-        if (handled || (myToken !== audioSequenceToken && interrupt)) return;
+        if (err?.name === 'AbortError' || handled || (myToken !== audioSequenceToken && interrupt)) {
+          if (activeAudioEl === audio) activeAudioEl = null;
+          return;
+        }
         handled = true;
         if (activeAudioEl === audio) activeAudioEl = null;
         console.warn('[TrophyAudio] Falha ao reproduzir arquivo:', url, err);
@@ -1694,6 +1713,31 @@ export async function preloadChimeraDiceSound() {
 
 export function startChimeraDiceLoopSound() {
   return startWebAudioLoopChannel('chimera_dice', SOUND_PATHS.chimera.dice, 0.82);
+}
+
+export function playSecretFireCracklingSound() {
+  if (typeof window === 'undefined' || isAudioMuted()) return false;
+  stopSecretFireCracklingSound();
+  try {
+    const audio = new Audio(encodeAudioSrc(SOUND_PATHS.secretDraw.fireCrackling));
+    audio.volume = 0.78;
+    activeFireCracklingEl = audio;
+    audio.onended = () => {
+      if (activeFireCracklingEl === audio) activeFireCracklingEl = null;
+    };
+    const p = audio.play();
+    if (p && typeof p.catch === 'function') {
+      p.catch((err) => {
+        if (activeFireCracklingEl === audio) activeFireCracklingEl = null;
+        if (err?.name !== 'AbortError') {
+          console.warn('[TrophyAudio] Falha ao reproduzir fogo:', err);
+        }
+      });
+    }
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function playSecretCardFlipSound(onFallback = null) {

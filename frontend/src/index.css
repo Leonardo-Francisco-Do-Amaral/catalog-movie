@@ -1097,6 +1097,125 @@ html, body, #root {
   animation: secretRiffleLeafFromRight 0.78s cubic-bezier(0.25, 0.85, 0.35, 1) infinite;
 }
 
+@keyframes secretBurnAuraPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 24px rgba(249, 115, 22, 0.55),
+      0 0 54px rgba(234, 88, 12, 0.35),
+      inset 0 0 24px rgba(251, 146, 60, 0.42);
+  }
+  50% {
+    box-shadow:
+      0 0 42px rgba(251, 191, 36, 0.82),
+      0 0 84px rgba(239, 68, 68, 0.62),
+      inset 0 0 36px rgba(253, 186, 116, 0.68);
+  }
+}
+
+.secret-burn-aura {
+  animation: secretBurnAuraPulse 0.9s ease-in-out infinite;
+}
+
+@keyframes secretBurnBannerIgnite {
+  0% {
+    opacity: 0;
+    letter-spacing: 0.24em;
+    transform: scale(0.9);
+    filter: brightness(2.2) blur(3px);
+  }
+  55% {
+    opacity: 1;
+    letter-spacing: 0.08em;
+    transform: scale(1.04);
+    filter: brightness(1.35) blur(0px);
+  }
+  100% {
+    opacity: 1;
+    letter-spacing: 0.05em;
+    transform: scale(1);
+    filter: brightness(1) blur(0px);
+  }
+}
+
+.secret-burn-banner {
+  animation: secretBurnBannerIgnite 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes secretMysteryStepIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.secret-mystery-step {
+  animation: secretMysteryStepIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Moeda 3D — Rei Duas-Caras (Cara 2x vs Coroa 0.5x + Bloqueio) */
+.secret-coin-scene {
+  perspective: 900px;
+}
+
+@keyframes secretCoinSpinHeads {
+  0% {
+    transform: rotateY(0deg) scale(0.72) translateY(18px);
+  }
+  35% {
+    transform: rotateY(720deg) scale(1.2) translateY(-14px);
+  }
+  75% {
+    transform: rotateY(1560deg) scale(1.06) translateY(-2px);
+  }
+  100% {
+    transform: rotateY(1800deg) scale(1) translateY(0px);
+  }
+}
+
+@keyframes secretCoinSpinTails {
+  0% {
+    transform: rotateY(0deg) scale(0.72) translateY(18px);
+  }
+  35% {
+    transform: rotateY(720deg) scale(1.2) translateY(-14px);
+  }
+  75% {
+    transform: rotateY(1680deg) scale(1.06) translateY(-2px);
+  }
+  100% {
+    transform: rotateY(1980deg) scale(1) translateY(0px);
+  }
+}
+
+.secret-coin-3d {
+  position: relative;
+  transform-style: preserve-3d;
+}
+
+.secret-coin-3d.is-heads {
+  animation: secretCoinSpinHeads 1.45s cubic-bezier(0.18, 0.88, 0.28, 1) forwards;
+}
+
+.secret-coin-3d.is-tails {
+  animation: secretCoinSpinTails 1.45s cubic-bezier(0.18, 0.88, 0.28, 1) forwards;
+}
+
+.secret-coin-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 9999px;
+}
+
+.secret-coin-face-tails {
+  transform: rotateY(180deg);
+}
+
 /* ============================================================================
    5 ANIMAÇÕES DE SELEÇÃO / REVELAÇÃO DA CARTA (CINÉTICA NO WRAPPER, 3D PURO NO INNER)
    ============================================================================ */

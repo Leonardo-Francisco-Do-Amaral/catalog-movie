@@ -20,7 +20,7 @@ import { evaluateCatalogDefinitions, PreviousCardState } from './trophies/trophy
 import { TROPHY_DEFINITIONS, TrophyDefinition } from '../data/trophyDefinitions';
 import { UNIVERSE_SAGAS } from '../data/universeDefinitions';
 import { matchUniverseMovie } from './universeCodexService';
-import { WALK_OF_FAME_STARS } from '../data/walkOfFameData';
+import { getCuratedMoviesForStar, WALK_OF_FAME_STARS } from '../data/walkOfFameData';
 import { getCountryRarityTier } from '../data/unCountries195';
 import {
   CYCLE_PERIOD_DAYS,
@@ -32,6 +32,7 @@ import {
   ClassPowerWalletStatus,
   consumeClassPowerCharge,
   getSecretDrawPowerBuff,
+  labGrantClassPowerCharge,
   SecretDrawPowerBuff,
   setSecretDrawPowerBuff,
 } from './classPowersService';
@@ -109,6 +110,197 @@ export interface SecretDrawCardResolvedData {
   } | null;
 }
 
+export type SecretSpecialRarity = 'common' | 'rare' | 'legendary' | 'cursed' | 'bet';
+
+export type SecretSpecialCardId =
+  | 'duas_caras'
+  | 'apresentador_vem_ca'
+  | 'ocarina_floresta'
+  | 'recarga_classe'
+  | 'visao_marcos'
+  | 'arlequim_revela_3'
+  | 'arlequim_revela_5'
+  | 'portal_dimensional'
+  | 'pedra_filosofal'
+  | 'armadilha_mecanica'
+  | 'corrente_destino'
+  | 'lamina_eclipse';
+
+export interface SecretSpecialCardDef {
+  id: SecretSpecialCardId;
+  title: string;
+  icon: string;
+  rarity: SecretSpecialRarity;
+  shortTag: string;
+  description: string;
+  images: string[];
+  weight: number;
+}
+
+export interface SecretDrawCardSpecialEvent {
+  id: SecretSpecialCardId;
+  title: string;
+  icon: string;
+  rarity: SecretSpecialRarity;
+  shortTag: string;
+  description: string;
+  imageUrl: string;
+  triggered?: boolean;
+  triggeredAt?: string | null;
+  resultSummary?: string | null;
+  outcomeData?: Record<string, any> | null;
+}
+
+export const SECRET_SPECIAL_CARDS_CATALOG: SecretSpecialCardDef[] = [
+  {
+    id: 'duas_caras',
+    title: 'Rei Duas-Caras',
+    icon: '🪙',
+    rarity: 'bet',
+    shortTag: 'Moeda 50/50 na Fila',
+    description:
+      'Gira a moeda do destino para 1 filme pendente da sua fila! CARA: dobra (2×) o XP do filme. COROA: corta o XP pela metade (0.5×) e trava sem Passe Bumerangue!',
+    images: ['/secret-draw/especiais/Rei Duas-Caras.png'],
+    weight: 10,
+  },
+  {
+    id: 'apresentador_vem_ca',
+    title: 'Apresentador "Vem pra cá!"',
+    icon: '✈️',
+    rarity: 'common',
+    shortTag: 'Puxa 1 Carta Aleatória da Mesa',
+    description:
+      'Chama 1 outra carta ainda fechada da mesa direto para a sua fila! Se a carta puxada também esconder uma Carta Especial, ela é ativada em cadeia!',
+    images: ['/secret-draw/especiais/Apresentador.png'],
+    weight: 13,
+  },
+  {
+    id: 'ocarina_floresta',
+    title: 'Ocarina da Floresta',
+    icon: '⏳',
+    rarity: 'rare',
+    shortTag: 'Reembaralha a Mesa',
+    description:
+      'Toca a melodia do tempo para reembaralhar e sortear novos filmes em todas as cartas ainda fechadas da mão atual, sem gastar Ficha de Sorteio!',
+    images: ['/secret-draw/especiais/Ocarina da Floresta.png'],
+    weight: 10,
+  },
+  {
+    id: 'recarga_classe',
+    title: 'Recarga do Poder da Classe',
+    icon: '⚡',
+    rarity: 'rare',
+    shortTag: '+1 Carga da Classe (Sessão Secreta)',
+    description:
+      'Desperta seu potencial oculto e reativa imediatamente +1 uso do Poder Especial da sua Classe RPG exclusivamente para a Sessão Secreta!',
+    images: [
+      '/secret-draw/especiais/Recarga do Poder da Classe I.png',
+      '/secret-draw/especiais/Recarga do Poder da Classe II.png',
+      '/secret-draw/especiais/Recarga do Poder da Classe III.png',
+    ],
+    weight: 11,
+  },
+  {
+    id: 'visao_marcos',
+    title: 'Visão dos Marcos',
+    icon: '👁️',
+    rarity: 'rare',
+    shortTag: 'Revela Resumo dos Marcos na Mesa',
+    description:
+      'Revela no verso das cartas restantes da mesa quantos marcos simples cada filme escondido destrava (ex.: Troféus, Países 195, Décadas) sem entregar os títulos!',
+    images: [
+      '/secret-draw/especiais/Visão dos Marcos I.png',
+      '/secret-draw/especiais/Visão dos Marcos II.png',
+    ],
+    weight: 11,
+  },
+  {
+    id: 'arlequim_revela_3',
+    title: 'Mini Arlequim — 3 Cartas',
+    icon: '🃏',
+    rarity: 'rare',
+    shortTag: 'Revela 3 Filmes Fechados',
+    description:
+      'O Mini Arlequim levita sobre o baralho e revela o pôster e o título de até 3 outros filmes ainda fechados nesta mesa antes de você escolher!',
+    images: ['/secret-draw/especiais/Revela 3.png'],
+    weight: 10,
+  },
+  {
+    id: 'arlequim_revela_5',
+    title: 'Mini Arlequim Ascendido — 5 Cartas',
+    icon: '🌟',
+    rarity: 'legendary',
+    shortTag: 'Revela 5 Filmes Fechados',
+    description:
+      'LENDÁRIA: O Mini Arlequim libera todo o seu feitiço e revela até 5 outros filmes escondidos nesta mesa com pôster, ano e raridade visíveis!',
+    images: ['/secret-draw/especiais/Revela 5.png'],
+    weight: 6,
+  },
+  {
+    id: 'portal_dimensional',
+    title: 'Portal Dimensional',
+    icon: '🌀',
+    rarity: 'legendary',
+    shortTag: 'Colhe XP + Volta ao Baralho',
+    description:
+      'LENDÁRIA: Abre um portal em 1 filme aleatório da sua fila pendente, destrava todo o XP dele na hora sem precisar assistir e devolve o filme intacto para o baralho!',
+    images: [
+      '/secret-draw/especiais/Portais Dimensionais I.png',
+      '/secret-draw/especiais/Portais Dimensionais II.png',
+      '/secret-draw/especiais/Portais Dimensionais III.png',
+      '/secret-draw/especiais/Portais Dimensionais IV.png',
+    ],
+    weight: 6,
+  },
+  {
+    id: 'pedra_filosofal',
+    title: 'Pedra Filosofal — Ascensão',
+    icon: '⚗️',
+    rarity: 'legendary',
+    shortTag: '+1 Raridade na Fila',
+    description:
+      'LENDÁRIA: Transmuta 1 filme aleatório da sua fila pendente (que ainda não seja Exótico) subindo 1 nível completo de raridade e aumentando seu XP!',
+    images: [
+      '/secret-draw/especiais/Ascensão I.png',
+      '/secret-draw/especiais/Ascensão II.png',
+    ],
+    weight: 6,
+  },
+  {
+    id: 'armadilha_mecanica',
+    title: 'A Armadilha Mecânica',
+    icon: '⚙️',
+    rarity: 'cursed',
+    shortTag: '-1 Raridade na Fila',
+    description:
+      'MALDIÇÃO: As engrenagens se fecham sobre 1 filme aleatório da sua fila (acima de Comum), rebaixando sua raridade em 1 nível e reduzindo seu XP!',
+    images: ['/secret-draw/especiais/A Armadilha.png'],
+    weight: 7,
+  },
+  {
+    id: 'corrente_destino',
+    title: 'Corrente do Destino',
+    icon: '⛓️',
+    rarity: 'cursed',
+    shortTag: 'Trava Bumerangue na Fila',
+    description:
+      'MALDIÇÃO: Correntes pesadas prendem 1 filme aleatório da sua fila ativa, partindo o Bumerangue e proibindo devolver aquela carta para o baralho!',
+    images: ['/secret-draw/especiais/Corrente do Destino.png'],
+    weight: 7,
+  },
+  {
+    id: 'lamina_eclipse',
+    title: 'Lâmina do Eclipse',
+    icon: '💔',
+    rarity: 'cursed',
+    shortTag: 'Corta XP pela Metade (0.5×)',
+    description:
+      'MALDIÇÃO: Um golpe diagonal corta ao meio o prêmio de 1 filme aleatório da sua fila pendente, reduzindo o XP dele pela metade (0.5×)!',
+    images: ['/secret-draw/especiais/Lâmina do Eclipse.jpg'],
+    weight: 7,
+  },
+];
+
 export interface SecretDrawCard {
   seat: number;
   poolId: number;
@@ -119,6 +311,15 @@ export interface SecretDrawCard {
   milestones: SecretDrawMilestonePrediction[];
   totalMilestonesCount: number;
   mysteryTeaser: string;
+  specialEvent?: SecretDrawCardSpecialEvent | null;
+  revealedPreview?: boolean;
+  simpleMilestonesHint?: boolean;
+  decoyMilestones?: SecretDrawMilestonePrediction[] | null;
+  boomerangLocked?: boolean;
+  halfXpCursed?: boolean;
+  twoFaceDoubled?: boolean;
+  rarityChangedFrom?: SecretDrawDifficulty | null;
+  portalHarvested?: boolean;
   planilha: {
     sourceRow: number;
     rawTitle: string;
@@ -162,6 +363,7 @@ export interface SecretDrawRoundPowerFlags {
   classId?: string;
   powerTitle?: string;
   xrayMilestones?: boolean;
+  simpleMilestonesVision?: boolean;
   revealYearRuntime?: boolean;
   allowExtraActivePick?: boolean;
   bonusNextPickXp?: number;
@@ -1469,8 +1671,12 @@ function predictObjectiveMilestonesAndDifficulty(
     }
   }
 
-  // 4. Álbum da Fama (Diretores & Elenco)
+  // 4. Álbum da Fama (Diretores, Elenco & Figurinhas Curadas)
   const matchedStarIds = new Set<string>();
+  const normMovieTitles = [movie.title, movie.original_title]
+    .map((t) => normalizeCompareText(t))
+    .filter(Boolean);
+
   for (const dir of movie.directors || []) {
     const hits = ctx.directorStarsByNorm.get(normalizeCompareText(dir)) || [];
     for (const st of hits) {
@@ -1485,7 +1691,7 @@ function predictObjectiveMilestonesAndDifficulty(
     }
   }
   const tmdbCast: any[] = Array.isArray(movie.raw_api_data?.tmdb?.credits?.cast)
-    ? movie.raw_api_data.tmdb.credits.cast.slice(0, 20)
+    ? movie.raw_api_data.tmdb.credits.cast.slice(0, 30)
     : [];
   for (const c of tmdbCast) {
     const hits = ctx.actorStarsByNorm.get(normalizeCompareText(c?.name)) || [];
@@ -1496,7 +1702,28 @@ function predictObjectiveMilestonesAndDifficulty(
         system: 'walk_of_fame',
         icon: st.icon,
         label: `Álbum (Elenco): ${st.name}`,
-        detail: 'Conta progresso em figurinha do Álbum',
+        detail: 'Conta progresso em figurinha do Álbum da Fama',
+      });
+    }
+  }
+  for (const star of WALK_OF_FAME_STARS) {
+    if (matchedStarIds.has(star.id)) continue;
+    const curatedList = getCuratedMoviesForStar(star.id);
+    if (!curatedList || curatedList.length === 0) continue;
+    const hitCurated = curatedList.find((req) => {
+      if (req.year && relYear && Math.abs(Number(req.year) - Number(relYear)) > 1) return false;
+      return (req.patterns || []).some((pat) => {
+        const normPat = normalizeCompareText(pat);
+        return normPat && normMovieTitles.some((mt) => mt === normPat || mt.includes(normPat));
+      });
+    });
+    if (hitCurated) {
+      matchedStarIds.add(star.id);
+      milestones.push({
+        system: 'walk_of_fame',
+        icon: star.icon || '🌟',
+        label: `Álbum (Figurinha): ${star.name}`,
+        detail: 'Figurinha curada do Álbum da Fama',
       });
     }
   }
@@ -1594,23 +1821,37 @@ function predictObjectiveMilestonesAndDifficulty(
   // Dificuldade reflete exclusivamente quão raro/difícil é achar esse filme (independente dos marcos!)
   const difficulty = computeFindDifficulty(movie, resolvedTerritories);
 
-  // Mantém no máximo 8 marcos ordenados pelos mais impactantes (desbloqueios inéditos primeiro)
+  // Prioriza desbloqueios, países, anos, sagas e Álbum da Fama acima de barras "+1" parciais de troféus!
   const priorityOrder: Record<SecretDrawMilestonePrediction['system'], number> = {
     world_challenge: 0,
     time_machine: 1,
     universe: 2,
-    trophy: 3,
-    walk_of_fame: 4,
+    walk_of_fame: 3,
+    trophy: 4,
   };
   milestones.sort((a, b) => {
-    const aUnl = a.label.startsWith('Desbloqueia') || a.label.startsWith('Completa') || a.label.startsWith('País') || a.label.startsWith('Ano') ? 0 : 1;
-    const bUnl = b.label.startsWith('Desbloqueia') || b.label.startsWith('Completa') || b.label.startsWith('País') || b.label.startsWith('Ano') ? 0 : 1;
-    if (aUnl !== bUnl) return aUnl - bUnl;
+    const aHigh =
+      a.system === 'walk_of_fame' ||
+      a.label.startsWith('Desbloqueia') ||
+      a.label.startsWith('Completa') ||
+      a.label.startsWith('País') ||
+      a.label.startsWith('Ano')
+        ? 0
+        : 1;
+    const bHigh =
+      b.system === 'walk_of_fame' ||
+      b.label.startsWith('Desbloqueia') ||
+      b.label.startsWith('Completa') ||
+      b.label.startsWith('País') ||
+      b.label.startsWith('Ano')
+        ? 0
+        : 1;
+    if (aHigh !== bHigh) return aHigh - bHigh;
     return priorityOrder[a.system] - priorityOrder[b.system];
   });
 
   return {
-    milestones: milestones.slice(0, 8),
+    milestones: milestones.slice(0, 16),
     difficulty,
   };
 }
@@ -1935,59 +2176,182 @@ const SECRET_DIFFICULTY_RANK: Record<SecretDrawDifficulty, number> = {
   exotic: 5,
 };
 
-export async function drawSecretCards(
-  options: number | { requestedCount?: number | null; sagaRule?: SecretDrawSagaRule } = {}
-): Promise<{
-  round: SecretDrawRound;
-  poolSummary: any;
-}> {
-  await ensurePoolPopulatedIfEmpty();
+const SECRET_DIFFICULTY_ORDER: SecretDrawDifficulty[] = [
+  'common',
+  'medium',
+  'hard',
+  'very_hard',
+  'exotic',
+];
 
-  // Verifica saldo de fichas do ciclo de 15 dias (3/15d, acúmulo máx. 5) antes de consultar APIs
-  const wallet = await ensureWeeklyChipsWallet();
-  if (wallet.chipsRemaining <= 0) {
-    throw new Error(
-      `Suas fichas de sorteio acabaram (${wallet.weeklyAllowance} a cada ${wallet.cycleDays} dias, máx. ${wallet.maxChipsBank})! Nova recarga: ${wallet.nextResetLabel}.`
-    );
+function pickWeightedSpecialCardDef(excludeIds = new Set<SecretSpecialCardId>()): SecretSpecialCardDef {
+  const pool = SECRET_SPECIAL_CARDS_CATALOG.filter((c) => !excludeIds.has(c.id));
+  const candidates = pool.length > 0 ? pool : SECRET_SPECIAL_CARDS_CATALOG;
+  const totalWeight = candidates.reduce((acc, c) => acc + Math.max(1, c.weight), 0);
+  let r = Math.random() * totalWeight;
+  for (const item of candidates) {
+    r -= Math.max(1, item.weight);
+    if (r <= 0) return item;
+  }
+  return candidates[0];
+}
+
+function buildSpecialEventSnapshot(
+  def: SecretSpecialCardDef,
+  variantIdx?: number | null
+): SecretDrawCardSpecialEvent {
+  const idx =
+    variantIdx != null && variantIdx >= 0 && variantIdx < def.images.length
+      ? variantIdx
+      : Math.floor(Math.random() * Math.max(1, def.images.length));
+  return {
+    id: def.id,
+    title: def.title,
+    icon: def.icon,
+    rarity: def.rarity,
+    shortTag: def.shortTag,
+    description: def.description,
+    imageUrl: def.images[idx] || def.images[0],
+    triggered: false,
+    triggeredAt: null,
+    resultSummary: null,
+    outcomeData: null,
+  };
+}
+
+function buildEmptyResolvedMetadata(): SecretDrawCardResolvedData {
+  return {
+    tmdbId: null,
+    imdbId: null,
+    title: '',
+    originalTitle: null,
+    releaseYear: null,
+    runtime: null,
+    posterUrl: null,
+    genres: [],
+    countries: [],
+    directors: [],
+    writers: [],
+    studios: [],
+    distributor: null,
+    imdbRating: null,
+    metacriticScore: null,
+    rottenTomatoesScore: null,
+    voteCount: null,
+    oscarWins: 0,
+    oscarNominations: 0,
+    synopsis: null,
+    usedFallbackQuery: null,
+    usedNoYearFallback: false,
+    sagaRedirect: null,
+  };
+}
+
+function buildRandomDecoyMilestones(count: number): SecretDrawMilestonePrediction[] {
+  const safeCount = Math.max(1, Math.min(5, Math.round(Number(count) || 1)));
+  const results: SecretDrawMilestonePrediction[] = [];
+  const usedUniqueSystems = new Set<string>();
+
+  for (let i = 0; i < safeCount; i += 1) {
+    const roll = Math.random();
+    let sys: SecretDrawMilestonePrediction['system'] = 'trophy';
+    let icon = '🏆';
+    if (roll < 0.24 && !usedUniqueSystems.has('world_challenge')) {
+      sys = 'world_challenge';
+      icon = '🌍';
+      usedUniqueSystems.add(sys);
+    } else if (roll < 0.38 && !usedUniqueSystems.has('time_machine')) {
+      sys = 'time_machine';
+      icon = '⏳';
+      usedUniqueSystems.add(sys);
+    } else if (roll < 0.49 && !usedUniqueSystems.has('walk_of_fame')) {
+      sys = 'walk_of_fame';
+      icon = '🌟';
+      usedUniqueSystems.add(sys);
+    } else if (roll < 0.54 && !usedUniqueSystems.has('universe')) {
+      sys = 'universe';
+      icon = '🌌';
+      usedUniqueSystems.add(sys);
+    }
+    results.push({
+      system: sys,
+      icon,
+      label: 'Marco Oculto',
+      detail: '',
+    });
+  }
+  return results;
+}
+
+function scrubSpecialSeatCard(card: SecretDrawCard, event: SecretDrawCardSpecialEvent): SecretDrawCard {
+  const totalCount =
+    card.totalMilestonesCount > 0
+      ? Math.min(4, card.totalMilestonesCount)
+      : 1 + Math.floor(Math.random() * 3);
+  return {
+    ...card,
+    poolId: 0,
+    milestones: [],
+    totalMilestonesCount: totalCount,
+    decoyMilestones: event.triggered ? null : buildRandomDecoyMilestones(totalCount),
+    simpleMilestonesHint: event.triggered ? false : card.simpleMilestonesHint,
+    mysteryTeaser: 'Carta fechada com brilho misterioso.',
+    specialEvent: event,
+    resolved: buildEmptyResolvedMetadata(),
+  };
+}
+
+async function assignDisguisedSpecialsToCards(
+  cards: SecretDrawCard[],
+  auditLog?: SecretDrawAuditEntry[]
+): Promise<void> {
+  if (!Array.isArray(cards) || cards.length === 0) return;
+  const maxSpecials = cards.length <= 4 ? 1 : cards.length <= 7 ? 2 : 3;
+  const targetCount = cards.length <= 3 ? 1 : 1 + Math.floor(Math.random() * maxSpecials);
+  const shuffledSeats = cards.map((c) => c.seat).sort(() => Math.random() - 0.5);
+  const chosenSeats = new Set(shuffledSeats.slice(0, Math.min(targetCount, cards.length)));
+  const usedIds = new Set<SecretSpecialCardId>();
+  const releasedPoolIds: number[] = [];
+
+  for (let i = 0; i < cards.length; i += 1) {
+    const card = cards[i];
+    if (!chosenSeats.has(card.seat)) continue;
+    const def = pickWeightedSpecialCardDef(usedIds);
+    usedIds.add(def.id);
+    if (card.poolId) releasedPoolIds.push(Number(card.poolId));
+
+    // Remove completamente os metadados do filme subjacente para nunca vazar "um filme que seria ali"
+    cards[i] = scrubSpecialSeatCard(card, buildSpecialEventSnapshot(def));
+
+    if (Array.isArray(auditLog)) {
+      for (const entry of auditLog) {
+        if (entry.seat === card.seat && entry.outcome === 'selected') {
+          entry.resolvedTitle = 'Disfarce Especial';
+          entry.resolvedOriginalTitle = null;
+          entry.resolvedYear = null;
+          entry.tmdbId = null;
+          entry.message = `Carta #${card.seat} reservada com Disfarce Especial (Evento Puro).`;
+        }
+      }
+    }
   }
 
-  const activeBuff = await getSecretDrawPowerBuff();
-
-  // Regra das 2 fichas: a 1ª ficha da semana é SEMPRE sorteio aleatório (3 a 10); a 2ª libera escolher a quantidade!
-  const rawRequested = typeof options === 'number' ? options : options?.requestedCount;
-  const parsedRequested =
-    wallet.canChooseCardCount && rawRequested != null && Number.isFinite(Number(rawRequested))
-      ? Math.max(3, Math.min(10, Math.floor(Number(rawRequested))))
-      : null;
-  const cardCount = activeBuff?.forceCardCount
-    ? Math.max(3, Math.min(15, Math.floor(Number(activeBuff.forceCardCount))))
-    : parsedRequested ?? 3 + Math.floor(Math.random() * 8);
-  const sagaRule: SecretDrawSagaRule =
-    typeof options === 'object' && options?.sagaRule ? options.sagaRule : 'redirect_first';
-
-  // Impede novo sorteio somente se a fila ativa já atingiu o limite máximo de filmes para assistir
-  const activeCountRes = await query(
-    `SELECT COUNT(*)::int AS cnt FROM secret_draw_picks WHERE status = 'active'`
-  );
-  const currentActiveCount = Number(activeCountRes.rows[0]?.cnt || 0);
-  const effectiveActiveLimit = MAX_ACTIVE_SECRET_PICKS + (activeBuff?.allowExtraActivePick ? 1 : 0);
-  if (currentActiveCount >= effectiveActiveLimit) {
-    throw new Error(
-      `Você já tem ${currentActiveCount}/${effectiveActiveLimit} filmes pendentes para assistir! Conclua ou decline um filme antes de sortear novas cartas.`
-    );
-  }
-
-  // Libera APENAS as cartas NÃO escolhidas de eventual rodada 'revealed' anterior de volta ao pool
-  const prevRevealedRes = await query(
-    `SELECT id, cards_json FROM secret_draw_rounds WHERE status = 'revealed'`
-  );
-  for (const r of prevRevealedRes.rows || []) {
-    await releaseUnpickedCardsFromRound(Number(r.id), Array.isArray(r.cards_json) ? r.cards_json : []);
+  if (releasedPoolIds.length > 0) {
     await query(
-      `UPDATE secret_draw_rounds SET status = 'cancelled' WHERE id = $1`,
-      [Number(r.id)]
+      `UPDATE secret_draw_pool SET status = 'available' WHERE id = ANY($1::int[]) AND status = 'drawn'`,
+      [releasedPoolIds]
     );
   }
+}
+
+async function resolveFreshMovieBatchForSeats(params: {
+  targetSeats: number[];
+  sagaRule: SecretDrawSagaRule;
+  activeBuff?: SecretDrawPowerBuff | null;
+  excludeKeys?: Set<string>;
+}): Promise<{ cards: SecretDrawCard[]; auditLog: SecretDrawAuditEntry[] }> {
+  const { targetSeats, sagaRule, activeBuff = null, excludeKeys } = params;
+  if (targetSeats.length === 0) return { cards: [], auditLog: [] };
 
   const [catalogLookup, predCtx, blockedTmdbRes] = await Promise.all([
     loadCatalogWatchLookup(),
@@ -2002,18 +2366,19 @@ export async function drawSecretCards(
   const cards: SecretDrawCard[] = [];
   const auditLog: SecretDrawAuditEntry[] = [];
   const visitedPoolIds = new Set<number>();
-  const seenResolvedKeys = new Set<string>();
+  const seenResolvedKeys = new Set<string>(excludeKeys || []);
+  const targetCount = targetSeats.length;
   let attempt = 0;
   const preferCachedOrder = Boolean(
-    cardCount > 8 ||
+    targetCount > 8 ||
       activeBuff?.filterMaxRuntime ||
       activeBuff?.minDifficulty ||
       activeBuff?.prioritizeUnconqueredYears
   );
-  const MAX_TOTAL_ATTEMPTS = Math.max(40, cardCount * 8 + 20);
+  const MAX_TOTAL_ATTEMPTS = Math.max(40, targetCount * 8 + 20);
 
-  while (cards.length < cardCount && attempt < MAX_TOTAL_ATTEMPTS) {
-    const remaining = cardCount - cards.length;
+  while (cards.length < targetCount && attempt < MAX_TOTAL_ATTEMPTS) {
+    const remaining = targetCount - cards.length;
     const needed = Math.min(remaining + (attempt === 0 ? 3 : 2), preferCachedOrder ? 12 : 8);
     const excludeArr = Array.from(visitedPoolIds);
     const orderSql = preferCachedOrder ? `(resolved_json IS NOT NULL) DESC, RANDOM()` : `RANDOM()`;
@@ -2028,10 +2393,8 @@ export async function drawSecretCards(
     );
 
     if (pickRes.rows.length === 0) break;
-
     for (const r of pickRes.rows) visitedPoolIds.add(Number(r.id));
 
-    // Resolve em paralelo o mini-lote de candidatos
     const resolutions = await Promise.all(
       pickRes.rows.map(async (row) => {
         const preMatch = findMatchingCatalogMovie(catalogLookup, {
@@ -2040,16 +2403,14 @@ export async function drawSecretCards(
           titles: [row.cleaned_title, row.raw_title],
           releaseYear: row.release_year != null ? Number(row.release_year) : null,
         });
-        if (preMatch) {
-          return { row, preMatch, resolution: null };
-        }
+        if (preMatch) return { row, preMatch, resolution: null };
         const resolution = await resolvePoolCandidate(row);
         return { row, preMatch: null, resolution };
       })
     );
 
     for (const item of resolutions) {
-      if (cards.length >= cardCount) break;
+      if (cards.length >= targetCount) break;
       attempt += 1;
       const row = item.row;
       const parsedYear = row.release_year != null ? Number(row.release_year) : null;
@@ -2097,7 +2458,6 @@ export async function drawSecretCards(
       }
 
       let movie = res.movie;
-      // Verifica após resolver via TMDB se já foi assistido sob outro título/ID
       const watchedAfterApi = findMatchingCatalogMovie(catalogLookup, {
         tmdbId: movie.tmdb_id,
         imdbId: movie.imdb_id,
@@ -2108,11 +2468,7 @@ export async function drawSecretCards(
       if (watchedAfterApi) {
         await query(
           `UPDATE secret_draw_pool SET status = 'watched', matched_movie_id = $2, skip_reason = $3 WHERE id = $1`,
-          [
-            row.id,
-            watchedAfterApi.id,
-            `Planilha "${row.raw_title}" bateu com TMDB "${movie.title}" que já estava no catálogo.`,
-          ]
+          [row.id, watchedAfterApi.id, `Planilha "${row.raw_title}" bateu com TMDB "${movie.title}" que já estava no catálogo.`]
         );
         auditLog.push({
           attempt,
@@ -2134,7 +2490,6 @@ export async function drawSecretCards(
         continue;
       }
 
-      // Regra de Ordem de Saga ("começar do começo")
       const sagaCheck = await resolveSagaOrderForCandidate({
         movie,
         predCtx,
@@ -2190,7 +2545,6 @@ export async function drawSecretCards(
         movie = redir;
       }
 
-      // Evita duplicata no mesmo sorteio (caso mesma obra esteja escrita diferente ou redirecionada p/ mesmo Cap #1)
       const dupKey = movie.tmdb_id
         ? `tmdb:${movie.tmdb_id}`
         : `${normalizeCompareText(movie.title)}:${movie.release_year || ''}`;
@@ -2219,7 +2573,6 @@ export async function drawSecretCards(
 
       const prediction = predictObjectiveMilestonesAndDifficulty(predCtx, movie);
 
-      // Filtros de Poder da Classe (com fallback seguro se o baralho tiver poucos candidatos)
       if (!relaxedFallback && activeBuff?.filterMaxRuntime && movie.runtime && Number(movie.runtime) > activeBuff.filterMaxRuntime) {
         continue;
       }
@@ -2241,8 +2594,7 @@ export async function drawSecretCards(
       }
 
       seenResolvedKeys.add(dupKey);
-      const seat = cards.length + 1;
-
+      const seat = targetSeats[cards.length];
       await query(`UPDATE secret_draw_pool SET status = 'drawn' WHERE id = $1`, [row.id]);
 
       const card = buildAssembledSecretDrawCard(
@@ -2284,9 +2636,76 @@ export async function drawSecretCards(
     }
   }
 
+  return { cards, auditLog };
+}
+
+export async function drawSecretCards(
+  options: number | { requestedCount?: number | null; sagaRule?: SecretDrawSagaRule } = {}
+): Promise<{
+  round: SecretDrawRound;
+  poolSummary: any;
+}> {
+  await ensurePoolPopulatedIfEmpty();
+
+  // Verifica saldo de fichas do ciclo de 15 dias (3/15d, acúmulo máx. 5) antes de consultar APIs
+  const wallet = await ensureWeeklyChipsWallet();
+  if (wallet.chipsRemaining <= 0) {
+    throw new Error(
+      `Suas fichas de sorteio acabaram (${wallet.weeklyAllowance} a cada ${wallet.cycleDays} dias, máx. ${wallet.maxChipsBank})! Nova recarga: ${wallet.nextResetLabel}.`
+    );
+  }
+
+  const activeBuff = await getSecretDrawPowerBuff();
+
+  // Regra das 2 fichas: a 1ª ficha da semana é SEMPRE sorteio aleatório (3 a 10); a 2ª libera escolher a quantidade!
+  const rawRequested = typeof options === 'number' ? options : options?.requestedCount;
+  const parsedRequested =
+    wallet.canChooseCardCount && rawRequested != null && Number.isFinite(Number(rawRequested))
+      ? Math.max(3, Math.min(10, Math.floor(Number(rawRequested))))
+      : null;
+  const cardCount = activeBuff?.forceCardCount
+    ? Math.max(3, Math.min(15, Math.floor(Number(activeBuff.forceCardCount))))
+    : parsedRequested ?? 3 + Math.floor(Math.random() * 8);
+  const sagaRule: SecretDrawSagaRule =
+    typeof options === 'object' && options?.sagaRule ? options.sagaRule : 'redirect_first';
+
+  // Impede novo sorteio somente se a fila ativa já atingiu o limite máximo de filmes para assistir
+  const activeCountRes = await query(
+    `SELECT COUNT(*)::int AS cnt FROM secret_draw_picks WHERE status = 'active'`
+  );
+  const currentActiveCount = Number(activeCountRes.rows[0]?.cnt || 0);
+  const effectiveActiveLimit = MAX_ACTIVE_SECRET_PICKS + (activeBuff?.allowExtraActivePick ? 1 : 0);
+  if (currentActiveCount >= effectiveActiveLimit) {
+    throw new Error(
+      `Você já tem ${currentActiveCount}/${effectiveActiveLimit} filmes pendentes para assistir! Conclua ou decline um filme antes de sortear novas cartas.`
+    );
+  }
+
+  // Libera APENAS as cartas NÃO escolhidas de eventual rodada 'revealed' anterior de volta ao pool
+  const prevRevealedRes = await query(
+    `SELECT id, cards_json FROM secret_draw_rounds WHERE status = 'revealed'`
+  );
+  for (const r of prevRevealedRes.rows || []) {
+    await releaseUnpickedCardsFromRound(Number(r.id), Array.isArray(r.cards_json) ? r.cards_json : []);
+    await query(
+      `UPDATE secret_draw_rounds SET status = 'cancelled' WHERE id = $1`,
+      [Number(r.id)]
+    );
+  }
+
+  const targetSeats = Array.from({ length: cardCount }, (_, i) => i + 1);
+  const { cards, auditLog } = await resolveFreshMovieBatchForSeats({
+    targetSeats,
+    sagaRule,
+    activeBuff,
+  });
+
   if (cards.length === 0) {
     throw new Error('Não há mais filmes disponíveis na planilha para sortear!');
   }
+
+  // Disfarça aleatoriamente de 1 a 3 Cartas Especiais atrás dos naipes desta mão!
+  await assignDisguisedSpecialsToCards(cards, auditLog);
 
   const powerFlags: SecretDrawRoundPowerFlags | null = activeBuff
     ? {
@@ -2447,31 +2866,18 @@ async function releaseUnpickedCardsFromRound(roundId: number, cardsArr: any[]): 
   }
 }
 
-export async function chooseSecretCard(roundId: number, seat: number): Promise<SecretDrawPick> {
-  await ensureSecretDrawTables();
-  const roundRes = await query(`SELECT * FROM secret_draw_rounds WHERE id = $1`, [roundId]);
-  if (roundRes.rows.length === 0) {
-    throw new Error('Rodada de sorteio não encontrada.');
-  }
-  const round = mapRoundRow(roundRes.rows[0]);
-  if (round.status !== 'revealed') {
-    throw new Error('Esta rodada já foi finalizada.');
-  }
-  const chosenCard = round.cards.find((c) => Number(c.seat) === Number(seat));
-  if (!chosenCard) {
-    throw new Error('Carta selecionada inválida.');
-  }
-
-  // Verifica se já está selecionada nesta rodada
+async function queueNormalSecretCardInPickTable(
+  round: SecretDrawRound,
+  chosenCard: SecretDrawCard
+): Promise<SecretDrawPick> {
   const existingRes = await query(
     `SELECT * FROM secret_draw_picks WHERE round_id = $1 AND seat = $2`,
-    [roundId, chosenCard.seat]
+    [round.id, chosenCard.seat]
   );
   if (existingRes.rows.length > 0) {
     return mapPickRow(existingRes.rows[0]);
   }
 
-  // Verifica o limite máximo de filmes pendentes para assistir (declinados/concluídos não contam)
   const activeCountRes = await query(
     `SELECT COUNT(*)::int AS cnt FROM secret_draw_picks WHERE status = 'active'`
   );
@@ -2495,7 +2901,7 @@ export async function chooseSecretCard(roundId: number, seat: number): Promise<S
      ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, 'active')
      RETURNING *`,
     [
-      roundId,
+      round.id,
       chosenCard.seat,
       chosenCard.poolId,
       chosenCard.difficulty,
@@ -2507,12 +2913,11 @@ export async function chooseSecretCard(roundId: number, seat: number): Promise<S
   if (bonusNextPickXp > 0 && round.powerFlags) {
     const nextFlags: SecretDrawRoundPowerFlags = { ...round.powerFlags, bonusNextPickXp: 0 };
     await query(`UPDATE secret_draw_rounds SET power_flags_json = $2::jsonb WHERE id = $1`, [
-      roundId,
+      round.id,
       JSON.stringify(nextFlags),
     ]);
   }
 
-  // Mantém round_id aberto em 'revealed' para permitir escolher quantas cartas quiser desta mão!
   if (chosenCard.poolId) {
     await query(
       `UPDATE secret_draw_pool SET status = 'drawn' WHERE id = $1 AND status = 'available'`,
@@ -2521,6 +2926,798 @@ export async function chooseSecretCard(roundId: number, seat: number): Promise<S
   }
 
   return mapPickRow(insRes.rows[0]);
+}
+
+async function pickRandomActiveQueueRow(predicate?: (pick: SecretDrawPick) => boolean): Promise<SecretDrawPick | null> {
+  const res = await query(
+    `SELECT * FROM secret_draw_picks WHERE status = 'active' ORDER BY RANDOM()`
+  );
+  const picks = (res.rows || []).map(mapPickRow);
+  const filtered = predicate ? picks.filter(predicate) : picks;
+  return filtered[0] || null;
+}
+
+async function shiftPickDifficultyStep(
+  target: SecretDrawPick,
+  direction: 1 | -1
+): Promise<{ prevDiff: SecretDrawDifficulty; nextDiff: SecretDrawDifficulty; prevXp: number; nextXp: number }> {
+  const curIdx = SECRET_DIFFICULTY_ORDER.indexOf(target.difficulty);
+  const nextIdx = Math.max(0, Math.min(SECRET_DIFFICULTY_ORDER.length - 1, curIdx + direction));
+  const nextDiff = SECRET_DIFFICULTY_ORDER[nextIdx];
+  const nextMeta = SECRET_DRAW_DIFFICULTY_META[nextDiff];
+  const prevBaseXp = SECRET_DRAW_XP_BY_DIFFICULTY[target.difficulty] || 35;
+  const nextBaseXp = SECRET_DRAW_XP_BY_DIFFICULTY[nextDiff] || 35;
+  const prevXp = Number(target.xpReward || prevBaseXp);
+  const nextXp = Math.max(10, Math.round(prevXp + (nextBaseXp - prevBaseXp)));
+
+  const updatedCard: SecretDrawCard = {
+    ...target.card,
+    difficulty: nextDiff,
+    difficultyLabel: nextMeta.label,
+    difficultyIcon: nextMeta.icon,
+    xpReward: nextXp,
+    rarityChangedFrom: target.difficulty,
+  };
+
+  await query(
+    `UPDATE secret_draw_picks
+     SET difficulty = $2,
+         xp_reward = $3,
+         card_json = $4::jsonb
+     WHERE id = $1`,
+    [target.id, nextDiff, nextXp, JSON.stringify(updatedCard)]
+  );
+
+  return { prevDiff: target.difficulty, nextDiff, prevXp, nextXp };
+}
+
+export interface SecretSpecialExecutionResult {
+  kind: 'special';
+  specialEvent: SecretDrawCardSpecialEvent;
+  card?: SecretDrawCard | null;
+  portalCompletedPick?: SecretDrawPick | null;
+  chainedOutcome?: SecretSpecialExecutionResult | null;
+  pulledMoviePick?: SecretDrawPick | null;
+  reshuffledSeats?: number[];
+}
+
+async function executeSecretSpecialEffect(params: {
+  baseEvent: SecretDrawCardSpecialEvent;
+  roundId?: number | null;
+  triggerSeat?: number | null;
+  depth?: number;
+  deferOcarina?: boolean;
+}): Promise<SecretSpecialExecutionResult> {
+  const depth = Number(params.depth || 0);
+  const event: SecretDrawCardSpecialEvent = {
+    ...params.baseEvent,
+    triggered: true,
+    triggeredAt: new Date().toISOString(),
+  };
+
+  let portalCompletedPick: SecretDrawPick | null = null;
+  let chainedOutcome: SecretSpecialExecutionResult | null = null;
+  let pulledMoviePick: SecretDrawPick | null = null;
+  let reshuffledSeats: number[] = [];
+
+  const loadRoundAndPicked = async (targetRoundId: number | null | undefined) => {
+    if (!targetRoundId) return null;
+    const [rRes, pRes] = await Promise.all([
+      query(`SELECT * FROM secret_draw_rounds WHERE id = $1`, [targetRoundId]),
+      query(`SELECT seat FROM secret_draw_picks WHERE round_id = $1`, [targetRoundId]),
+    ]);
+    if (rRes.rows.length === 0) return null;
+    const round = mapRoundRow(rRes.rows[0]);
+    const pickedSeats = new Set((pRes.rows || []).map((x: any) => Number(x.seat)));
+    return { round, pickedSeats };
+  };
+
+  switch (event.id) {
+    case 'duas_caras': {
+      const target = await pickRandomActiveQueueRow();
+      if (!target) {
+        const coinFace = Math.random() < 0.5 ? 'heads' : 'tails';
+        event.resultSummary = 'Sua fila de filmes estava vazia — a moeda girou no ar sem alvo na fila.';
+        event.outcomeData = { noTarget: true, coinFace, coinRarity: coinFace === 'heads' ? 'legendary' : 'cursed' };
+        break;
+      }
+      const coinFace = Math.random() < 0.5 ? 'heads' : 'tails';
+      const prevXp = Number(target.xpReward || 35);
+      const isHeads = coinFace === 'heads';
+      const nextXp = isHeads ? prevXp * 2 : Math.max(10, Math.round(prevXp / 2));
+      const updatedCard: SecretDrawCard = {
+        ...target.card,
+        xpReward: nextXp,
+        ...(isHeads
+          ? { twoFaceDoubled: true }
+          : { halfXpCursed: true, boomerangLocked: true }),
+      };
+
+      await query(
+        `UPDATE secret_draw_picks SET xp_reward = $2, card_json = $3::jsonb WHERE id = $1`,
+        [target.id, nextXp, JSON.stringify(updatedCard)]
+      );
+
+      event.resultSummary = isHeads
+        ? `🪙 CARA! "${target.card?.resolved?.title}" teve o XP DOBRADO de +${prevXp} XP para +${nextXp} XP!`
+        : `🪙 COROA! "${target.card?.resolved?.title}" caiu para metade (+${prevXp} → +${nextXp} XP) e TRAVOU sem Passe Bumerangue!`;
+      event.outcomeData = {
+        coinFace,
+        coinRarity: isHeads ? 'legendary' : 'cursed',
+        targetPickId: target.id,
+        targetTitle: target.card?.resolved?.title || 'Filme da Fila',
+        prevXp,
+        nextXp,
+        boomerangLocked: !isHeads,
+      };
+      break;
+    }
+
+    case 'apresentador_vem_ca': {
+      const ctx = await loadRoundAndPicked(params.roundId);
+      if (!ctx) {
+        event.resultSummary = 'Nenhuma mesa aberta no momento — abra um sorteio para puxar uma carta fechada!';
+        event.outcomeData = { noTarget: true };
+        break;
+      }
+      const { round, pickedSeats } = ctx;
+      const closedCandidates = round.cards.filter(
+        (c) =>
+          Number(c.seat) !== Number(params.triggerSeat || 0) &&
+          !pickedSeats.has(Number(c.seat)) &&
+          !c.specialEvent?.triggered
+      );
+      if (closedCandidates.length === 0) {
+        event.resultSummary = 'Não restou nenhuma outra carta fechada na mesa para puxar!';
+        event.outcomeData = { noTarget: true };
+        break;
+      }
+      const chosen = closedCandidates[Math.floor(Math.random() * closedCandidates.length)];
+
+      if (chosen.specialEvent && depth < 3) {
+        if (chosen.poolId) {
+          await query(
+            `UPDATE secret_draw_pool SET status = 'available' WHERE id = $1 AND status = 'drawn'`,
+            [chosen.poolId]
+          );
+        }
+        chainedOutcome = await executeSecretSpecialEffect({
+          baseEvent: chosen.specialEvent,
+          roundId: round.id,
+          triggerSeat: chosen.seat,
+          depth: depth + 1,
+        });
+        const freshRoundRes = await query(`SELECT cards_json FROM secret_draw_rounds WHERE id = $1`, [round.id]);
+        const latestCards: SecretDrawCard[] = Array.isArray(freshRoundRes.rows[0]?.cards_json)
+          ? freshRoundRes.rows[0].cards_json
+          : round.cards;
+        const patched = latestCards.map((c) =>
+          Number(c.seat) === Number(chosen.seat) ? { ...c, specialEvent: chainedOutcome!.specialEvent } : c
+        );
+        await query(`UPDATE secret_draw_rounds SET cards_json = $2::jsonb WHERE id = $1`, [
+          round.id,
+          JSON.stringify(patched),
+        ]);
+        event.resultSummary = `✈️ "Vem pra cá!" puxou a Carta #${chosen.seat} — e ela escondia ${chainedOutcome.specialEvent.icon} ${chainedOutcome.specialEvent.title} em cadeia!`;
+        event.outcomeData = { pulledSeat: chosen.seat, chainedSpecial: true };
+      } else {
+        const activeCountRes = await query(
+          `SELECT COUNT(*)::int AS cnt FROM secret_draw_picks WHERE status = 'active'`
+        );
+        const activeCount = Number(activeCountRes.rows[0]?.cnt || 0);
+        const effectiveActiveLimit =
+          MAX_ACTIVE_SECRET_PICKS + (round.powerFlags?.allowExtraActivePick ? 1 : 0);
+        if (activeCount >= effectiveActiveLimit) {
+          event.triggered = false;
+          event.resultSummary = `✈️ Sua fila está cheia (${activeCount}/${effectiveActiveLimit})! Libere 1 vaga (conclua, decline ou use Bumerangue) para o Apresentador poder puxar mais um filme da mesa.`;
+          event.outcomeData = { queueFull: true };
+        } else {
+          pulledMoviePick = await queueNormalSecretCardInPickTable(round, chosen);
+          event.resultSummary = `✈️ "Vem pra cá!" puxou a Carta #${chosen.seat}: "${chosen.resolved?.title}" (${chosen.difficultyLabel} • +${pulledMoviePick.xpReward} XP) direto para a sua fila!`;
+          event.outcomeData = {
+            pulledSeat: chosen.seat,
+            targetTitle: chosen.resolved?.title,
+            xpReward: pulledMoviePick.xpReward,
+          };
+        }
+      }
+      break;
+    }
+
+    case 'ocarina_floresta': {
+      if (params.deferOcarina) {
+        event.resultSummary = '⏳ Melodia do tempo pronta para embaralhar e trocar as cartas fechadas da mesa!';
+        event.outcomeData = {
+          pendingOcarina: true,
+          roundId: params.roundId || null,
+          triggerSeat: params.triggerSeat || null,
+          createLabIfEmpty: !params.roundId,
+        };
+        break;
+      }
+      return executeOcarinaReshuffle({
+        roundId: params.roundId || null,
+        triggerSeat: params.triggerSeat || null,
+        baseEvent: event,
+      });
+    }
+
+    case 'recarga_classe': {
+      const classWallet = await labGrantClassPowerCharge('secret_draw');
+      event.resultSummary = `⚡ Poder da Classe recarregado! +1 carga exclusiva adicionada para a Sessão Secreta (${classWallet.secretCharges}/${classWallet.maxSecretCharges} disponível(is)).`;
+      event.outcomeData = {
+        secretCharges: classWallet.secretCharges,
+        maxSecretCharges: classWallet.maxSecretCharges,
+      };
+      break;
+    }
+
+    case 'visao_marcos': {
+      const ctx = await loadRoundAndPicked(params.roundId);
+      if (!ctx) {
+        event.resultSummary = 'Nenhuma mesa aberta — sorteie uma mão para ativar a Visão dos Marcos!';
+        event.outcomeData = { noTarget: true };
+        break;
+      }
+      const { round, pickedSeats } = ctx;
+      let updatedCount = 0;
+      const nextCards = round.cards.map((c) => {
+        if (Number(c.seat) === Number(params.triggerSeat || 0)) {
+          return { ...c, specialEvent: event };
+        }
+        if (!pickedSeats.has(Number(c.seat)) && !c.specialEvent?.triggered) {
+          updatedCount += 1;
+          if (c.specialEvent) {
+            const decoyList =
+              Array.isArray(c.decoyMilestones) && c.decoyMilestones.length > 0
+                ? c.decoyMilestones
+                : buildRandomDecoyMilestones(c.totalMilestonesCount || 2);
+            return {
+              ...c,
+              decoyMilestones: decoyList,
+              simpleMilestonesHint: true,
+            };
+          }
+          return { ...c, simpleMilestonesHint: true };
+        }
+        return c;
+      });
+      const nextFlags: SecretDrawRoundPowerFlags = {
+        ...(round.powerFlags || {}),
+        simpleMilestonesVision: true,
+      };
+      await query(
+        `UPDATE secret_draw_rounds SET cards_json = $2::jsonb, power_flags_json = $3::jsonb WHERE id = $1`,
+        [round.id, JSON.stringify(nextCards), JSON.stringify(nextFlags)]
+      );
+      event.resultSummary = `👁️ Visão ativada em ${updatedCount} carta(s) fechada(s): agora o verso mostra os marcos simples de cada uma (Troféus, Países, Anos)!`;
+      event.outcomeData = { updatedCount };
+      break;
+    }
+
+    case 'arlequim_revela_3':
+    case 'arlequim_revela_5': {
+      const targetRevealCount = event.id === 'arlequim_revela_5' ? 5 : 3;
+      const ctx = await loadRoundAndPicked(params.roundId);
+      if (!ctx) {
+        event.resultSummary = 'Nenhuma mesa aberta — sorteie uma mão para o Mini Arlequim revelar cartas!';
+        event.outcomeData = { noTarget: true };
+        break;
+      }
+      const { round, pickedSeats } = ctx;
+      const candidates = round.cards.filter(
+        (c) =>
+          Number(c.seat) !== Number(params.triggerSeat || 0) &&
+          !pickedSeats.has(Number(c.seat)) &&
+          !c.specialEvent &&
+          !c.revealedPreview
+      );
+      const pickedToReveal = candidates
+        .sort(() => Math.random() - 0.5)
+        .slice(0, targetRevealCount);
+      const revealSet = new Set(pickedToReveal.map((c) => Number(c.seat)));
+
+      const nextCards = round.cards.map((c) => {
+        if (Number(c.seat) === Number(params.triggerSeat || 0)) {
+          return { ...c, specialEvent: event };
+        }
+        if (revealSet.has(Number(c.seat))) {
+          return { ...c, revealedPreview: true };
+        }
+        return c;
+      });
+
+      await query(`UPDATE secret_draw_rounds SET cards_json = $2::jsonb WHERE id = $1`, [
+        round.id,
+        JSON.stringify(nextCards),
+      ]);
+
+      const revealedTitles = pickedToReveal.map((c) => c.resolved?.title).filter(Boolean);
+      event.resultSummary =
+        pickedToReveal.length > 0
+          ? `${event.icon} O Mini Arlequim revelou ${pickedToReveal.length} filme(s) oculto(s) na mesa: ${revealedTitles.join(' • ')}!`
+          : 'Todas as outras cartas da mesa já estavam reveladas!';
+      event.outcomeData = {
+        revealedCount: pickedToReveal.length,
+        revealedSeats: Array.from(revealSet),
+        revealedTitles,
+      };
+      break;
+    }
+
+    case 'portal_dimensional': {
+      const target = await pickRandomActiveQueueRow();
+      if (!target) {
+        event.resultSummary = 'Sua fila está vazia — sem filme para colher pelo Portal Dimensional.';
+        event.outcomeData = { noTarget: true };
+        break;
+      }
+      const awardXp = Number(target.xpReward || SECRET_DRAW_XP_BY_DIFFICULTY[target.difficulty || 'common']);
+      const updatedCard: SecretDrawCard = { ...target.card, portalHarvested: true };
+
+      if (target.poolId) {
+        await query(
+          `UPDATE secret_draw_pool SET status = 'available', skip_reason = NULL WHERE id = $1`,
+          [target.poolId]
+        );
+      }
+
+      const upd = await query(
+        `UPDATE secret_draw_picks
+         SET status = 'completed',
+             xp_awarded = $2,
+             card_json = $3::jsonb,
+             completed_source = 'portal_special',
+             decline_reason = '🌀 Colhido via Portal Dimensional (devolvido ao baralho)',
+             completed_at = CURRENT_TIMESTAMP
+         WHERE id = $1
+         RETURNING *`,
+        [target.id, awardXp, JSON.stringify(updatedCard)]
+      );
+      portalCompletedPick = mapPickRow(upd.rows[0]);
+      event.resultSummary = `🌀 Portal aberto em "${target.card?.resolved?.title}": +${awardXp} XP destravados sem assistir e o filme voltou ao baralho!`;
+      event.outcomeData = {
+        targetPickId: target.id,
+        targetTitle: target.card?.resolved?.title,
+        awardXp,
+      };
+      break;
+    }
+
+    case 'pedra_filosofal': {
+      const target = await pickRandomActiveQueueRow((p) => p.difficulty !== 'exotic');
+      if (!target) {
+        event.resultSummary = 'Nenhum filme elegível (abaixo de Exótico) na sua fila para ascender.';
+        event.outcomeData = { noTarget: true };
+        break;
+      }
+      const { prevDiff, nextDiff, prevXp, nextXp } = await shiftPickDifficultyStep(target, 1);
+      event.resultSummary = `⚗️ Ascensão! "${target.card?.resolved?.title}" subiu de ${SECRET_DRAW_DIFFICULTY_META[prevDiff].label} (+${prevXp} XP) para ${SECRET_DRAW_DIFFICULTY_META[nextDiff].label} (+${nextXp} XP)!`;
+      event.outcomeData = {
+        targetPickId: target.id,
+        targetTitle: target.card?.resolved?.title,
+        prevDiff,
+        nextDiff,
+        prevXp,
+        nextXp,
+      };
+      break;
+    }
+
+    case 'armadilha_mecanica': {
+      const target = await pickRandomActiveQueueRow((p) => p.difficulty !== 'common');
+      if (!target) {
+        event.resultSummary = 'Nenhum filme acima de Comum na fila — você escapou da Armadilha!';
+        event.outcomeData = { noTarget: true };
+        break;
+      }
+      const { prevDiff, nextDiff, prevXp, nextXp } = await shiftPickDifficultyStep(target, -1);
+      event.resultSummary = `⚙️ Armadilha acionada! "${target.card?.resolved?.title}" caiu de ${SECRET_DRAW_DIFFICULTY_META[prevDiff].label} (+${prevXp} XP) para ${SECRET_DRAW_DIFFICULTY_META[nextDiff].label} (+${nextXp} XP)!`;
+      event.outcomeData = {
+        targetPickId: target.id,
+        targetTitle: target.card?.resolved?.title,
+        prevDiff,
+        nextDiff,
+        prevXp,
+        nextXp,
+      };
+      break;
+    }
+
+    case 'corrente_destino': {
+      const target = await pickRandomActiveQueueRow((p) => !p.card?.boomerangLocked);
+      if (!target) {
+        event.resultSummary = 'Nenhum filme livre para acorrentar na fila — o feitiço falhou!';
+        event.outcomeData = { noTarget: true };
+        break;
+      }
+      const updatedCard: SecretDrawCard = { ...target.card, boomerangLocked: true };
+      await query(`UPDATE secret_draw_picks SET card_json = $2::jsonb WHERE id = $1`, [
+        target.id,
+        JSON.stringify(updatedCard),
+      ]);
+      event.resultSummary = `⛓️ Corrente do Destino prendeu "${target.card?.resolved?.title}" na sua fila — Passe Bumerangue bloqueado nesta carta!`;
+      event.outcomeData = {
+        targetPickId: target.id,
+        targetTitle: target.card?.resolved?.title,
+      };
+      break;
+    }
+
+    case 'lamina_eclipse': {
+      const target =
+        (await pickRandomActiveQueueRow((p) => !p.card?.halfXpCursed)) ||
+        (await pickRandomActiveQueueRow());
+      if (!target) {
+        event.resultSummary = 'Sua fila estava vazia — o golpe da Lâmina do Eclipse passou no vazio!';
+        event.outcomeData = { noTarget: true };
+        break;
+      }
+      const prevXp = Number(target.xpReward || 35);
+      const nextXp = Math.max(10, Math.round(prevXp / 2));
+      const updatedCard: SecretDrawCard = {
+        ...target.card,
+        xpReward: nextXp,
+        halfXpCursed: true,
+      };
+      await query(
+        `UPDATE secret_draw_picks SET xp_reward = $2, card_json = $3::jsonb WHERE id = $1`,
+        [target.id, nextXp, JSON.stringify(updatedCard)]
+      );
+      event.resultSummary = `💔 Lâmina do Eclipse cortou "${target.card?.resolved?.title}" pela metade: +${prevXp} XP → +${nextXp} XP!`;
+      event.outcomeData = {
+        targetPickId: target.id,
+        targetTitle: target.card?.resolved?.title,
+        prevXp,
+        nextXp,
+      };
+      break;
+    }
+  }
+
+  return {
+    kind: 'special',
+    specialEvent: event,
+    portalCompletedPick,
+    chainedOutcome,
+    pulledMoviePick,
+    reshuffledSeats,
+  };
+}
+
+export async function executeOcarinaReshuffle(params: {
+  roundId?: number | null;
+  triggerSeat?: number | null;
+  createLabIfEmpty?: boolean;
+  baseEvent?: SecretDrawCardSpecialEvent | null;
+}): Promise<SecretSpecialExecutionResult> {
+  await ensureSecretDrawTables();
+  const def = SECRET_SPECIAL_CARDS_CATALOG.find((c) => c.id === 'ocarina_floresta')!;
+  const event: SecretDrawCardSpecialEvent = {
+    ...(params.baseEvent || buildSpecialEventSnapshot(def)),
+    triggered: true,
+    triggeredAt: new Date().toISOString(),
+  };
+
+  let targetRoundId = params.roundId ? Number(params.roundId) : null;
+  if (!targetRoundId) {
+    const openRoundRes = await query(
+      `SELECT id FROM secret_draw_rounds WHERE status = 'revealed' ORDER BY id DESC LIMIT 1`
+    );
+    targetRoundId = openRoundRes.rows[0]?.id ? Number(openRoundRes.rows[0].id) : null;
+  }
+
+  if (!targetRoundId && params.createLabIfEmpty) {
+    const { cards, auditLog } = await resolveFreshMovieBatchForSeats({
+      targetSeats: [1, 2, 3, 4, 5],
+      sagaRule: 'redirect_first',
+    });
+    if (cards.length > 0) {
+      await query(
+        `INSERT INTO secret_draw_rounds (
+           mode, status, requested_card_count, saga_rule, cards_json, audit_log_json
+         ) VALUES ('lab_special_test', 'revealed', $1, 'redirect_first', $2::jsonb, $3::jsonb)`,
+        [cards.length, JSON.stringify(cards), JSON.stringify(auditLog)]
+      );
+      const reshuffledSeats = cards.map((c) => Number(c.seat));
+      event.resultSummary = `⏳ A Ocarina da Floresta invocou e embaralhou ${cards.length} cartas novas na mesa de teste!`;
+      event.outcomeData = {
+        reshuffledCount: cards.length,
+        reshuffledSeats,
+        reshuffledDetails: cards.map((c) => ({
+          seat: Number(c.seat),
+          prevDiff: 'Nova',
+          nextDiff: c.difficultyLabel,
+          prevXp: 0,
+          nextXp: c.xpReward,
+        })),
+      };
+      return { kind: 'special', specialEvent: event, reshuffledSeats };
+    }
+  }
+
+  if (!targetRoundId) {
+    event.resultSummary = 'Nenhuma mesa aberta — sorteie uma mão primeiro para tocar a Ocarina da Floresta!';
+    event.outcomeData = { noTarget: true };
+    return { kind: 'special', specialEvent: event, reshuffledSeats: [] };
+  }
+
+  const [rRes, pRes] = await Promise.all([
+    query(`SELECT * FROM secret_draw_rounds WHERE id = $1`, [targetRoundId]),
+    query(`SELECT seat FROM secret_draw_picks WHERE round_id = $1`, [targetRoundId]),
+  ]);
+  if (rRes.rows.length === 0) {
+    event.resultSummary = 'Rodada não encontrada para reembaralhar.';
+    event.outcomeData = { noTarget: true };
+    return { kind: 'special', specialEvent: event, reshuffledSeats: [] };
+  }
+  const round = mapRoundRow(rRes.rows[0]);
+  const pickedSeats = new Set((pRes.rows || []).map((x: any) => Number(x.seat)));
+
+  const toReshuffle = round.cards.filter(
+    (c) =>
+      Number(c.seat) !== Number(params.triggerSeat || 0) &&
+      !pickedSeats.has(Number(c.seat)) &&
+      !c.specialEvent?.triggered
+  );
+  if (toReshuffle.length === 0) {
+    event.resultSummary = 'Todas as outras cartas desta mesa já foram abertas! Sorteie uma nova mão para usar a Ocarina.';
+    event.outcomeData = { noTarget: true };
+    return { kind: 'special', specialEvent: event, reshuffledSeats: [] };
+  }
+
+  const poolIdsToRelease = toReshuffle.map((c) => Number(c.poolId || 0)).filter((n) => n > 0);
+  const keepKeys = new Set<string>();
+  for (const c of round.cards) {
+    const k = c.resolved?.tmdbId
+      ? `tmdb:${c.resolved.tmdbId}`
+      : `${normalizeCompareText(c.resolved?.title)}:${c.resolved?.releaseYear || ''}`;
+    if (k) keepKeys.add(k);
+  }
+
+  const oldBySeat = new Map<number, SecretDrawCard>(toReshuffle.map((c) => [Number(c.seat), c]));
+  const targetSeats = toReshuffle.map((c) => Number(c.seat));
+
+  const { cards: freshCards } = await resolveFreshMovieBatchForSeats({
+    targetSeats,
+    sagaRule: round.sagaRule || 'redirect_first',
+    excludeKeys: keepKeys,
+  });
+
+  if (poolIdsToRelease.length > 0) {
+    await query(
+      `UPDATE secret_draw_pool SET status = 'available' WHERE id = ANY($1::int[]) AND status = 'drawn'`,
+      [poolIdsToRelease]
+    );
+  }
+
+  const keepVision = Boolean(round.powerFlags?.simpleMilestonesVision);
+  const freshBySeat = new Map<number, SecretDrawCard>(
+    freshCards.map((fc) => [
+      Number(fc.seat),
+      keepVision ? { ...fc, simpleMilestonesHint: true } : fc,
+    ])
+  );
+  const reshuffledSeats = Array.from(freshBySeat.keys());
+  const reshuffledDetails = reshuffledSeats.map((seatNum) => {
+    const prevCard = oldBySeat.get(seatNum);
+    const nextCard = freshBySeat.get(seatNum);
+    return {
+      seat: seatNum,
+      prevDiff: prevCard?.difficultyLabel || '',
+      nextDiff: nextCard?.difficultyLabel || '',
+      prevXp: prevCard?.xpReward || 0,
+      nextXp: nextCard?.xpReward || 0,
+    };
+  });
+
+  event.resultSummary = `⏳ A melodia da Ocarina reembaralhou ${reshuffledSeats.length} carta(s) fechada(s) na mesa sem gastar ficha!`;
+  event.outcomeData = {
+    reshuffledCount: reshuffledSeats.length,
+    reshuffledSeats,
+    reshuffledDetails,
+  };
+
+  const nextCards = round.cards.map((oldC) => {
+    if (Number(oldC.seat) === Number(params.triggerSeat || 0)) {
+      return scrubSpecialSeatCard(oldC, event);
+    }
+    const replacement = freshBySeat.get(Number(oldC.seat));
+    return replacement || oldC;
+  });
+
+  await query(`UPDATE secret_draw_rounds SET cards_json = $2::jsonb WHERE id = $1`, [
+    round.id,
+    JSON.stringify(nextCards),
+  ]);
+
+  return {
+    kind: 'special',
+    specialEvent: event,
+    reshuffledSeats,
+  };
+}
+
+export async function chooseSecretSeatAction(
+  roundId: number,
+  seat: number,
+  options: { deferOcarina?: boolean } = {}
+): Promise<
+  | ({ kind: 'movie'; card: SecretDrawCard; pick: SecretDrawPick })
+  | SecretSpecialExecutionResult
+> {
+  await ensureSecretDrawTables();
+  const roundRes = await query(`SELECT * FROM secret_draw_rounds WHERE id = $1`, [roundId]);
+  if (roundRes.rows.length === 0) {
+    throw new Error('Rodada de sorteio não encontrada.');
+  }
+  const round = mapRoundRow(roundRes.rows[0]);
+  if (round.status !== 'revealed') {
+    throw new Error('Esta rodada já foi finalizada.');
+  }
+  const chosenCard = round.cards.find((c) => Number(c.seat) === Number(seat));
+  if (!chosenCard) {
+    throw new Error('Carta selecionada inválida.');
+  }
+
+  if (chosenCard.specialEvent) {
+    if (chosenCard.specialEvent.triggered && !chosenCard.specialEvent.outcomeData?.pendingOcarina) {
+      return {
+        kind: 'special',
+        specialEvent: chosenCard.specialEvent,
+        card: chosenCard,
+      };
+    }
+
+    const result = await executeSecretSpecialEffect({
+      baseEvent: chosenCard.specialEvent,
+      roundId: round.id,
+      triggerSeat: chosenCard.seat,
+      deferOcarina: Boolean(options.deferOcarina),
+    });
+
+    if (result.specialEvent.outcomeData?.queueFull) {
+      return {
+        ...result,
+        card: chosenCard,
+      };
+    }
+
+    // Evento Puro (Opção A): libera o filme subjacente de volta ao pool apenas quando a carta especial foi efetivada
+    if (chosenCard.poolId) {
+      await query(
+        `UPDATE secret_draw_pool SET status = 'available' WHERE id = $1 AND status = 'drawn'`,
+        [chosenCard.poolId]
+      );
+    }
+
+    // Persiste o specialEvent atualizado na carta (respeitando eventuais mutações em round.cards se Ocarina/Arlequim mexeu)
+    const latestRes = await query(`SELECT cards_json FROM secret_draw_rounds WHERE id = $1`, [round.id]);
+    const latestCards: SecretDrawCard[] = Array.isArray(latestRes.rows[0]?.cards_json)
+      ? latestRes.rows[0].cards_json
+      : round.cards;
+    const scrubbedCard = scrubSpecialSeatCard(chosenCard, result.specialEvent);
+    const nextCards = latestCards.map((c) =>
+      Number(c.seat) === Number(chosenCard.seat) ? scrubbedCard : c
+    );
+    await query(`UPDATE secret_draw_rounds SET cards_json = $2::jsonb WHERE id = $1`, [
+      round.id,
+      JSON.stringify(nextCards),
+    ]);
+
+    return {
+      ...result,
+      card: scrubbedCard,
+    };
+  }
+
+  const pick = await queueNormalSecretCardInPickTable(round, chosenCard);
+  return {
+    kind: 'movie',
+    card: pick.card,
+    pick,
+  };
+}
+
+export async function labTriggerSecretSpecialCard(
+  specialId: SecretSpecialCardId,
+  variantIndex?: number | null,
+  options: { deferOcarina?: boolean } = {}
+): Promise<SecretSpecialExecutionResult> {
+  await ensureSecretDrawTables();
+  const def = SECRET_SPECIAL_CARDS_CATALOG.find((c) => c.id === specialId);
+  if (!def) {
+    throw new Error('Carta Especial não encontrada no catálogo.');
+  }
+  const openRoundRes = await query(
+    `SELECT id FROM secret_draw_rounds WHERE status = 'revealed' ORDER BY id DESC LIMIT 1`
+  );
+  let openRoundId = openRoundRes.rows[0]?.id ? Number(openRoundRes.rows[0].id) : null;
+  const baseEvent = buildSpecialEventSnapshot(def, variantIndex);
+
+  if (specialId === 'ocarina_floresta' && options.deferOcarina) {
+    return executeSecretSpecialEffect({
+      baseEvent,
+      roundId: openRoundId,
+      triggerSeat: null,
+      deferOcarina: true,
+    });
+  }
+
+  const TABLE_EFFECT_SPECIALS = new Set<SecretSpecialCardId>([
+    'ocarina_floresta',
+    'visao_marcos',
+    'arlequim_revela_3',
+    'arlequim_revela_5',
+    'apresentador_vem_ca',
+  ]);
+
+  // Se o usuário testou uma Carta Especial de Mesa no Lab sem nenhuma mão sorteada, abre uma mão grátis de teste na mesa!
+  if (!openRoundId && TABLE_EFFECT_SPECIALS.has(specialId)) {
+    const { cards, auditLog } = await resolveFreshMovieBatchForSeats({
+      targetSeats: [1, 2, 3, 4, 5],
+      sagaRule: 'redirect_first',
+    });
+    if (cards.length > 0) {
+      const ins = await query(
+        `INSERT INTO secret_draw_rounds (
+           mode, status, requested_card_count, saga_rule, cards_json, audit_log_json
+         ) VALUES ('lab_special_test', 'revealed', $1, 'redirect_first', $2::jsonb, $3::jsonb)
+         RETURNING id`,
+        [cards.length, JSON.stringify(cards), JSON.stringify(auditLog)]
+      );
+      openRoundId = Number(ins.rows[0].id);
+
+      if (specialId === 'ocarina_floresta') {
+        const reshuffledSeats = cards.map((c) => Number(c.seat));
+        const event: SecretDrawCardSpecialEvent = {
+          ...baseEvent,
+          triggered: true,
+          triggeredAt: new Date().toISOString(),
+          resultSummary: `⏳ A Ocarina da Floresta invocou e embaralhou ${cards.length} cartas novas na mesa de teste!`,
+          outcomeData: {
+            reshuffledCount: cards.length,
+            reshuffledSeats,
+            reshuffledDetails: cards.map((c) => ({
+              seat: Number(c.seat),
+              prevDiff: 'Nova',
+              nextDiff: c.difficultyLabel,
+              prevXp: 0,
+              nextXp: c.xpReward,
+            })),
+          },
+        };
+        return {
+          kind: 'special',
+          specialEvent: event,
+          reshuffledSeats,
+        };
+      }
+    }
+  }
+
+  return executeSecretSpecialEffect({
+    baseEvent,
+    roundId: openRoundId,
+    triggerSeat: null,
+  });
+}
+
+export async function chooseSecretCard(roundId: number, seat: number): Promise<SecretDrawPick> {
+  await ensureSecretDrawTables();
+  const roundRes = await query(`SELECT * FROM secret_draw_rounds WHERE id = $1`, [roundId]);
+  if (roundRes.rows.length === 0) {
+    throw new Error('Rodada de sorteio não encontrada.');
+  }
+  const round = mapRoundRow(roundRes.rows[0]);
+  if (round.status !== 'revealed') {
+    throw new Error('Esta rodada já foi finalizada.');
+  }
+  const chosenCard = round.cards.find((c) => Number(c.seat) === Number(seat));
+  if (!chosenCard) {
+    throw new Error('Carta selecionada inválida.');
+  }
+  return queueNormalSecretCardInPickTable(round, chosenCard);
 }
 
 export async function unpickSecretCard(roundId: number, seat: number): Promise<void> {
@@ -2606,6 +3803,9 @@ export async function boomerangSecretPick(
   const pick = mapPickRow(pickRes.rows[0]);
   if (pick.status !== 'active') {
     throw new Error('Apenas cartas ativas na fila podem usar a Ficha Bumerangue.');
+  }
+  if (pick.card?.boomerangLocked) {
+    throw new Error('Esta carta está acorrentada/travada e não pode usar o Passe Bumerangue!');
   }
 
   // Diferente do declínio permanente, devolve ao baralho ('available') para poder sair novamente depois!
@@ -2890,6 +4090,7 @@ export async function getSecretDrawStatus(): Promise<{
   currentRoundPickedSeats: number[];
   recentHistory: SecretDrawRound[];
   miniCatalog: SecretDrawPick[];
+  specialCardsCatalog: SecretSpecialCardDef[];
 }> {
   await ensurePoolPopulatedIfEmpty();
 
@@ -2985,6 +4186,7 @@ export async function getSecretDrawStatus(): Promise<{
     currentRoundPickedSeats,
     recentHistory: (historyRes.rows || []).map(mapRoundRow),
     miniCatalog: mappedMiniCatalog,
+    specialCardsCatalog: SECRET_SPECIAL_CARDS_CATALOG,
   };
 }
 

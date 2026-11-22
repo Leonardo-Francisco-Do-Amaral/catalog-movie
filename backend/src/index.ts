@@ -66,7 +66,9 @@ import {
   ensurePoolPopulatedIfEmpty,
   getSecretDrawStatus,
   drawSecretCards,
-  chooseSecretCard,
+  chooseSecretSeatAction,
+  executeOcarinaReshuffle,
+  labTriggerSecretSpecialCard,
   finishSecretDrawRound,
   declineSecretPick,
   boomerangSecretPick,
@@ -313,13 +315,16 @@ app.get('/api/health', async (req: Request, res: Response) => {
 
 const SECRET_DRAW_MOVIE_SELECT_FIELDS = `
              (SELECT sdp.difficulty FROM secret_draw_picks sdp WHERE sdp.completed_movie_id = m.id AND sdp.status = 'completed' ORDER BY sdp.completed_at DESC NULLS LAST, sdp.id DESC LIMIT 1) as secret_draw_difficulty,
-             (SELECT sdp.xp_awarded FROM secret_draw_picks sdp WHERE sdp.completed_movie_id = m.id AND sdp.status = 'completed' ORDER BY sdp.completed_at DESC NULLS LAST, sdp.id DESC LIMIT 1) as secret_draw_xp
+             (SELECT sdp.xp_awarded FROM secret_draw_picks sdp WHERE sdp.completed_movie_id = m.id AND sdp.status = 'completed' ORDER BY sdp.completed_at DESC NULLS LAST, sdp.id DESC LIMIT 1) as secret_draw_xp,
+             (SELECT cc.status FROM chimera_contracts cc WHERE cc.matched_movie_id = m.id AND cc.status IN ('claimed', 'ready_to_claim') ORDER BY cc.claimed_at DESC NULLS LAST, cc.matched_at DESC NULLS LAST, cc.id DESC LIMIT 1) as chimera_status,
+             (SELECT COALESCE(NULLIF(cc.xp_awarded, 0), (cc.match_details_json->>'totalClaimableXp')::int, 0) FROM chimera_contracts cc WHERE cc.matched_movie_id = m.id AND cc.status IN ('claimed', 'ready_to_claim') ORDER BY cc.claimed_at DESC NULLS LAST, cc.matched_at DESC NULLS LAST, cc.id DESC LIMIT 1) as chimera_xp,
+             (SELECT COALESCE((cc.match_details_json->>'jackpotsHitCount')::int, 0) FROM chimera_contracts cc WHERE cc.matched_movie_id = m.id AND cc.status IN ('claimed', 'ready_to_claim') ORDER BY cc.claimed_at DESC NULLS LAST, cc.matched_at DESC NULLS LAST, cc.id DESC LIMIT 1) as chimera_jackpots_hit
 `;
 
 // 1. Rota: Último Filme Assistido (Destaque HeroBanner)
 app.get('/api/movies/latest', async (req: Request, res: Response) => {
   try {
-    await ensureSecretDrawTables();
+    await Promise.all([ensureSecretDrawTables(), ensureChimeraTables()]);
     const sql = `
       SELECT mv.id, m.id as movie_id, m.imdb_id, m.tmdb_id, m.title, m.original_title, m.release_year, m.runtime, m.synopsis, m.poster_url, m.imdb_rating, m.metacritic_score, m.rotten_tomatoes_score, m.is_custom, m.oscar_wins, m.oscar_nominations, m.vote_count, m.distributor, m.raw_api_data,
              mv.user_rating, mv.month_seen, mv.year_seen, mv.audio_type, mv.platform, mv.review_notes, mv.watched_at,
@@ -364,7 +369,7 @@ ${SECRET_DRAW_MOVIE_SELECT_FIELDS}
 // 2. Rota: Favoritos Inesquecíveis (user_rating >= 9.5)
 app.get('/api/movies/favorites', async (req: Request, res: Response) => {
   try {
-    await ensureSecretDrawTables();
+    await Promise.all([ensureSecretDrawTables(), ensureChimeraTables()]);
     const sql = `
       SELECT mv.id, m.id as movie_id, m.imdb_id, m.tmdb_id, m.title, m.original_title, m.release_year, m.runtime, m.synopsis, m.poster_url, m.imdb_rating, m.metacritic_score, m.rotten_tomatoes_score, m.is_custom, m.oscar_wins, m.oscar_nominations, m.vote_count, m.distributor, m.raw_api_data,
              mv.user_rating, mv.month_seen, mv.year_seen, mv.audio_type, mv.platform, mv.review_notes, mv.watched_at,
@@ -406,7 +411,7 @@ ${SECRET_DRAW_MOVIE_SELECT_FIELDS}
 // 3. Rota: Terror & Tensão (Gênero ou Tags de Horror/Suspense/Gore/Vampiro)
 app.get('/api/movies/horror-suspense', async (req: Request, res: Response) => {
   try {
-    await ensureSecretDrawTables();
+    await Promise.all([ensureSecretDrawTables(), ensureChimeraTables()]);
     const sql = `
       SELECT mv.id, m.id as movie_id, m.imdb_id, m.tmdb_id, m.title, m.original_title, m.release_year, m.runtime, m.synopsis, m.poster_url, m.imdb_rating, m.metacritic_score, m.rotten_tomatoes_score, m.is_custom, m.oscar_wins, m.oscar_nominations, m.vote_count, m.distributor, m.raw_api_data,
              mv.user_rating, mv.month_seen, mv.year_seen, mv.audio_type, mv.platform, mv.review_notes, mv.watched_at,
@@ -456,7 +461,7 @@ ${SECRET_DRAW_MOVIE_SELECT_FIELDS}
 // 4. Rota: Todos os Filmes (Grelha Geral e Filtros)
 app.get('/api/movies/all', async (req: Request, res: Response) => {
   try {
-    await ensureSecretDrawTables();
+    await Promise.all([ensureSecretDrawTables(), ensureChimeraTables()]);
     const sql = `
       SELECT mv.id, m.id as movie_id, m.imdb_id, m.tmdb_id, m.title, m.original_title, m.release_year, m.runtime, m.synopsis, m.poster_url, m.imdb_rating, m.metacritic_score, m.rotten_tomatoes_score, m.is_custom, m.oscar_wins, m.oscar_nominations, m.vote_count, m.distributor,
              CASE
@@ -2276,12 +2281,37 @@ app.post('/api/secret-draw/choose', async (req: Request, res: Response) => {
     if (!roundId || !seat) {
       return res.status(400).json({ success: false, error: 'roundId e seat são obrigatórios.' });
     }
-    await chooseSecretCard(roundId, seat);
+    const prevXp = await getQuickXpSnapshot().catch(() => null);
+    const outcome = await chooseSecretSeatAction(roundId, seat, { deferOcarina: true });
+
+    if (outcome.kind === 'special') {
+      const portalPick =
+        outcome.portalCompletedPick || outcome.chainedOutcome?.portalCompletedPick || null;
+      if (portalPick?.id) {
+        await evaluateBingoOnSecretDrawClaim({
+          pickId: portalPick.id,
+          difficulty: portalPick.difficulty,
+        }).catch((bErr: any) =>
+          console.warn('[Bingo] Erro ao avaliar Portal da Sessão Secreta:', bErr?.message)
+        );
+      }
+      const [data, xpStatus] = await Promise.all([
+        getSecretDrawStatus(),
+        getQuickXpSnapshot().catch(() => null),
+      ]);
+      const xpGain = computeXpGainEvent(prevXp, xpStatus);
+      return res.json({ success: true, kind: 'special', outcome, data, xpStatus, xpGain });
+    }
+
     const data = await getSecretDrawStatus();
-    return res.json({ success: true, data });
+    return res.json({ success: true, kind: 'movie', outcome, data });
   } catch (err: any) {
-    console.error('[SecretDraw] Erro ao escolher carta:', err.message);
-    return res.status(400).json({ success: false, error: err.message });
+    const msg = String(err?.message || 'Erro ao escolher carta.');
+    if (msg.includes('Limite máximo')) {
+      return res.json({ success: false, queueFull: true, error: msg });
+    }
+    console.error('[SecretDraw] Erro ao escolher carta:', msg);
+    return res.status(400).json({ success: false, error: msg });
   }
 });
 
@@ -2385,6 +2415,59 @@ app.post('/api/secret-draw/lab/grant-chip', async (req: Request, res: Response) 
     return res.json({ success: true, data });
   } catch (err: any) {
     console.error('[SecretDraw] Erro ao recarregar ficha no Lab:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/secret-draw/lab/trigger-special', async (req: Request, res: Response) => {
+  try {
+    const specialId = String(req.body?.specialId || '').trim() as any;
+    const rawVariant = req.body?.variantIndex;
+    const variantIndex =
+      rawVariant !== undefined && rawVariant !== null && rawVariant !== ''
+        ? Number(rawVariant)
+        : null;
+    if (!specialId) {
+      return res.status(400).json({ success: false, error: 'specialId é obrigatório.' });
+    }
+    const prevXp = await getQuickXpSnapshot().catch(() => null);
+    const outcome = await labTriggerSecretSpecialCard(specialId, variantIndex, { deferOcarina: true });
+    const portalPick =
+      outcome.portalCompletedPick || outcome.chainedOutcome?.portalCompletedPick || null;
+    if (portalPick?.id) {
+      await evaluateBingoOnSecretDrawClaim({
+        pickId: portalPick.id,
+        difficulty: portalPick.difficulty,
+      }).catch((bErr: any) =>
+        console.warn('[Bingo] Erro ao avaliar Portal Lab:', bErr?.message)
+      );
+    }
+    const [data, xpStatus] = await Promise.all([
+      getSecretDrawStatus(),
+      getQuickXpSnapshot().catch(() => null),
+    ]);
+    const xpGain = computeXpGainEvent(prevXp, xpStatus);
+    return res.json({ success: true, kind: 'special', outcome, data, xpStatus, xpGain });
+  } catch (err: any) {
+    console.error('[SecretDraw] Erro ao disparar Carta Especial no Lab:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/secret-draw/ocarina-reshuffle', async (req: Request, res: Response) => {
+  try {
+    const roundId = req.body?.roundId ? Number(req.body.roundId) : null;
+    const triggerSeat = req.body?.triggerSeat ? Number(req.body.triggerSeat) : null;
+    const createLabIfEmpty = Boolean(req.body?.createLabIfEmpty);
+    const outcome = await executeOcarinaReshuffle({
+      roundId,
+      triggerSeat,
+      createLabIfEmpty,
+    });
+    const data = await getSecretDrawStatus();
+    return res.json({ success: true, outcome, data });
+  } catch (err: any) {
+    console.error('[SecretDraw] Erro ao executar Ocarina em segundo plano:', err.message);
     return res.status(400).json({ success: false, error: err.message });
   }
 });

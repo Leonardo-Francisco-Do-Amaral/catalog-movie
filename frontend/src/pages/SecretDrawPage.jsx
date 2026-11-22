@@ -39,6 +39,16 @@ import {
   stopSecretShuffleSound,
   playSecretCardFlipSound,
 } from '../utils/trophyAudio';
+import SecretDrawCardRevealModal from '../components/SecretDrawCardRevealModal';
+import {
+  SECRET_DECK_BACK_IMAGE,
+  getSecretSuitBackImage,
+  getSecretCardUrl,
+  getSecretPlayingCardMeta,
+  groupSimpleMilestones,
+  SPECIAL_RARITY_META,
+  FALLBACK_SPECIAL_CARDS_CATALOG,
+} from '../utils/secretSpecialCardsCatalog';
 
 const SUIT_META = {
   common: {
@@ -253,25 +263,6 @@ function playCardFlipFx(difficulty, animStyle = 'classic') {
   playSecretCardFlipSound(() => playSyntheticCardFlipFallback(difficulty, animStyle));
 }
 
-function playCardSelectFx() {
-  const ctx = getAudioCtx();
-  if (!ctx) return;
-  const now = ctx.currentTime;
-  [440, 554.37, 659.25, 880].forEach((freq, i) => {
-    const t = now + i * 0.055;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(freq, t);
-    gain.gain.setValueAtTime(0.06, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(t);
-    osc.stop(t + 0.35);
-  });
-}
-
 function playCardDeclineFx() {
   const ctx = getAudioCtx();
   if (!ctx) return;
@@ -341,6 +332,7 @@ export default function SecretDrawPage({
   const [syncingSheet, setSyncingSheet] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [infoBanner, setInfoBanner] = useState('');
+  const [ocarinaShuffling, setOcarinaShuffling] = useState(false);
   const [showLabTools, setShowLabTools] = useState(() => {
     try {
       if (new URLSearchParams(window.location.search).get('lab') === '1') return true;
@@ -371,8 +363,29 @@ export default function SecretDrawPage({
   const [equippedClassId, setEquippedClassId] = useState(() => getEquippedClassId());
   const [selectedPowerPickId, setSelectedPowerPickId] = useState('');
   const [actingClassPower, setActingClassPower] = useState(false);
+  const [revealModalSession, setRevealModalSession] = useState(null);
+  const [showLabSpecialPanel, setShowLabSpecialPanel] = useState(false);
+  const [cardBackLayout, setCardBackLayout] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem('secret_draw_back_layout_v2');
+      return saved === 'orb' ? 'orb' : 'top';
+    } catch {
+      return 'top';
+    }
+  });
   const fileInputRef = useRef(null);
   const dealTimersRef = useRef([]);
+  const ocarinaPendingPromiseRef = useRef(null);
+
+  const handleToggleBackLayout = (nextLayout) => {
+    const clean = nextLayout === 'orb' ? 'orb' : 'top';
+    setCardBackLayout(clean);
+    try {
+      window.localStorage.setItem('secret_draw_back_layout_v2', clean);
+    } catch {
+      // ignore storage errors
+    }
+  };
 
   const clearDealTimers = () => {
     dealTimersRef.current.forEach((t) => clearTimeout(t));
@@ -564,62 +577,308 @@ export default function SecretDrawPage({
     }, 65);
   };
 
+  const runOcarinaTableShuffle = useCallback(
+    async (cardsCount = 5, reshuffled = []) => {
+      clearDealTimers();
+      setOcarinaShuffling(true);
+      setPreviewShuffling(true);
+      startSecretShuffleSound();
+      if (reshuffled.length > 0) {
+        setFlippedSeats((prev) => {
+          const next = { ...prev };
+          reshuffled.forEach((s) => {
+            delete next[s];
+          });
+          return next;
+        });
+        setBurstSeats((prev) => {
+          const next = { ...prev };
+          reshuffled.forEach((s) => {
+            delete next[s];
+          });
+          return next;
+        });
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1450));
+      stopSecretShuffleSound();
+      setPreviewShuffling(false);
+      setOcarinaShuffling(false);
+      triggerDealSequence(cardsCount);
+    },
+    [triggerDealSequence]
+  );
+
+  const handleRevealModalClose = useCallback(
+    async (closedSession) => {
+      setRevealModalSession(null);
+      const isOcarina = closedSession?.outcome?.specialEvent?.id === 'ocarina_floresta';
+      if (!isOcarina) return;
+
+      let finalOutcome = closedSession?.outcome;
+      let latestRoundCardsCount =
+        statusData?.currentRound?.cards?.length || finalOutcome?.reshuffledSeats?.length || 5;
+
+      if (ocarinaPendingPromiseRef.current) {
+        setOcarinaShuffling(true);
+        setPreviewShuffling(true);
+        startSecretShuffleSound();
+        const startedAt = Date.now();
+        try {
+          const resolvedData = await ocarinaPendingPromiseRef.current;
+          if (resolvedData?.outcome) finalOutcome = resolvedData.outcome;
+          if (resolvedData?.data?.currentRound?.cards?.length) {
+            latestRoundCardsCount = resolvedData.data.currentRound.cards.length;
+          }
+        } catch {
+          // ignore if error already set
+        }
+        const elapsed = Date.now() - startedAt;
+        if (elapsed < 1200) {
+          await new Promise((resolve) => setTimeout(resolve, 1200 - elapsed));
+        }
+        stopSecretShuffleSound();
+        setPreviewShuffling(false);
+        setOcarinaShuffling(false);
+        const resSeats = finalOutcome?.reshuffledSeats || [];
+        if (resSeats.length > 0) {
+          setFlippedSeats((prev) => {
+            const next = { ...prev };
+            resSeats.forEach((s) => {
+              delete next[s];
+            });
+            return next;
+          });
+          setBurstSeats((prev) => {
+            const next = { ...prev };
+            resSeats.forEach((s) => {
+              delete next[s];
+            });
+            return next;
+          });
+          triggerDealSequence(latestRoundCardsCount);
+        }
+        return;
+      }
+
+      const reshuffled = finalOutcome?.reshuffledSeats;
+      if (Array.isArray(reshuffled) && reshuffled.length > 0) {
+        runOcarinaTableShuffle(latestRoundCardsCount, reshuffled);
+      }
+    },
+    [runOcarinaTableShuffle, statusData?.currentRound?.cards?.length, triggerDealSequence]
+  );
+
+  const applySpecialOutcomeSideEffects = useCallback(
+    (payloadData, outcome, sourceCard = null) => {
+      setStatusData(payloadData);
+      loadClassPowerWallet();
+      dispatchClassPowerSync();
+
+      const sessionKey = Date.now();
+      const pendingMeta = outcome?.specialEvent?.outcomeData;
+
+      if (pendingMeta?.pendingOcarina) {
+        const bgPromise = axios
+          .post(`${API_BASE_URL}/secret-draw/ocarina-reshuffle`, {
+            roundId: pendingMeta.roundId || payloadData?.currentRound?.id || null,
+            triggerSeat: pendingMeta.triggerSeat || null,
+            createLabIfEmpty: Boolean(pendingMeta.createLabIfEmpty),
+          })
+          .then((oRes) => {
+            if (oRes.data?.success) {
+              setStatusData(oRes.data.data);
+              setInfoBanner(
+                oRes.data.outcome?.specialEvent?.resultSummary ||
+                  '⏳ Ocarina da Floresta reembaralhou a mesa!'
+              );
+              setRevealModalSession((prev) =>
+                prev && prev.key === sessionKey
+                  ? {
+                      ...prev,
+                      roundId: oRes.data.data?.currentRound?.id || prev.roundId,
+                      outcome: oRes.data.outcome,
+                    }
+                  : prev
+              );
+              return oRes.data;
+            }
+            return null;
+          })
+          .catch((oErr) => {
+            setErrorMsg(
+              oErr?.response?.data?.error || oErr?.message || 'Erro ao executar Ocarina da Floresta.'
+            );
+            return null;
+          })
+          .finally(() => {
+            if (ocarinaPendingPromiseRef.current === bgPromise) {
+              ocarinaPendingPromiseRef.current = null;
+            }
+          });
+        ocarinaPendingPromiseRef.current = bgPromise;
+      } else {
+        const reshuffled = Array.isArray(outcome?.reshuffledSeats) ? outcome.reshuffledSeats : [];
+        if (reshuffled.length > 0 && outcome?.specialEvent?.id !== 'ocarina_floresta') {
+          setFlippedSeats((prev) => {
+            const next = { ...prev };
+            reshuffled.forEach((s) => {
+              delete next[s];
+            });
+            return next;
+          });
+          setBurstSeats((prev) => {
+            const next = { ...prev };
+            reshuffled.forEach((s) => {
+              delete next[s];
+            });
+            return next;
+          });
+          triggerDealSequence(payloadData?.currentRound?.cards?.length || 5);
+        }
+      }
+
+      if (outcome?.pulledMoviePick?.id) {
+        setJustSelectedPickId(outcome.pulledMoviePick.id);
+        setSelectedPickId(outcome.pulledMoviePick.id);
+      }
+
+      setRevealModalSession({
+        mode: 'special',
+        key: sessionKey,
+        roundId: payloadData?.currentRound?.id || null,
+        card: outcome?.card || sourceCard || null,
+        outcome,
+      });
+    },
+    [loadClassPowerWallet, triggerDealSequence]
+  );
+
   const handleAcceptMysteryCard = async (roundId, card) => {
     if (!card || acting) return;
     const pickedSeats = statusData?.currentRoundPickedSeats || [];
     const isAlreadyPicked = pickedSeats.includes(Number(card.seat));
-    if (isAlreadyPicked) {
+    if (card.specialEvent?.triggered) {
       setSpotlightSeat(card.seat);
-      setInfoBanner(`Carta #${card.seat} (${card.resolved?.title}) já está na sua fila para assistir!`);
+      setRevealModalSession({
+        mode: 'special',
+        key: Date.now(),
+        roundId,
+        card,
+        outcome: { kind: 'special', specialEvent: card.specialEvent, card },
+      });
       return;
     }
-
-    const curActive = Number(statusData?.activeWatchCount || 0);
-    const curLimit = Number(statusData?.activeWatchLimit || 10);
-    if (curActive >= curLimit) {
-      setErrorMsg(
-        `Fila cheia (${curActive}/${curLimit} filmes)! Cadastre ou decline um filme abaixo para abrir vaga.`
-      );
+    if (isAlreadyPicked) {
+      setSpotlightSeat(card.seat);
+      setRevealModalSession({
+        mode: 'movie',
+        key: Date.now(),
+        roundId,
+        card,
+      });
+      setInfoBanner(`Carta #${card.seat} (${card.resolved?.title}) já está na sua fila para assistir!`);
       return;
     }
 
     setActing(true);
     setErrorMsg('');
 
-    // Vira dramaticamente com uma das animações (1, 3 ou 4) e já trava direto na fila — sem direito de troca!
-    if (!flippedSeats[card.seat] && !effectiveLabTransparent) {
-      revealCardWithBurst(card);
-    } else {
-      const animToUse = seatAnimStyles[card.seat] || pickAnimForSeat();
-      setSeatAnimStyles((prev) => ({ ...prev, [card.seat]: animToUse }));
-      setSpotlightSeat(card.seat);
-      setBurstSeats((prev) => ({ ...prev, [card.seat]: (prev[card.seat] || 0) + 1 }));
-      playCardFlipFx(card.difficulty, animToUse);
-    }
-
     try {
       const res = await axios.post(`${API_BASE_URL}/secret-draw/choose`, {
         roundId,
         seat: card.seat,
       });
+      if (!res.data?.success) {
+        setErrorMsg(res.data?.error || 'Não foi possível revelar esta carta agora.');
+        return;
+      }
       if (res.data?.success) {
-        playCardSelectFx();
-        setStatusData(res.data.data);
-        const createdPick = (res.data?.data?.miniCatalog || []).find(
-          (p) => Number(p.roundId) === Number(roundId) && Number(p.seat) === Number(card.seat)
-        );
-        if (createdPick) {
-          setJustSelectedPickId(createdPick.id);
-          setSelectedPickId(createdPick.id);
+        if (res.data.kind === 'special') {
+          const outcome = res.data.outcome;
+          const isQueueBlocked = Boolean(outcome?.specialEvent?.outcomeData?.queueFull);
+          setSpotlightSeat(card.seat);
+          if (!isQueueBlocked) {
+            setFlippedSeats((prev) => ({ ...prev, [card.seat]: true }));
+          }
+          if (res.data.xpStatus && onXpStatusChange) {
+            onXpStatusChange(res.data.xpStatus);
+          }
+          if (res.data.xpGain && res.data.xpStatus) {
+            triggerXPGainToast(res.data.xpGain, res.data.xpStatus);
+            window.dispatchEvent(new CustomEvent('cine-secret-draw-sync'));
+            window.dispatchEvent(new CustomEvent('cine-bingo-sync'));
+          }
+          setIsDeclineOpen(false);
+          setIsBoomerangOpen(false);
+          setInfoBanner(
+            outcome?.specialEvent?.resultSummary ||
+              `🔥 Carta Especial revelada: ${outcome?.specialEvent?.title || ''}!`
+          );
+          applySpecialOutcomeSideEffects(res.data.data, outcome, card);
+        } else {
+          // Vira a carta silenciosamente na mesa; o modal toca o som simples uma única vez
+          const animToUse = seatAnimStyles[card.seat] || pickAnimForSeat();
+          setSeatAnimStyles((prev) => ({ ...prev, [card.seat]: animToUse }));
+          setFlippedSeats((prev) => ({ ...prev, [card.seat]: true }));
+          setSpotlightSeat(card.seat);
+          setBurstSeats((prev) => ({ ...prev, [card.seat]: (prev[card.seat] || 0) + 1 }));
+          setStatusData(res.data.data);
+          const createdPick = (res.data?.data?.miniCatalog || []).find(
+            (p) => Number(p.roundId) === Number(roundId) && Number(p.seat) === Number(card.seat)
+          );
+          if (createdPick) {
+            setJustSelectedPickId(createdPick.id);
+            setSelectedPickId(createdPick.id);
+          }
+          setIsDeclineOpen(false);
+          setIsBoomerangOpen(false);
+          const resolvedCard = res.data?.outcome?.card || createdPick?.card || card;
+          setInfoBanner(
+            `🔒 "${resolvedCard.resolved?.title}" (${resolvedCard.difficultyLabel} • +${resolvedCard.xpReward} XP) foi direto para a sua fila!`
+          );
+          setRevealModalSession({
+            mode: 'movie',
+            key: Date.now(),
+            roundId,
+            card: resolvedCard,
+            pick: createdPick || null,
+          });
         }
-        setIsDeclineOpen(false);
-        setIsBoomerangOpen(false);
-        setInfoBanner(
-          `🔒 "${card.resolved?.title}" (${card.difficultyLabel} • +${card.xpReward} XP) foi direto para a sua fila!`
-        );
       }
     } catch (err) {
-      setErrorMsg(err?.response?.data?.error || err?.message || 'Erro ao enviar carta para a fila.');
+      setErrorMsg(err?.response?.data?.error || err?.message || 'Erro ao revelar carta da mesa.');
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const handleLabTriggerSpecial = async (specialId, variantIndex = null) => {
+    if (!specialId || acting) return;
+    setActing(true);
+    setErrorMsg('');
+    try {
+      const res = await axios.post(`${API_BASE_URL}/secret-draw/lab/trigger-special`, {
+        specialId,
+        variantIndex,
+      });
+      if (res.data?.success) {
+        const outcome = res.data.outcome;
+        if (res.data.xpStatus && onXpStatusChange) {
+          onXpStatusChange(res.data.xpStatus);
+        }
+        if (res.data.xpGain && res.data.xpStatus) {
+          triggerXPGainToast(res.data.xpGain, res.data.xpStatus);
+          window.dispatchEvent(new CustomEvent('cine-secret-draw-sync'));
+          window.dispatchEvent(new CustomEvent('cine-bingo-sync'));
+        }
+        setInfoBanner(
+          outcome?.specialEvent?.resultSummary ||
+            `🧪 Lab: Carta Especial "${outcome?.specialEvent?.title}" ativada!`
+        );
+        applySpecialOutcomeSideEffects(res.data.data, outcome);
+      }
+    } catch (err) {
+      setErrorMsg(err?.response?.data?.error || err?.message || 'Erro ao testar Carta Especial no Lab.');
     } finally {
       setActing(false);
     }
@@ -1259,6 +1518,32 @@ export default function SecretDrawPage({
                   </button>
                   <button
                     type="button"
+                    onClick={() =>
+                      handleToggleBackLayout(cardBackLayout === 'orb' ? 'top' : 'orb')
+                    }
+                    className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border cursor-pointer flex items-center gap-1 ${
+                      cardBackLayout === 'top'
+                        ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/50'
+                        : 'bg-indigo-500/20 text-indigo-200 border-indigo-400/50'
+                    }`}
+                    title="Alternar visual dos versos (Opção 1: Orbe Central | Opção 2: Topo + Orbe)"
+                  >
+                    {cardBackLayout === 'top' ? '🃏 Verso: Opção 2 (Topo+Orbe)' : '🎨 Verso: Opção 1 (Orbe)'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowLabSpecialPanel((v) => !v)}
+                    className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border cursor-pointer flex items-center gap-1 ${
+                      showLabSpecialPanel
+                        ? 'bg-orange-500/30 text-amber-100 border-orange-400/70 shadow'
+                        : 'bg-orange-500/15 hover:bg-orange-500/25 text-amber-200 border-orange-400/40'
+                    }`}
+                    title="Abrir painel para testar todas as 12 Cartas Especiais no Lab"
+                  >
+                    🧪 Cartas Especiais ({(statusData?.specialCardsCatalog || FALLBACK_SPECIAL_CARDS_CATALOG).length})
+                  </button>
+                  <button
+                    type="button"
                     disabled={acting}
                     onClick={handleLabReset}
                     className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/35 cursor-pointer flex items-center gap-1"
@@ -1341,6 +1626,110 @@ export default function SecretDrawPage({
           </div>
         </div>
       </section>
+
+      {/* LABORATÓRIO: TESTADOR DE CARTAS ESPECIAIS + VERSOS */}
+      {showLabTools && showLabSpecialPanel && (
+        <section className="rounded-3xl border border-orange-400/35 bg-gradient-to-br from-[#190d24] via-[#120b18] to-[#0a080f] p-4 sm:p-5 shadow-2xl space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="text-sm sm:text-base font-black text-amber-200 flex items-center gap-2">
+                <span>🧪</span>
+                <span>Laboratório das Cartas Especiais & Versos</span>
+              </h3>
+              <p className="text-[11px] text-zinc-400">
+                Clique em qualquer carta abaixo para rodar a animação completa de revelação + efeito real na fila/mesa atual.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 bg-black/50 p-1 rounded-xl border border-white/10">
+              <button
+                type="button"
+                onClick={() => handleToggleBackLayout('orb')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-black cursor-pointer transition ${
+                  cardBackLayout === 'orb'
+                    ? 'bg-indigo-500 text-white shadow'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                Opção 1: Orbe Central
+              </button>
+              <button
+                type="button"
+                onClick={() => handleToggleBackLayout('top')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-black cursor-pointer transition ${
+                  cardBackLayout === 'top'
+                    ? 'bg-emerald-500 text-slate-950 shadow'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                Opção 2: Topo + Orbe
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
+            {(statusData?.specialCardsCatalog || FALLBACK_SPECIAL_CARDS_CATALOG).map((spec) => {
+              const sMeta = SPECIAL_RARITY_META[spec.rarity] || SPECIAL_RARITY_META.rare;
+              const thumbUrl = getSecretCardUrl(spec.images?.[0]);
+              const romanLabels = ['I', 'II', 'III', 'IV'];
+              return (
+                <div
+                  key={spec.id}
+                  className="rounded-2xl border border-white/10 bg-black/45 p-2.5 flex items-center gap-3 hover:border-amber-400/45 transition"
+                >
+                  <button
+                    type="button"
+                    disabled={acting}
+                    onClick={() => handleLabTriggerSpecial(spec.id, 0)}
+                    className="w-12 h-[72px] rounded-xl overflow-hidden border border-white/20 bg-white shrink-0 cursor-pointer hover:scale-105 transition disabled:opacity-50"
+                    title={`Testar ${spec.title}`}
+                  >
+                    <img
+                      src={thumbUrl}
+                      alt={spec.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                  <div className="min-w-0 flex-1 flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-black border ${sMeta.badgeClass}`}>
+                        {sMeta.icon} {spec.rarity.toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="text-xs font-black text-white truncate" title={spec.title}>
+                      {spec.icon} {spec.title}
+                    </div>
+                    <div className="text-[10px] text-zinc-400 truncate">{spec.shortTag}</div>
+                    <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                      <button
+                        type="button"
+                        disabled={acting}
+                        onClick={() => handleLabTriggerSpecial(spec.id, null)}
+                        className="px-2 py-0.5 rounded-md bg-amber-500/20 hover:bg-amber-500/35 border border-amber-400/45 text-[10px] font-black text-amber-200 cursor-pointer disabled:opacity-50"
+                      >
+                        ▶ Testar
+                      </button>
+                      {Array.isArray(spec.images) &&
+                        spec.images.length > 1 &&
+                        spec.images.map((_, vIdx) => (
+                          <button
+                            key={vIdx}
+                            type="button"
+                            disabled={acting}
+                            onClick={() => handleLabTriggerSpecial(spec.id, vIdx)}
+                            className="px-1.5 py-0.5 rounded-md bg-white/10 hover:bg-white/20 border border-white/15 text-[9.5px] font-black text-zinc-200 cursor-pointer disabled:opacity-50"
+                            title={`Testar variação ${romanLabels[vIdx] || vIdx + 1}`}
+                          >
+                            {romanLabels[vIdx] || vIdx + 1}
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* PAINEL DE PODER DA CLASSE NA SESSÃO SECRETA */}
       {activePowerSpec && (
@@ -1432,9 +1821,33 @@ export default function SecretDrawPage({
       )}
 
       {errorMsg && (
-        <div className="rounded-2xl border border-rose-500/45 bg-rose-950/35 px-4 py-3 text-sm text-rose-200 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
-          <span>{errorMsg}</span>
+        <div className="rounded-2xl border border-rose-500/45 bg-rose-950/35 px-4 py-3 text-sm text-rose-200 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+            <span>{errorMsg}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setErrorMsg('')}
+            className="text-xs font-bold text-rose-300/75 hover:text-white px-2"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+      {errorMsg && (
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 max-w-xl w-[92%] rounded-2xl border border-rose-400/70 bg-rose-950/95 backdrop-blur-md px-4 py-3 text-xs sm:text-sm font-bold text-rose-100 shadow-[0_12px_40px_rgba(0,0,0,0.85)] flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-300 shrink-0" />
+            <span>{errorMsg}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setErrorMsg('')}
+            className="text-rose-200 hover:text-white font-black text-xs px-1.5"
+          >
+            ✕
+          </button>
         </div>
       )}
       {infoBanner && (
@@ -1486,22 +1899,30 @@ export default function SecretDrawPage({
                 <div className="absolute -inset-6 rounded-full bg-gradient-to-tr from-amber-500/20 via-fuchsia-500/15 to-emerald-400/25 blur-2xl animate-pulse" />
 
                 {/* Monte Base Esquerdo (empilhado com espessura 3D) */}
-                <div className="secret-riffle-left-stack absolute w-32 h-48 rounded-2xl border-2 border-amber-300/65 bg-gradient-to-br from-[#210d38] via-[#36135c] to-[#11051f] shadow-[-6px_6px_0_rgba(255,255,255,0.12),-10px_10px_24px_rgba(0,0,0,0.75)] flex items-center justify-center">
-                  <div className="inset-2 absolute rounded-xl border border-amber-300/35 pointer-events-none" />
-                  <span className="text-3xl text-amber-200/80 select-none">♠</span>
+                <div className="secret-riffle-left-stack absolute w-32 h-48 rounded-2xl border-2 border-amber-300/70 bg-[#120820] overflow-hidden shadow-[-6px_6px_0_rgba(255,255,255,0.12),-10px_10px_24px_rgba(0,0,0,0.75)]">
+                  <img
+                    src={SECRET_DECK_BACK_IMAGE}
+                    alt="Verso do Baralho"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
 
                 {/* Monte Base Direito (empilhado com espessura 3D) */}
-                <div className="secret-riffle-right-stack absolute w-32 h-48 rounded-2xl border-2 border-fuchsia-300/65 bg-gradient-to-br from-[#2a0826] via-[#480f42] to-[#140417] shadow-[6px_6px_0_rgba(255,255,255,0.12),10px_10px_24px_rgba(0,0,0,0.75)] flex items-center justify-center">
-                  <div className="inset-2 absolute rounded-xl border border-fuchsia-300/35 pointer-events-none" />
-                  <span className="text-3xl text-fuchsia-200/80 select-none">♦</span>
+                <div className="secret-riffle-right-stack absolute w-32 h-48 rounded-2xl border-2 border-fuchsia-300/70 bg-[#120820] overflow-hidden shadow-[6px_6px_0_rgba(255,255,255,0.12),10px_10px_24px_rgba(0,0,0,0.75)]">
+                  <img
+                    src={SECRET_DECK_BACK_IMAGE}
+                    alt="Verso do Baralho"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
 
                 {/* Monte Central Recebendo as Cartas Embaralhadas */}
-                <div className="secret-riffle-center-stack relative z-10 w-32 h-48 rounded-2xl border-2 border-amber-200/80 bg-gradient-to-br from-emerald-950 via-violet-950 to-zinc-950 shadow-[0_6px_0_rgba(251,191,36,0.22),0_18px_40px_rgba(0,0,0,0.85)] flex flex-col items-center justify-center gap-1">
-                  <div className="inset-2 absolute rounded-xl border border-amber-300/40 pointer-events-none" />
-                  <span className="text-3xl">🃏</span>
-                  <span className="text-[9px] font-black uppercase tracking-[0.22em] text-amber-200/90">Baralho</span>
+                <div className="secret-riffle-center-stack relative z-10 w-32 h-48 rounded-2xl border-2 border-amber-200/85 bg-[#120820] overflow-hidden shadow-[0_6px_0_rgba(251,191,36,0.22),0_18px_40px_rgba(0,0,0,0.85)]">
+                  <img
+                    src={SECRET_DECK_BACK_IMAGE}
+                    alt="Baralho da Sessão Secreta"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
 
                 {/* 12 Lâminas Alternadas Voando da Esquerda e da Direita (Riffle Cascade) */}
@@ -1509,17 +1930,23 @@ export default function SecretDrawPage({
                   <React.Fragment key={leafIdx}>
                     <div
                       style={{ animationDelay: `${leafIdx * 125}ms` }}
-                      className="secret-riffle-leaf-left pointer-events-none absolute z-20 w-32 h-48 rounded-2xl border border-amber-200/70 bg-gradient-to-br from-violet-900/95 via-fuchsia-950/95 to-zinc-950/95 shadow-xl flex items-center justify-center"
+                      className="secret-riffle-leaf-left pointer-events-none absolute z-20 w-32 h-48 rounded-2xl border border-amber-200/75 bg-[#120820] overflow-hidden shadow-xl"
                     >
-                      <div className="inset-2 absolute rounded-xl border border-amber-300/30" />
-                      <span className="text-2xl text-amber-200/80">{leafIdx % 2 === 0 ? '♣' : '♠'}</span>
+                      <img
+                        src={SECRET_DECK_BACK_IMAGE}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     <div
                       style={{ animationDelay: `${leafIdx * 125 + 62}ms` }}
-                      className="secret-riffle-leaf-right pointer-events-none absolute z-20 w-32 h-48 rounded-2xl border border-cyan-200/70 bg-gradient-to-br from-emerald-950/95 via-indigo-950/95 to-zinc-950/95 shadow-xl flex items-center justify-center"
+                      className="secret-riffle-leaf-right pointer-events-none absolute z-20 w-32 h-48 rounded-2xl border border-cyan-200/75 bg-[#120820] overflow-hidden shadow-xl"
                     >
-                      <div className="inset-2 absolute rounded-xl border border-cyan-300/30" />
-                      <span className="text-2xl text-cyan-200/80">{leafIdx % 2 === 0 ? '♥' : '♦'}</span>
+                      <img
+                        src={SECRET_DECK_BACK_IMAGE}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   </React.Fragment>
                 ))}
@@ -1527,18 +1954,22 @@ export default function SecretDrawPage({
 
               <div className="text-center flex flex-col items-center gap-1.5 max-w-md px-3">
                 <div className="text-sm sm:text-base font-black uppercase tracking-[0.2em] text-amber-200 animate-pulse">
-                  {previewShuffling
-                    ? 'Testando Embaralhamento Riffle...'
-                    : shuffleDeepLoading
-                      ? 'Consultando o Oráculo & Preparando a Mão...'
-                      : 'Embaralhando o Baralho da Sessão Secreta...'}
+                  {ocarinaShuffling
+                    ? '⏳ Ocarina da Floresta Reembaralhando Tudo!'
+                    : previewShuffling
+                      ? 'Testando Embaralhamento Riffle...'
+                      : shuffleDeepLoading
+                        ? 'Consultando o Oráculo & Preparando a Mão...'
+                        : 'Embaralhando o Baralho da Sessão Secreta...'}
                 </div>
                 <div className="text-xs text-emerald-200/80 leading-relaxed">
-                  {previewShuffling
-                    ? 'Intercalando as cartas no feltro antes de distribuir sua mão'
-                    : shuffleDeepLoading
-                      ? 'Sorteando títulos inéditos da planilha, buscando pôsteres no TMDB/OMDb, checando ordem de sagas e calculando marcos ocultos — mãos maiores levam alguns segundinhos.'
-                      : 'Cortando o baralho da planilha e separando de 3 a 10 cartas misteriosas...'}
+                  {ocarinaShuffling
+                    ? 'A melodia do tempo está trocando e embaralhando todas as cartas fechadas da mesa sem gastar ficha'
+                    : previewShuffling
+                      ? 'Intercalando as cartas no feltro antes de distribuir sua mão'
+                      : shuffleDeepLoading
+                        ? 'Sorteando títulos inéditos da planilha, buscando pôsteres no TMDB/OMDb, checando ordem de sagas e calculando marcos ocultos — mãos maiores levam alguns segundinhos.'
+                        : 'Cortando o baralho da planilha e separando de 3 a 10 cartas misteriosas...'}
                 </div>
               </div>
             </div>
@@ -1571,19 +2002,32 @@ export default function SecretDrawPage({
                 const cardsCount = currentRound.cards.length;
                 const isLargeHand = cardsCount >= 6;
                 const cardSizeClass = isLargeHand
-                  ? 'w-[172px] sm:w-[186px] h-[272px]'
-                  : 'w-[196px] sm:w-[210px] h-[304px]';
+                  ? 'w-[184px] sm:w-[202px] md:w-[216px] h-[278px] sm:h-[306px] md:h-[328px]'
+                  : 'w-[214px] sm:w-[238px] md:w-[252px] h-[324px] sm:h-[360px] md:h-[380px]';
                 const gridWrapClass = isLargeHand
-                  ? 'flex flex-wrap items-center justify-center gap-4 sm:gap-5 py-3 w-full max-w-[1160px]'
-                  : 'flex flex-wrap items-center justify-center gap-5 sm:gap-6 py-3 w-full';
+                  ? 'flex flex-wrap items-center justify-center gap-5 sm:gap-6 py-4 w-full max-w-[1380px]'
+                  : 'flex flex-wrap items-center justify-center gap-6 sm:gap-7 py-4 w-full max-w-[1380px]';
 
                 return (
                   <div className={gridWrapClass}>
                     {currentRound.cards.map((card, idx) => {
                       const suit = SUIT_META[card.difficulty] || SUIT_META.common;
+                      const deckMeta = getSecretPlayingCardMeta(card, currentRound?.id);
                       const isDealt = idx < dealingCount;
                       const isPickedInRound = currentRoundPickedSeats.includes(Number(card.seat));
-                      const isFlipped = effectiveLabTransparent || isPickedInRound || Boolean(flippedSeats[card.seat]);
+                      const isSpecialTriggered = Boolean(card.specialEvent?.triggered);
+                      const isSpecialFront =
+                        Boolean(card.specialEvent) && (isSpecialTriggered || effectiveLabTransparent);
+                      const isFlipped =
+                        effectiveLabTransparent ||
+                        isPickedInRound ||
+                        isSpecialTriggered ||
+                        Boolean(flippedSeats[card.seat]);
+                      const revealedGroups = card.simpleMilestonesHint
+                        ? groupSimpleMilestones(
+                            card.decoyMilestones?.length ? card.decoyMilestones : card.milestones
+                          )
+                        : [];
                       const isSelectedSpotlight = spotlightSeat === card.seat;
                       const burstKey = burstSeats[card.seat] || 0;
                       const fanClass = isLargeHand
@@ -1689,94 +2133,182 @@ export default function SecretDrawPage({
                               }`}
                             >
                               <div className={`secret-card-inner ${modeClass} ${isFlipped ? 'is-flipped' : ''}`}>
-                          {/* ===================== VERSO (100% MISTERIOSO) ===================== */}
+                          {/* ===================== VERSO (MODELO 4: OPÇÃO 1 ORBE / OPÇÃO 2 TOPO+ORBE) ===================== */}
                           <div
-                            className={`secret-card-face secret-card-face-back rounded-[18px] border-2 ${suit.borderFrame} bg-gradient-to-br ${suit.backBg} ${suit.glowShadow} p-2 flex flex-col overflow-hidden`}
+                            className={`secret-card-face secret-card-face-back rounded-[18px] border-2 ${suit.borderFrame} bg-[#09070e] ${suit.glowShadow} overflow-hidden flex flex-col`}
                           >
-                            {/* Textura sutil de losangos de baralho */}
-                            <div
-                              className="pointer-events-none absolute inset-0 opacity-20"
-                              style={{
-                                backgroundImage:
-                                  'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.35) 1px, transparent 0)',
-                                backgroundSize: '14px 14px',
-                              }}
-                            />
-
-                            {/* Moldura interna de baralho */}
-                            <div className={`relative z-10 flex-1 rounded-xl border ${suit.innerFrame} ${isLargeHand ? 'p-2' : 'p-2.5'} flex flex-col justify-between`}>
-                              {/* Índice Superior Esquerdo */}
-                              <div className="flex items-start justify-between">
-                                <div className="flex flex-col items-center leading-none">
-                                  <span className={`${isLargeHand ? 'text-base' : 'text-lg'} font-black font-serif ${suit.accentText}`}>{suit.rank}</span>
-                                  <span className={`${isLargeHand ? 'text-sm' : 'text-base'} ${suit.accentText}`}>{suit.suit}</span>
-                                </div>
-                                <span className={`text-[10px] font-black font-mono px-2 py-0.5 rounded-full border ${suit.xpChip}`}>
-                                  +{card.xpReward} XP
-                                </span>
-                              </div>
-
-                              {/* Brasão Central + Contador Misterioso (SEM NENHUMA PISTA DE QUAL MARCO É!) */}
-                              <div className="flex flex-col items-center text-center gap-1 my-auto px-0.5">
-                                <div className={`${isLargeHand ? 'w-11 h-11' : 'w-14 h-14'} rounded-full border-2 ${suit.borderFrame} bg-black/45 flex items-center justify-center shadow-inner shrink-0`}>
-                                  <span className={`${isLargeHand ? 'text-xl' : 'text-2xl'} ${suit.accentText}`}>{suit.suit}</span>
-                                </div>
-
-                                <div className="flex flex-col items-center gap-0.5">
-                                  <span className={`text-[10px] font-black uppercase tracking-[0.18em] ${suit.accentText}`}>
-                                    {card.difficultyLabel}
-                                  </span>
-                                  <div className="px-2.5 py-0.5 rounded-full bg-black/55 border border-white/15 text-[11px] font-black text-zinc-100 whitespace-nowrap">
-                                    {hiddenCount > 0
-                                      ? `❓ ${hiddenCount} Marco${hiddenCount > 1 ? 's' : ''} Oculto${hiddenCount > 1 ? 's' : ''}`
-                                      : '❓ Destino Selado'}
-                                  </div>
-                                  <span className="text-[9.5px] text-zinc-300/75 italic leading-tight">
-                                    Clicou = revela e vai p/ fila
-                                  </span>
-                                </div>
-                              </div>
-
-                              {/* Índice Inferior Direito Invertido (Baralho Clássico) */}
-                              {(currentRound.powerFlags?.xrayMilestones || currentRound.powerFlags?.revealYearRuntime) && (
-                                <div className="my-auto flex flex-col items-center gap-1 px-1 z-10">
-                                  {currentRound.powerFlags?.revealYearRuntime && (card.resolved?.releaseYear || card.resolved?.runtime) && (
-                                    <span className="px-2 py-0.5 rounded-md bg-black/75 border border-cyan-400/50 text-[9px] font-black font-mono text-cyan-200 shadow">
-                                      🎙️ {card.resolved?.releaseYear || '?'} • {card.resolved?.runtime ? `${card.resolved.runtime}m` : '?m'}
+                            {/* Se revelada pelo Mini Arlequim (3 ou 5) enquanto ainda fechada */}
+                            {card.revealedPreview ? (
+                              <>
+                                {card.resolved?.posterUrl ? (
+                                  <img
+                                    src={card.resolved.posterUrl}
+                                    alt={card.resolved?.title || 'Filme Revelado'}
+                                    className="absolute inset-0 w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <img
+                                    src={getSecretSuitBackImage(card.difficulty)}
+                                    alt=""
+                                    className="absolute inset-0 w-full h-full object-cover opacity-55"
+                                  />
+                                )}
+                                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black via-black/45 to-black/75" />
+                                <div className="relative z-10 flex-1 p-2.5 flex flex-col justify-between">
+                                  <div className="flex items-center justify-between gap-1">
+                                    <span className="px-2 py-0.5 rounded-full bg-fuchsia-600/85 border border-fuchsia-300/70 text-[9px] font-black text-white shadow">
+                                      🃏 Arlequim Revelou!
                                     </span>
-                                  )}
-                                  {currentRound.powerFlags?.xrayMilestones && Array.isArray(card.milestones) && card.milestones.length > 0 && (
-                                    <div className="flex flex-wrap justify-center gap-1 max-w-full">
-                                      {card.milestones.slice(0, 3).map((m, mIdx) => (
-                                        <span
-                                          key={mIdx}
-                                          title={m.detail || m.label}
-                                          className="px-1.5 py-0.5 rounded bg-black/80 border border-amber-400/45 text-[8.5px] font-bold text-amber-200 truncate max-w-[115px]"
-                                        >
-                                          {m.icon} {m.label}
-                                        </span>
-                                      ))}
+                                    <span className={`text-[10px] font-black font-mono px-2 py-0.5 rounded-full border ${suit.xpChip}`}>
+                                      +{card.xpReward} XP
+                                    </span>
+                                  </div>
+                                  <div className="mt-auto space-y-1">
+                                    <div className="text-[10px] font-black uppercase text-amber-300">
+                                      {suit.suit} {card.difficultyLabel} • {card.resolved?.releaseYear || '?'}
                                     </div>
-                                  )}
+                                    <div className="text-xs font-black text-white leading-tight line-clamp-2 drop-shadow">
+                                      {card.resolved?.title || card.planilha?.rawTitle}
+                                    </div>
+                                    <div className="text-[9.5px] font-bold text-emerald-300">
+                                      👆 Clique para pegar ou abrir
+                                    </div>
+                                  </div>
                                 </div>
-                              )}
+                              </>
+                            ) : (
+                              <>
+                                {/* Arte Modelo 4 do Naipe */}
+                                <img
+                                  src={getSecretSuitBackImage(card.difficulty)}
+                                  alt={`Verso ${card.difficultyLabel}`}
+                                  className="absolute inset-0 w-full h-full object-cover"
+                                />
 
-                              <div className="flex items-end justify-between">
-                                <span className="text-[9.5px] font-black uppercase tracking-widest text-white/60">
-                                  Carta #{card.seat}
-                                </span>
-                                <div className="flex flex-col items-center leading-none rotate-180">
-                                  <span className={`${isLargeHand ? 'text-base' : 'text-lg'} font-black font-serif ${suit.accentText}`}>{suit.rank}</span>
-                                  <span className={`${isLargeHand ? 'text-sm' : 'text-base'} ${suit.accentText}`}>{suit.suit}</span>
+                                {/* Camada sutil para leitura mantendo os 4 cristais dos cantos intactos */}
+                                <div className="relative z-10 flex-1 flex flex-col items-center justify-between p-2">
+                                  {/* FAIXA SUPERIOR: Opção 1 (só +XP central) vs Opção 2 (Naipe+Rank+XP central longe dos cantos) */}
+                                  <div className="w-full flex justify-center pt-1">
+                                    {cardBackLayout === 'top' ? (
+                                      <div className="px-2.5 py-0.5 rounded-full bg-black/82 backdrop-blur-md border border-white/25 flex items-center gap-1.5 shadow-lg">
+                                        <span className={`text-[11px] font-black font-serif ${suit.accentText}`}>
+                                          {suit.rank} {suit.suit}
+                                        </span>
+                                        <span className="text-white/30 text-[10px]">•</span>
+                                        <span className="text-[10px] font-black font-mono text-amber-200">
+                                          +{card.xpReward} XP
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <div className="px-2.5 py-0.5 rounded-full bg-black/80 backdrop-blur-md border border-white/25 text-[10px] font-black font-mono text-amber-200 shadow-lg">
+                                        +{card.xpReward} XP
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* ORBE CENTRAL DE OBSIDIANA (MARCOS & DIFICULDADE) */}
+                                  <div className="my-auto w-[78%] rounded-xl bg-black/68 backdrop-blur-sm border border-white/15 px-2 py-1.5 flex flex-col items-center text-center gap-1 shadow-[0_8px_24px_rgba(0,0,0,0.8)]">
+                                    {cardBackLayout === 'orb' && (
+                                      <div className="flex items-center gap-1">
+                                        <span className={`text-xs font-black font-serif ${suit.accentText}`}>
+                                          {suit.rank} {suit.suit}
+                                        </span>
+                                        <span className={`text-[9.5px] font-black uppercase tracking-wider ${suit.accentText}`}>
+                                          {card.difficultyLabel}
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {cardBackLayout === 'top' && (
+                                      <span className={`text-[9.5px] font-black uppercase tracking-[0.14em] ${suit.accentText}`}>
+                                        {card.difficultyLabel}
+                                      </span>
+                                    )}
+
+                                    <div className="px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-[10px] font-black text-zinc-100 whitespace-nowrap">
+                                      {hiddenCount > 0
+                                        ? `❓ ${hiddenCount} Marco${hiddenCount > 1 ? 's' : ''}`
+                                        : '❓ Destino Selado'}
+                                    </div>
+
+                                    {/* Visão dos Marcos I/II (quando ativada na mesa!) */}
+                                    {revealedGroups.length > 0 && (
+                                      <div className="flex flex-wrap justify-center gap-1 pt-0.5">
+                                        {revealedGroups.map((grp) => (
+                                          <span
+                                            key={grp.system}
+                                            title={`${grp.count}× ${grp.label}`}
+                                            className="px-1.5 py-0.5 rounded bg-sky-500/20 border border-sky-300/45 text-[9px] font-black text-sky-100"
+                                          >
+                                            {grp.icon} ×{grp.count}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {/* Buffs de Classe (Raio-X / Microfone) */}
+                                    {(currentRound.powerFlags?.xrayMilestones || currentRound.powerFlags?.revealYearRuntime) && (
+                                      <div className="flex flex-col items-center gap-1 pt-0.5 max-w-full">
+                                        {currentRound.powerFlags?.revealYearRuntime && (card.resolved?.releaseYear || card.resolved?.runtime) && (
+                                          <span className="px-1.5 py-0.5 rounded bg-cyan-950/90 border border-cyan-400/50 text-[8.5px] font-black font-mono text-cyan-200">
+                                            🎙️ {card.resolved?.releaseYear || '?'} • {card.resolved?.runtime ? `${card.resolved.runtime}m` : '?m'}
+                                          </span>
+                                        )}
+                                        {currentRound.powerFlags?.xrayMilestones && Array.isArray(card.milestones) && card.milestones.length > 0 && (
+                                          <div className="flex flex-wrap justify-center gap-1 max-w-full">
+                                            {card.milestones.slice(0, 2).map((m, mIdx) => (
+                                              <span
+                                                key={mIdx}
+                                                className="px-1 py-0.5 rounded bg-black/80 border border-amber-400/45 text-[8px] font-bold text-amber-200 truncate max-w-[105px]"
+                                              >
+                                                {m.icon} {m.label}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Número discreto na base longe dos cristais dos cantos */}
+                                  <div className="pb-0.5">
+                                    <span className="px-2 py-0.5 rounded-full bg-black/75 border border-white/15 text-[9px] font-black uppercase tracking-widest text-white/75">
+                                      Carta #{card.seat}
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                            </div>
+                              </>
+                            )}
                           </div>
 
-                          {/* ===================== FRENTE (CARTA ILUSTRADA) ===================== */}
+                          {/* ===================== FRENTE (FILME OU CARTA ESPECIAL ATIVADA) ===================== */}
                           <div
                             className={`secret-card-face secret-card-face-front rounded-[18px] border-2 ${suit.borderFrame} bg-gradient-to-b ${suit.frontGradient} ${suit.glowShadow} overflow-hidden flex flex-col`}
                           >
+                            {isSpecialFront ? (
+                              <>
+                                <img
+                                  src={getSecretCardUrl(card.specialEvent.imageUrl)}
+                                  alt={card.specialEvent.title}
+                                  className="w-full h-full object-cover bg-white"
+                                />
+                                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black via-black/55 to-transparent" />
+                                <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
+                                  <span className="px-2 py-0.5 rounded-full bg-orange-600/90 border border-amber-300/70 text-[9px] font-black text-white shadow">
+                                    {isSpecialTriggered ? '🔥 ESPECIAL ATIVADA' : '👁️ LAB: ESPECIAL'}
+                                  </span>
+                                </div>
+                                <div className="absolute bottom-2 inset-x-2 text-center">
+                                  <div className="text-xs font-black text-white drop-shadow">
+                                    {card.specialEvent.icon} {card.specialEvent.title}
+                                  </div>
+                                  <div className="text-[9.5px] font-semibold text-amber-200 truncate">
+                                    {card.specialEvent.shortTag}
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
+                              <>
                             {/* Pôster Full-Bleed dentro da carta */}
                             {card.resolved?.posterUrl ? (
                               <img
@@ -1801,11 +2333,11 @@ export default function SecretDrawPage({
 
                             {/* Moldura interior de baralho sobre o pôster */}
                             <div className={`relative z-10 flex-1 m-2 rounded-xl border ${suit.innerFrame} p-2 flex flex-col justify-between`}>
-                              {/* Topo: Naipe Esquerdo + Selo XP Direito */}
+                              {/* Topo: Valor/Naipe Esquerdo (Ex: 7 ♥, 10 ♦) + Selo XP Direito */}
                               <div className="flex items-start justify-between gap-1">
-                                <div className="px-1.5 py-1 rounded-lg bg-black/75 backdrop-blur-sm border border-white/15 flex flex-col items-center leading-none">
-                                  <span className={`text-sm font-black font-serif ${suit.accentText}`}>{suit.rank}</span>
-                                  <span className={`text-xs ${suit.accentText}`}>{suit.suit}</span>
+                                <div className="px-1.5 py-1 rounded-lg bg-black/80 backdrop-blur-sm border border-amber-200/25 flex flex-col items-center leading-none">
+                                  <span className={`text-sm font-black font-serif ${suit.accentText}`}>{deckMeta.rank}</span>
+                                  <span className={`text-xs ${suit.accentText}`}>{deckMeta.symbol}</span>
                                 </div>
 
                                 <span className={`text-[10px] font-black font-mono px-2 py-0.5 rounded-full border backdrop-blur-sm ${suit.xpChip}`}>
@@ -1840,20 +2372,31 @@ export default function SecretDrawPage({
                                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/15 backdrop-blur-sm text-white border border-white/20">
                                     🎯 {card.totalMilestonesCount} marco{card.totalMilestonesCount === 1 ? '' : 's'}
                                   </span>
-                                  <div className="px-1.5 py-0.5 rounded-md bg-black/70 border border-white/10 flex flex-col items-center leading-none rotate-180">
-                                    <span className={`text-xs font-black font-serif ${suit.accentText}`}>{suit.rank}</span>
-                                    <span className={`text-[10px] ${suit.accentText}`}>{suit.suit}</span>
+                                  <div className="px-1.5 py-0.5 rounded-md bg-black/80 border border-amber-200/20 flex flex-col items-center leading-none rotate-180">
+                                    <span className={`text-xs font-black font-serif ${suit.accentText}`}>{deckMeta.rank}</span>
+                                    <span className={`text-[10px] ${suit.accentText}`}>{deckMeta.symbol}</span>
                                   </div>
                                 </div>
                               </div>
                             </div>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
                       </div>
 
-                      {/* Status discreto apenas quando já aceita na fila */}
-                      {isPickedInRound && (
+                      {/* Status discreto quando aceita na fila OU especial ativada */}
+                      {isSpecialTriggered && (
+                        <button
+                          type="button"
+                          onClick={() => handleCardClick(card)}
+                          className="px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-orange-500/90 text-slate-950 border border-amber-200 shadow cursor-pointer hover:brightness-110"
+                        >
+                          🔥 Ver Carta Especial
+                        </button>
+                      )}
+                      {isPickedInRound && !isSpecialTriggered && (
                         <div className="flex items-center gap-1.5">
                           <span className="px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/90 text-slate-950 border border-emerald-200 shadow">
                             🔒 Na Fila
@@ -1883,11 +2426,48 @@ export default function SecretDrawPage({
       {/* =====================================================================
           PALCO DE PRÉ-VISUALIZAÇÃO DA CARTA VIRADA NA MESA
          ===================================================================== */}
-      {spotlightCard && (
+      {spotlightCard && (spotlightCard.specialEvent ? (spotlightCard.specialEvent.triggered || effectiveLabTransparent) : true) && (
         (() => {
           const focusCard = spotlightCard;
           const suit = SUIT_META[focusCard.difficulty] || SUIT_META.common;
           const focusIsPicked = currentRoundPickedSeats.includes(Number(focusCard.seat));
+
+          if (focusCard.specialEvent) {
+            const sp = focusCard.specialEvent;
+            const sMeta = SPECIAL_RARITY_META[sp.rarity] || SPECIAL_RARITY_META.rare;
+            return (
+              <section className={`rounded-3xl border-2 ${suit.borderFrame} bg-gradient-to-br from-zinc-950 via-zinc-900/90 to-zinc-950 p-4 sm:p-5 shadow-2xl`}>
+                <div className="flex flex-col sm:flex-row gap-5 items-center sm:items-start">
+                  <div className="w-28 sm:w-32 shrink-0 rounded-2xl overflow-hidden border-2 border-amber-300/40 bg-white shadow-2xl">
+                    <img
+                      src={getSecretCardUrl(sp.imageUrl)}
+                      alt={sp.title}
+                      className="w-full h-40 sm:h-48 object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 flex flex-col gap-2 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-black border ${sMeta.badgeClass}`}>
+                        {sMeta.icon} {sMeta.label}
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-orange-500/20 text-amber-200 border border-orange-400/45">
+                        Carta #{focusCard.seat} • Evento Puro
+                      </span>
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
+                      {sp.icon} {sp.title}
+                    </h2>
+                    <p className="text-sm text-zinc-300 leading-relaxed">{sp.description}</p>
+                    {sp.resultSummary && (
+                      <div className="rounded-xl bg-black/55 border border-white/15 px-3 py-2 text-xs font-bold text-emerald-200">
+                        {sp.resultSummary}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
+            );
+          }
 
           return (
             <section className={`rounded-3xl border-2 ${suit.borderFrame} bg-gradient-to-br from-zinc-950 via-zinc-900/90 to-zinc-950 p-4 sm:p-5 shadow-2xl`}>
@@ -2049,9 +2629,12 @@ export default function SecretDrawPage({
             background: 'radial-gradient(ellipse at center, #0e382b 0%, #072019 56%, #040d0a 100%)',
           }}
         >
-          <div className="w-20 h-28 rounded-2xl border-2 border-amber-300/60 bg-gradient-to-br from-violet-950 to-zinc-950 flex flex-col items-center justify-center shadow-2xl">
-            <span className="text-3xl">🃏</span>
-            <span className="text-[9px] font-black uppercase tracking-widest text-amber-200 mt-1">Baralho</span>
+          <div className="w-24 h-36 rounded-2xl border-2 border-amber-300/70 bg-[#120820] overflow-hidden shadow-2xl">
+            <img
+              src={SECRET_DECK_BACK_IMAGE}
+              alt="Baralho da Sessão Secreta"
+              className="w-full h-full object-cover"
+            />
           </div>
           <div>
             <h3 className="text-base sm:text-lg font-black text-white">A mesa está livre para um novo sorteio!</h3>
@@ -2326,6 +2909,31 @@ export default function SecretDrawPage({
                           ✂️ Descartada no Vórtice
                         </span>
                       )}
+                      {fCard?.twoFaceDoubled && (
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-500/25 text-amber-200 border border-amber-300/60">
+                          🪙 2× Rei Duas-Caras (Cara)
+                        </span>
+                      )}
+                      {fCard?.halfXpCursed && (
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-rose-500/25 text-rose-200 border border-rose-400/60">
+                          💔 0.5× XP Maldição
+                        </span>
+                      )}
+                      {fCard?.boomerangLocked && (
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-red-950/80 text-rose-200 border border-rose-400/60">
+                          ⛓️ Bumerangue Travado
+                        </span>
+                      )}
+                      {fCard?.rarityChangedFrom && (
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-fuchsia-500/20 text-fuchsia-200 border border-fuchsia-300/50">
+                          ⚗️ Raridade alterada ({SUIT_META[fCard.rarityChangedFrom]?.suit || ''} → {suit.suit})
+                        </span>
+                      )}
+                      {fCard?.portalHarvested && (
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-cyan-500/20 text-cyan-200 border border-cyan-400/55">
+                          🌀 Portal Colheu XP & Devolveu ao Baralho
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -2416,22 +3024,26 @@ export default function SecretDrawPage({
 
                           <button
                             type="button"
-                            disabled={acting || boomerangChipsRemaining <= 0}
+                            disabled={acting || boomerangChipsRemaining <= 0 || Boolean(fCard?.boomerangLocked)}
                             onClick={() => {
                               setIsBoomerangOpen((v) => !v);
                               setIsDeclineOpen(false);
                             }}
                             title={
-                              boomerangChipsRemaining <= 0
-                                ? `Suas Fichas Bumerangue acabaram (${boomerangAllowance}/${cycleDays} dias, máx. ${maxBoomerangBank})! Recarrega ${chipsWallet.nextResetLabel}.`
-                                : 'Tira da sua fila agora e devolve ao baralho para poder sair novamente depois (não queima o filme).'
+                              fCard?.boomerangLocked
+                                ? '⛓️ Esta carta foi acorrentada (Corrente do Destino / Coroa) e não pode usar o Passe Bumerangue!'
+                                : boomerangChipsRemaining <= 0
+                                  ? `Suas Fichas Bumerangue acabaram (${boomerangAllowance}/${cycleDays} dias, máx. ${maxBoomerangBank})! Recarrega ${chipsWallet.nextResetLabel}.`
+                                  : 'Tira da sua fila agora e devolve ao baralho para poder sair novamente depois (não queima o filme).'
                             }
                             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-sky-500/20 hover:bg-sky-500/35 text-sky-200 border border-sky-400/50 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
                           >
-                            <span>🪃</span>
-                            {isBoomerangOpen
-                              ? 'Cancelar Bumerangue'
-                              : `Passe Bumerangue (${boomerangChipsRemaining}/${maxBoomerangBank})`}
+                            <span>{fCard?.boomerangLocked ? '⛓️' : '🪃'}</span>
+                            {fCard?.boomerangLocked
+                              ? 'Bumerangue Travado'
+                              : isBoomerangOpen
+                                ? 'Cancelar Bumerangue'
+                                : `Passe Bumerangue (${boomerangChipsRemaining}/${maxBoomerangBank})`}
                           </button>
 
                           <button
@@ -2729,11 +3341,13 @@ export default function SecretDrawPage({
                           }`}
                         >
                           {isCompleted
-                            ? '✓ CONCLUÍDO'
+                            ? gCard?.portalHarvested
+                              ? '🌀 PORTAL'
+                              : '✓ CONCLUÍDO'
                             : isReadyToClaim
                               ? '✨ COLHER'
                               : isActive
-                                ? '🔥 FILA'
+                                ? `${gCard?.boomerangLocked ? '⛓️ ' : ''}${gCard?.twoFaceDoubled ? '🪙 ' : gCard?.halfXpCursed ? '💔 ' : ''}🔥 FILA`
                                 : isBoomerang
                                   ? '🪃'
                                   : '✂️'}
@@ -3054,6 +3668,21 @@ export default function SecretDrawPage({
           </div>
         </section>
       )}
+
+      {/* MODAL CINEMATOGRÁFICO UNIFICADO (TARÔ / MISTÉRIO / CARTAS ESPECIAIS) */}
+      <SecretDrawCardRevealModal
+        session={revealModalSession}
+        onClose={handleRevealModalClose}
+        onOpenChainedSpecial={(chainedOutcome) => {
+          setRevealModalSession({
+            mode: 'special',
+            key: Date.now(),
+            roundId: statusData?.currentRound?.id || null,
+            card: chainedOutcome.card || null,
+            outcome: chainedOutcome,
+          });
+        }}
+      />
     </div>
   );
 }

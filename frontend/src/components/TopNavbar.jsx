@@ -703,20 +703,39 @@ export default function TopNavbar({
           >
             📊 Estatísticas
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('challenge');
-              setOpenDropdown(null);
-            }}
-            className={`px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
-              activeTab === 'challenge'
-                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
-                : 'text-emerald-400/90 hover:text-emerald-300 hover:bg-emerald-500/10'
-            }`}
-          >
-            🌍 Desafio 195
-          </button>
+          {(() => {
+            const pendingCoprodCount = Number(
+              liveXpStatus?.sources?.countries?.pendingCoproductionsCount || 0
+            );
+            return (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('challenge');
+                  setOpenDropdown(null);
+                }}
+                title={
+                  pendingCoprodCount > 0
+                    ? `Desafio 195 • ${pendingCoprodCount} coprodução(ões) pendente(s) na Central de Curadoria!`
+                    : 'Desafio 195: Mapa-Múndi & Central de Curadoria de Coproduções'
+                }
+                className={`inline-flex items-center px-3 py-1.5 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0 ${
+                  activeTab === 'challenge'
+                    ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                    : pendingCoprodCount > 0
+                    ? 'text-amber-200 bg-amber-500/15 ring-1 ring-amber-400/70 hover:bg-amber-500/25 shadow-[0_0_16px_rgba(251,191,36,0.3)]'
+                    : 'text-emerald-400/90 hover:text-emerald-300 hover:bg-emerald-500/10'
+                }`}
+              >
+                <span>🌍 Desafio 195</span>
+                {pendingCoprodCount > 0 && (
+                  <span className="ml-1.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[9px] font-black animate-pulse shadow">
+                    ⚠️ {pendingCoprodCount}
+                  </span>
+                )}
+              </button>
+            );
+          })()}
           <button
             type="button"
             onClick={() => {
