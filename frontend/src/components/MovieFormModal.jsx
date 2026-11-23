@@ -687,7 +687,7 @@ export default function MovieFormModal({
       ].map(tagGhostEvent);
 
       // 4º Estágio (ATO 2): Barra de XP, Atributos, Checkpoints de Saga & Evolução de Classe RPG
-      const { statGains, unlockedClass } = computeMovieStatGains({
+      const { statGains, unlockedClass, nextMovies } = computeMovieStatGains({
         movieData: savedMovie,
         newlyUnlocked,
         _progressedTrophies: progressedTrophies,
@@ -731,6 +731,7 @@ export default function MovieFormModal({
           statGains: statGains.length > 0 ? statGains : baseXpGain.statGains,
           universeCheckpoints: resolvedCheckpoints.length > 0 ? resolvedCheckpoints : undefined,
           unlockedClass: resolvedUnlockedClass,
+          _rpgMoviesOverride: !ghostRun ? nextMovies : undefined,
         };
 
         triggerXPGainToast(enrichedXpGain, ghostRun ? null : resData.xpStatus);

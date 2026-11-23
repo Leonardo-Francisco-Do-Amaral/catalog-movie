@@ -20,9 +20,12 @@ import {
   AlertTriangle,
   BookOpen,
   Dices,
+  Lock,
+  CalendarClock,
 } from 'lucide-react';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { triggerXPGainToast, dispatchXpStatusUpdate } from '../utils/xpSystem';
+import { getCycle15CountdownLabel } from '../utils/cycleCountdown';
 import {
   playChimeraJackpotTickSound,
   playChimeraJackpotFanfareSound,
@@ -52,6 +55,128 @@ function dispatchChimeraSync() {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('cine-chimera-sync', { detail: { source: 'chimera-page' } }));
   }
+}
+
+function ChimeraCycleRestDisplay({ cycleKey = '' }) {
+  const spores = [
+    { symbol: '🧬', pos: 'top-3 left-6', delay: '0s', size: 'text-sm text-emerald-300' },
+    { symbol: '✨', pos: 'top-6 right-5', delay: '0.45s', size: 'text-xs text-amber-300' },
+    { symbol: '🔮', pos: 'bottom-7 left-4', delay: '0.9s', size: 'text-xs text-teal-200' },
+    { symbol: '🎲', pos: 'bottom-4 right-6', delay: '1.35s', size: 'text-xs text-amber-200' },
+    { symbol: '⭐', pos: 'top-1/2 -left-1 -translate-y-1/2', delay: '0.6s', size: 'text-xs text-emerald-200' },
+    { symbol: '⚗️', pos: 'top-1/2 -right-1 -translate-y-1/2', delay: '1.1s', size: 'text-xs text-teal-300' },
+  ];
+
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-1">
+      <div className="relative w-44 h-44 sm:w-48 sm:h-48 flex items-center justify-center">
+        <div className="bingo-sanctum-aura pointer-events-none absolute inset-2 rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.32)_0%,rgba(245,158,11,0.14)_48%,transparent_74%)]" />
+
+        <svg
+          viewBox="0 0 200 200"
+          className="bingo-sanctum-orbit pointer-events-none absolute inset-0 w-full h-full"
+          aria-hidden="true"
+        >
+          <circle
+            cx="100"
+            cy="100"
+            r="92"
+            fill="none"
+            stroke="rgba(52, 211, 153, 0.42)"
+            strokeWidth="1.5"
+            strokeDasharray="7 7"
+          />
+          <circle cx="100" cy="8" r="3" fill="#6ee7b7" />
+          <circle cx="192" cy="100" r="2.5" fill="#fde68a" />
+          <circle cx="100" cy="192" r="3" fill="#6ee7b7" />
+          <circle cx="8" cy="100" r="2.5" fill="#fde68a" />
+        </svg>
+
+        <div className="bingo-sanctum-orbit-reverse pointer-events-none absolute inset-5 rounded-full border border-dashed border-amber-400/40 shadow-[inset_0_0_24px_rgba(16,185,129,0.16)]" />
+
+        {spores.map((sp, idx) => (
+          <span
+            key={idx}
+            style={{ animationDelay: sp.delay }}
+            className={`bingo-sanctum-sparkle pointer-events-none absolute ${sp.pos} ${sp.size} select-none`}
+          >
+            {sp.symbol}
+          </span>
+        ))}
+
+        {/* Frasco Alquímico Selado com Hélice DNA Adormecida */}
+        <div className="bingo-sanctum-grimoire-float relative z-10 w-32 h-32 flex items-center justify-center">
+          <svg viewBox="0 0 140 140" className="w-full h-full" aria-hidden="true">
+            <defs>
+              <linearGradient id="chimFlaskGold" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#fef3c7" />
+                <stop offset="50%" stopColor="#f59e0b" />
+                <stop offset="100%" stopColor="#b45309" />
+              </linearGradient>
+              <radialGradient id="chimGlassGlow" cx="45%" cy="55%" r="55%">
+                <stop offset="0%" stopColor="#34d399" stopOpacity="0.48" />
+                <stop offset="65%" stopColor="#065f46" stopOpacity="0.82" />
+                <stop offset="100%" stopColor="#042f2e" stopOpacity="0.96" />
+              </radialGradient>
+            </defs>
+
+            {/* Tampa hermética dourada */}
+            <rect x="55" y="18" width="30" height="11" rx="4" fill="url(#chimFlaskGold)" stroke="#451a03" strokeWidth="1.5" />
+            <rect x="51" y="28" width="38" height="9" rx="3" fill="#0f766e" stroke="url(#chimFlaskGold)" strokeWidth="1.8" />
+
+            {/* Corpo de cristal alquímico */}
+            <path
+              d="M58 37 L58 53 L32 95 C27 104 33 118 45 118 L95 118 C107 118 113 104 108 95 L82 53 L82 37 Z"
+              fill="url(#chimGlassGlow)"
+              stroke="url(#chimFlaskGold)"
+              strokeWidth="2.4"
+              strokeLinejoin="round"
+            />
+
+            {/* Poção estabilizada no fundo */}
+            <path
+              d="M39 92 Q70 84 101 92 L106 100 C108 108 102 115 94 115 L46 115 C38 115 32 108 34 100 Z"
+              fill="rgba(16, 185, 129, 0.38)"
+            />
+
+            {/* Fita dupla de DNA em repouso */}
+            <path
+              d="M58 64 C78 72, 62 84, 82 94"
+              fill="none"
+              stroke="#fde68a"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+            />
+            <path
+              d="M82 64 C62 72, 78 84, 58 94"
+              fill="none"
+              stroke="#6ee7b7"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+            />
+            <line x1="63" y1="69" x2="77" y2="69" stroke="rgba(255,255,255,0.55)" strokeWidth="1.4" />
+            <line x1="63" y1="79" x2="77" y2="79" stroke="rgba(255,255,255,0.55)" strokeWidth="1.4" />
+            <line x1="63" y1="89" x2="77" y2="89" stroke="rgba(255,255,255,0.55)" strokeWidth="1.4" />
+
+            {/* Selo central de lacre */}
+            <circle cx="70" cy="105" r="8" fill="#064e3b" stroke="url(#chimFlaskGold)" strokeWidth="1.6" />
+            <path
+              d="M70 100 L71.6 103.3 L75.2 103.8 L72.6 106.3 L73.2 109.9 L70 108.2 L66.8 109.9 L67.4 106.3 L64.8 103.8 L68.4 103.3 Z"
+              fill="#fef3c7"
+            />
+          </svg>
+
+          <span className="absolute -top-1 -right-2 px-2 py-0.5 rounded-full text-[9.5px] font-black bg-gradient-to-r from-emerald-400 to-teal-300 text-zinc-950 border border-emerald-100 shadow-[0_0_16px_rgba(16,185,129,0.55)]">
+            ⚗️ SELADA
+          </span>
+        </div>
+      </div>
+
+      <div className="px-3.5 py-1 rounded-full bg-emerald-950/75 border border-emerald-400/45 text-[10.5px] font-black uppercase tracking-widest text-emerald-200 shadow-inner">
+        🧬 Forja de Quimeras • {cycleKey ? `Ciclo ${cycleKey} ` : ''}em Repouso
+      </div>
+    </div>
+  );
 }
 
 export default function ChimeraPage({
@@ -596,6 +721,9 @@ export default function ChimeraPage({
   };
   const ritualInProgress = Boolean(activeRitualContract);
   const canForge = wallet.chipsRemaining > 0 && slotsUsed < activeLimit && !ritualInProgress;
+  const isChimeraCycleExhausted =
+    !ritualInProgress && slotsUsed === 0 && Number(wallet.chipsRemaining || 0) <= 0;
+  const nextChimeraCountdownLabel = isChimeraCycleExhausted ? getCycle15CountdownLabel() : null;
 
   return (
     <div className="w-full max-w-7xl mx-auto flex flex-col gap-6 pb-16">
@@ -713,6 +841,8 @@ export default function ChimeraPage({
               <Dices className={`w-4 h-4 ${ritualInProgress ? 'animate-spin' : ''}`} />
               {ritualInProgress
                 ? 'Dado D20 em Jogo...'
+                : isChimeraCycleExhausted
+                ? `🔒 Recarrega ${wallet.nextResetLabel}`
                 : wallet.chipsRemaining <= 0
                 ? 'Fichas de Forja Esgotadas'
                 : slotsUsed >= activeLimit
@@ -1289,16 +1419,88 @@ export default function ChimeraPage({
         </div>
 
         {activeChimeras.length === 0 && readyChimeras.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-zinc-800 bg-zinc-950/60 p-10 text-center flex flex-col items-center gap-3">
-            <Dna className="w-10 h-10 text-emerald-400/60" />
-            <div className="text-base font-black text-zinc-200">
-              Nenhuma Quimera forjada no momento
+          isChimeraCycleExhausted ? (
+            <div className="chimera-sanctum-card rounded-3xl border-2 border-emerald-400/45 p-7 sm:p-10 text-center flex flex-col items-center gap-5 shadow-2xl">
+              <ChimeraCycleRestDisplay cycleKey={wallet.cycleKey || wallet.weekKey} />
+
+              <div className="max-w-xl flex flex-col items-center gap-2">
+                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-snug">
+                  Você já concluiu todas as Quimeras desse ciclo — volte na próxima recarga!
+                </h3>
+                <p className="text-xs sm:text-sm text-emerald-100/80 leading-relaxed">
+                  Os alquimistas apagaram os fornos de{' '}
+                  <strong className="text-emerald-300">{wallet.cycleKey || wallet.weekKey || 'temporada'}</strong>: não há mais Quimeras ativas na caçada nem fichas de D20 restantes no momento. Aguarde a virada do ciclo para despertar novas criaturas!
+                </p>
+              </div>
+
+              <div className="w-full max-w-2xl grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-left">
+                <div className="rounded-2xl border border-emerald-400/35 bg-black/45 px-3.5 py-2.5 flex items-center gap-2.5">
+                  <span className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-base shrink-0">
+                    🎟️
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-300/90">
+                      Fichas de Forja
+                    </div>
+                    <div className="text-xs font-black text-white truncate">
+                      0/{maxChipsBank} (+{wallet.weeklyAllowance || 3} a cada {cycleDays}d)
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-amber-400/35 bg-black/45 px-3.5 py-2.5 flex items-center gap-2.5">
+                  <span className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-base shrink-0">
+                    👑
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-amber-300/90">
+                      Histórico Total
+                    </div>
+                    <div className="text-xs font-black text-amber-200 truncate">
+                      {xpSummary.claimedCount || claimedHistory.length} Desperta(s) • {xpSummary.totalJackpotsHit || 0} Jackpot(s)
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-sky-400/35 bg-black/45 px-3.5 py-2.5 flex items-center gap-2.5">
+                  <CalendarClock className="w-8 h-8 p-1.5 rounded-xl bg-sky-500/15 border border-sky-400/35 text-sky-300 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-sky-300/90">
+                      Próxima Recarga
+                    </div>
+                    <div className="text-[11px] font-black text-sky-100 truncate" title={wallet.nextResetLabel}>
+                      {wallet.nextResetLabel}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-2xl border border-emerald-400/40 bg-emerald-950/65 text-xs font-bold text-emerald-200 shadow-inner">
+                <Lock className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+                <span>
+                  Forja em descanso •{' '}
+                  {nextChimeraCountdownLabel ? (
+                    <strong className="text-amber-200">{nextChimeraCountdownLabel}</strong>
+                  ) : (
+                    <>
+                      Recarga em <strong className="text-amber-200">{wallet.nextResetLabel}</strong>
+                    </>
+                  )}
+                </span>
+              </div>
             </div>
-            <p className="text-xs text-zinc-400 max-w-md">
-              Clique em <strong className="text-emerald-300">🎲 Lançar D20 do Destino</strong> acima para sortear
-              sua nova criatura com 4 pilares + Jackpots secretos.
-            </p>
-          </div>
+          ) : (
+            <div className="rounded-3xl border border-dashed border-zinc-800 bg-zinc-950/60 p-10 text-center flex flex-col items-center gap-3">
+              <Dna className="w-10 h-10 text-emerald-400/60" />
+              <div className="text-base font-black text-zinc-200">
+                Nenhuma Quimera forjada no momento
+              </div>
+              <p className="text-xs text-zinc-400 max-w-md">
+                Clique em <strong className="text-emerald-300">🎲 Lançar D20 do Destino</strong> acima para sortear
+                sua nova criatura com 4 pilares + Jackpots secretos.
+              </p>
+            </div>
+          )
         ) : activeChimeras.length === 0 ? (
           <div className="rounded-2xl border border-amber-500/25 bg-amber-950/15 p-4 text-xs text-amber-200/90 text-center">
             Desperte sua Quimera dourada acima para liberar espaço e forjar uma nova criatura!

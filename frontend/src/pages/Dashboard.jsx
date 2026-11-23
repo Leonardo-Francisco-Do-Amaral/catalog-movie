@@ -12,7 +12,7 @@ const UniverseCodexPage = React.lazy(() => import('./UniverseCodexPage'));
 const WalkOfFamePage = React.lazy(() => import('./WalkOfFamePage'));
 const GuildaDestinoPage = React.lazy(() => import('./GuildaDestinoPage'));
 import WalkOfFamePackToast from '../components/WalkOfFamePackToast';
-import PS5TrophyToastContainer, { triggerPS5TrophyToast, triggerTrophyBatch } from '../components/PS5TrophyToastContainer';
+import PS5TrophyToastContainer, { triggerTrophyBatch } from '../components/PS5TrophyToastContainer';
 import TimeMachineToastContainer from '../components/TimeMachineToastContainer';
 import WorldChallengeToastContainer from '../components/WorldChallengeToastContainer';
 import XPGainToastContainer from '../components/XPGainToastContainer';
@@ -26,9 +26,47 @@ import {
   triggerTimeMachineUnlock,
   triggerWalkOfFamePackToast,
   dispatchXpStatusUpdate,
+  syncRpgProgressBaseline,
 } from '../utils/xpSystem';
-import { Film, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Film, RefreshCw, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { API_BASE_URL } from '../utils/apiConfig';
+
+const getIsMobileCatalogViewport = () =>
+  typeof window !== 'undefined' && window.innerWidth < 768;
+
+const getSavedCatalogPageSize = (isMobile) => {
+  const fallback = isMobile ? 50 : 'all';
+  try {
+    const key = isMobile
+      ? 'cine_catalog_page_size_mobile'
+      : 'cine_catalog_page_size_desktop';
+    const raw = localStorage.getItem(key);
+    if (raw === '50' || raw === '100') return Number(raw);
+    if (raw === 'all') return 'all';
+    return fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const buildVisiblePageNumbers = (current, total) => {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, idx) => idx + 1);
+  }
+  const pages = new Set([1, total, current - 1, current, current + 1]);
+  const sorted = Array.from(pages)
+    .filter((p) => p >= 1 && p <= total)
+    .sort((a, b) => a - b);
+
+  const items = [];
+  for (let i = 0; i < sorted.length; i++) {
+    if (i > 0 && sorted[i] - sorted[i - 1] > 1) {
+      items.push(`ellipsis-${sorted[i - 1]}`);
+    }
+    items.push(sorted[i]);
+  }
+  return items;
+};
 
 // Remove acentos para busca textual inteligente em Português
 const stripAccents = (str) =>
@@ -454,6 +492,37 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
       return 5;
     }
   });
+  const [isMobileCatalogViewport, setIsMobileCatalogViewport] = useState(getIsMobileCatalogViewport);
+  const [pageSize, setPageSize] = useState(() =>
+    getSavedCatalogPageSize(getIsMobileCatalogViewport())
+  );
+  const [currentPage, setCurrentPage] = useState(1);
+  const catalogGridTopRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(max-width: 767px)');
+    const onViewportChange = (e) => {
+      setIsMobileCatalogViewport(e.matches);
+      setPageSize(getSavedCatalogPageSize(e.matches));
+      setCurrentPage(1);
+    };
+    mq.addEventListener('change', onViewportChange);
+    return () => mq.removeEventListener('change', onViewportChange);
+  }, []);
+
+  const handleSelectPageSize = (nextSize) => {
+    setPageSize(nextSize);
+    setCurrentPage(1);
+    try {
+      const key = isMobileCatalogViewport
+        ? 'cine_catalog_page_size_mobile'
+        : 'cine_catalog_page_size_desktop';
+      localStorage.setItem(key, String(nextSize));
+    } catch {
+      // ignore storage errors
+    }
+  };
 
   const handleSelectGridCols = (cols) => {
     setGridCols(cols);
@@ -628,51 +697,15 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
         }
         return null;
       }
-    } catch {
-      // Fallback: modo local / mock
+    } catch (err) {
+      console.warn('[Dashboard] Backend indisponível ao verificar troféus:', err?.message);
     }
 
     if (Array.isArray(currentMovies) && currentMovies.length > 0) {
-      try {
-        const { evaluateTrophiesClientSide } = await import('../utils/trophyEngineClient');
-        const clientResult = evaluateTrophiesClientSide(currentMovies);
-        const newUnlocks = [];
-        clientResult.trophies.forEach((t) => {
-          if (t.kind === 'rank' && Array.isArray(t.ranks)) {
-            t.ranks.forEach((r) => {
-              if (r.is_unlocked) {
-                if (!unlockedTrophyIdsRef.current.has(r.id)) {
-                  if (initialTrophyScanDoneRef.current || forceAlerts) {
-                    newUnlocks.push({ ...r, category: t.category, icon: t.icon, is_rank_step: true });
-                  }
-                  unlockedTrophyIdsRef.current.add(r.id);
-                }
-              }
-            });
-          } else if (t.is_unlocked) {
-            if (!unlockedTrophyIdsRef.current.has(t.id)) {
-              if (initialTrophyScanDoneRef.current || forceAlerts) {
-                newUnlocks.push(t);
-              }
-              unlockedTrophyIdsRef.current.add(t.id);
-            }
-          }
-        });
-
-        if (newUnlocks.length > 0) {
-          newUnlocks.forEach((t, i) => {
-            setTimeout(() => {
-              triggerPS5TrophyToast(t);
-            }, i * 650);
-          });
-        }
-        initialTrophyScanDoneRef.current = true;
-        const localXp = calculateClientXpStatus(currentMovies, clientResult.trophies);
-        applyXpStatus(localXp);
-        return localXp;
-      } catch (e) {
-        console.error('[Dashboard] Erro no check local de troféus:', e);
-      }
+      initialTrophyScanDoneRef.current = true;
+      const localXp = calculateClientXpStatus(currentMovies, []);
+      applyXpStatus(localXp);
+      return localXp;
     }
     return null;
   }, [allMovies, applyXpStatus]);
@@ -693,6 +726,7 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
       const loadedMovies = allRes.data.data || [];
       const loadedSystemTags = (tagsRes?.data?.data || []).map((t) => t.name).filter(Boolean);
       setSystemTags(loadedSystemTags);
+      syncRpgProgressBaseline({ movies: loadedMovies });
       setAllMovies(loadedMovies);
       setAllPlatforms((platformsRes.data.data || []).map(p => p.platform));
       setUsingMock(false);
@@ -702,6 +736,7 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
       return loadedMovies;
     } catch {
       console.warn('[Dashboard] Backend indisponível. Utilizando dados mockados de demonstração.');
+      syncRpgProgressBaseline({ movies: MOCK_MOVIES });
       setAllMovies(MOCK_MOVIES);
       setAllPlatforms(['Netflix', 'My Family Cine', 'Cinema', 'Prime Video', 'Youtube', 'HBO MAX']);
       setUsingMock(true);
@@ -955,7 +990,43 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
     });
 
     setFilteredMovies(result);
+    setCurrentPage(1);
   }, [searchQuery, selectedTags, selectedGenres, selectedCountries, selectedAudios, selectedPlatforms, selectedDirectors, selectedWriters, selectedStudios, selectedDistributors, oscarFilter, sortBy, allMovies]);
+
+  const effectivePageLimit = pageSize === 'all' ? null : Number(pageSize);
+  const totalFilteredCount = filteredMovies.length;
+  const totalPages = effectivePageLimit
+    ? Math.max(1, Math.ceil(totalFilteredCount / effectivePageLimit))
+    : 1;
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const pageRangeStart =
+    totalFilteredCount === 0
+      ? 0
+      : effectivePageLimit
+        ? (safeCurrentPage - 1) * effectivePageLimit + 1
+        : 1;
+  const pageRangeEnd = effectivePageLimit
+    ? Math.min(safeCurrentPage * effectivePageLimit, totalFilteredCount)
+    : totalFilteredCount;
+
+  const displayedMovies = useMemo(() => {
+    if (!effectivePageLimit) return filteredMovies;
+    const startIdx = (safeCurrentPage - 1) * effectivePageLimit;
+    return filteredMovies.slice(startIdx, startIdx + effectivePageLimit);
+  }, [filteredMovies, effectivePageLimit, safeCurrentPage]);
+
+  const visiblePageNumbers = useMemo(
+    () => buildVisiblePageNumbers(safeCurrentPage, totalPages),
+    [safeCurrentPage, totalPages]
+  );
+
+  const handleGoToPage = (targetPage) => {
+    const clamped = Math.max(1, Math.min(totalPages, targetPage));
+    setCurrentPage(clamped);
+    if (catalogGridTopRef.current) {
+      catalogGridTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   // Alterna tag no filtro
   const toggleTag = (tag) => {
@@ -1462,37 +1533,45 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
           </Suspense>
         ) : (
           /* Grelha Dinâmica Principal (Resultados de Busca / Todos os Filmes - 5 por linha no Desktop) */
-          <div className="flex flex-col gap-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-800/80 pb-4 px-1 gap-4">
-              <div className="flex items-center gap-3">
-                <Film className="w-5 h-5 text-amber-400" />
-                <h2 className="text-xl font-black uppercase tracking-widest text-zinc-100">
+          <div ref={catalogGridTopRef} className="flex flex-col gap-6 scroll-mt-24">
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between border-b border-zinc-800/80 pb-4 px-1 gap-3">
+              <div className="flex flex-wrap items-center gap-2.5 shrink-0 min-w-0">
+                <Film className="w-5 h-5 text-amber-400 shrink-0" />
+                <h2 className="text-base sm:text-xl font-black uppercase tracking-widest text-zinc-100 whitespace-nowrap">
                   {hasActiveFilters ? 'Resultados do Filtro' : 'Seu Catálogo Completo'}
                 </h2>
+                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider whitespace-nowrap bg-zinc-900/90 border border-zinc-800 px-2 py-0.5 rounded-md">
+                  {effectivePageLimit && totalFilteredCount > effectivePageLimit
+                    ? `${pageRangeStart}–${pageRangeEnd} / ${totalFilteredCount}`
+                    : `${totalFilteredCount} ${totalFilteredCount === 1 ? 'filme' : 'filmes'}`}
+                </span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 xl:justify-end">
                 {/* Botão Global de Atualização Segura da API (Todos os Filmes do Catálogo) */}
                 {!usingMock && (
                   <button
                     type="button"
                     disabled={apiRefreshJob?.status === 'running'}
                     onClick={handleStartCatalogApiRefresh}
-                    className="flex items-center gap-1.5 bg-cyan-500/12 hover:bg-cyan-500/22 border border-cyan-500/40 hover:border-cyan-400/70 text-cyan-300 hover:text-cyan-200 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer disabled:opacity-60"
+                    className="flex items-center gap-1.5 bg-cyan-500/12 hover:bg-cyan-500/22 border border-cyan-500/40 hover:border-cyan-400/70 text-cyan-300 hover:text-cyan-200 px-2.5 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer disabled:opacity-60 whitespace-nowrap shrink-0"
                     title="Atualiza em lote APENAS notas externas (IMDb, Metacritic, Rotten Tomatoes), votos e Oscars de todos os filmes do catálogo, preservando todos os seus dados pessoais."
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${apiRefreshJob?.status === 'running' ? 'animate-spin' : ''}`} />
                     <span>
                       {apiRefreshJob?.status === 'running'
                         ? `Atualizando API (${apiRefreshJob.processed}/${apiRefreshJob.total})...`
-                        : '🔄 Atualizar Dados da API'}
+                        : 'Atualizar Dados da API'}
                     </span>
                   </button>
                 )}
 
                 {/* Seletor de Exibição em Grade (5 / 7 / 10 por linha) */}
-                <div className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800/80 rounded-lg px-2.5 py-1 text-xs font-semibold text-zinc-300">
-                  <span className="text-zinc-500 text-[11px]">Exibir:</span>
+                <div
+                  className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800/80 rounded-lg px-2.5 py-1 text-xs font-semibold text-zinc-300 shrink-0"
+                  title="Quantidade de cards por linha no catálogo"
+                >
+                  <span className="text-zinc-500 text-[11px]">Colunas:</span>
                   <div className="flex items-center gap-1">
                     {[5, 7, 10].map((cols) => (
                       <button
@@ -1509,16 +1588,42 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
                       </button>
                     ))}
                   </div>
-                  <span className="text-zinc-500 text-[11px] hidden sm:inline">por linha</span>
+                </div>
+
+                {/* Seletor de Quantidade por Página (Mobile inicia em 50, Desktop em Todos) */}
+                <div
+                  className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800/80 rounded-lg px-2.5 py-1 text-xs font-semibold text-zinc-300 shrink-0"
+                  title="Quantidade de cards renderizados por página (no celular inicia em 50; no computador exibe Todos)"
+                >
+                  <span className="text-zinc-500 text-[11px]">Mostrar:</span>
+                  <div className="flex items-center gap-1">
+                    {[50, 100, 'all'].map((opt) => {
+                      const isSelected = pageSize === opt;
+                      return (
+                        <button
+                          key={String(opt)}
+                          type="button"
+                          onClick={() => handleSelectPageSize(opt)}
+                          className={`px-2 py-0.5 rounded font-black text-[11px] transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-amber-500 text-slate-950 shadow-sm'
+                              : 'bg-zinc-950/60 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800'
+                          }`}
+                        >
+                          {opt === 'all' ? 'Todos' : opt}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Seletor de Ordenação */}
-                <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800/80 rounded-lg px-3 py-1.5 text-xs font-semibold text-zinc-300">
-                  <span className="text-zinc-500">Ordenar por:</span>
+                <div className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800/80 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-zinc-300 shrink-0">
+                  <span className="text-zinc-500">Ordenar:</span>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="bg-transparent border-none text-zinc-200 focus:outline-none cursor-pointer font-bold pr-2"
+                    className="bg-transparent border-none text-zinc-200 focus:outline-none cursor-pointer font-bold pr-1"
                   >
                     <option value="seen_desc" className="bg-zinc-950">Vistos Recentemente (Ano/Mês)</option>
                     <option value="seen_asc" className="bg-zinc-950">Vistos há Mais Tempo (Ano/Mês)</option>
@@ -1534,10 +1639,6 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
                     <option value="release_asc" className="bg-zinc-950">Lançamento: Clássicos</option>
                   </select>
                 </div>
-
-                <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                  {filteredMovies.length} {filteredMovies.length === 1 ? 'filme localizado' : 'filmes localizados'}
-                </span>
               </div>
             </div>
 
@@ -1596,29 +1697,92 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
                 </button>
               </div>
             ) : (
-              <div
-                className={
-                  gridCols === 10
-                    ? 'grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-2.5 xl:gap-3'
-                    : gridCols === 7
-                      ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3 xl:gap-4'
-                      : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5 xl:gap-7'
-                }
-              >
-                {filteredMovies.map((movie) => (
-                  <MovieCard 
-                    key={movie.id} 
-                    movie={movie}
-                    gridCols={gridCols}
-                    onEdit={(m) => {
-                      setEditingMovie(m);
-                      setReviewSearchQuery('');
-                      setIsFormOpen(true);
-                    }}
-                    onDelete={handleDeleteMovie}
-                  />
-                ))}
-              </div>
+              <>
+                <div
+                  className={
+                    gridCols === 10
+                      ? 'grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-2.5 xl:gap-3'
+                      : gridCols === 7
+                        ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3 xl:gap-4'
+                        : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5 xl:gap-7'
+                  }
+                >
+                  {displayedMovies.map((movie) => (
+                    <MovieCard 
+                      key={movie.id} 
+                      movie={movie}
+                      gridCols={gridCols}
+                      onEdit={(m) => {
+                        setEditingMovie(m);
+                        setReviewSearchQuery('');
+                        setIsFormOpen(true);
+                      }}
+                      onDelete={handleDeleteMovie}
+                    />
+                  ))}
+                </div>
+
+                {effectivePageLimit && totalPages > 1 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-zinc-800/80">
+                    <span className="text-xs font-bold text-zinc-400">
+                      Página <strong className="text-amber-400">{safeCurrentPage}</strong> de{' '}
+                      <strong className="text-zinc-200">{totalPages}</strong> • Mostrando{' '}
+                      {pageRangeStart}–{pageRangeEnd} de {totalFilteredCount}
+                    </span>
+
+                    <div className="flex flex-wrap items-center justify-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={safeCurrentPage <= 1}
+                        onClick={() => handleGoToPage(safeCurrentPage - 1)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs font-bold text-zinc-200 hover:border-amber-500/50 hover:text-amber-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                        <span>Anterior</span>
+                      </button>
+
+                      {visiblePageNumbers.map((item) =>
+                        typeof item === 'string' ? (
+                          <span key={item} className="px-2 text-xs font-bold text-zinc-600 select-none">
+                            …
+                          </span>
+                        ) : (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => handleGoToPage(item)}
+                            className={`min-w-[32px] px-2.5 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                              item === safeCurrentPage
+                                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                                : 'bg-zinc-900 border border-zinc-800 text-zinc-300 hover:border-zinc-700 hover:text-white'
+                            }`}
+                          >
+                            {item}
+                          </button>
+                        )
+                      )}
+
+                      <button
+                        type="button"
+                        disabled={safeCurrentPage >= totalPages}
+                        onClick={() => handleGoToPage(safeCurrentPage + 1)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs font-bold text-zinc-200 hover:border-amber-500/50 hover:text-amber-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      >
+                        <span>Próxima</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSelectPageSize('all')}
+                      className="text-xs font-black uppercase tracking-wider px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-300 transition-colors cursor-pointer"
+                    >
+                      Exibir Todos ({totalFilteredCount})
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

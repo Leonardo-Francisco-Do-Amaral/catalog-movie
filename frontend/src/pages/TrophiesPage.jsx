@@ -172,7 +172,6 @@ export default function TrophiesPage({ movies = [] }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [_error, setError] = useState(null);
-  const [localOverrides] = useState({});
   const [visibleLimit, setVisibleLimit] = useState(VISIBLE_BATCH_SIZE);
 
   // Filtros de Categoria, Tier, Status e Busca
@@ -251,22 +250,13 @@ export default function TrophiesPage({ movies = [] }) {
           return;
         }
       } catch (err) {
-        console.warn('[TrophiesPage] Backend offline ou indisponível, avaliando troféus via motor client-side local:', err.message);
-      }
-
-      // Fallback: Avaliação local inteligente a partir do catálogo (lazy-loaded)
-      try {
-        const { evaluateTrophiesClientSide } = await import('../utils/trophyEngineClient');
-        const clientResult = evaluateTrophiesClientSide(movies, localOverrides);
-        setData(clientResult);
-      } catch (clientErr) {
-        console.error('[TrophiesPage] Erro no cálculo client-side:', clientErr);
-        setError('Falha ao processar os troféus.');
+        console.error('[TrophiesPage] Erro ao carregar troféus do servidor:', err.message);
+        setError('Não foi possível conectar ao servidor para carregar os troféus.');
       }
     } finally {
       setLoading(false);
     }
-  }, [movies, localOverrides]);
+  }, []);
 
   useEffect(() => {
     loadTrophies(true);

@@ -758,9 +758,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
       }
 
       const prevSaved = JSON.parse(localStorage.getItem('world_challenge_195_offline') || '{}');
-      const { evaluateTrophiesClientSide } = await import('../utils/trophyEngineClient');
-      const offlineTrophies = evaluateTrophiesClientSide(movies)?.trophies || [];
-      const prevXp = calculateClientXpStatus(movies, offlineTrophies, prevSaved);
+      const prevXp = calculateClientXpStatus(movies, [], prevSaved);
       const saved = JSON.parse(localStorage.getItem('world_challenge_195_offline') || '{}');
       saved.picks = saved.picks || {};
       saved.origins = saved.origins || {};
@@ -776,7 +774,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
         delete saved.picks[targetCountry.code];
       }
       localStorage.setItem('world_challenge_195_offline', JSON.stringify(saved));
-      const nextXp = calculateClientXpStatus(movies, offlineTrophies, saved);
+      const nextXp = calculateClientXpStatus(movies, [], saved);
       triggerXPGainToast(computeXpGainEvent(prevXp, nextXp), nextXp);
       setChallengeData(buildOfflineChallengePayload(movies, saved));
       showToast(`Representante de ${targetCountry.name} atualizado!`);
@@ -812,9 +810,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
       }
 
       const prevSaved = JSON.parse(localStorage.getItem('world_challenge_195_offline') || '{}');
-      const { evaluateTrophiesClientSide } = await import('../utils/trophyEngineClient');
-      const offlineTrophies = evaluateTrophiesClientSide(movies)?.trophies || [];
-      const prevXp = calculateClientXpStatus(movies, offlineTrophies, prevSaved);
+      const prevXp = calculateClientXpStatus(movies, [], prevSaved);
       const saved = JSON.parse(localStorage.getItem('world_challenge_195_offline') || '{}');
       saved.origins = saved.origins || {};
       saved.picks = saved.picks || {};
@@ -826,7 +822,7 @@ export default function WorldChallengePage({ movies = [], onOpenAddMovieForCount
       if (targetCountryCode) saved.origins[movieObj.movie_id] = targetCountryCode;
       else delete saved.origins[movieObj.movie_id];
       localStorage.setItem('world_challenge_195_offline', JSON.stringify(saved));
-      const nextXp = calculateClientXpStatus(movies, offlineTrophies, saved);
+      const nextXp = calculateClientXpStatus(movies, [], saved);
       triggerXPGainToast(computeXpGainEvent(prevXp, nextXp), nextXp);
       setChallengeData(buildOfflineChallengePayload(movies, saved));
       showToast('País Primário do filme atualizado!');

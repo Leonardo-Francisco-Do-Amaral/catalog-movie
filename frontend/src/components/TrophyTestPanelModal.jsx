@@ -1022,56 +1022,11 @@ export default function TrophyTestPanelModal({
         if (onSyncSuccess) onSyncSuccess(res.data.data);
         return;
       }
-    } catch {
-      try {
-        const { evaluateTrophiesClientSide } = await import('../utils/trophyEngineClient');
-        const localOverrides = {
-          ...(overrideState !== undefined ? { [selectedTrophyId]: overrideState } : {}),
-          ...(overrideExtraStars !== undefined ? { [`__stars__${selectedTrophyId}`]: overrideExtraStars } : {}),
-        };
-        const localData = evaluateTrophiesClientSide(movies, localOverrides, trophies);
-        setMessage({
-          type: 'success',
-          text:
-            overrideExtraStars !== undefined
-              ? `[Modo Local] Estrelas ajustadas para: ${overrideExtraStars ?? 'Automático'}`
-              : `[Modo Local] Status atualizado: ${
-                  overrideState === true
-                    ? 'Desbloqueado (Teste)'
-                    : overrideState === false
-                      ? 'Bloqueado (Teste)'
-                      : 'Automático'
-                }`,
-        });
-        if (overrideExtraStars !== undefined && overrideExtraStars > 0) {
-          const t = trophies.find((x) => x.id === selectedTrophyId);
-          if (t) {
-            triggerPS5TrophyToast({
-              ...t,
-              tier: 'mythic',
-              title: `${t.title} • ★${overrideExtraStars} Infinito`,
-              is_extra_star: true,
-              extra_star_number: overrideExtraStars,
-              star_xp: overrideExtraStars * 55,
-            });
-          }
-        } else if (overrideState === true) {
-          let toastTarget = trophies.find((x) => x.id === selectedTrophyId);
-          if (!toastTarget) {
-            for (const c of trophies) {
-              const step = c.ranks?.find((r) => r.id === selectedTrophyId);
-              if (step) {
-                toastTarget = { ...step, category: c.category, icon: c.icon, is_rank_step: true };
-                break;
-              }
-            }
-          }
-          if (toastTarget) triggerPS5TrophyToast(toastTarget);
-        }
-        if (onSyncSuccess) onSyncSuccess(localData);
-      } catch (err2) {
-        setMessage({ type: 'error', text: err2.message });
-      }
+    } catch (err) {
+      setMessage({
+        type: 'error',
+        text: err?.response?.data?.error || 'Servidor offline: os testes de troféus exigem conexão com o backend.',
+      });
     } finally {
       setLoading(false);
     }
@@ -1093,18 +1048,11 @@ export default function TrophyTestPanelModal({
         if (onSyncSuccess) onSyncSuccess(res.data.data);
         return;
       }
-    } catch {
-      try {
-        const { evaluateTrophiesClientSide } = await import('../utils/trophyEngineClient');
-        const localData = evaluateTrophiesClientSide(movies, {});
-        setMessage({
-          type: 'success',
-          text: `[Modo Local] Sincronizado! ${localData.unlockedCount} de ${localData.totalTrophies} troféus conquistados.`,
-        });
-        if (onSyncSuccess) onSyncSuccess(localData);
-      } catch (err2) {
-        setMessage({ type: 'error', text: err2.message });
-      }
+    } catch (err) {
+      setMessage({
+        type: 'error',
+        text: err?.response?.data?.error || 'Servidor offline: não foi possível sincronizar os troféus.',
+      });
     } finally {
       setLoading(false);
     }
@@ -1126,18 +1074,11 @@ export default function TrophyTestPanelModal({
         if (onSyncSuccess) onSyncSuccess(res.data.data);
         return;
       }
-    } catch {
-      try {
-        const { evaluateTrophiesClientSide } = await import('../utils/trophyEngineClient');
-        const localData = evaluateTrophiesClientSide(movies, {});
-        setMessage({
-          type: 'success',
-          text: '[Modo Local] Testes resetados com sucesso! Estado original restaurado.',
-        });
-        if (onSyncSuccess) onSyncSuccess(localData);
-      } catch (err2) {
-        setMessage({ type: 'error', text: err2.message });
-      }
+    } catch (err) {
+      setMessage({
+        type: 'error',
+        text: err?.response?.data?.error || 'Servidor offline: não foi possível resetar os testes.',
+      });
     } finally {
       setLoading(false);
     }

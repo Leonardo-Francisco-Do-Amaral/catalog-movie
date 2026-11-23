@@ -22,9 +22,11 @@ import {
   ChevronUp,
   Trophy,
   BarChart3,
+  CalendarClock,
 } from 'lucide-react';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { triggerXPGainToast } from '../utils/xpSystem';
+import { getCycle15CountdownLabel } from '../utils/cycleCountdown';
 import { ALL_CINEMA_CLASSES } from '../utils/analyticsEngine';
 import {
   POWER_TIER_META,
@@ -317,6 +319,84 @@ const BOOMERANG_QUICK_REASONS = [
   'Prefiro ver outro gênero agora',
 ];
 
+function SecretDrawCycleRestDisplay({ weekKey = '' }) {
+  const suitOrbiters = [
+    { symbol: '♠', pos: 'top-3 left-6', delay: '0s', size: 'text-sm text-purple-300' },
+    { symbol: '♥', pos: 'top-6 right-5', delay: '0.45s', size: 'text-sm text-amber-300' },
+    { symbol: '♦', pos: 'bottom-7 left-4', delay: '0.9s', size: 'text-sm text-sky-300' },
+    { symbol: '♣', pos: 'bottom-4 right-6', delay: '1.35s', size: 'text-sm text-emerald-300' },
+    { symbol: '★', pos: 'top-1/2 -left-1 -translate-y-1/2', delay: '0.6s', size: 'text-xs text-rose-300' },
+    { symbol: '✨', pos: 'top-1/2 -right-1 -translate-y-1/2', delay: '1.1s', size: 'text-xs text-amber-200' },
+  ];
+
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-1">
+      <div className="relative w-44 h-44 sm:w-48 sm:h-48 flex items-center justify-center">
+        <div className="bingo-sanctum-aura pointer-events-none absolute inset-2 rounded-full bg-[radial-gradient(circle,rgba(192,38,211,0.28)_0%,rgba(245,158,11,0.16)_46%,transparent_74%)]" />
+
+        <svg
+          viewBox="0 0 200 200"
+          className="bingo-sanctum-orbit pointer-events-none absolute inset-0 w-full h-full"
+          aria-hidden="true"
+        >
+          <circle
+            cx="100"
+            cy="100"
+            r="92"
+            fill="none"
+            stroke="rgba(232, 121, 249, 0.38)"
+            strokeWidth="1.5"
+            strokeDasharray="6 8"
+          />
+          <circle cx="100" cy="8" r="3" fill="#f0abfc" />
+          <circle cx="192" cy="100" r="2.5" fill="#fde68a" />
+          <circle cx="100" cy="192" r="3" fill="#f0abfc" />
+          <circle cx="8" cy="100" r="2.5" fill="#fde68a" />
+        </svg>
+
+        <div className="bingo-sanctum-orbit-reverse pointer-events-none absolute inset-5 rounded-full border border-dashed border-amber-300/40 shadow-[inset_0_0_24px_rgba(192,38,211,0.16)]" />
+
+        {suitOrbiters.map((sp, idx) => (
+          <span
+            key={idx}
+            style={{ animationDelay: sp.delay }}
+            className={`bingo-sanctum-sparkle pointer-events-none absolute ${sp.pos} ${sp.size} select-none font-black`}
+          >
+            {sp.symbol}
+          </span>
+        ))}
+
+        {/* Baralho Secreto Lacrado com Cadeado Real Dourado */}
+        <div className="bingo-sanctum-grimoire-float relative z-10 w-24 h-36 flex items-center justify-center">
+          <div className="pointer-events-none absolute inset-0 translate-x-2 translate-y-1 rotate-6 rounded-2xl border border-amber-300/30 bg-[#1a0b2e]/90 shadow-lg" />
+          <div className="pointer-events-none absolute inset-0 -translate-x-2 translate-y-1 -rotate-6 rounded-2xl border border-fuchsia-300/30 bg-[#140924]/90 shadow-lg" />
+
+          <div className="relative w-full h-full rounded-2xl border-2 border-amber-300/80 bg-[#120820] overflow-hidden shadow-2xl">
+            <img
+              src={SECRET_DECK_BACK_IMAGE}
+              alt="Baralho da Sessão Secreta Selado"
+              className="w-full h-full object-cover opacity-75"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-fuchsia-950/35 to-black/30 flex items-center justify-center">
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-amber-300 via-amber-500 to-amber-700 border-2 border-amber-100 shadow-[0_0_20px_rgba(251,191,36,0.65)] flex items-center justify-center text-slate-950">
+                <Lock className="w-5 h-5 stroke-[2.6]" />
+              </div>
+            </div>
+          </div>
+
+          <span className="absolute -top-2 -right-3 px-2 py-0.5 rounded-full text-[9.5px] font-black bg-gradient-to-r from-fuchsia-400 to-amber-300 text-slate-950 border border-amber-100 shadow-[0_0_16px_rgba(232,121,249,0.55)]">
+            🔒 ZERADA
+          </span>
+        </div>
+      </div>
+
+      <div className="px-3.5 py-1 rounded-full bg-fuchsia-950/75 border border-fuchsia-400/45 text-[10.5px] font-black uppercase tracking-widest text-fuchsia-200 shadow-inner">
+        🃏 Baralho Secreto • {weekKey ? `Ciclo ${weekKey} ` : ''}em Repouso
+      </div>
+    </div>
+  );
+}
+
 export default function SecretDrawPage({
   onOpenAddMovieForSecretCard,
   onXpStatusChange,
@@ -351,6 +431,9 @@ export default function SecretDrawPage({
   const [miniCatalogFilter, setMiniCatalogFilter] = useState('all');
   const [selectedPickId, setSelectedPickId] = useState(null);
   const [justSelectedPickId, setJustSelectedPickId] = useState(null);
+  const [synopsisExpanded, setSynopsisExpanded] = useState(false);
+  const [isSynopsisClamped, setIsSynopsisClamped] = useState(false);
+  const synopsisTextRef = useRef(null);
   const [isDeclineOpen, setIsDeclineOpen] = useState(false);
   const [declineReasonInput, setDeclineReasonInput] = useState('Não achei disponível para assistir');
   const [decliningPickId, setDecliningPickId] = useState(null);
@@ -1140,6 +1223,15 @@ export default function SecretDrawPage({
   const miniCatalogEntries = Array.isArray(statusData?.miniCatalog) ? statusData.miniCatalog : [];
   const activeQueuePicks = miniCatalogEntries.filter((entry) => entry.status === 'active');
   const readyToClaimPicks = miniCatalogEntries.filter((entry) => entry.status === 'ready_to_claim');
+  const hasQueuedOrPendingSecretMovies =
+    activeWatchCount > 0 || activeQueuePicks.length > 0 || readyToClaimPicks.length > 0;
+  const isSecretDrawCycleExhausted =
+    !drawing &&
+    !previewShuffling &&
+    !currentRound &&
+    chipsRemaining <= 0 &&
+    !hasQueuedOrPendingSecretMovies;
+  const nextSecretCountdownLabel = isSecretDrawCycleExhausted ? getCycle15CountdownLabel() : null;
 
   const filteredMiniCatalog =
     miniCatalogFilter === 'all'
@@ -1152,6 +1244,31 @@ export default function SecretDrawPage({
     miniCatalogEntries.find((entry) => entry.status === 'active') ||
     miniCatalogEntries[0] ||
     null;
+
+  const focusedSynopsisText = focusedPick?.card?.resolved?.synopsis || '';
+  const focusedPickKey = focusedPick?.id || null;
+
+  useEffect(() => {
+    if (synopsisExpanded) return;
+    const el = synopsisTextRef.current;
+    if (!el || !focusedSynopsisText) {
+      setIsSynopsisClamped(false);
+      return;
+    }
+    const measureClamp = () => {
+      if (synopsisTextRef.current) {
+        setIsSynopsisClamped(
+          synopsisTextRef.current.scrollHeight > synopsisTextRef.current.clientHeight + 2
+        );
+      }
+    };
+    const raf = window.requestAnimationFrame(measureClamp);
+    window.addEventListener('resize', measureClamp);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener('resize', measureClamp);
+    };
+  }, [focusedPickKey, focusedSynopsisText, synopsisExpanded]);
 
   const activePowerClass =
     ALL_CINEMA_CLASSES.find((c) => c.id === equippedClassId) || ALL_CINEMA_CLASSES[0];
@@ -1412,9 +1529,11 @@ export default function SecretDrawPage({
                 )}
                 {drawing
                   ? 'Embaralhando...'
-                  : canChooseCardCount && countMode !== 'random'
-                    ? `Embaralhar & Sortear ${countMode} Cartas`
-                    : 'Embaralhar & Sortear (3–10)'}
+                  : isSecretDrawCycleExhausted
+                    ? `🔒 Recarrega ${chipsWallet.nextResetLabel}`
+                    : canChooseCardCount && countMode !== 'random'
+                      ? `Embaralhar & Sortear ${countMode} Cartas`
+                      : 'Embaralhar & Sortear (3–10)'}
               </button>
 
               {showLabTools && (
@@ -2623,58 +2742,141 @@ export default function SecretDrawPage({
 
       {/* MESA VAZIA ANTES DO PRIMEIRO SORTEIO OU APÓS FINALIZAR ESCOLHA */}
       {!drawing && !previewShuffling && !currentRound && (
-        <section
-          className="rounded-[2rem] border-2 border-emerald-500/20 p-8 flex flex-col items-center justify-center text-center gap-3.5 shadow-[inset_0_0_80px_rgba(0,0,0,0.8)]"
-          style={{
-            background: 'radial-gradient(ellipse at center, #0e382b 0%, #072019 56%, #040d0a 100%)',
-          }}
-        >
-          <div className="w-24 h-36 rounded-2xl border-2 border-amber-300/70 bg-[#120820] overflow-hidden shadow-2xl">
-            <img
-              src={SECRET_DECK_BACK_IMAGE}
-              alt="Baralho da Sessão Secreta"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div>
-            <h3 className="text-base sm:text-lg font-black text-white">A mesa está livre para um novo sorteio!</h3>
-            <p className="text-xs text-emerald-100/75 max-w-md mt-1">
-              {activeWatchCount >= activeWatchLimit ? (
-                <span>
-                  Sua fila atingiu o máximo de <strong>{activeWatchCount}/{activeWatchLimit} filmes</strong>. Cadastre ou decline um filme na grade abaixo para liberar vagas!
+        isSecretDrawCycleExhausted ? (
+          <section className="secret-sanctum-card rounded-[2rem] border-2 border-fuchsia-400/45 p-7 sm:p-10 flex flex-col items-center justify-center text-center gap-5 shadow-2xl">
+            <SecretDrawCycleRestDisplay weekKey={chipsWallet.weekKey} />
+
+            <div className="max-w-xl flex flex-col items-center gap-2">
+              <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-snug">
+                Você já zerou todas as fichas e a fila desse ciclo — volte na próxima recarga!
+              </h3>
+              <p className="text-xs sm:text-sm text-emerald-100/80 leading-relaxed">
+                O Crupier do Destino recolheu o baralho de{' '}
+                <strong className="text-fuchsia-300">{chipsWallet.weekKey || 'temporada'}</strong> no cofre de veludo: não restam mais fichas de sorteio nem filmes aguardando na fila de assistir. Aproveite o catálogo até a próxima recarga!
+              </p>
+            </div>
+
+            <div className="w-full max-w-2xl grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-left">
+              <div className="rounded-2xl border border-fuchsia-400/35 bg-black/45 px-3.5 py-2.5 flex items-center gap-2.5">
+                <span className="w-8 h-8 rounded-xl bg-fuchsia-500/20 border border-fuchsia-400/40 flex items-center justify-center text-base shrink-0">
+                  🎟️
                 </span>
-              ) : chipsRemaining <= 0 ? (
-                <span>
-                  Suas fichas de sorteio acabaram! Próxima recarga: <strong>{chipsWallet.nextResetLabel}</strong> ({chipsAllowance} fichas a cada {cycleDays} dias, acumula até {maxChipsBank})
-                  {showLabTools ? <> (ou clique em <strong>+1 Ficha Lab</strong> no painel acima para continuar testando)</> : '.'}
+                <div className="min-w-0">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-fuchsia-300/90">
+                    Fichas &amp; Fila
+                  </div>
+                  <div className="text-xs font-black text-white truncate">
+                    0/{maxChipsBank} fichas • Fila 0/{activeWatchLimit}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-amber-400/35 bg-black/45 px-3.5 py-2.5 flex items-center gap-2.5">
+                <span className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-base shrink-0">
+                  🏆
                 </span>
-              ) : (
+                <div className="min-w-0">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-amber-300/90">
+                    Cartas Catalogadas
+                  </div>
+                  <div className="text-xs font-black text-amber-200 truncate">
+                    {Number(pool.completedCount || 0)} filme(s) • +{Number(xpSummary.totalXp || 0).toLocaleString('pt-BR')} XP
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-sky-400/35 bg-black/45 px-3.5 py-2.5 flex items-center gap-2.5">
+                <CalendarClock className="w-8 h-8 p-1.5 rounded-xl bg-sky-500/15 border border-sky-400/35 text-sky-300 shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-sky-300/90">
+                    Próxima Recarga
+                  </div>
+                  <div className="text-[11px] font-black text-sky-100 truncate" title={chipsWallet.nextResetLabel}>
+                    {chipsWallet.nextResetLabel}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-2.5">
+              <div className="inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-2xl border border-fuchsia-400/40 bg-fuchsia-950/60 text-xs font-bold text-fuchsia-100 shadow-inner">
+                <Lock className="w-3.5 h-3.5 text-fuchsia-300 shrink-0" />
                 <span>
-                  Você tem <strong>{chipsRemaining}/{maxChipsBank} ficha(s)</strong> (ganha {chipsAllowance} a cada {cycleDays} dias) e <strong>{activeWatchLimit - activeWatchCount} vaga(s)</strong> na fila. Ao sortear, lembre-se: clicou na carta, vai direto para a fila!
+                  Baralho selado •{' '}
+                  {nextSecretCountdownLabel ? (
+                    <strong className="text-amber-200">{nextSecretCountdownLabel}</strong>
+                  ) : (
+                    <>
+                      Recarga em <strong className="text-amber-200">{chipsWallet.nextResetLabel}</strong>
+                    </>
+                  )}
                 </span>
+              </div>
+              {showLabTools && (
+                <button
+                  type="button"
+                  onClick={handlePreviewShuffleOnly}
+                  className="px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-wider bg-black/55 hover:bg-black/75 text-amber-200 border border-amber-400/40 cursor-pointer"
+                >
+                  🃏 Testar Embaralhar
+                </button>
               )}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <button
-              type="button"
-              disabled={activeWatchCount >= activeWatchLimit || chipsRemaining <= 0 || acting}
-              onClick={handleDrawCards}
-              className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-fuchsia-500 to-amber-500 hover:brightness-110 text-white shadow cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
-            >
-              🎲 Embaralhar &amp; Sortear (3–10)
-            </button>
-            {showLabTools && (
+            </div>
+          </section>
+        ) : (
+          <section
+            className="rounded-[2rem] border-2 border-emerald-500/20 p-8 flex flex-col items-center justify-center text-center gap-3.5 shadow-[inset_0_0_80px_rgba(0,0,0,0.8)]"
+            style={{
+              background: 'radial-gradient(ellipse at center, #0e382b 0%, #072019 56%, #040d0a 100%)',
+            }}
+          >
+            <div className="w-24 h-36 rounded-2xl border-2 border-amber-300/70 bg-[#120820] overflow-hidden shadow-2xl">
+              <img
+                src={SECRET_DECK_BACK_IMAGE}
+                alt="Baralho da Sessão Secreta"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-black text-white">A mesa está livre para um novo sorteio!</h3>
+              <p className="text-xs text-emerald-100/75 max-w-md mt-1">
+                {activeWatchCount >= activeWatchLimit ? (
+                  <span>
+                    Sua fila atingiu o máximo de <strong>{activeWatchCount}/{activeWatchLimit} filmes</strong>. Cadastre ou decline um filme na grade abaixo para liberar vagas!
+                  </span>
+                ) : chipsRemaining <= 0 ? (
+                  <span>
+                    Suas fichas de sorteio acabaram! Próxima recarga: <strong>{chipsWallet.nextResetLabel}</strong> ({chipsAllowance} fichas a cada {cycleDays} dias, acumula até {maxChipsBank})
+                    {showLabTools ? <> (ou clique em <strong>+1 Ficha Lab</strong> no painel acima para continuar testando)</> : '.'}
+                  </span>
+                ) : (
+                  <span>
+                    Você tem <strong>{chipsRemaining}/{maxChipsBank} ficha(s)</strong> (ganha {chipsAllowance} a cada {cycleDays} dias) e <strong>{activeWatchLimit - activeWatchCount} vaga(s)</strong> na fila. Ao sortear, lembre-se: clicou na carta, vai direto para a fila!
+                  </span>
+                )}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2">
               <button
                 type="button"
-                onClick={handlePreviewShuffleOnly}
-                className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-black/55 hover:bg-black/75 text-amber-200 border border-amber-400/40 cursor-pointer"
+                disabled={activeWatchCount >= activeWatchLimit || chipsRemaining <= 0 || acting}
+                onClick={handleDrawCards}
+                className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-fuchsia-500 to-amber-500 hover:brightness-110 text-white shadow cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
               >
-                🃏 Testar Embaralhar
+                🎲 Embaralhar &amp; Sortear (3–10)
               </button>
-            )}
-          </div>
-        </section>
+              {showLabTools && (
+                <button
+                  type="button"
+                  onClick={handlePreviewShuffleOnly}
+                  className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-black/55 hover:bg-black/75 text-amber-200 border border-amber-400/40 cursor-pointer"
+                >
+                  🃏 Testar Embaralhar
+                </button>
+              )}
+            </div>
+          </section>
+        )
       )}
 
       {/* BANNER DOURADO: CARTAS CONCLUÍDAS PRONTAS PARA COLHER XP */}
@@ -2948,6 +3150,40 @@ export default function SecretDrawPage({
                       </span>
                     </div>
 
+                    {(fCard?.resolved?.directors?.length > 0 || fCard?.resolved?.countries?.length > 0 || fCard?.resolved?.runtime) && (
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-zinc-400">
+                        {fCard?.resolved?.directors?.length > 0 && (
+                          <span>🎬 {fCard.resolved.directors.join(', ')}</span>
+                        )}
+                        {fCard?.resolved?.countries?.length > 0 && (
+                          <span>🌍 {fCard.resolved.countries.join(', ')}</span>
+                        )}
+                        {fCard?.resolved?.runtime && (
+                          <span>⏱️ {fCard.resolved.runtime} min</span>
+                        )}
+                      </div>
+                    )}
+
+                    {fCard?.resolved?.synopsis && (
+                      <div className="rounded-xl bg-black/45 border border-white/10 px-3 py-2 text-xs text-zinc-300 leading-relaxed">
+                        <p ref={synopsisTextRef} className={synopsisExpanded ? '' : 'line-clamp-2'}>
+                          <span className="font-black uppercase tracking-wider text-[10px] text-amber-300/90 mr-1.5">
+                            📖 Sinopse:
+                          </span>
+                          {fCard.resolved.synopsis}
+                        </p>
+                        {(isSynopsisClamped || synopsisExpanded) && (
+                          <button
+                            type="button"
+                            onClick={() => setSynopsisExpanded((v) => !v)}
+                            className="mt-1 text-[10px] font-black uppercase tracking-wider text-amber-400 hover:text-amber-300 cursor-pointer"
+                          >
+                            {synopsisExpanded ? 'Mostrar menos ▲' : 'Ler sinopse completa ▼'}
+                          </button>
+                        )}
+                      </div>
+                    )}
+
                     {isDeclinedItem && focusedPick.declineReason && (
                       <div className="rounded-xl bg-black/50 border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300">
                         <strong>Motivo do declínio:</strong> {focusedPick.declineReason}
@@ -3193,6 +3429,11 @@ export default function SecretDrawPage({
                   <button
                     key={entry.id}
                     type="button"
+                    title={
+                      gCard?.resolved?.synopsis
+                        ? `${gCard.resolved.title}: ${gCard.resolved.synopsis}`
+                        : gCard?.resolved?.title
+                    }
                     onClick={() => {
                       setSelectedPickId(entry.id);
                       if (isPickEligibleForSecretPower(entry)) {
@@ -3200,6 +3441,7 @@ export default function SecretDrawPage({
                       }
                       setIsDeclineOpen(false);
                       setIsBoomerangOpen(false);
+                      setSynopsisExpanded(false);
                     }}
                     className={`group relative text-left transition-transform duration-200 cursor-pointer hover:-translate-y-1 focus:outline-none ${
                       isDeclined

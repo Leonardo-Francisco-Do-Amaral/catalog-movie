@@ -1355,15 +1355,119 @@ export function flushBufferedXpGain() {
 /**
  * Eventos globais de sincronização instantânea de XP entre todas as páginas e Header
  */
+const RPG_STAT_META_BY_KEY = {
+  AGI: { key: 'AGI', icon: '⚡' },
+  INT: { key: 'INT', icon: '🧠' },
+  DES: { key: 'DES', icon: '🌍' },
+  SOR: { key: 'SOR', icon: '🎯' },
+  VIT: { key: 'VIT', icon: '🏆' },
+  FOR: { key: 'FOR', icon: '👑' },
+  CAR: { key: 'CAR', icon: '🌟' },
+};
+
+let rpgResolverMovies = [];
+let rpgLastTotalXp = null;
+let rpgBaselineSnapshot = null;
+let rpgProgressResolverFn = null;
+
+export function registerRpgProgressResolver(fn) {
+  rpgProgressResolverFn = typeof fn === 'function' ? fn : null;
+}
+
+export function syncRpgProgressBaseline({ movies = null, xpStatus = null, forceReset = false } = {}) {
+  if (Array.isArray(movies)) {
+    rpgResolverMovies = movies;
+  }
+  if (!xpStatus) return;
+
+  const nextTotalXp = Number(xpStatus.totalXp);
+  const xpDecreased =
+    rpgLastTotalXp !== null && Number.isFinite(nextTotalXp) && nextTotalXp < rpgLastTotalXp;
+  if (Number.isFinite(nextTotalXp)) {
+    rpgLastTotalXp = nextTotalXp;
+  }
+
+  if (rpgProgressResolverFn && (rpgBaselineSnapshot === null || forceReset || xpDecreased)) {
+    const snap = rpgProgressResolverFn(rpgResolverMovies, xpStatus);
+    if (snap) {
+      rpgBaselineSnapshot = snap;
+    }
+  }
+}
+
+function enrichXpEventWithRpgProgress(xpGainEvent, updatedXpStatus) {
+  if (!xpGainEvent || typeof xpGainEvent !== 'object') return xpGainEvent;
+
+  const { _rpgMoviesOverride, ...cleanEvent } = xpGainEvent;
+  if (cleanEvent.isGhost || !updatedXpStatus || !rpgProgressResolverFn) {
+    return cleanEvent;
+  }
+
+  const moviesForEval = Array.isArray(_rpgMoviesOverride) ? _rpgMoviesOverride : rpgResolverMovies;
+  const nextSnap = rpgProgressResolverFn(moviesForEval, updatedXpStatus);
+  if (!nextSnap) return cleanEvent;
+
+  const enriched = { ...cleanEvent };
+
+  if (rpgBaselineSnapshot) {
+    if (!enriched.unlockedClass) {
+      const newlyUnlockedClasses = (nextSnap.allClasses || []).filter(
+        (c) => c.isUnlocked && !rpgBaselineSnapshot.unlockedClassIds.has(c.id)
+      );
+      if (newlyUnlockedClasses.length > 0) {
+        const topClass = newlyUnlockedClasses[newlyUnlockedClasses.length - 1];
+        enriched.unlockedClass = {
+          name: topClass.className,
+          icon: topClass.classIcon,
+          flavor: topClass.titleFlavor,
+        };
+      }
+    }
+
+    const existingStats = Array.isArray(enriched.statGains) ? [...enriched.statGains] : [];
+    const existingKeys = new Set(existingStats.map((s) => s.key));
+    for (const [statKey, meta] of Object.entries(RPG_STAT_META_BY_KEY)) {
+      if (existingKeys.has(statKey)) continue;
+      const prevVal = Number(rpgBaselineSnapshot.attrExact?.[statKey] || 0);
+      const nextVal = Number(nextSnap.attrExact?.[statKey] || 0);
+      const delta = Math.round((nextVal - prevVal) * 10) / 10;
+      if (delta >= 0.1) {
+        existingStats.push({
+          key: meta.key,
+          icon: meta.icon,
+          label: `+${delta.toFixed(1)} ${meta.key}`,
+          gain: delta,
+        });
+      }
+    }
+    if (existingStats.length > 0) {
+      enriched.statGains = existingStats;
+    }
+  }
+
+  if (Array.isArray(_rpgMoviesOverride)) {
+    rpgResolverMovies = _rpgMoviesOverride;
+  }
+  rpgBaselineSnapshot = nextSnap;
+  const nextTotalXp = Number(updatedXpStatus.totalXp);
+  if (Number.isFinite(nextTotalXp)) {
+    rpgLastTotalXp = nextTotalXp;
+  }
+  return enriched;
+}
+
 export function dispatchXpStatusUpdate(xpStatus) {
   if (typeof window === 'undefined' || !xpStatus) return;
+  syncRpgProgressBaseline({ xpStatus });
   window.dispatchEvent(new CustomEvent('cine-xp-status-sync', { detail: xpStatus }));
 }
 
 export function triggerXPGainToast(xpGainEvent, updatedXpStatus = null, forceImmediate = false) {
   if (typeof window === 'undefined') return;
 
-  if (!hasMeaningfulXpFeedback(xpGainEvent)) {
+  const resolvedEvent = enrichXpEventWithRpgProgress(xpGainEvent, updatedXpStatus);
+
+  if (!hasMeaningfulXpFeedback(resolvedEvent)) {
     if (updatedXpStatus) {
       dispatchXpStatusUpdate(updatedXpStatus);
     }
@@ -1376,7 +1480,7 @@ export function triggerXPGainToast(xpGainEvent, updatedXpStatus = null, forceImm
   // Se houver troféus PS5 ou desbloqueio da Máquina do Tempo em exibição/fila,
   // retém a barra de XP até que ambos os estágios anteriores tenham sumido 100%!
   if (!forceImmediate && shouldHoldXpBar()) {
-    bufferedXpEvent = mergeXpGainEvents(bufferedXpEvent, xpGainEvent);
+    bufferedXpEvent = mergeXpGainEvents(bufferedXpEvent, resolvedEvent);
     if (updatedXpStatus) {
       bufferedXpStatus = updatedXpStatus;
     }
@@ -1388,5 +1492,5 @@ export function triggerXPGainToast(xpGainEvent, updatedXpStatus = null, forceImm
   }
   isXpBarActiveFlag = true;
   armSafetyFlushTimer();
-  window.dispatchEvent(new CustomEvent('cine-xp-gain-toast', { detail: xpGainEvent }));
+  window.dispatchEvent(new CustomEvent('cine-xp-gain-toast', { detail: resolvedEvent }));
 }

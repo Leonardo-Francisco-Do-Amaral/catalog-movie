@@ -196,6 +196,40 @@ export default function LevelDetailsModal({
               )}
             </div>
           </div>
+
+          {catalogStats?.rpgCharacterClass && (
+            <div className="mt-3 rounded-2xl border border-purple-500/35 bg-gradient-to-r from-purple-950/35 via-zinc-950 to-amber-950/25 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="text-xl shrink-0">{catalogStats.rpgCharacterClass.classIcon || '🛡️'}</span>
+                <div className="min-w-0">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-purple-300 flex items-center gap-1.5 flex-wrap">
+                    <span>Classe RPG Atual</span>
+                    <span className="font-mono text-amber-300">
+                      • {catalogStats.rpgCharacterClass.unlockedClassesCount}/{catalogStats.rpgCharacterClass.totalClassesCount} Desbloqueadas
+                    </span>
+                    <span className="font-mono text-zinc-400">
+                      ({catalogStats.rpgTotalStatPoints || 0} pts)
+                    </span>
+                  </div>
+                  <div className="text-xs sm:text-sm font-black text-white truncate">
+                    {catalogStats.rpgCharacterClass.className}
+                  </div>
+                </div>
+              </div>
+              {onNavigateTab && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onNavigateTab('guilda');
+                  }}
+                  className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1.5 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 text-purple-200 border border-purple-400/40 transition-colors cursor-pointer shrink-0"
+                >
+                  Guilda ({catalogStats.rpgCharacterClass.unlockedClassesCount}/20) →
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* =====================================================================

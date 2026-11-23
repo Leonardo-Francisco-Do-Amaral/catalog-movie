@@ -77,17 +77,7 @@ export default function GuildaDestinoPage({
           return;
         }
       } catch {
-        // fallback abaixo
-      }
-
-      if (mounted && movies.length > 0) {
-        try {
-          const { evaluateTrophiesClientSide } = await import('../utils/trophyEngineClient');
-          const fallback = evaluateTrophiesClientSide(movies);
-          if (mounted) setTrophiesList(fallback?.trophies || []);
-        } catch {
-          // ignore
-        }
+        // Servidor indisponível; mantém trophiesList atual
       }
     };
 

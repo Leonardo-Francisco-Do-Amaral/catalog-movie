@@ -8244,6 +8244,34 @@ export const WALK_OF_FAME_CURATED_MOVIES: Record<string, WalkCuratedMovieReq[]> 
     { "name": "Versos de um Crime (2013)", "patterns": ["versos de um crime", "kill your darlings"], "year": 2013, "character": "Edie Parker" }
   ],
 
+  "cf_angelina_jolie": [
+    { "name": "Malévola (2014)", "patterns": ["malevola", "malévola", "maleficent"], "year": 2014, "exclude": ["dona do mal", "mistress of evil"], "character": "Malévola" },
+    { "name": "Malévola: Dona do Mal (2019)", "patterns": ["malevola: dona do mal", "malévola: dona do mal", "dona do mal", "maleficent: mistress of evil"], "year": 2019, "character": "Malévola" },
+    { "name": "Sr. & Sra. Smith (2005)", "patterns": ["sr. & sra. smith", "sr & sra smith", "sr. e sra. smith", "mr. & mrs. smith", "mr and mrs smith"], "year": 2005, "character": "Jane Smith" },
+    { "name": "Garota, Interrompida (1999)", "patterns": ["garota, interrompida", "garota interrompida", "girl, interrupted", "girl interrupted"], "year": 1999, "character": "Lisa Rowe (Oscar)" },
+    { "name": "A Troca (2008)", "patterns": ["a troca", "changeling"], "year": 2008, "exclude": ["the switch", "troca de esposas"], "character": "Christine Collins" },
+    { "name": "Lara Croft: Tomb Raider (2001)", "patterns": ["lara croft: tomb raider", "lara croft tomb raider", "tomb raider"], "year": 2001, "exclude": ["origem da vida", "cradle of life", "a origem"], "character": "Lara Croft" },
+    { "name": "Lara Croft: Tomb Raider - A Origem da Vida (2003)", "patterns": ["a origem da vida", "lara croft: tomb raider - a origem da vida", "the cradle of life", "cradle of life"], "year": 2003, "character": "Lara Croft" },
+    { "name": "O Procurado (2008)", "patterns": ["o procurado", "wanted"], "year": 2008, "exclude": ["most wanted", "procurado 2"], "character": "Fox" },
+    { "name": "Salt (2010)", "patterns": ["salt"], "year": 2010, "exclude": ["assalt", "salto", "saltburn"], "character": "Evelyn Salt" },
+    { "name": "Eternos (2021)", "patterns": ["eternos", "eternals"], "year": 2021, "exclude": ["nos bastidores", "assembling", "assembled", "brilho eterno"], "character": "Thena" },
+    { "name": "Kung Fu Panda (2008)", "patterns": ["kung fu panda"], "year": 2008, "exclude": ["kung fu panda 2", "kung fu panda 3", "kung fu panda 4", "especial de natal", "segredos", "furious five"], "character": "Mestre Tigresa (voz)" },
+    { "name": "Kung Fu Panda 2 (2011)", "patterns": ["kung fu panda 2"], "year": 2011, "exclude": ["segredos dos mestres", "secrets of the masters"], "character": "Mestre Tigresa (voz)" },
+    { "name": "Kung Fu Panda 3 (2016)", "patterns": ["kung fu panda 3"], "year": 2016, "character": "Mestre Tigresa (voz)" },
+    { "name": "O Espanta-Tubarões (2004)", "patterns": ["o espanta-tubaroes", "o espanta-tubarões", "o espanta tubaroes", "espanta-tubaroes", "espanta tubaroes", "shark tale"], "year": 2004, "character": "Lola (voz)" },
+    { "name": "O Colecionador de Ossos (1999)", "patterns": ["o colecionador de ossos", "colecionador de ossos", "the bone collector"], "year": 1999, "character": "Amelia Donaghy" },
+    { "name": "60 Segundos (2000)", "patterns": ["60 segundos", "gone in sixty seconds", "gone in 60 seconds"], "year": 2000, "character": "Sara 'Sway' Wayland" },
+    { "name": "O Turista (2010)", "patterns": ["o turista", "the tourist"], "year": 2010, "character": "Elise Clifton-Ward" },
+    { "name": "Gia: Fama e Destruição (1998)", "patterns": ["gia: fama e destruicao", "gia: fama e destruição", "gia fama e destruicao", "gia"], "year": 1998, "exclude": ["magia", "georgia", "trilogia", "nostalgia", "energia", "cirurgia"], "character": "Gia Carangi" },
+    { "name": "Maria Callas (2024)", "patterns": ["maria callas", "maria"], "year": 2024, "exclude": ["ave maria", "maria e joao", "mariana"], "character": "Maria Callas" },
+    { "name": "Aqueles Que Me Desejam a Morte (2021)", "patterns": ["aqueles que me desejam a morte", "those who wish me dead"], "year": 2021, "character": "Hannah Faber" },
+    { "name": "Roubando Vidas (2004)", "patterns": ["roubando vidas", "taking lives"], "year": 2004, "character": "Illeana Scott" },
+    { "name": "Hackers - Piratas de Computador (1995)", "patterns": ["hackers - piratas de computador", "hackers: piratas de computador", "hackers"], "year": 1995, "character": "Kate Libby / 'Acid Burn'" },
+    { "name": "Pecado Original (2001)", "patterns": ["pecado original", "original sin"], "year": 2001, "character": "Julia Russell / Bonnie Castle" },
+    { "name": "Alexandre (2004)", "patterns": ["alexandre", "alexander"], "year": 2004, "exclude": ["terrible", "no good"], "character": "Olímpia" },
+    { "name": "A Lenda de Beowulf (2007)", "patterns": ["a lenda de beowulf", "beowulf"], "year": 2007, "character": "Mãe de Grendel" }
+  ],
+
   "cf_irmaos_phoenix": [
     { "name": "Conta Comigo (1986)", "patterns": ["conta comigo", "stand by me"], "year": 1986, "character": "Chris Chambers", "memberNames": ["River Phoenix"] },
     { "name": "Garotos de Programa (1991)", "patterns": ["garotos de programa", "my own private idaho"], "year": 1991, "character": "Mike Waters", "memberNames": ["River Phoenix"] },

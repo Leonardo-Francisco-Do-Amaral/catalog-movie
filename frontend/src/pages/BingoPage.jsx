@@ -17,9 +17,12 @@ import {
   Crown,
   CalendarClock,
   Target,
+  Sparkles,
+  Lock,
 } from 'lucide-react';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { triggerXPGainToast, dispatchXpStatusUpdate } from '../utils/xpSystem';
+import { getNextMonthCountdownLabel } from '../utils/cycleCountdown';
 import {
   playBingoCageSpinSound,
   playBingoStampSound,
@@ -244,6 +247,152 @@ function getClassPowerSquarePreview(square, activeClassId) {
 
 function formatTicketSerial(boardId) {
   return String(Number(boardId || 1)).padStart(4, '0');
+}
+
+function GuildCompletedGrimoireDisplay({ monthKey = '' }) {
+  const sparkles = [
+    { symbol: '✨', pos: 'top-3 left-7', delay: '0s', size: 'text-sm text-amber-300' },
+    { symbol: '⭐', pos: 'top-6 right-5', delay: '0.45s', size: 'text-xs text-emerald-300' },
+    { symbol: '⚜️', pos: 'bottom-7 left-4', delay: '0.9s', size: 'text-xs text-amber-200' },
+    { symbol: '✨', pos: 'bottom-4 right-7', delay: '1.35s', size: 'text-sm text-emerald-200' },
+    { symbol: '🕯️', pos: 'top-1/2 -left-1 -translate-y-1/2', delay: '0.6s', size: 'text-xs text-amber-300' },
+    { symbol: '📜', pos: 'top-1/2 -right-1 -translate-y-1/2', delay: '1.1s', size: 'text-xs text-amber-200' },
+  ];
+
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-2 bingo-parchment-font">
+      <div className="relative w-48 h-48 sm:w-52 sm:h-52 flex items-center justify-center">
+        {/* Aura radial esmeralda & dourada */}
+        <div className="bingo-sanctum-aura pointer-events-none absolute inset-2 rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.28)_0%,rgba(245,158,11,0.18)_46%,transparent_72%)]" />
+
+        {/* Astrolábio lunar giratório externo */}
+        <svg
+          viewBox="0 0 200 200"
+          className="bingo-sanctum-orbit pointer-events-none absolute inset-0 w-full h-full"
+          aria-hidden="true"
+        >
+          <circle
+            cx="100"
+            cy="100"
+            r="92"
+            fill="none"
+            stroke="rgba(251, 191, 36, 0.38)"
+            strokeWidth="1.5"
+            strokeDasharray="6 8"
+          />
+          <circle
+            cx="100"
+            cy="8"
+            r="3"
+            fill="#fde68a"
+          />
+          <circle
+            cx="192"
+            cy="100"
+            r="2.5"
+            fill="#6ee7b7"
+          />
+          <circle
+            cx="100"
+            cy="192"
+            r="3"
+            fill="#fde68a"
+          />
+          <circle
+            cx="8"
+            cy="100"
+            r="2.5"
+            fill="#6ee7b7"
+          />
+        </svg>
+
+        {/* Anel interno rúnico contra-rotativo */}
+        <div className="bingo-sanctum-orbit-reverse pointer-events-none absolute inset-5 rounded-full border border-dashed border-emerald-400/45 shadow-[inset_0_0_25px_rgba(16,185,129,0.14)]" />
+
+        {/* Centelhas orbitando */}
+        {sparkles.map((sp, idx) => (
+          <span
+            key={idx}
+            style={{ animationDelay: sp.delay }}
+            className={`bingo-sanctum-sparkle pointer-events-none absolute ${sp.pos} ${sp.size} select-none`}
+          >
+            {sp.symbol}
+          </span>
+        ))}
+
+        {/* Tomo Sagrado / Grimório Dourado Lacrado */}
+        <div className="bingo-sanctum-grimoire-float relative z-10 w-32 h-32 flex items-center justify-center">
+          <svg viewBox="0 0 140 140" className="w-full h-full" aria-hidden="true">
+            <defs>
+              <linearGradient id="grimCoverGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#6b3e1b" />
+                <stop offset="55%" stopColor="#3f210d" />
+                <stop offset="100%" stopColor="#221006" />
+              </linearGradient>
+              <linearGradient id="grimGoldTrim" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#fef3c7" />
+                <stop offset="50%" stopColor="#f59e0b" />
+                <stop offset="100%" stopColor="#b45309" />
+              </linearGradient>
+              <radialGradient id="grimSealGreen" cx="38%" cy="32%" r="65%">
+                <stop offset="0%" stopColor="#34d399" />
+                <stop offset="55%" stopColor="#059669" />
+                <stop offset="100%" stopColor="#064e3b" />
+              </radialGradient>
+            </defs>
+
+            {/* Penas cruzadas atrás do grimório */}
+            <path
+              d="M28 112 C42 78, 72 42, 114 20 C102 36, 94 46, 86 52 C74 64, 48 92, 28 112 Z"
+              fill="rgba(253, 230, 138, 0.25)"
+              stroke="url(#grimGoldTrim)"
+              strokeWidth="1.2"
+            />
+
+            {/* Páginas laterais e lombada do livro fechado */}
+            <rect x="33" y="25" width="76" height="92" rx="8" fill="#ebd7b2" stroke="#8b6339" strokeWidth="2" />
+            <rect x="28" y="21" width="76" height="94" rx="9" fill="url(#grimCoverGrad)" stroke="url(#grimGoldTrim)" strokeWidth="2.5" />
+
+            {/* Lombada esculpida */}
+            <rect x="28" y="21" width="12" height="94" rx="5" fill="#2a1407" stroke="url(#grimGoldTrim)" strokeWidth="1.4" />
+            <line x1="29" y1="40" x2="39" y2="40" stroke="url(#grimGoldTrim)" strokeWidth="2" />
+            <line x1="29" y1="68" x2="39" y2="68" stroke="url(#grimGoldTrim)" strokeWidth="2" />
+            <line x1="29" y1="96" x2="39" y2="96" stroke="url(#grimGoldTrim)" strokeWidth="2" />
+
+            {/* Cantoneiras douradas */}
+            <path d="M90 23 L102 23 L102 35" fill="none" stroke="url(#grimGoldTrim)" strokeWidth="2.4" strokeLinecap="round" />
+            <path d="M90 113 L102 113 L102 101" fill="none" stroke="url(#grimGoldTrim)" strokeWidth="2.4" strokeLinecap="round" />
+
+            {/* Moldura arcana central da capa */}
+            <rect x="46" y="33" width="50" height="70" rx="5" fill="none" stroke="rgba(251, 191, 36, 0.45)" strokeWidth="1.2" />
+
+            {/* Fecho dourado lacrando o Grimório */}
+            <rect x="94" y="61" width="20" height="14" rx="4" fill="url(#grimGoldTrim)" stroke="#451a03" strokeWidth="1.5" />
+            <circle cx="106" cy="68" r="2.6" fill="#271306" />
+
+            {/* Grande Sinete de Cera Esmeralda & Ouro no centro */}
+            <circle cx="71" cy="68" r="19" fill="url(#grimSealGreen)" stroke="#fde68a" strokeWidth="2" />
+            <circle cx="71" cy="68" r="13.5" fill="none" stroke="rgba(254, 243, 199, 0.55)" strokeWidth="1" strokeDasharray="2 2" />
+            <path
+              d="M71 57 L74.2 63.6 L81.4 64.6 L76.2 69.6 L77.4 76.7 L71 73.3 L64.6 76.7 L65.8 69.6 L60.6 64.6 L67.8 63.6 Z"
+              fill="#fef3c7"
+              stroke="#b45309"
+              strokeWidth="0.9"
+            />
+          </svg>
+
+          {/* Coroa e selo 16/16 flutuante */}
+          <span className="absolute -top-1 -right-1 px-2 py-0.5 rounded-full text-[9.5px] font-black bg-gradient-to-r from-emerald-500 to-amber-400 text-slate-950 border border-amber-100 shadow-[0_0_16px_rgba(16,185,129,0.55)]">
+            👑 16/16
+          </span>
+        </div>
+      </div>
+
+      <div className="px-3.5 py-1 rounded-full bg-emerald-950/75 border border-emerald-400/50 text-[10.5px] font-black uppercase tracking-widest text-emerald-200 shadow-inner">
+        ⚜️ Grimórios de {monthKey || 'Mês Atual'} • 100% Selados &amp; Arquivados
+      </div>
+    </div>
+  );
 }
 
 function GuildScrollForgeDisplay({ label = 'Lacrando Pergaminhos da Guilda...', isForging = false }) {
@@ -945,6 +1094,9 @@ export default function BingoPage({
           triggerXPGainToast(res.data.xpGain, res.data.xpStatus);
         }
         const gained = Number(res.data.claimedXp || 0);
+        const completedAllForMonth =
+          !res.data.data?.activeBoard &&
+          Number(res.data.data?.wallet?.forgeChips || 0) <= 0;
         if (targetType === 'blackout' || targetType === 'all') {
           playBingoLineSound(targetType === 'blackout');
           markJustStamped(Array.from({ length: 16 }, (_, i) => i));
@@ -964,7 +1116,11 @@ export default function BingoPage({
             });
           }
         }
-        setInfoBanner(`✨ Lacre aplicado! +${gained} XP dos Pergaminhos da Guilda colhido!`);
+        setInfoBanner(
+          completedAllForMonth
+            ? `🏆 +${gained} XP colhido! Você já completou todos os grimórios desse mês — volte mês que vem!`
+            : `✨ Lacre aplicado! +${gained} XP dos Pergaminhos da Guilda colhido!`
+        );
         dispatchBingoSync();
       }
     });
@@ -1200,6 +1356,17 @@ export default function BingoPage({
 
   const hoveredSet = new Set(hoveredLineIndices || []);
   const isBoardFromPastMonth = Boolean(activeBoard && wallet.monthKey && activeBoard.monthKey !== wallet.monthKey);
+  const currentMonthCompletedBoards = history.filter(
+    (hb) => hb.monthKey === wallet.monthKey && hb.status === 'completed'
+  );
+  const currentMonthBoardCount = currentMonthCompletedBoards.length;
+  const currentMonthTotalXp = currentMonthCompletedBoards.reduce(
+    (acc, hb) => acc + Number(hb.xpAwarded || 0),
+    0
+  );
+  const hasCompletedCurrentMonth = currentMonthBoardCount > 0;
+  const isMonthCompletedAllDone = !activeBoard && wallet.forgeChips <= 0 && hasCompletedCurrentMonth;
+  const nextMonthCountdownLabel = isMonthCompletedAllDone ? getNextMonthCountdownLabel() : null;
   const claimedSquaresCount = squares.filter((sq) => sq.claimed).length;
   const hasAnyClosedClaimedScroll = squares.some((sq) => sq.claimed && !unrolledClaimedMap[sq.index]);
   const handleToggleAllClaimedScrolls = () => {
@@ -1239,7 +1406,15 @@ export default function BingoPage({
               </span>
             </div>
             <p className="text-xs text-[#d4b483] mt-1">
-              Remessa mensal de 16 contratos: cumpra objetivos no catálogo, feche fileiras da mesa (<strong className="text-amber-300">+75 XP</strong> cada) ou conquiste o Grande Sinete 16/16 (<strong className="text-amber-200">+200 XP</strong>)!
+              {isMonthCompletedAllDone ? (
+                <>
+                  🏆 Você já gabaritou todos os grimórios de <strong className="text-emerald-300">{wallet.monthKey}</strong>! Novos contratos abrem em <strong className="text-amber-200">{wallet.nextResetLabel}</strong>.
+                </>
+              ) : (
+                <>
+                  Remessa mensal de 16 contratos: cumpra objetivos no catálogo, feche fileiras da mesa (<strong className="text-amber-300">+75 XP</strong> cada) ou conquiste o Grande Sinete 16/16 (<strong className="text-amber-200">+200 XP</strong>)!
+                </>
+              )}
             </p>
           </div>
 
@@ -1451,11 +1626,86 @@ export default function BingoPage({
             label="🕯️ Lacrando e Distribuindo os 16 Pergaminhos na Mesa da Taberna..."
           />
         </section>
+      ) : isMonthCompletedAllDone ? (
+        <section className="bingo-parchment-sheet bingo-sanctum-card bingo-parchment-font rounded-3xl border-2 border-emerald-400/55 p-7 sm:p-10 flex flex-col items-center justify-center text-center gap-5 shadow-2xl">
+          <GuildCompletedGrimoireDisplay monthKey={wallet.monthKey} />
+
+          <div className="max-w-xl flex flex-col items-center gap-2">
+            <h3 className="text-xl sm:text-2xl font-black text-[#fef3c7] tracking-tight leading-snug">
+              Você já completou todos os grimórios desse mês — volte mês que vem!
+            </h3>
+            <p className="text-xs sm:text-sm text-[#e6cca1] leading-relaxed">
+              Os escribas selaram o cofre de <strong className="text-emerald-300">{wallet.monthKey}</strong> com lacre real e recolheram todos os pergaminhos da taverna. Aproveite os filmes do catálogo, troféus e demais desafios até o próximo ciclo!
+            </p>
+          </div>
+
+          <div className="w-full max-w-2xl grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-left font-sans">
+            <div className="rounded-2xl border border-emerald-400/35 bg-black/35 px-3.5 py-2.5 flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-base shrink-0">
+                📖
+              </span>
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-300/90">
+                  Grimórios no Mês
+                </div>
+                <div className="text-xs font-black text-white truncate">
+                  {currentMonthBoardCount} × 16/16 Gabaritada
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-amber-400/35 bg-black/35 px-3.5 py-2.5 flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-base shrink-0">
+                ⚡
+              </span>
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-amber-300/90">
+                  Colheita de {wallet.monthKey}
+                </div>
+                <div className="text-xs font-black text-amber-200 truncate">
+                  +{currentMonthTotalXp.toLocaleString('pt-BR')} XP Selado
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-sky-400/35 bg-black/35 px-3.5 py-2.5 flex items-center gap-2.5">
+              <CalendarClock className="w-8 h-8 p-1.5 rounded-xl bg-sky-500/15 border border-sky-400/35 text-sky-300 shrink-0" />
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-sky-300/90">
+                  Próxima Abertura
+                </div>
+                <div className="text-[11px] font-black text-sky-100 truncate" title={wallet.nextResetLabel}>
+                  {wallet.nextResetLabel}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-2xl border border-emerald-400/40 bg-[#0d1f17]/85 text-xs font-bold text-emerald-200 shadow-inner">
+            <Lock className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+            <span>
+              Cofre mensal trancado •{' '}
+              {nextMonthCountdownLabel ? (
+                <strong className="text-amber-200">{nextMonthCountdownLabel}</strong>
+              ) : (
+                <>
+                  Recarga em <strong className="text-amber-200">{wallet.nextResetLabel}</strong>
+                </>
+              )}
+            </span>
+          </div>
+        </section>
       ) : !activeBoard ? (
         <section className="bingo-parchment-sheet bingo-parchment-font rounded-3xl border-2 border-dashed border-[#8b6339]/75 p-8 sm:p-10 flex flex-col items-center justify-center text-center gap-4 shadow-xl">
           <GuildScrollForgeDisplay
             label={`🕯️ Mesa da Taberna Livre • ${statusData?.goalCatalogCount || 35} Contratos no Grimório`}
           />
+          {hasCompletedCurrentMonth && wallet.forgeChips > 0 && (
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/45 text-[11px] font-bold text-emerald-200">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
+              Você já gabaritou {currentMonthBoardCount} grimório(s) em {wallet.monthKey} — e possui {wallet.forgeChips} ficha(s) extra(s) acumulada(s)!
+            </div>
+          )}
           <div className="max-w-lg -mt-1">
             <h3 className="text-lg sm:text-xl font-black text-[#faf0dc]">
               Abra sua Remessa Mensal de 16 Pergaminhos!

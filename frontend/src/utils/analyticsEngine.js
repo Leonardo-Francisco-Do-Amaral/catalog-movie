@@ -5,6 +5,7 @@ import {
   COUNTRY_RARITY_META,
   TIME_MACHINE_RARITY_META,
   calculateClientXpStatus,
+  registerRpgProgressResolver,
 } from './xpSystem';
 import { CATEGORY_BADGE_CONFIG, getCleanTrophyTitle } from '../components/TrophyBadges';
 import { UN_COUNTRIES_195, HISTORICAL_TERRITORIES, getCountryRarityTier } from '../data/unCountries195';
@@ -1792,6 +1793,7 @@ export function computeRpgAndGuilds(
       shortName: 'Agilidade',
       icon: '⚡',
       barColor: 'from-amber-400 to-yellow-300',
+      exactPoints: agiTotalSum,
       ...vigorStat,
       desc: `${epic170} gigantes (>170m) • ${epic140} épicos (>140m) • ${epic120} longos (>120m)${formatGuildBonusSuffix(agiChimera, agiBingo)}`,
       formulaSummary: '>120m/+0.2 | >140m/+0.4 | >170m/+1.0 | Quimera Gênero +0.1/+0.5 | Perg. +0.1/+0.2',
@@ -1803,6 +1805,7 @@ export function computeRpgAndGuilds(
       shortName: 'Inteligência',
       icon: '🧠',
       barColor: 'from-cyan-400 to-blue-400',
+      exactPoints: intTotalSum,
       ...wisdomStat,
       desc: `${tmConquered} anos Máquina do Tempo • ${pre2000EraCount + pre1980EraCount + pre1950EraCount} clássicos históricos${formatGuildBonusSuffix(intChimera, intBingo)}`,
       formulaSummary: 'Ano +0.8 | Pré-2000/80/50 +0.3/+0.5/+0.7 | Quimera Ano +0.1/+0.5 | Perg. +0.1/+0.2',
@@ -1814,6 +1817,7 @@ export function computeRpgAndGuilds(
       shortName: 'Destreza',
       icon: '🌍',
       barColor: 'from-emerald-400 to-teal-300',
+      exactPoints: desTotalSum,
       ...exploreStat,
       desc: `${countriesConquered}/195 nações ONU • ${foreignCount} fora EUA/Brasil${formatGuildBonusSuffix(desChimera, desBingo)}`,
       formulaSummary: 'Fora EUA/BR +0.2 | Nação ONU +1.0 | Quimera País +0.1/+0.5 | Perg. +0.1/+0.2',
@@ -1825,6 +1829,7 @@ export function computeRpgAndGuilds(
       shortName: 'Sorte',
       icon: '🎯',
       barColor: 'from-rose-400 to-pink-400',
+      exactPoints: sorTotalSum,
       ...precisionStat,
       desc: `${uniqueAll.length} obras • ${extremeRatingsCount} notas extremas • ${secretCompletedCount} Sessão Secreta${formatGuildBonusSuffix(0, sorBingo)} (${sorTotalSum.toFixed(1)} pts)`,
       formulaSummary: 'Obra +0.2 | Extrema +0.8 | Secreta +0.2..+1.3 | Perg. +0.1/+0.2',
@@ -1836,6 +1841,7 @@ export function computeRpgAndGuilds(
       shortName: 'Vitalidade',
       icon: '🛡️',
       barColor: 'from-purple-400 to-violet-300',
+      exactPoints: vitTotalSum,
       ...trophyStat,
       desc: `${unlockedTrophiesCount} troféus conquistados${trophyExtraStarsTotal > 0 ? ` + ${trophyExtraStarsTotal}★` : ''}${formatGuildBonusSuffix(0, vitBingo)} (${vitTotalSum.toFixed(1)} pts)`,
       formulaSummary: 'Bronze..Platina +0.2..+3.0 | ★ Infinita +0.5 | Perg. +0.1/+0.2',
@@ -1847,6 +1853,7 @@ export function computeRpgAndGuilds(
       shortName: 'Força',
       icon: '👑',
       barColor: 'from-yellow-400 to-amber-300',
+      exactPoints: forTotalSum,
       ...prestigeStat,
       desc: `${oscarWinsTotalAll} Oscars ganhos • ${oscarNomsTotalAll} indicações${formatGuildBonusSuffix(0, forBingo)}`,
       formulaSummary: 'Indicação +0.2 | Vitória Oscar +0.4 | Perg. +0.1/+0.2',
@@ -1858,6 +1865,7 @@ export function computeRpgAndGuilds(
       shortName: 'Carisma',
       icon: '🌟',
       barColor: 'from-pink-400 via-rose-400 to-amber-300',
+      exactPoints: carTotalSum,
       ...charismaStat,
       desc: `${carStuckCount} figurinhas coladas${formatGuildBonusSuffix(carChimera, carBingo)} (${carTotalSum.toFixed(1)} pts)`,
       formulaSummary: 'Coladas D..SS +0.1..+0.7 | Quimera Tags +0.1/+0.5 | Perg. +0.1/+0.2',
@@ -2209,8 +2217,15 @@ function buildEffectivePrevXpStatus(prevXpStatus, nextXpStatus, newlyUnlocked, t
   }
 
   const tierDelta = { bronze: 0, silver: 0, epic: 0, gold: 0, mythic: 0, platinum: 0 };
+  let extraStarsDelta = 0;
+  let trophyCountDelta = 0;
   if (Array.isArray(newlyUnlocked)) {
     newlyUnlocked.forEach((t) => {
+      if (t?.is_extra_star) {
+        extraStarsDelta += Math.max(1, Number(t.stars_gained || 1));
+        return;
+      }
+      trophyCountDelta += 1;
       const k = String(t?.tier || 'bronze').toLowerCase();
       if (k in tierDelta) tierDelta[k] += 1;
       else tierDelta.bronze += 1;
@@ -2239,7 +2254,11 @@ function buildEffectivePrevXpStatus(prevXpStatus, nextXpStatus, newlyUnlocked, t
         ...nextXpStatus.sources?.trophies,
         totalUnlocked: Math.max(
           0,
-          (nextXpStatus.sources?.trophies?.totalUnlocked || 0) - (newlyUnlocked?.length || 0)
+          (nextXpStatus.sources?.trophies?.totalUnlocked || 0) - trophyCountDelta
+        ),
+        extraStarsCount: Math.max(
+          0,
+          (nextXpStatus.sources?.trophies?.extraStarsCount || 0) - extraStarsDelta
         ),
         unlockedIds: nextUnlockedIds,
         ...(prevByTier ? { byTier: prevByTier } : {}),
@@ -2404,6 +2423,7 @@ export function computeMovieStatGains({
 
   // Avaliação de Desbloqueio de Nova Classe usando o estado real antes e depois da gravação
   let unlockedClass = null;
+  let nextMoviesForRpg = existingMovies || [];
   if (movieData) {
     try {
       const prevList = existingMovies || [];
@@ -2411,22 +2431,23 @@ export function computeMovieStatGains({
       const nextMovies = hasMatch
         ? prevList.map((m) => (matchesMovieIdentity(m, normalizedMovie) ? { ...m, ...normalizedMovie } : m))
         : [...prevList, normalizedMovie];
+      nextMoviesForRpg = nextMovies;
 
       const prevStats = computeRpgAndGuilds(prevList, prevList, effectivePrevXp);
-      const prevClass = prevStats.characterClass;
+      const prevUnlockedIds = new Set(
+        (prevStats?.characterClass?.allClasses || []).filter((c) => c.isUnlocked).map((c) => c.id)
+      );
       const nextStats = computeRpgAndGuilds(nextMovies, nextMovies, nextXpStatus || effectivePrevXp);
-      const nextClass = nextStats.characterClass;
+      const newlyUnlockedClasses = (nextStats?.characterClass?.allClasses || []).filter(
+        (c) => c.isUnlocked && !prevUnlockedIds.has(c.id)
+      );
 
-      if (
-        nextClass &&
-        prevClass &&
-        nextClass.id !== prevClass.id &&
-        nextClass.unlockPts > prevClass.unlockPts
-      ) {
+      if (newlyUnlockedClasses.length > 0) {
+        const topClass = newlyUnlockedClasses[newlyUnlockedClasses.length - 1];
         unlockedClass = {
-          name: nextClass.className,
-          icon: nextClass.classIcon,
-          flavor: nextClass.titleFlavor,
+          name: topClass.className,
+          icon: topClass.classIcon,
+          flavor: topClass.titleFlavor,
         };
       }
     } catch {
@@ -2437,6 +2458,7 @@ export function computeMovieStatGains({
   return {
     statGains,
     unlockedClass,
+    nextMovies: nextMoviesForRpg,
   };
 }
 
@@ -2771,3 +2793,21 @@ export function computeUniverseRelics(universeCodex = null) {
 
   return records;
 }
+
+registerRpgProgressResolver((moviesList, xpStatusObj) => {
+  if (!xpStatusObj) return null;
+  const safeMovies = Array.isArray(moviesList) ? moviesList : [];
+  const stats = computeRpgAndGuilds(safeMovies, safeMovies, xpStatusObj);
+  const allClasses = stats?.characterClass?.allClasses || [];
+  const unlockedClassIds = new Set(allClasses.filter((c) => c.isUnlocked).map((c) => c.id));
+  const attrExact = {};
+  (stats.rpgAttributes || []).forEach((a) => {
+    attrExact[a.key] = Number(a.exactPoints ?? a.rawScore ?? 0);
+  });
+  return {
+    unlockedClassIds,
+    allClasses,
+    attrExact,
+    totalStatPoints: Number(stats?.totalStatPoints || 0),
+  };
+});

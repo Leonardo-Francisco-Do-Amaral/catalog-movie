@@ -21,6 +21,7 @@ import {
   Lock
 } from 'lucide-react';
 import { calculateClientXpStatus } from '../utils/xpSystem';
+import { computeRpgAndGuilds } from '../utils/analyticsEngine';
 import LevelDetailsModal from './LevelDetailsModal';
 
 const COUNTRY_TO_ISO = {
@@ -322,6 +323,7 @@ export default function TopNavbar({
 
     const fallbackXp = calculateClientXpStatus(movies);
     const activeXp = liveXpStatus || fallbackXp;
+    const rpgSummary = computeRpgAndGuilds(movies, movies, activeXp);
 
     return {
       totalMovies,
@@ -335,7 +337,9 @@ export default function TopNavbar({
       nextLevelXp: activeXp.nextLevelThresholdXp,
       xpPercentage: activeXp.progressPercentage,
       className: activeXp.levelTitle,
-      xpStatus: activeXp
+      xpStatus: activeXp,
+      rpgCharacterClass: rpgSummary?.characterClass || null,
+      rpgTotalStatPoints: rpgSummary?.totalStatPoints || 0,
     };
   }, [movies, liveXpStatus]);
 
@@ -591,7 +595,11 @@ export default function TopNavbar({
                   ? 'bg-amber-500/15 border-amber-500/60 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
                   : 'bg-zinc-900/70 border-zinc-800/80 hover:border-amber-500/40 text-zinc-200'
               }`}
-              title={`LVL ${rpgStats.level} • ${rpgStats.className} (${rpgStats.xp.toLocaleString('pt-BR')} XP) — Clique para abrir detalhes completos`}
+              title={`LVL ${rpgStats.level} • ${rpgStats.className}${
+                rpgStats.rpgCharacterClass?.className
+                  ? ` | Classe RPG: ${rpgStats.rpgCharacterClass.classIcon || ''} ${rpgStats.rpgCharacterClass.className} (${rpgStats.rpgCharacterClass.unlockedClassesCount}/${rpgStats.rpgCharacterClass.totalClassesCount})`
+                  : ''
+              } (${rpgStats.xp.toLocaleString('pt-BR')} XP) — Clique para abrir detalhes completos`}
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
               <div className="flex flex-col items-start leading-none gap-1">
