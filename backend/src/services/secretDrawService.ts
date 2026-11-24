@@ -129,22 +129,32 @@ export type SecretSpecialCardId =
 export interface SecretSpecialCardDef {
   id: SecretSpecialCardId;
   title: string;
+  harlequinTitle?: string;
   icon: string;
   rarity: SecretSpecialRarity;
   shortTag: string;
   description: string;
+  harlequinQuote?: string;
+  lore?: string;
   images: string[];
+  altImages?: string[];
+  classicImages?: string[];
   weight: number;
 }
 
 export interface SecretDrawCardSpecialEvent {
   id: SecretSpecialCardId;
   title: string;
+  harlequinTitle?: string;
   icon: string;
   rarity: SecretSpecialRarity;
   shortTag: string;
   description: string;
+  harlequinQuote?: string;
+  lore?: string;
   imageUrl: string;
+  altImages?: string[];
+  classicImages?: string[];
   triggered?: boolean;
   triggeredAt?: string | null;
   resultSummary?: string | null;
@@ -155,148 +165,196 @@ export const SECRET_SPECIAL_CARDS_CATALOG: SecretSpecialCardDef[] = [
   {
     id: 'duas_caras',
     title: 'Rei Duas-Caras',
+    harlequinTitle: 'Arlequim Duas-Caras',
     icon: '🪙',
     rarity: 'bet',
     shortTag: 'Moeda 50/50 na Fila',
     description:
       'Gira a moeda do destino para 1 filme pendente da sua fila! CARA: dobra (2×) o XP do filme. COROA: corta o XP pela metade (0.5×) e trava sem Passe Bumerangue!',
-    images: ['/secret-draw/especiais/Rei Duas-Caras.png'],
+    harlequinQuote: 'O Arlequim lançou a moeda: resta saber se o lado que caiu traz bênção ou maldição.',
+    lore: 'Trono dividido entre ouro e cinzas. O Arlequim gira a moeda apenas pelo prazer de assistir à sua aposta.',
+    images: ['/secret-draw/especiais/arlequim/rei-duas-caras.png'],
+    classicImages: ['/secret-draw/especiais/classicas/rei-duas-caras.png'],
     weight: 10,
   },
   {
     id: 'apresentador_vem_ca',
     title: 'Apresentador "Vem pra cá!"',
-    icon: '✈️',
+    harlequinTitle: 'O Chamado do Arlequim',
+    icon: '🃏',
     rarity: 'common',
     shortTag: 'Puxa 1 Carta Aleatória da Mesa',
     description:
-      'Chama 1 outra carta ainda fechada da mesa direto para a sua fila! Se a carta puxada também esconder uma Carta Especial, ela é ativada em cadeia!',
-    images: ['/secret-draw/especiais/Apresentador.png'],
+      'O Arlequim deu sua bênção, mas ele vai escolher o filme para você ver — puxando 1 outra carta fechada da mesa direto para a sua fila! Se esconder uma Carta Especial, ativa em cadeia.',
+    harlequinQuote: 'O Arlequim deu sua bênção, mas hoje é ele quem escolhe o filme para você assistir.',
+    lore: 'Com um laço de película 35mm, o croupier fisga direto do feltro a carta que você não teve coragem de virar.',
+    images: ['/secret-draw/especiais/arlequim/chamado-arlequim.png'],
+    classicImages: ['/secret-draw/especiais/classicas/apresentador.png'],
     weight: 13,
   },
   {
     id: 'ocarina_floresta',
     title: 'Ocarina da Floresta',
+    harlequinTitle: 'Harpa do Tempo Reverso',
     icon: '⏳',
     rarity: 'rare',
     shortTag: 'Reembaralha a Mesa',
     description:
-      'Toca a melodia do tempo para reembaralhar e sortear novos filmes em todas as cartas ainda fechadas da mão atual, sem gastar Ficha de Sorteio!',
-    images: ['/secret-draw/especiais/Ocarina da Floresta.png'],
+      'O Arlequim dedilha sua harpa sobre o relógio antigo para reembaralhar e sortear novos filmes em todas as cartas ainda fechadas da mão atual, sem gastar Ficha de Sorteio!',
+    harlequinQuote: 'As notas voltam os ponteiros: o Arlequim reembaralhou o destino da mesa.',
+    lore: 'Sentado sobre engrenagens antigas, ele toca a melodia reversa até rebobinar o baralho inteiro.',
+    images: ['/secret-draw/especiais/arlequim/melodia-do-tempo.png'],
+    classicImages: ['/secret-draw/especiais/classicas/ocarina-da-floresta.png'],
     weight: 10,
   },
   {
     id: 'recarga_classe',
     title: 'Recarga do Poder da Classe',
-    icon: '⚡',
+    harlequinTitle: 'Take 2 — Recarga Arcana',
+    icon: '🎬',
     rarity: 'rare',
     shortTag: '+1 Carga da Classe (Sessão Secreta)',
     description:
-      'Desperta seu potencial oculto e reativa imediatamente +1 uso do Poder Especial da sua Classe RPG exclusivamente para a Sessão Secreta!',
-    images: [
-      '/secret-draw/especiais/Recarga do Poder da Classe I.png',
-      '/secret-draw/especiais/Recarga do Poder da Classe II.png',
-      '/secret-draw/especiais/Recarga do Poder da Classe III.png',
+      'O Arlequim estala a claquete do Take 2 e reativa imediatamente +1 uso do Poder Especial da sua Classe RPG exclusivamente para a Sessão Secreta!',
+    harlequinQuote: 'Take 2. O Arlequim deu sinal verde para você usar o seu poder mais uma vez.',
+    lore: 'Na cadeira de diretor da Sala Secreta, basta uma batida da claquete para reabrir a cena do seu poder.',
+    images: ['/secret-draw/especiais/arlequim/recarga-classe.png'],
+    classicImages: [
+      '/secret-draw/especiais/classicas/recarga-classe-1.png',
+      '/secret-draw/especiais/classicas/recarga-classe-2.png',
+      '/secret-draw/especiais/classicas/recarga-classe-3.png',
     ],
     weight: 11,
   },
   {
     id: 'visao_marcos',
     title: 'Visão dos Marcos',
-    icon: '👁️',
+    harlequinTitle: 'Lentes da Sessão Oculta',
+    icon: '🕶️',
     rarity: 'rare',
     shortTag: 'Revela Resumo dos Marcos na Mesa',
     description:
-      'Revela no verso das cartas restantes da mesa quantos marcos simples cada filme escondido destrava (ex.: Troféus, Países 195, Décadas) sem entregar os títulos!',
-    images: [
-      '/secret-draw/especiais/Visão dos Marcos I.png',
-      '/secret-draw/especiais/Visão dos Marcos II.png',
+      'Através das lentes verde e rosa do Arlequim, o verso das cartas restantes da mesa revela quantos marcos simples cada filme escondido destrava sem entregar os títulos!',
+    harlequinQuote: 'Por trás das lentes 3D, até o verso fechado denuncia o que cada filme esconde.',
+    lore: 'Os óculos anaglíficos do Arlequim atravessam o papel do baralho para revelar troféus, países e eras ocultas.',
+    images: ['/secret-draw/especiais/arlequim/visao-marcos.png'],
+    classicImages: [
+      '/secret-draw/especiais/classicas/visao-marcos-1.png',
+      '/secret-draw/especiais/classicas/visao-marcos-2.png',
     ],
     weight: 11,
   },
   {
     id: 'arlequim_revela_3',
     title: 'Mini Arlequim — 3 Cartas',
+    harlequinTitle: 'Olhar do Arlequim — 3 Cartas',
     icon: '🃏',
     rarity: 'rare',
     shortTag: 'Revela 3 Filmes Fechados',
     description:
-      'O Mini Arlequim levita sobre o baralho e revela o pôster e o título de até 3 outros filmes ainda fechados nesta mesa antes de você escolher!',
-    images: ['/secret-draw/especiais/Revela 3.png'],
+      'O Arlequim levita sobre o baralho e revela o pôster e o título de até 3 outros filmes ainda fechados nesta mesa antes de você escolher!',
+    harlequinQuote: 'Três cartas reveladas por cortesia da casa — agora escolha sem desculpas.',
+    lore: 'Um favor discreto do croupier da Sessão Secreta para testar o olhar de quem aposta alto.',
+    images: ['/secret-draw/especiais/arlequim/revela-3.png'],
+    altImages: ['/secret-draw/especiais/arlequim/revela-3-alt.png'],
     weight: 10,
   },
   {
     id: 'arlequim_revela_5',
     title: 'Mini Arlequim Ascendido — 5 Cartas',
+    harlequinTitle: 'Espetáculo do Arlequim — 5 Cartas',
     icon: '🌟',
     rarity: 'legendary',
     shortTag: 'Revela 5 Filmes Fechados',
     description:
-      'LENDÁRIA: O Mini Arlequim libera todo o seu feitiço e revela até 5 outros filmes escondidos nesta mesa com pôster, ano e raridade visíveis!',
-    images: ['/secret-draw/especiais/Revela 5.png'],
+      'LENDÁRIA: O Arlequim abre toda a mão e revela até 5 outros filmes escondidos nesta mesa com pôster, ano e raridade visíveis!',
+    harlequinQuote: 'Cinco cartas iluminadas sobre o feltro. Hoje o Arlequim abriu os arquivos secretos.',
+    lore: 'Quando o espetáculo chega ao auge, nem mesmo as cartas viradas conseguem esconder o que guardam.',
+    images: ['/secret-draw/especiais/arlequim/revela-5.png'],
+    altImages: ['/secret-draw/especiais/arlequim/revela-5-alt.png'],
     weight: 6,
   },
   {
     id: 'portal_dimensional',
     title: 'Portal Dimensional',
+    harlequinTitle: 'Atalho do Portal',
     icon: '🌀',
     rarity: 'legendary',
     shortTag: 'Colhe XP + Volta ao Baralho',
     description:
-      'LENDÁRIA: Abre um portal em 1 filme aleatório da sua fila pendente, destrava todo o XP dele na hora sem precisar assistir e devolve o filme intacto para o baralho!',
-    images: [
-      '/secret-draw/especiais/Portais Dimensionais I.png',
-      '/secret-draw/especiais/Portais Dimensionais II.png',
-      '/secret-draw/especiais/Portais Dimensionais III.png',
-      '/secret-draw/especiais/Portais Dimensionais IV.png',
+      'LENDÁRIA: O Arlequim adora o filme sorteado da sua fila — abre um portal, entrega todo o XP dele na hora sem precisar assistir e devolve o filme intacto ao baralho!',
+    harlequinQuote: 'O Arlequim adora esse filme — ele ainda vai te dar todo o XP sem precisar assistir.',
+    lore: 'Por certas obras ele guarda um apreço especial: abre a fenda de película, paga a recompensa e guarda o rolo de volta.',
+    images: ['/secret-draw/especiais/arlequim/portal-dimensional.png'],
+    classicImages: [
+      '/secret-draw/especiais/classicas/portal-dimensional-1.png',
+      '/secret-draw/especiais/classicas/portal-dimensional-2.png',
+      '/secret-draw/especiais/classicas/portal-dimensional-3.png',
+      '/secret-draw/especiais/classicas/portal-dimensional-4.png',
     ],
     weight: 6,
   },
   {
     id: 'pedra_filosofal',
     title: 'Pedra Filosofal — Ascensão',
+    harlequinTitle: 'Alquimia da Película',
     icon: '⚗️',
     rarity: 'legendary',
     shortTag: '+1 Raridade na Fila',
     description:
       'LENDÁRIA: Transmuta 1 filme aleatório da sua fila pendente (que ainda não seja Exótico) subindo 1 nível completo de raridade e aumentando seu XP!',
-    images: [
-      '/secret-draw/especiais/Ascensão I.png',
-      '/secret-draw/especiais/Ascensão II.png',
+    harlequinQuote: 'Uma gota da pedra rubi basta para transformar uma sessão comum em ouro.',
+    lore: 'Entre grimórios antigos e um alambique dourado, o Arlequim refina uma carta comum até ela brilhar mais alto.',
+    images: ['/secret-draw/especiais/arlequim/pedra-filosofal.png'],
+    classicImages: [
+      '/secret-draw/especiais/classicas/ascensao-1.png',
+      '/secret-draw/especiais/classicas/ascensao-2.png',
     ],
     weight: 6,
   },
   {
     id: 'armadilha_mecanica',
     title: 'A Armadilha Mecânica',
+    harlequinTitle: 'Armadilha de Engrenagens',
     icon: '⚙️',
     rarity: 'cursed',
     shortTag: '-1 Raridade na Fila',
     description:
       'MALDIÇÃO: As engrenagens se fecham sobre 1 filme aleatório da sua fila (acima de Comum), rebaixando sua raridade em 1 nível e reduzindo seu XP!',
-    images: ['/secret-draw/especiais/A Armadilha.png'],
+    harlequinQuote: 'Nem todo truque é favor. Quando as mandíbulas se fecham, até ouro vira ferro.',
+    lore: 'Nos bastidores enferrujados da projeção, o sorriso do Arlequim fica mais afiado e cobra seu preço.',
+    images: ['/secret-draw/especiais/arlequim/armadilha-mecanica.png'],
+    classicImages: ['/secret-draw/especiais/classicas/armadilha-mecanica.png'],
     weight: 7,
   },
   {
     id: 'corrente_destino',
     title: 'Corrente do Destino',
+    harlequinTitle: 'Correntes do Abismo',
     icon: '⛓️',
     rarity: 'cursed',
     shortTag: 'Trava Bumerangue na Fila',
     description:
       'MALDIÇÃO: Correntes pesadas prendem 1 filme aleatório da sua fila ativa, partindo o Bumerangue e proibindo devolver aquela carta para o baralho!',
-    images: ['/secret-draw/especiais/Corrente do Destino.png'],
+    harlequinQuote: 'Sem fuga nem bumerangue: o Arlequim trancou essa escolha até o último crédito.',
+    lore: 'Sob a máscara rachada e olhos carmesins, ele parte a rota de saída e acorrenta o filme à sua fila.',
+    images: ['/secret-draw/especiais/arlequim/corrente-destino.png'],
+    classicImages: ['/secret-draw/especiais/classicas/corrente-destino.png'],
     weight: 7,
   },
   {
     id: 'lamina_eclipse',
     title: 'Lâmina do Eclipse',
+    harlequinTitle: 'Corte do Eclipse',
     icon: '💔',
     rarity: 'cursed',
     shortTag: 'Corta XP pela Metade (0.5×)',
     description:
-      'MALDIÇÃO: Um golpe diagonal corta ao meio o prêmio de 1 filme aleatório da sua fila pendente, reduzindo o XP dele pela metade (0.5×)!',
-    images: ['/secret-draw/especiais/Lâmina do Eclipse.jpg'],
+      'MALDIÇÃO: Um golpe no escuro corta ao meio o prêmio de 1 filme aleatório da sua fila pendente, reduzindo o XP dele pela metade (0.5×)!',
+    harlequinQuote: 'Um corte rápido no escuro: o filme continua na tela, mas o prêmio sangrou pela metade.',
+    lore: 'Quando o eclipse escurece o baralho, o Arlequim estala as garras e rasga a recompensa ao meio.',
+    images: ['/secret-draw/especiais/arlequim/lamina-eclipse.png'],
+    altImages: ['/secret-draw/especiais/arlequim/lamina-eclipse-clara.jpg'],
     weight: 7,
   },
 ];
@@ -582,7 +640,40 @@ export async function ensureSecretDrawTables(): Promise<void> {
 
     ALTER TABLE secret_draw_wallet
       ADD COLUMN IF NOT EXISTS boomerang_chips_used_this_week INTEGER NOT NULL DEFAULT 0;
+
+    CREATE TABLE IF NOT EXISTS secret_draw_special_stats (
+      special_id VARCHAR(64) PRIMARY KEY,
+      times_drawn INTEGER NOT NULL DEFAULT 0,
+      last_drawn_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
   `);
+
+  const statsCountRes = await query(`SELECT COUNT(*)::int AS cnt FROM secret_draw_special_stats`);
+  if (Number(statsCountRes.rows[0]?.cnt || 0) === 0) {
+    const existingRounds = await query(
+      `SELECT cards_json FROM secret_draw_rounds WHERE mode <> 'lab_special_test'`
+    );
+    const seedCounts: Record<string, number> = {};
+    for (const r of existingRounds.rows || []) {
+      const cards = Array.isArray(r.cards_json) ? r.cards_json : [];
+      for (const c of cards) {
+        if (c?.specialEvent?.id && c.specialEvent.triggered) {
+          const sid = String(c.specialEvent.id);
+          seedCounts[sid] = (seedCounts[sid] || 0) + 1;
+        }
+      }
+    }
+    for (const [sid, count] of Object.entries(seedCounts)) {
+      if (count > 0) {
+        await query(
+          `INSERT INTO secret_draw_special_stats (special_id, times_drawn, last_drawn_at)
+           VALUES ($1, $2, CURRENT_TIMESTAMP)
+           ON CONFLICT (special_id) DO NOTHING`,
+          [sid, count]
+        );
+      }
+    }
+  }
 
   // Migração idempotente de eventuais rodadas antigas de seleção única para secret_draw_picks
   const legacyRes = await query(
@@ -646,6 +737,35 @@ function mapSecretDrawWalletRow(row: any, nextResetLabel: string): SecretDrawChi
     maxBoomerangBank: MAX_BOOMERANG_CHIPS_BANK,
     nextResetLabel,
   };
+}
+
+async function recordSpecialCardDrawn(specialId: SecretSpecialCardId | string): Promise<void> {
+  if (!specialId) return;
+  await query(
+    `INSERT INTO secret_draw_special_stats (special_id, times_drawn, last_drawn_at)
+     VALUES ($1, 1, CURRENT_TIMESTAMP)
+     ON CONFLICT (special_id) DO UPDATE SET
+       times_drawn = secret_draw_special_stats.times_drawn + 1,
+       last_drawn_at = CURRENT_TIMESTAMP`,
+    [String(specialId)]
+  );
+}
+
+async function getSecretDrawSpecialCardStats(): Promise<{
+  totalTriggered: number;
+  countsById: Record<string, number>;
+}> {
+  const res = await query(`SELECT special_id, times_drawn FROM secret_draw_special_stats`);
+  const countsById: Record<string, number> = {};
+  let totalTriggered = 0;
+  for (const r of res.rows || []) {
+    const id = String(r.special_id || '').trim();
+    const count = Math.max(0, Number(r.times_drawn || 0));
+    if (!id || count <= 0) continue;
+    countsById[id] = count;
+    totalTriggered += count;
+  }
+  return { totalTriggered, countsById };
 }
 
 export async function ensureWeeklyChipsWallet(): Promise<SecretDrawChipsWallet> {
@@ -2200,18 +2320,29 @@ function buildSpecialEventSnapshot(
   def: SecretSpecialCardDef,
   variantIdx?: number | null
 ): SecretDrawCardSpecialEvent {
-  const idx =
-    variantIdx != null && variantIdx >= 0 && variantIdx < def.images.length
-      ? variantIdx
-      : Math.floor(Math.random() * Math.max(1, def.images.length));
+  const allVariants = [
+    ...def.images,
+    ...(def.altImages || []),
+    ...(def.classicImages || []),
+  ];
+  // Em sorteios normais (variantIdx == null), sorteia EXCLUSIVAMENTE dentre as artes oficiais do Arlequim (def.images)
+  const chosenImage =
+    variantIdx != null && variantIdx >= 0 && variantIdx < allVariants.length
+      ? allVariants[variantIdx]
+      : def.images[Math.floor(Math.random() * Math.max(1, def.images.length))] || def.images[0];
   return {
     id: def.id,
     title: def.title,
+    harlequinTitle: def.harlequinTitle || def.title,
     icon: def.icon,
     rarity: def.rarity,
     shortTag: def.shortTag,
     description: def.description,
-    imageUrl: def.images[idx] || def.images[0],
+    harlequinQuote: def.harlequinQuote,
+    lore: def.lore,
+    imageUrl: chosenImage,
+    altImages: def.altImages || [],
+    classicImages: def.classicImages || [],
     triggered: false,
     triggeredAt: null,
     resultSummary: null,
@@ -2647,11 +2778,11 @@ export async function drawSecretCards(
 }> {
   await ensurePoolPopulatedIfEmpty();
 
-  // Verifica saldo de fichas do ciclo de 15 dias (3/15d, acúmulo máx. 5) antes de consultar APIs
+  // Verifica saldo de fichas do ciclo dias 1 e 15 (3 por recarga, acúmulo máx. 5) antes de consultar APIs
   const wallet = await ensureWeeklyChipsWallet();
   if (wallet.chipsRemaining <= 0) {
     throw new Error(
-      `Suas fichas de sorteio acabaram (${wallet.weeklyAllowance} a cada ${wallet.cycleDays} dias, máx. ${wallet.maxChipsBank})! Nova recarga: ${wallet.nextResetLabel}.`
+      `Suas fichas de sorteio acabaram (${wallet.weeklyAllowance} nos dias 1 e 15 do mês, máx. ${wallet.maxChipsBank})! Nova recarga: ${wallet.nextResetLabel}.`
     );
   }
 
@@ -2987,6 +3118,7 @@ async function executeSecretSpecialEffect(params: {
   triggerSeat?: number | null;
   depth?: number;
   deferOcarina?: boolean;
+  skipStatsRecord?: boolean;
 }): Promise<SecretSpecialExecutionResult> {
   const depth = Number(params.depth || 0);
   const event: SecretDrawCardSpecialEvent = {
@@ -3039,8 +3171,8 @@ async function executeSecretSpecialEffect(params: {
       );
 
       event.resultSummary = isHeads
-        ? `🪙 CARA! "${target.card?.resolved?.title}" teve o XP DOBRADO de +${prevXp} XP para +${nextXp} XP!`
-        : `🪙 COROA! "${target.card?.resolved?.title}" caiu para metade (+${prevXp} → +${nextXp} XP) e TRAVOU sem Passe Bumerangue!`;
+        ? `🪙 CARA — Bênção do Arlequim! Ele adorou a aposta e dobrou "${target.card?.resolved?.title}" de +${prevXp} XP para +${nextXp} XP!`
+        : `🪙 COROA — Maldição da Moeda! O Arlequim cortou "${target.card?.resolved?.title}" pela metade (+${prevXp} → +${nextXp} XP) e travou o Bumerangue!`;
       event.outcomeData = {
         coinFace,
         coinRarity: isHeads ? 'legendary' : 'cursed',
@@ -3056,7 +3188,7 @@ async function executeSecretSpecialEffect(params: {
     case 'apresentador_vem_ca': {
       const ctx = await loadRoundAndPicked(params.roundId);
       if (!ctx) {
-        event.resultSummary = 'Nenhuma mesa aberta no momento — abra um sorteio para puxar uma carta fechada!';
+        event.resultSummary = 'Nenhuma mesa aberta no momento — abra um sorteio para o Arlequim puxar uma carta fechada!';
         event.outcomeData = { noTarget: true };
         break;
       }
@@ -3086,6 +3218,7 @@ async function executeSecretSpecialEffect(params: {
           roundId: round.id,
           triggerSeat: chosen.seat,
           depth: depth + 1,
+          skipStatsRecord: params.skipStatsRecord,
         });
         const freshRoundRes = await query(`SELECT cards_json FROM secret_draw_rounds WHERE id = $1`, [round.id]);
         const latestCards: SecretDrawCard[] = Array.isArray(freshRoundRes.rows[0]?.cards_json)
@@ -3098,7 +3231,7 @@ async function executeSecretSpecialEffect(params: {
           round.id,
           JSON.stringify(patched),
         ]);
-        event.resultSummary = `✈️ "Vem pra cá!" puxou a Carta #${chosen.seat} — e ela escondia ${chainedOutcome.specialEvent.icon} ${chainedOutcome.specialEvent.title} em cadeia!`;
+        event.resultSummary = `🃏 O Arlequim puxou a Carta #${chosen.seat} da mesa — e ela escondia ${chainedOutcome.specialEvent.icon} ${chainedOutcome.specialEvent.harlequinTitle || chainedOutcome.specialEvent.title} em cadeia!`;
         event.outcomeData = { pulledSeat: chosen.seat, chainedSpecial: true };
       } else {
         const activeCountRes = await query(
@@ -3109,11 +3242,11 @@ async function executeSecretSpecialEffect(params: {
           MAX_ACTIVE_SECRET_PICKS + (round.powerFlags?.allowExtraActivePick ? 1 : 0);
         if (activeCount >= effectiveActiveLimit) {
           event.triggered = false;
-          event.resultSummary = `✈️ Sua fila está cheia (${activeCount}/${effectiveActiveLimit})! Libere 1 vaga (conclua, decline ou use Bumerangue) para o Apresentador poder puxar mais um filme da mesa.`;
+          event.resultSummary = `🃏 Sua fila está cheia (${activeCount}/${effectiveActiveLimit})! Libere 1 vaga (conclua, decline ou use Bumerangue) para o Arlequim puxar mais um filme da mesa.`;
           event.outcomeData = { queueFull: true };
         } else {
           pulledMoviePick = await queueNormalSecretCardInPickTable(round, chosen);
-          event.resultSummary = `✈️ "Vem pra cá!" puxou a Carta #${chosen.seat}: "${chosen.resolved?.title}" (${chosen.difficultyLabel} • +${pulledMoviePick.xpReward} XP) direto para a sua fila!`;
+          event.resultSummary = `🃏 O Arlequim deu sua bênção, mas ele vai escolher o filme para você ver — filme: "${chosen.resolved?.title}" (${chosen.difficultyLabel} • +${pulledMoviePick.xpReward} XP)!`;
           event.outcomeData = {
             pulledSeat: chosen.seat,
             targetTitle: chosen.resolved?.title,
@@ -3126,9 +3259,10 @@ async function executeSecretSpecialEffect(params: {
 
     case 'ocarina_floresta': {
       if (params.deferOcarina) {
-        event.resultSummary = '⏳ Melodia do tempo pronta para embaralhar e trocar as cartas fechadas da mesa!';
+        event.resultSummary = '⏳ O Arlequim está dedilhando a harpa do tempo para reembaralhar todas as cartas fechadas da mesa!';
         event.outcomeData = {
           pendingOcarina: true,
+          labPreview: Boolean(params.skipStatsRecord),
           roundId: params.roundId || null,
           triggerSeat: params.triggerSeat || null,
           createLabIfEmpty: !params.roundId,
@@ -3139,12 +3273,13 @@ async function executeSecretSpecialEffect(params: {
         roundId: params.roundId || null,
         triggerSeat: params.triggerSeat || null,
         baseEvent: event,
+        skipStatsRecord: params.skipStatsRecord,
       });
     }
 
     case 'recarga_classe': {
       const classWallet = await labGrantClassPowerCharge('secret_draw');
-      event.resultSummary = `⚡ Poder da Classe recarregado! +1 carga exclusiva adicionada para a Sessão Secreta (${classWallet.secretCharges}/${classWallet.maxSecretCharges} disponível(is)).`;
+      event.resultSummary = `🎬 Take 2! O Arlequim estalou a claquete e recarregou +1 carga do Poder da sua Classe para a Sessão Secreta (${classWallet.secretCharges}/${classWallet.maxSecretCharges} disponível(is)).`;
       event.outcomeData = {
         secretCharges: classWallet.secretCharges,
         maxSecretCharges: classWallet.maxSecretCharges,
@@ -3155,7 +3290,7 @@ async function executeSecretSpecialEffect(params: {
     case 'visao_marcos': {
       const ctx = await loadRoundAndPicked(params.roundId);
       if (!ctx) {
-        event.resultSummary = 'Nenhuma mesa aberta — sorteie uma mão para ativar a Visão dos Marcos!';
+        event.resultSummary = 'Nenhuma mesa aberta — sorteie uma mão para ativar as Lentes da Sessão Oculta!';
         event.outcomeData = { noTarget: true };
         break;
       }
@@ -3190,7 +3325,7 @@ async function executeSecretSpecialEffect(params: {
         `UPDATE secret_draw_rounds SET cards_json = $2::jsonb, power_flags_json = $3::jsonb WHERE id = $1`,
         [round.id, JSON.stringify(nextCards), JSON.stringify(nextFlags)]
       );
-      event.resultSummary = `👁️ Visão ativada em ${updatedCount} carta(s) fechada(s): agora o verso mostra os marcos simples de cada uma (Troféus, Países, Anos)!`;
+      event.resultSummary = `🕶️ Com as lentes do Arlequim, ${updatedCount} carta(s) fechada(s) revelaram no verso os marcos secretos (Troféus, Países, Anos)!`;
       event.outcomeData = { updatedCount };
       break;
     }
@@ -3200,7 +3335,7 @@ async function executeSecretSpecialEffect(params: {
       const targetRevealCount = event.id === 'arlequim_revela_5' ? 5 : 3;
       const ctx = await loadRoundAndPicked(params.roundId);
       if (!ctx) {
-        event.resultSummary = 'Nenhuma mesa aberta — sorteie uma mão para o Mini Arlequim revelar cartas!';
+        event.resultSummary = 'Nenhuma mesa aberta — sorteie uma mão para o Arlequim revelar cartas!';
         event.outcomeData = { noTarget: true };
         break;
       }
@@ -3235,7 +3370,7 @@ async function executeSecretSpecialEffect(params: {
       const revealedTitles = pickedToReveal.map((c) => c.resolved?.title).filter(Boolean);
       event.resultSummary =
         pickedToReveal.length > 0
-          ? `${event.icon} O Mini Arlequim revelou ${pickedToReveal.length} filme(s) oculto(s) na mesa: ${revealedTitles.join(' • ')}!`
+          ? `${event.icon} O Arlequim deu sua bênção e revelou ${pickedToReveal.length} filme(s) oculto(s) na mesa: ${revealedTitles.join(' • ')}!`
           : 'Todas as outras cartas da mesa já estavam reveladas!';
       event.outcomeData = {
         revealedCount: pickedToReveal.length,
@@ -3268,14 +3403,14 @@ async function executeSecretSpecialEffect(params: {
              xp_awarded = $2,
              card_json = $3::jsonb,
              completed_source = 'portal_special',
-             decline_reason = '🌀 Colhido via Portal Dimensional (devolvido ao baralho)',
+             decline_reason = '🌀 O Arlequim adorou este filme — colhido via Portal (devolvido ao baralho)',
              completed_at = CURRENT_TIMESTAMP
          WHERE id = $1
          RETURNING *`,
         [target.id, awardXp, JSON.stringify(updatedCard)]
       );
       portalCompletedPick = mapPickRow(upd.rows[0]);
-      event.resultSummary = `🌀 Portal aberto em "${target.card?.resolved?.title}": +${awardXp} XP destravados sem assistir e o filme voltou ao baralho!`;
+      event.resultSummary = `🌀 O Arlequim adora o filme "${target.card?.resolved?.title}" — ele ainda vai te dar os +${awardXp} XP sem precisar assistir e devolveu a carta intacta ao baralho!`;
       event.outcomeData = {
         targetPickId: target.id,
         targetTitle: target.card?.resolved?.title,
@@ -3292,7 +3427,7 @@ async function executeSecretSpecialEffect(params: {
         break;
       }
       const { prevDiff, nextDiff, prevXp, nextXp } = await shiftPickDifficultyStep(target, 1);
-      event.resultSummary = `⚗️ Ascensão! "${target.card?.resolved?.title}" subiu de ${SECRET_DRAW_DIFFICULTY_META[prevDiff].label} (+${prevXp} XP) para ${SECRET_DRAW_DIFFICULTY_META[nextDiff].label} (+${nextXp} XP)!`;
+      event.resultSummary = `⚗️ Bênção Alquímica! O Arlequim transmutou "${target.card?.resolved?.title}" de ${SECRET_DRAW_DIFFICULTY_META[prevDiff].label} (+${prevXp} XP) para ${SECRET_DRAW_DIFFICULTY_META[nextDiff].label} (+${nextXp} XP)!`;
       event.outcomeData = {
         targetPickId: target.id,
         targetTitle: target.card?.resolved?.title,
@@ -3307,12 +3442,12 @@ async function executeSecretSpecialEffect(params: {
     case 'armadilha_mecanica': {
       const target = await pickRandomActiveQueueRow((p) => p.difficulty !== 'common');
       if (!target) {
-        event.resultSummary = 'Nenhum filme acima de Comum na fila — você escapou da Armadilha!';
+        event.resultSummary = 'Nenhum filme acima de Comum na fila — você escapou da armadilha do Arlequim!';
         event.outcomeData = { noTarget: true };
         break;
       }
       const { prevDiff, nextDiff, prevXp, nextXp } = await shiftPickDifficultyStep(target, -1);
-      event.resultSummary = `⚙️ Armadilha acionada! "${target.card?.resolved?.title}" caiu de ${SECRET_DRAW_DIFFICULTY_META[prevDiff].label} (+${prevXp} XP) para ${SECRET_DRAW_DIFFICULTY_META[nextDiff].label} (+${nextXp} XP)!`;
+      event.resultSummary = `⚙️ Maldição! As engrenagens do Arlequim esmagaram "${target.card?.resolved?.title}": caiu de ${SECRET_DRAW_DIFFICULTY_META[prevDiff].label} (+${prevXp} XP) para ${SECRET_DRAW_DIFFICULTY_META[nextDiff].label} (+${nextXp} XP)!`;
       event.outcomeData = {
         targetPickId: target.id,
         targetTitle: target.card?.resolved?.title,
@@ -3336,7 +3471,7 @@ async function executeSecretSpecialEffect(params: {
         target.id,
         JSON.stringify(updatedCard),
       ]);
-      event.resultSummary = `⛓️ Corrente do Destino prendeu "${target.card?.resolved?.title}" na sua fila — Passe Bumerangue bloqueado nesta carta!`;
+      event.resultSummary = `⛓️ Maldição! O Arlequim acorrentou "${target.card?.resolved?.title}" na sua fila — Passe Bumerangue bloqueado nesta carta!`;
       event.outcomeData = {
         targetPickId: target.id,
         targetTitle: target.card?.resolved?.title,
@@ -3364,7 +3499,7 @@ async function executeSecretSpecialEffect(params: {
         `UPDATE secret_draw_picks SET xp_reward = $2, card_json = $3::jsonb WHERE id = $1`,
         [target.id, nextXp, JSON.stringify(updatedCard)]
       );
-      event.resultSummary = `💔 Lâmina do Eclipse cortou "${target.card?.resolved?.title}" pela metade: +${prevXp} XP → +${nextXp} XP!`;
+      event.resultSummary = `💔 Maldição! A lâmina do Arlequim cortou "${target.card?.resolved?.title}" ao meio: +${prevXp} XP → +${nextXp} XP!`;
       event.outcomeData = {
         targetPickId: target.id,
         targetTitle: target.card?.resolved?.title,
@@ -3373,6 +3508,15 @@ async function executeSecretSpecialEffect(params: {
       };
       break;
     }
+  }
+
+  if (
+    !params.skipStatsRecord &&
+    event.triggered &&
+    !event.outcomeData?.pendingOcarina &&
+    !event.outcomeData?.queueFull
+  ) {
+    await recordSpecialCardDrawn(event.id);
   }
 
   return {
@@ -3390,6 +3534,7 @@ export async function executeOcarinaReshuffle(params: {
   triggerSeat?: number | null;
   createLabIfEmpty?: boolean;
   baseEvent?: SecretDrawCardSpecialEvent | null;
+  skipStatsRecord?: boolean;
 }): Promise<SecretSpecialExecutionResult> {
   await ensureSecretDrawTables();
   const def = SECRET_SPECIAL_CARDS_CATALOG.find((c) => c.id === 'ocarina_floresta')!;
@@ -3420,7 +3565,7 @@ export async function executeOcarinaReshuffle(params: {
         [cards.length, JSON.stringify(cards), JSON.stringify(auditLog)]
       );
       const reshuffledSeats = cards.map((c) => Number(c.seat));
-      event.resultSummary = `⏳ A Ocarina da Floresta invocou e embaralhou ${cards.length} cartas novas na mesa de teste!`;
+      event.resultSummary = `⏳ O Arlequim dedilhou a harpa do tempo e invocou ${cards.length} cartas novas na mesa de teste!`;
       event.outcomeData = {
         reshuffledCount: cards.length,
         reshuffledSeats,
@@ -3437,7 +3582,7 @@ export async function executeOcarinaReshuffle(params: {
   }
 
   if (!targetRoundId) {
-    event.resultSummary = 'Nenhuma mesa aberta — sorteie uma mão primeiro para tocar a Ocarina da Floresta!';
+    event.resultSummary = 'Nenhuma mesa aberta — sorteie uma mão primeiro para tocar a Harpa do Tempo Reverso!';
     event.outcomeData = { noTarget: true };
     return { kind: 'special', specialEvent: event, reshuffledSeats: [] };
   }
@@ -3511,7 +3656,7 @@ export async function executeOcarinaReshuffle(params: {
     };
   });
 
-  event.resultSummary = `⏳ A melodia da Ocarina reembaralhou ${reshuffledSeats.length} carta(s) fechada(s) na mesa sem gastar ficha!`;
+  event.resultSummary = `⏳ O Arlequim tocou a melodia reversa e reembaralhou ${reshuffledSeats.length} carta(s) fechada(s) da mesa sem gastar ficha!`;
   event.outcomeData = {
     reshuffledCount: reshuffledSeats.length,
     reshuffledSeats,
@@ -3530,6 +3675,12 @@ export async function executeOcarinaReshuffle(params: {
     round.id,
     JSON.stringify(nextCards),
   ]);
+
+  const roundMode = String(rRes.rows[0]?.mode || '');
+  const isLabPreview = Boolean(params.skipStatsRecord || params.baseEvent?.outcomeData?.labPreview || roundMode === 'lab_special_test');
+  if (!isLabPreview && event.triggered) {
+    await recordSpecialCardDrawn(event.id);
+  }
 
   return {
     kind: 'special',
@@ -3641,6 +3792,7 @@ export async function labTriggerSecretSpecialCard(
       roundId: openRoundId,
       triggerSeat: null,
       deferOcarina: true,
+      skipStatsRecord: true,
     });
   }
 
@@ -3700,6 +3852,7 @@ export async function labTriggerSecretSpecialCard(
     baseEvent,
     roundId: openRoundId,
     triggerSeat: null,
+    skipStatsRecord: true,
   });
 }
 
@@ -3792,7 +3945,7 @@ export async function boomerangSecretPick(
   const wallet = await ensureWeeklyChipsWallet();
   if (wallet.boomerangChipsRemaining <= 0) {
     throw new Error(
-      `Suas Fichas Bumerangue acabaram (${wallet.boomerangAllowance} a cada ${wallet.cycleDays} dias, máx. ${wallet.maxBoomerangBank})! Nova recarga: ${wallet.nextResetLabel}.`
+      `Suas Fichas Bumerangue acabaram (${wallet.boomerangAllowance} nos dias 1 e 15 do mês, máx. ${wallet.maxBoomerangBank})! Nova recarga: ${wallet.nextResetLabel}.`
     );
   }
 
@@ -3906,6 +4059,7 @@ export async function labResetSecretDraws(): Promise<void> {
   );
   await query(`DELETE FROM secret_draw_picks`);
   await query(`DELETE FROM secret_draw_rounds`);
+  await query(`DELETE FROM secret_draw_special_stats`);
   const { cycleKey } = getSaoPaulo15DayCycleInfo();
   await query(
     `INSERT INTO secret_draw_wallet (
@@ -4091,10 +4245,14 @@ export async function getSecretDrawStatus(): Promise<{
   recentHistory: SecretDrawRound[];
   miniCatalog: SecretDrawPick[];
   specialCardsCatalog: SecretSpecialCardDef[];
+  specialCardStats: {
+    totalTriggered: number;
+    countsById: Record<string, number>;
+  };
 }> {
   await ensurePoolPopulatedIfEmpty();
 
-  const [countsRes, metaRes, currentRes, historyRes, miniCatalogRes, deckStatsRes, xpSummary, chipsWallet] = await Promise.all([
+  const [countsRes, metaRes, currentRes, historyRes, miniCatalogRes, deckStatsRes, xpSummary, chipsWallet, specialCardStats] = await Promise.all([
     query(`SELECT status, COUNT(*)::int AS cnt FROM secret_draw_pool GROUP BY status`),
     query(`SELECT * FROM secret_draw_sync_meta WHERE id = 1`),
     query(
@@ -4122,6 +4280,7 @@ export async function getSecretDrawStatus(): Promise<{
     ),
     getQuickSecretDrawXpSummary(),
     ensureWeeklyChipsWallet(),
+    getSecretDrawSpecialCardStats(),
   ]);
 
   const countsMap: Record<string, number> = {};
@@ -4187,6 +4346,7 @@ export async function getSecretDrawStatus(): Promise<{
     recentHistory: (historyRes.rows || []).map(mapRoundRow),
     miniCatalog: mappedMiniCatalog,
     specialCardsCatalog: SECRET_SPECIAL_CARDS_CATALOG,
+    specialCardStats,
   };
 }
 

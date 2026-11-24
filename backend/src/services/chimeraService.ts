@@ -1518,7 +1518,7 @@ export async function forgeChimeraContract(
   const wallet = await ensureChimeraWallet();
   if (wallet.chipsRemaining <= 0) {
     throw new Error(
-      `Suas fichas de Quimera acabaram (${wallet.cycleAllowance} a cada ${wallet.cycleDays} dias, máx. ${wallet.maxChipsBank})! Nova recarga: ${wallet.nextResetLabel}.`
+      `Suas fichas de Quimera acabaram (${wallet.cycleAllowance} nos dias 1 e 15 do mês, máx. ${wallet.maxChipsBank})! Nova recarga: ${wallet.nextResetLabel}.`
     );
   }
 
@@ -2910,7 +2910,7 @@ export async function declineChimeraContract(chimeraId: number): Promise<Chimera
   const wallet = await ensureChimeraWallet();
   if (wallet.declineChipsRemaining <= 0) {
     throw new Error(
-      `Seus Declínios de Quimera acabaram (${wallet.declineCycleAllowance} a cada ${wallet.cycleDays} dias, máx. ${wallet.maxDeclineBank})! Nova recarga: ${wallet.nextResetLabel}. Você ainda pode usar "Descartar" sem estorno.`
+      `Seus Declínios de Quimera acabaram (${wallet.declineCycleAllowance} nos dias 1 e 15 do mês, máx. ${wallet.maxDeclineBank})! Nova recarga: ${wallet.nextResetLabel}. Você ainda pode usar "Descartar" sem estorno.`
     );
   }
   const res = await query(`SELECT status FROM chimera_contracts WHERE id = $1`, [chimeraId]);

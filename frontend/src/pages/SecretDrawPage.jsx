@@ -23,10 +23,12 @@ import {
   Trophy,
   BarChart3,
   CalendarClock,
+  BookOpen,
+  HelpCircle,
 } from 'lucide-react';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { triggerXPGainToast } from '../utils/xpSystem';
-import { getCycle15CountdownLabel } from '../utils/cycleCountdown';
+import { getCycle15CountdownLabel, formatCycleKeyLabel } from '../utils/cycleCountdown';
 import { ALL_CINEMA_CLASSES } from '../utils/analyticsEngine';
 import {
   POWER_TIER_META,
@@ -44,9 +46,14 @@ import {
 import SecretDrawCardRevealModal from '../components/SecretDrawCardRevealModal';
 import {
   SECRET_DECK_BACK_IMAGE,
+  HARLEQUIN_CROUPIER_AVATAR,
+  HARLEQUIN_BACKGROUND_LORE,
   getSecretSuitBackImage,
   getSecretCardUrl,
   getSecretPlayingCardMeta,
+  getSpecialCardArtGallery,
+  getSpecialCardDisplayMeta,
+  resolveSpecialCardPrimaryUrl,
   groupSimpleMilestones,
   SPECIAL_RARITY_META,
   FALLBACK_SPECIAL_CARDS_CATALOG,
@@ -319,20 +326,20 @@ const BOOMERANG_QUICK_REASONS = [
   'Prefiro ver outro gênero agora',
 ];
 
-function SecretDrawCycleRestDisplay({ weekKey = '' }) {
+function SecretDrawCycleRestDisplay({ weekKey = '', outOfChips = true, hasQueuedMovies = false }) {
   const suitOrbiters = [
-    { symbol: '♠', pos: 'top-3 left-6', delay: '0s', size: 'text-sm text-purple-300' },
-    { symbol: '♥', pos: 'top-6 right-5', delay: '0.45s', size: 'text-sm text-amber-300' },
-    { symbol: '♦', pos: 'bottom-7 left-4', delay: '0.9s', size: 'text-sm text-sky-300' },
+    { symbol: '♠', pos: 'top-3 left-6', delay: '0s', size: 'text-sm text-zinc-300' },
+    { symbol: '♥', pos: 'top-6 right-5', delay: '0.45s', size: 'text-sm text-rose-400' },
+    { symbol: '♦', pos: 'bottom-7 left-4', delay: '0.9s', size: 'text-sm text-amber-300' },
     { symbol: '♣', pos: 'bottom-4 right-6', delay: '1.35s', size: 'text-sm text-emerald-300' },
-    { symbol: '★', pos: 'top-1/2 -left-1 -translate-y-1/2', delay: '0.6s', size: 'text-xs text-rose-300' },
-    { symbol: '✨', pos: 'top-1/2 -right-1 -translate-y-1/2', delay: '1.1s', size: 'text-xs text-amber-200' },
+    { symbol: '★', pos: 'top-1/2 -left-1 -translate-y-1/2', delay: '0.6s', size: 'text-xs text-amber-200' },
+    { symbol: '✦', pos: 'top-1/2 -right-1 -translate-y-1/2', delay: '1.1s', size: 'text-xs text-amber-200' },
   ];
 
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-1">
       <div className="relative w-44 h-44 sm:w-48 sm:h-48 flex items-center justify-center">
-        <div className="bingo-sanctum-aura pointer-events-none absolute inset-2 rounded-full bg-[radial-gradient(circle,rgba(192,38,211,0.28)_0%,rgba(245,158,11,0.16)_46%,transparent_74%)]" />
+        <div className="bingo-sanctum-aura pointer-events-none absolute inset-2 rounded-full bg-[radial-gradient(circle,rgba(245,158,11,0.22)_0%,rgba(16,185,129,0.14)_46%,transparent_74%)]" />
 
         <svg
           viewBox="0 0 200 200"
@@ -344,17 +351,17 @@ function SecretDrawCycleRestDisplay({ weekKey = '' }) {
             cy="100"
             r="92"
             fill="none"
-            stroke="rgba(232, 121, 249, 0.38)"
+            stroke="rgba(251, 191, 36, 0.35)"
             strokeWidth="1.5"
             strokeDasharray="6 8"
           />
-          <circle cx="100" cy="8" r="3" fill="#f0abfc" />
+          <circle cx="100" cy="8" r="3" fill="#34d399" />
           <circle cx="192" cy="100" r="2.5" fill="#fde68a" />
-          <circle cx="100" cy="192" r="3" fill="#f0abfc" />
+          <circle cx="100" cy="192" r="3" fill="#34d399" />
           <circle cx="8" cy="100" r="2.5" fill="#fde68a" />
         </svg>
 
-        <div className="bingo-sanctum-orbit-reverse pointer-events-none absolute inset-5 rounded-full border border-dashed border-amber-300/40 shadow-[inset_0_0_24px_rgba(192,38,211,0.16)]" />
+        <div className="bingo-sanctum-orbit-reverse pointer-events-none absolute inset-5 rounded-full border border-dashed border-amber-300/35 shadow-[inset_0_0_24px_rgba(245,158,11,0.14)]" />
 
         {suitOrbiters.map((sp, idx) => (
           <span
@@ -366,32 +373,32 @@ function SecretDrawCycleRestDisplay({ weekKey = '' }) {
           </span>
         ))}
 
-        {/* Baralho Secreto Lacrado com Cadeado Real Dourado */}
+        {/* Baralho Secreto Lacrado */}
         <div className="bingo-sanctum-grimoire-float relative z-10 w-24 h-36 flex items-center justify-center">
-          <div className="pointer-events-none absolute inset-0 translate-x-2 translate-y-1 rotate-6 rounded-2xl border border-amber-300/30 bg-[#1a0b2e]/90 shadow-lg" />
-          <div className="pointer-events-none absolute inset-0 -translate-x-2 translate-y-1 -rotate-6 rounded-2xl border border-fuchsia-300/30 bg-[#140924]/90 shadow-lg" />
+          <div className="pointer-events-none absolute inset-0 translate-x-2 translate-y-1 rotate-6 rounded-2xl border shadow-lg border-amber-300/25 bg-[#111015]/95" />
+          <div className="pointer-events-none absolute inset-0 -translate-x-2 translate-y-1 -rotate-6 rounded-2xl border shadow-lg border-emerald-400/25 bg-[#0a1412]/95" />
 
-          <div className="relative w-full h-full rounded-2xl border-2 border-amber-300/80 bg-[#120820] overflow-hidden shadow-2xl">
+          <div className="relative w-full h-full rounded-2xl border-2 overflow-hidden shadow-2xl border-amber-300/75 bg-[#0a090d]">
             <img
-              src={SECRET_DECK_BACK_IMAGE}
+              src={getSecretCardUrl(HARLEQUIN_CROUPIER_AVATAR)}
               alt="Baralho da Sessão Secreta Selado"
-              className="w-full h-full object-cover opacity-75"
+              className="w-full h-full object-cover object-[47%_18%] scale-[1.28] origin-[47%_18%] opacity-80"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-fuchsia-950/35 to-black/30 flex items-center justify-center">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/30 flex items-center justify-center">
               <div className="w-11 h-11 rounded-full bg-gradient-to-br from-amber-300 via-amber-500 to-amber-700 border-2 border-amber-100 shadow-[0_0_20px_rgba(251,191,36,0.65)] flex items-center justify-center text-slate-950">
                 <Lock className="w-5 h-5 stroke-[2.6]" />
               </div>
             </div>
           </div>
 
-          <span className="absolute -top-2 -right-3 px-2 py-0.5 rounded-full text-[9.5px] font-black bg-gradient-to-r from-fuchsia-400 to-amber-300 text-slate-950 border border-amber-100 shadow-[0_0_16px_rgba(232,121,249,0.55)]">
-            🔒 ZERADA
+          <span className="absolute -top-2 -right-3 px-2 py-0.5 rounded-full text-[9.5px] font-black text-slate-950 border border-amber-100 bg-gradient-to-r from-amber-300 to-yellow-500 shadow-[0_0_16px_rgba(251,191,36,0.45)]">
+            {outOfChips && hasQueuedMovies ? '🔒 BANCA FECHADA' : '🔒 ZERADA'}
           </span>
         </div>
       </div>
 
-      <div className="px-3.5 py-1 rounded-full bg-fuchsia-950/75 border border-fuchsia-400/45 text-[10.5px] font-black uppercase tracking-widest text-fuchsia-200 shadow-inner">
-        🃏 Baralho Secreto • {weekKey ? `Ciclo ${weekKey} ` : ''}em Repouso
+      <div className="px-3.5 py-1 rounded-full border text-[10.5px] font-black uppercase tracking-widest shadow-inner bg-zinc-950/90 border-amber-400/35 text-amber-200">
+        🃏 Baralho do Arlequim • {formatCycleKeyLabel(weekKey, { short: true, fallback: 'Ciclo Atual' })} • Trancado
       </div>
     </div>
   );
@@ -448,6 +455,12 @@ export default function SecretDrawPage({
   const [actingClassPower, setActingClassPower] = useState(false);
   const [revealModalSession, setRevealModalSession] = useState(null);
   const [showLabSpecialPanel, setShowLabSpecialPanel] = useState(false);
+  const [showGrimoireModal, setShowGrimoireModal] = useState(false);
+  const [showRulesStrip, setShowRulesStrip] = useState(false);
+  const [spotlightArtIdx, setSpotlightArtIdx] = useState(0);
+  const [grimoireSelectedId, setGrimoireSelectedId] = useState('duas_caras');
+  const [grimoireArtIdx, setGrimoireArtIdx] = useState(0);
+  const [grimoireRevealAll, setGrimoireRevealAll] = useState(false);
   const [cardBackLayout, setCardBackLayout] = useState(() => {
     try {
       const saved = window.localStorage.getItem('secret_draw_back_layout_v2');
@@ -1202,12 +1215,11 @@ export default function SecretDrawPage({
     boomerangChipsRemaining: 2,
     boomerangUsedThisWeek: 0,
     maxBoomerangBank: 4,
-    nextResetLabel: 'Ciclo de 15 dias (Brasília)',
+    nextResetLabel: 'Dias 1 e 15 do mês (Brasília)',
   };
   const chipsRemaining = Number(chipsWallet.chipsRemaining ?? 0);
   const chipsAllowance = Number(chipsWallet.weeklyAllowance ?? 3);
   const maxChipsBank = Number(chipsWallet.maxChipsBank ?? 5);
-  const cycleDays = Number(chipsWallet.cycleDays ?? 15);
   const boomerangChipsRemaining = Number(chipsWallet.boomerangChipsRemaining ?? 2);
   const boomerangAllowance = Number(chipsWallet.boomerangAllowance ?? 2);
   const maxBoomerangBank = Number(chipsWallet.maxBoomerangBank ?? 4);
@@ -1225,13 +1237,12 @@ export default function SecretDrawPage({
   const readyToClaimPicks = miniCatalogEntries.filter((entry) => entry.status === 'ready_to_claim');
   const hasQueuedOrPendingSecretMovies =
     activeWatchCount > 0 || activeQueuePicks.length > 0 || readyToClaimPicks.length > 0;
-  const isSecretDrawCycleExhausted =
+  const isDeckClosedOutOfChips =
     !drawing &&
     !previewShuffling &&
     !currentRound &&
-    chipsRemaining <= 0 &&
-    !hasQueuedOrPendingSecretMovies;
-  const nextSecretCountdownLabel = isSecretDrawCycleExhausted ? getCycle15CountdownLabel() : null;
+    chipsRemaining <= 0;
+  const nextSecretCountdownLabel = isDeckClosedOutOfChips ? getCycle15CountdownLabel() : null;
 
   const filteredMiniCatalog =
     miniCatalogFilter === 'all'
@@ -1393,12 +1404,66 @@ export default function SecretDrawPage({
       ? (currentRound.cards || []).find((c) => Number(c.seat) === Number(spotlightSeat)) || null
       : null;
 
+  useEffect(() => {
+    setSpotlightArtIdx(0);
+  }, [spotlightSeat, currentRound?.id]);
+
+  const specialCatalogList =
+    Array.isArray(statusData?.specialCardsCatalog) && statusData.specialCardsCatalog.length > 0
+      ? statusData.specialCardsCatalog
+      : FALLBACK_SPECIAL_CARDS_CATALOG;
+
+  const specialCountsById = statusData?.specialCardStats?.countsById || {};
+  const totalSpecialTriggered = Number(statusData?.specialCardStats?.totalTriggered || 0);
+
+  const discoveredSpecialIds = React.useMemo(() => {
+    const found = new Set();
+    Object.entries(statusData?.specialCardStats?.countsById || {}).forEach(([id, count]) => {
+      if (Number(count || 0) > 0) found.add(id);
+    });
+    const scanCards = (cards) => {
+      if (!Array.isArray(cards)) return;
+      cards.forEach((c) => {
+        if (c?.specialEvent?.id && c.specialEvent.triggered) {
+          found.add(c.specialEvent.id);
+        }
+      });
+    };
+    scanCards(statusData?.currentRound?.cards);
+    (statusData?.recentHistory || []).forEach((r) => scanCards(r?.cards));
+    (Array.isArray(statusData?.miniCatalog) ? statusData.miniCatalog : []).forEach((p) => {
+      if (p?.card?.specialEvent?.id) found.add(p.card.specialEvent.id);
+    });
+    return found;
+  }, [statusData]);
+
+  const triggeredSpecialOnTable = (currentRound?.cards || []).find((c) => c?.specialEvent?.triggered)?.specialEvent || null;
+  const harlequinDealerAvatar = HARLEQUIN_CROUPIER_AVATAR;
+  const harlequinAvatarFrameClass =
+    triggeredSpecialOnTable?.rarity === 'cursed'
+      ? 'border-rose-500/65 shadow-[0_10px_28px_rgba(244,63,94,0.3)] hover:border-rose-400'
+      : triggeredSpecialOnTable
+        ? 'border-emerald-400/60 shadow-[0_10px_28px_rgba(16,185,129,0.28)] hover:border-emerald-300'
+        : 'border-amber-400/45 shadow-[0_10px_28px_rgba(0,0,0,0.8)] hover:border-amber-300';
+
+  const harlequinDealerLine = isDeckClosedOutOfChips
+    ? hasQueuedOrPendingSecretMovies
+      ? 'A banca fechou por agora e o baralho foi trancado — encare os filmes já puxados até a próxima recarga.'
+      : 'Você viu todos os filmes que eu sorteei — parabéns! Espero que tenha gostado… ou não. Agora o baralho descansa até o próximo depósito.'
+    : activeWatchCount >= activeWatchLimit
+      ? 'Sua fila atingiu o limite. Resolva um filme pendente antes de pedir novas cartas.'
+      : triggeredSpecialOnTable
+        ? 'O Arlequim te deu uma carta especial — agora é só saber se é bênção ou maldição.'
+        : currentRound?.status === 'revealed'
+          ? 'As cartas estão sobre o feltro. Escolha com calma — bênçãos e maldições dividem a mesma mesa.'
+          : 'O Arlequim embaralhou um monte de filmes que ele gosta de assistir — talvez você deteste, talvez ele force você a ver algum deles. No baralho, tudo depende só da vontade dele.';
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
-        <RefreshCw className="w-8 h-8 text-fuchsia-400 animate-spin" />
+        <RefreshCw className="w-8 h-8 animate-spin text-amber-400" />
         <span className="text-xs font-black uppercase tracking-widest text-zinc-400">
-          Preparando Mesa do Oráculo...
+          Preparando a Mesa do Arlequim...
         </span>
       </div>
     );
@@ -1407,200 +1472,325 @@ export default function SecretDrawPage({
   return (
     <div className="flex flex-col gap-6 pb-16">
       {/* HERO & CONTROLES SUPERIORES */}
-      <section className="relative overflow-hidden rounded-3xl border border-fuchsia-500/35 bg-gradient-to-br from-zinc-950 via-violet-950/25 to-zinc-950 p-5 sm:p-6 shadow-[0_20px_60px_rgba(0,0,0,0.65)]">
-        <div className="pointer-events-none absolute -top-24 -right-20 w-96 h-96 bg-fuchsia-500/12 rounded-full blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 -left-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl" />
+      <section className="relative overflow-hidden rounded-3xl border p-5 sm:p-6 shadow-[0_20px_60px_rgba(0,0,0,0.65)] border-amber-400/25 bg-gradient-to-br from-[#09090d] via-[#131018] to-[#080a0c]">
+        <div className="pointer-events-none absolute -top-24 -right-20 w-96 h-96 rounded-full blur-3xl bg-amber-500/10" />
+        <div className="pointer-events-none absolute -bottom-24 -left-20 w-80 h-80 rounded-full blur-3xl bg-emerald-500/8" />
 
         <div className="relative z-10 flex flex-col gap-4">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center gap-2 flex-wrap">
-                {showLabTools ? (
+            <div className="flex items-start gap-4 min-w-0">
+              {/* Retrato / Medalhão do Croupier Arlequim */}
+              <button
+                type="button"
+                onClick={() => setShowGrimoireModal(true)}
+                title="Abrir Grimório & História do Arlequim"
+                className={`group relative w-24 h-28 sm:w-[118px] sm:h-[138px] rounded-2xl border bg-[#090c0b] overflow-hidden shrink-0 cursor-pointer transition ${harlequinAvatarFrameClass}`}
+              >
+                <img
+                  src={getSecretCardUrl(harlequinDealerAvatar)}
+                  alt="O Arlequim"
+                  className="w-full h-full object-cover object-[47%_16%] scale-[1.45] origin-[47%_16%] group-hover:scale-[1.52] transition-transform duration-300"
+                />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 py-0.5 bg-gradient-to-t from-black/95 via-black/50 to-transparent text-center text-[8.5px] font-black uppercase tracking-widest text-amber-200">
+                  Croupier
+                </div>
+              </button>
+
+                  <div className="flex flex-col gap-2 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {showLabTools ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleLabTools(false)}
+                          title="Clique para ocultar ferramentas do Lab (Atalho: Alt+L)"
+                          className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-md bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/45 text-amber-200 flex items-center gap-1 cursor-pointer"
+                        >
+                          <FlaskConical className="w-3 h-3" /> Modo Lab • Ocultar
+                        </button>
+                      ) : (
+                        <span
+                          onDoubleClick={() => toggleLabTools(true)}
+                          className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-md bg-zinc-900/95 border border-amber-400/30 text-amber-200/90 flex items-center gap-1.5 select-none"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                          Sala Particular • Sessão Secreta
+                        </span>
+                      )}
+
+                      {currentRound?.status === 'revealed' && Array.isArray(currentRound.cards) && (
+                        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-400/35 text-emerald-200">
+                          Mesa Ativa • {currentRound.cards.length} Cartas
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                      <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                        Sessão Secreta
+                      </h1>
+                      <span className="text-xs sm:text-sm font-bold uppercase tracking-[0.18em] text-amber-300/85">
+                        A Mesa do Arlequim
+                      </span>
+                    </div>
+
+                    <p className="text-xs sm:text-sm italic text-zinc-300/95 border-l-2 border-amber-400/50 pl-3 max-w-2xl">
+                      “{harlequinDealerLine}”
+                    </p>
+
+                    {/* HUD Compacta e Sóbria */}
+                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                      <span
+                        className={`text-[10.5px] font-mono font-bold px-2.5 py-1 rounded-lg border flex items-center gap-1.5 ${
+                          chipsRemaining > 0
+                            ? 'bg-zinc-900/90 border-amber-400/35 text-amber-200'
+                            : 'bg-rose-950/50 border-rose-500/45 text-rose-200'
+                        }`}
+                        title={`Fichas de Sorteio (${chipsAllowance} nos dias 1 e 15 do mês, máx. ${maxChipsBank}) • Recarrega: ${chipsWallet.nextResetLabel}`}
+                      >
+                        <span>🎟️ Fichas {chipsRemaining}/{maxChipsBank}</span>
+                        <span className="flex items-center gap-0.5">
+                          {Array.from({ length: maxChipsBank }).map((_, idx) => (
+                            <span
+                              key={idx}
+                              className={`inline-block w-1.5 h-1.5 rounded-full ${
+                                idx < chipsRemaining ? 'bg-amber-300' : 'bg-zinc-700'
+                              }`}
+                            />
+                          ))}
+                        </span>
+                      </span>
+
+                      <span
+                        className={`text-[10.5px] font-mono font-bold px-2.5 py-1 rounded-lg border ${
+                          boomerangChipsRemaining > 0
+                            ? 'bg-zinc-900/90 border-sky-400/30 text-sky-200'
+                            : 'bg-zinc-900/70 border-zinc-800 text-zinc-500'
+                        }`}
+                        title={`Fichas Bumerangue (${boomerangAllowance} nos dias 1 e 15 do mês, máx. ${maxBoomerangBank})`}
+                      >
+                        🪃 Bumerangue {boomerangChipsRemaining}/{maxBoomerangBank}
+                      </span>
+
+                      <span className="text-[10.5px] font-mono font-bold px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800 text-zinc-300">
+                        🃏 {pool.availableCount || 0} no baralho
+                      </span>
+
+                      <span className="text-[10.5px] font-mono font-bold px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-amber-500/25 text-amber-200">
+                        +{Number(xpSummary.totalXp || 0).toLocaleString('pt-BR')} XP
+                      </span>
+
+                      <span
+                        className={`text-[10.5px] font-mono font-bold px-2.5 py-1 rounded-lg border ${
+                          activeWatchCount >= activeWatchLimit
+                            ? 'bg-rose-950/60 border-rose-400/45 text-rose-200'
+                            : 'bg-zinc-900/90 border-emerald-500/30 text-emerald-200'
+                        }`}
+                      >
+                        🎯 Fila {activeWatchCount}/{activeWatchLimit}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ações Principais Noir */}
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
                   <button
                     type="button"
-                    onClick={() => toggleLabTools(false)}
-                    title="Clique para ocultar ferramentas do Lab (Atalho: Alt+L)"
-                    className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-md bg-fuchsia-500/20 hover:bg-fuchsia-500/30 border border-fuchsia-400/50 text-fuchsia-200 flex items-center gap-1 cursor-pointer"
+                    disabled={drawing || previewShuffling || acting || activeWatchCount >= activeWatchLimit || chipsRemaining <= 0}
+                    onClick={handleDrawCards}
+                    title={
+                      activeWatchCount >= activeWatchLimit
+                        ? `Fila cheia (${activeWatchCount}/${activeWatchLimit}). Conclua ou decline um filme abaixo para sortear novamente.`
+                        : chipsRemaining <= 0
+                          ? `Suas fichas acabaram! Recarrega ${chipsWallet.nextResetLabel}.`
+                          : `Gasta 1 ficha (${chipsRemaining} restante${chipsRemaining === 1 ? '' : 's'}) e sorteia de 3 a 10 cartas`
+                    }
+                    className="flex items-center gap-2 px-5 py-3 rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 hover:brightness-110 text-slate-950 shadow-[0_10px_28px_rgba(245,158,11,0.28)] transition-all cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
                   >
-                    <FlaskConical className="w-3 h-3" /> Modo Lab Ativo • Ocultar
+                    {drawing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Dices className="w-4 h-4" />}
+                    {drawing
+                      ? 'Embaralhando...'
+                      : isDeckClosedOutOfChips
+                        ? `🔒 Recarrega ${chipsWallet.nextResetLabel}`
+                        : canChooseCardCount && countMode !== 'random'
+                          ? `Sortear ${countMode} Cartas`
+                          : 'Sortear Cartas (3–10)'}
                   </button>
-                ) : (
-                  <span
-                    onDoubleClick={() => toggleLabTools(true)}
-                    className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-md bg-fuchsia-500/20 border border-fuchsia-400/50 text-fuchsia-200 flex items-center gap-1 select-none"
+
+                  <button
+                    type="button"
+                    onClick={() => setShowGrimoireModal(true)}
+                    className="flex items-center gap-1.5 px-3.5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider bg-zinc-900/95 hover:bg-zinc-800 border border-amber-400/35 text-amber-200 transition cursor-pointer"
+                    title="Ver coleção de cartas especiais e a história do Arlequim"
                   >
-                    <Sparkles className="w-3 h-3" /> Temporada Oficial • {chipsAllowance} Fichas / {cycleDays} Dias (máx. {maxChipsBank})
-                  </span>
-                )}
-                <span
-                  className={`text-[10px] font-mono font-black px-2.5 py-0.5 rounded-md border flex items-center gap-1.5 ${
-                    chipsRemaining > 0
-                      ? 'bg-amber-400/20 border-amber-300/60 text-amber-200'
-                      : 'bg-rose-500/20 border-rose-400/55 text-rose-200'
-                  }`}
-                  title={`Fichas de Sorteio (${chipsAllowance} a cada ${cycleDays} dias, acúmulo máx. ${maxChipsBank}) • Recarrega: ${chipsWallet.nextResetLabel}`}
-                >
-                  <span>🎟️ Fichas: {chipsRemaining}/{maxChipsBank}</span>
-                  <span className="flex items-center gap-0.5">
-                    {Array.from({ length: maxChipsBank }).map((_, idx) => (
-                      <span
-                        key={idx}
-                        className={`inline-block w-2 h-2 rounded-full border ${
-                          idx < chipsRemaining
-                            ? 'bg-amber-300 border-amber-100 shadow-[0_0_6px_#fbbf24]'
-                            : 'bg-zinc-800 border-zinc-600'
-                        }`}
-                      />
-                    ))}
-                  </span>
-                </span>
-                <span
-                  className={`text-[10px] font-mono font-black px-2.5 py-0.5 rounded-md border flex items-center gap-1.5 ${
-                    boomerangChipsRemaining > 0
-                      ? 'bg-sky-400/20 border-sky-300/60 text-sky-200'
-                      : 'bg-zinc-900 border-zinc-700 text-zinc-400'
-                  }`}
-                  title={`Fichas Bumerangue (${boomerangAllowance} a cada ${cycleDays} dias, acúmulo máx. ${maxBoomerangBank}) • Recarrega: ${chipsWallet.nextResetLabel}`}
-                >
-                  <span>🪃 Bumerangue: {boomerangChipsRemaining}/{maxBoomerangBank}</span>
-                  <span className="flex items-center gap-0.5">
-                    {Array.from({ length: maxBoomerangBank }).map((_, idx) => (
-                      <span
-                        key={idx}
-                        className={`inline-block w-2 h-2 rounded-full border ${
-                          idx < boomerangChipsRemaining
-                            ? 'bg-sky-300 border-sky-100 shadow-[0_0_6px_#38bdf8]'
-                            : 'bg-zinc-800 border-zinc-600'
-                        }`}
-                      />
-                    ))}
-                  </span>
-                </span>
-                <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-md bg-zinc-900 border border-zinc-700 text-zinc-300">
-                  🃏 {pool.availableCount || 0} no baralho ({pool.watchedCount || 0} já assistidas{pool.removedCount > 0 ? ` • ${pool.removedCount} removidas` : ''})
-                </span>
-                <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-md bg-amber-500/15 border border-amber-400/40 text-amber-200">
-                  +{Number(xpSummary.totalXp || 0).toLocaleString('pt-BR')} XP Liberado
-                </span>
-                <span
-                  className={`text-[10px] font-mono font-black px-2.5 py-0.5 rounded-md border ${
-                    activeWatchCount >= activeWatchLimit
-                      ? 'bg-rose-500/20 border-rose-400/60 text-rose-200'
-                      : 'bg-emerald-500/15 border-emerald-400/40 text-emerald-200'
-                  }`}
-                >
-                  🎯 Fila p/ Assistir: {activeWatchCount}/{activeWatchLimit}
-                </span>
-                {currentRound?.status === 'revealed' && Array.isArray(currentRound.cards) && (
-                  <span className="text-[10px] font-black px-2.5 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-400/40 text-cyan-200">
-                    Mão de {currentRound.cards.length} Cartas
-                  </span>
-                )}
+                    <BookOpen className="w-4 h-4" />
+                    <span>Grimório ({discoveredSpecialIds.size}/{specialCatalogList.length})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowRulesStrip((v) => !v)}
+                    className={`flex items-center gap-1.5 px-3 py-3 rounded-2xl text-xs font-black uppercase tracking-wider border transition cursor-pointer ${
+                      showRulesStrip
+                        ? 'bg-zinc-800 border-white/25 text-white'
+                        : 'bg-zinc-900/90 hover:bg-zinc-800 border-zinc-800 text-zinc-300'
+                    }`}
+                    title="Mostrar ou ocultar regras, naipes, planilha, qtd. de cartas e sagas"
+                  >
+                    <HelpCircle className="w-4 h-4" />
+                    <span className="hidden sm:inline">Regras</span>
+                  </button>
+
+                  {showLabTools && (
+                    <button
+                      type="button"
+                      onClick={() => setIsLabTransparent((v) => !v)}
+                      className={`flex items-center gap-1.5 px-3.5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider border transition-all cursor-pointer ${
+                        isLabTransparent
+                          ? 'bg-cyan-500/15 border-cyan-400/50 text-cyan-200 hover:bg-cyan-500/25'
+                          : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-zinc-500'
+                      }`}
+                      title="Em modo Cego (padrão), as cartas e marcos ficam 100% secretos até virar. Ative o Raio-X Lab para espiar tudo."
+                    >
+                      {isLabTransparent ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                      {isLabTransparent ? 'Raio-X Lab: Aberto' : 'Espiar Tudo (Lab)'}
+                    </button>
+                  )}
+                </div>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight bg-gradient-to-r from-white via-fuchsia-100 to-amber-200 bg-clip-text text-transparent">
-                🃏 Sessão Secreta — Mesa das Cartas Misteriosas
-              </h1>
-              <p className="text-xs sm:text-sm text-zinc-400 max-w-3xl">
-                Cada ciclo de <strong className="text-amber-300">{cycleDays} dias</strong> concede <strong className="text-amber-300">{chipsAllowance} fichas</strong> (acumula até {maxChipsBank}) e cada sorteio abre de <strong className="text-zinc-200">3 a 10 cartas fechadas</strong>. Declínios são <strong className="text-emerald-300">ilimitados</strong>; para guardar um filme na fila sem queimá-lo, use uma <strong className="text-sky-300">Ficha Bumerangue</strong> ({boomerangAllowance}/{cycleDays} dias, acumula até {maxBoomerangBank}).
-              </p>
-            </div>
 
-            {/* Ações Principais */}
-            <div className="flex flex-wrap items-center gap-2.5">
-              <button
-                type="button"
-                disabled={drawing || previewShuffling || acting || activeWatchCount >= activeWatchLimit || chipsRemaining <= 0}
-                onClick={handleDrawCards}
-                title={
-                  activeWatchCount >= activeWatchLimit
-                    ? `Fila cheia (${activeWatchCount}/${activeWatchLimit}). Conclua ou decline um filme abaixo para sortear novamente.`
-                    : chipsRemaining <= 0
-                      ? showLabTools
-                        ? `Suas fichas acabaram! Recarrega ${chipsWallet.nextResetLabel} (ou use "+1 Ficha Lab").`
-                        : `Suas fichas acabaram! Recarrega ${chipsWallet.nextResetLabel}.`
-                      : `Gasta 1 ficha (${chipsRemaining} restante${chipsRemaining === 1 ? '' : 's'}) e sorteia de 3 a 10 cartas`
-                }
-                className="flex items-center gap-2 px-5 py-3 rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider bg-gradient-to-r from-fuchsia-500 via-violet-500 to-amber-500 hover:brightness-110 text-white shadow-lg shadow-fuchsia-500/25 transition-all cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
-              >
-                {drawing ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Dices className="w-4 h-4" />
-                )}
-                {drawing
-                  ? 'Embaralhando...'
-                  : isSecretDrawCycleExhausted
-                    ? `🔒 Recarrega ${chipsWallet.nextResetLabel}`
-                    : canChooseCardCount && countMode !== 'random'
-                      ? `Embaralhar & Sortear ${countMode} Cartas`
-                      : 'Embaralhar & Sortear (3–10)'}
-              </button>
+              {showRulesStrip && (
+                <div className="rounded-2xl border border-amber-400/25 bg-black/45 p-3.5 sm:p-4 flex flex-col gap-3">
+                  <div className="text-xs text-zinc-300 leading-relaxed">
+                    As fichas são depositadas no <strong className="text-amber-300">dia 1º e no dia 15 de cada mês</strong> ({chipsAllowance} fichas por depósito, acumula até {maxChipsBank}) e cada sorteio abre de{' '}
+                    <strong className="text-white">3 a 10 cartas fechadas</strong>. Declínios são{' '}
+                    <strong className="text-emerald-300">ilimitados</strong>; para devolver um filme ao baralho sem queimá-lo, use uma{' '}
+                    <strong className="text-sky-300">Ficha Bumerangue</strong> ({boomerangAllowance} nos dias 1 e 15, máx. {maxBoomerangBank}).{' '}
+                    Já assistidas no catálogo: <strong className="text-zinc-200">{pool.watchedCount || 0}</strong>.
+                  </div>
 
-              {showLabTools && (
-                <button
-                  type="button"
-                  onClick={() => setIsLabTransparent((v) => !v)}
-                  className={`flex items-center gap-1.5 px-3.5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider border transition-all cursor-pointer ${
-                    isLabTransparent
-                      ? 'bg-cyan-500/15 border-cyan-400/50 text-cyan-200 hover:bg-cyan-500/25'
-                      : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-zinc-500'
-                  }`}
-                  title="Em modo Cego (padrão), as cartas e marcos ficam 100% secretos até virar. Ative o Raio-X Lab para espiar tudo."
-                >
-                  {isLabTransparent ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                  {isLabTransparent ? 'Raio-X Lab: Aberto' : 'Espiar Tudo (Lab)'}
-                </button>
+                  {/* Barra de Naipes + Planilha */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2.5 border-t border-zinc-800/80 text-[11px]">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-zinc-500 font-black uppercase tracking-wider">Naipes:</span>
+                      {[
+                        ['♣ Comum', '35 XP • +0.2 SOR', 'border-emerald-500/35 text-emerald-300 bg-emerald-500/10'],
+                        ['♦ Mediano', '45 XP • +0.4 SOR', 'border-sky-500/35 text-sky-300 bg-sky-500/10'],
+                        ['♠ Difícil', '70 XP • +0.6 SOR', 'border-purple-500/35 text-purple-300 bg-purple-500/10'],
+                        ['♥ Muito Difícil', '100 XP • +1.0 SOR', 'border-amber-500/35 text-amber-300 bg-amber-500/10'],
+                        ['★ Exótico', '150 XP • +1.3 SOR', 'border-rose-400/50 text-rose-200 bg-rose-500/15'],
+                      ].map(([name, xp, cls]) => (
+                        <span key={name} className={`px-2.5 py-0.5 rounded-full font-black border ${cls}`}>
+                          {name} • <span className="font-mono">{xp}</span>
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".xlsx,.xlsm,.xls,.csv"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) handleSyncSheet(f);
+                          e.target.value = '';
+                        }}
+                      />
+                      <button
+                        type="button"
+                        disabled={syncingSheet}
+                        onClick={() => fileInputRef.current?.click()}
+                        className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 cursor-pointer flex items-center gap-1"
+                      >
+                        <Upload className="w-3 h-3" /> Subir Planilha
+                      </button>
+                      <button
+                        type="button"
+                        disabled={syncingSheet}
+                        onClick={() => handleSyncSheet(null)}
+                        className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 cursor-pointer flex items-center gap-1"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${syncingSheet ? 'animate-spin' : ''}`} /> Re-sync
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Regras da Mão: Qtd. Cartas + Ordem de Sagas */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2.5 border-t border-zinc-800/60 text-[11px]">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-zinc-500 font-black uppercase tracking-wider mr-1">Qtd. Cartas:</span>
+                      {!canChooseCardCount ? (
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="px-2.5 py-1 rounded-lg font-black border bg-fuchsia-500/20 border-fuchsia-400/55 text-fuchsia-100">
+                            🎲 1ª Ficha: Sorteio Aleatório (3–10 cartas)
+                          </span>
+                          <span className="text-[10px] text-amber-300/85 font-semibold px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-400/30">
+                            🔒 Escolha manual libera a partir da 2ª ficha do ciclo
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-1">
+                          <span className="text-[10px] font-black text-emerald-300 bg-emerald-500/15 border border-emerald-400/40 px-2 py-0.5 rounded-md mr-1">
+                            🔓 Escolha Liberada:
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setCountMode('random')}
+                            className={`px-2 py-1 rounded-lg font-black border transition-all cursor-pointer ${
+                              countMode === 'random'
+                                ? 'bg-fuchsia-500/25 border-fuchsia-400/60 text-fuchsia-100'
+                                : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-zinc-500'
+                            }`}
+                          >
+                            🎲 Aleatório
+                          </button>
+                          {[3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                            <button
+                              key={n}
+                              type="button"
+                              onClick={() => setCountMode(String(n))}
+                              className={`w-7 py-1 rounded-lg font-black font-mono border transition-all cursor-pointer ${
+                                countMode === String(n)
+                                  ? 'bg-amber-400 text-slate-950 border-amber-200 shadow'
+                                  : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-zinc-500'
+                              }`}
+                            >
+                              {n}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-zinc-500 font-black uppercase tracking-wider mr-1">Sagas:</span>
+                      {SAGA_RULE_OPTIONS.map((opt) => {
+                        const active = sagaRule === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setSagaRule(opt.id)}
+                            title={opt.hint}
+                            className={`px-2.5 py-1 rounded-lg font-black border transition-all cursor-pointer ${
+                              active
+                                ? 'bg-indigo-500/25 border-indigo-400/60 text-indigo-100'
+                                : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200'
+                            }`}
+                          >
+                            {opt.icon} {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
               )}
-            </div>
-          </div>
 
-          {/* Barra compacta de ferramentas Lab + Naipes */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-zinc-800/80 text-[11px]">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-zinc-500 font-black uppercase tracking-wider">Naipes:</span>
-              {[
-                ['♣ Comum', '35 XP • +0.2 SOR', 'border-emerald-500/35 text-emerald-300 bg-emerald-500/10'],
-                ['♦ Mediano', '45 XP • +0.4 SOR', 'border-sky-500/35 text-sky-300 bg-sky-500/10'],
-                ['♠ Difícil', '70 XP • +0.6 SOR', 'border-purple-500/35 text-purple-300 bg-purple-500/10'],
-                ['♥ Muito Difícil', '100 XP • +1.0 SOR', 'border-amber-500/35 text-amber-300 bg-amber-500/10'],
-                ['★ Exótico', '150 XP • +1.3 SOR', 'border-rose-400/50 text-rose-200 bg-rose-500/15'],
-              ].map(([name, xp, cls]) => (
-                <span key={name} className={`px-2.5 py-0.5 rounded-full font-black border ${cls}`}>
-                  {name} • <span className="font-mono">{xp}</span>
-                </span>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xlsm,.xls,.csv"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) handleSyncSheet(f);
-                  e.target.value = '';
-                }}
-              />
-              <button
-                type="button"
-                disabled={syncingSheet}
-                onClick={() => fileInputRef.current?.click()}
-                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 cursor-pointer flex items-center gap-1"
-              >
-                <Upload className="w-3 h-3" /> Subir Planilha
-              </button>
-              <button
-                type="button"
-                disabled={syncingSheet}
-                onClick={() => handleSyncSheet(null)}
-                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 cursor-pointer flex items-center gap-1"
-              >
-                <RefreshCw className={`w-3 h-3 ${syncingSheet ? 'animate-spin' : ''}`} /> Re-sync
-              </button>
               {showLabTools && (
-                <>
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-zinc-800/80 text-[11px]">
                   <button
                     type="button"
                     onClick={() => setShowSampleNorm((v) => !v)}
@@ -1669,80 +1859,8 @@ export default function SecretDrawPage({
                   >
                     <Trash2 className="w-3 h-3" /> Reset Lab
                   </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Linha de Regras da Mão: 1ª Ficha Aleatória vs 2ª+ Ficha Escolhível + Ordem de Sagas */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-zinc-800/60 text-[11px]">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-zinc-500 font-black uppercase tracking-wider mr-1">Qtd. Cartas:</span>
-              {!canChooseCardCount ? (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="px-2.5 py-1 rounded-lg font-black border bg-fuchsia-500/20 border-fuchsia-400/55 text-fuchsia-100">
-                    🎲 1ª Ficha: Sorteio Aleatório (3–10 cartas)
-                  </span>
-                  <span className="text-[10px] text-amber-300/85 font-semibold px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-400/30">
-                    🔒 Escolha manual libera a partir da 2ª ficha do ciclo
-                  </span>
-                </div>
-              ) : (
-                <div className="flex flex-wrap items-center gap-1">
-                  <span className="text-[10px] font-black text-emerald-300 bg-emerald-500/15 border border-emerald-400/40 px-2 py-0.5 rounded-md mr-1">
-                    🔓 Escolha Liberada:
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setCountMode('random')}
-                    className={`px-2 py-1 rounded-lg font-black border transition-all cursor-pointer ${
-                      countMode === 'random'
-                        ? 'bg-fuchsia-500/25 border-fuchsia-400/60 text-fuchsia-100'
-                        : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-zinc-500'
-                    }`}
-                  >
-                    🎲 Aleatório
-                  </button>
-                  {[3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => setCountMode(String(n))}
-                      className={`w-7 py-1 rounded-lg font-black font-mono border transition-all cursor-pointer ${
-                        countMode === String(n)
-                          ? 'bg-amber-400 text-slate-950 border-amber-200 shadow'
-                          : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-zinc-500'
-                      }`}
-                    >
-                      {n}
-                    </button>
-                  ))}
                 </div>
               )}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-zinc-500 font-black uppercase tracking-wider mr-1">Sagas:</span>
-              {SAGA_RULE_OPTIONS.map((opt) => {
-                const active = sagaRule === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setSagaRule(opt.id)}
-                    title={opt.hint}
-                    className={`px-2.5 py-1 rounded-lg font-black border transition-all cursor-pointer ${
-                      active
-                        ? 'bg-indigo-500/25 border-indigo-400/60 text-indigo-100'
-                        : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200'
-                    }`}
-                  >
-                    {opt.icon} {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </div>
       </section>
 
@@ -1786,10 +1904,11 @@ export default function SecretDrawPage({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
-            {(statusData?.specialCardsCatalog || FALLBACK_SPECIAL_CARDS_CATALOG).map((spec) => {
+            {specialCatalogList.map((spec) => {
               const sMeta = SPECIAL_RARITY_META[spec.rarity] || SPECIAL_RARITY_META.rare;
-              const thumbUrl = getSecretCardUrl(spec.images?.[0]);
-              const romanLabels = ['I', 'II', 'III', 'IV'];
+              const dMeta = getSpecialCardDisplayMeta(spec, specialCatalogList);
+              const artGallery = getSpecialCardArtGallery(spec, specialCatalogList);
+              const thumbUrl = getSecretCardUrl(artGallery[0]?.url || spec.images?.[0]);
               return (
                 <div
                   key={spec.id}
@@ -1798,13 +1917,15 @@ export default function SecretDrawPage({
                   <button
                     type="button"
                     disabled={acting}
-                    onClick={() => handleLabTriggerSpecial(spec.id, 0)}
-                    className="w-12 h-[72px] rounded-xl overflow-hidden border border-white/20 bg-white shrink-0 cursor-pointer hover:scale-105 transition disabled:opacity-50"
-                    title={`Testar ${spec.title}`}
+                    onClick={() => handleLabTriggerSpecial(spec.id, null)}
+                    className={`w-12 h-[72px] rounded-xl overflow-hidden border border-white/20 shrink-0 cursor-pointer hover:scale-105 transition disabled:opacity-50 ${
+                      spec.rarity === 'cursed' ? 'bg-zinc-950' : 'bg-white'
+                    }`}
+                    title={`Testar ${dMeta.title} (Arlequim)`}
                   >
                     <img
                       src={thumbUrl}
-                      alt={spec.title}
+                      alt={dMeta.title}
                       className="w-full h-full object-cover"
                     />
                   </button>
@@ -1814,8 +1935,8 @@ export default function SecretDrawPage({
                         {sMeta.icon} {spec.rarity.toUpperCase()}
                       </span>
                     </div>
-                    <div className="text-xs font-black text-white truncate" title={spec.title}>
-                      {spec.icon} {spec.title}
+                    <div className="text-xs font-black text-white truncate" title={dMeta.title}>
+                      {spec.icon} {dMeta.title}
                     </div>
                     <div className="text-[10px] text-zinc-400 truncate">{spec.shortTag}</div>
                     <div className="flex flex-wrap items-center gap-1 pt-0.5">
@@ -1827,18 +1948,21 @@ export default function SecretDrawPage({
                       >
                         ▶ Testar
                       </button>
-                      {Array.isArray(spec.images) &&
-                        spec.images.length > 1 &&
-                        spec.images.map((_, vIdx) => (
+                      {artGallery.length > 1 &&
+                        artGallery.map((art, vIdx) => (
                           <button
-                            key={vIdx}
+                            key={art.url}
                             type="button"
                             disabled={acting}
                             onClick={() => handleLabTriggerSpecial(spec.id, vIdx)}
-                            className="px-1.5 py-0.5 rounded-md bg-white/10 hover:bg-white/20 border border-white/15 text-[9.5px] font-black text-zinc-200 cursor-pointer disabled:opacity-50"
-                            title={`Testar variação ${romanLabels[vIdx] || vIdx + 1}`}
+                            className={`px-1.5 py-0.5 rounded-md border text-[9px] font-black cursor-pointer disabled:opacity-50 ${
+                              art.kind === 'classic'
+                                ? 'bg-zinc-900 hover:bg-zinc-800 border-zinc-700 text-zinc-300'
+                                : 'bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-400/35 text-emerald-200'
+                            }`}
+                            title={`Testar arte: ${art.label}`}
                           >
-                            {romanLabels[vIdx] || vIdx + 1}
+                            {art.kind === 'arlequim' ? 'Arl' : art.kind === 'alt' ? 'Alt' : `C${vIdx}`}
                           </button>
                         ))}
                     </div>
@@ -1874,7 +1998,7 @@ export default function SecretDrawPage({
                     }`}
                     title={classPowerWallet?.nextReset15Label ? `Recarga: ${classPowerWallet.nextReset15Label}` : undefined}
                   >
-                    ⚡ Cargas: {secretPowerCharges}/{maxSecretPowerCharges} (15 dias)
+                    ⚡ Cargas: {secretPowerCharges}/{maxSecretPowerCharges} (dias 1 e 15)
                   </span>
                 </div>
                 <div className="text-sm font-black text-white flex flex-wrap items-center gap-2">
@@ -2000,10 +2124,9 @@ export default function SecretDrawPage({
          ===================================================================== */}
       {(drawing || previewShuffling || (currentRound?.status === 'revealed' && Array.isArray(currentRound.cards))) && (
         <section
-          className="relative overflow-hidden rounded-[2rem] border-2 border-emerald-500/25 shadow-[inset_0_0_90px_rgba(0,0,0,0.85),0_24px_70px_rgba(0,0,0,0.75)] px-4 sm:px-8 py-8 sm:py-10"
+          className="relative overflow-hidden rounded-[2rem] border-2 shadow-[inset_0_0_90px_rgba(0,0,0,0.85),0_24px_70px_rgba(0,0,0,0.75)] px-4 sm:px-8 py-8 sm:py-10 border-amber-400/20"
           style={{
-            background:
-              'radial-gradient(ellipse at center, #0e382b 0%, #072019 56%, #040d0a 100%)',
+            background: 'radial-gradient(ellipse at center, #0b221a 0%, #05110d 56%, #030706 100%)',
           }}
         >
           {/* Arco dourado de mesa clássica */}
@@ -2074,16 +2197,16 @@ export default function SecretDrawPage({
               <div className="text-center flex flex-col items-center gap-1.5 max-w-md px-3">
                 <div className="text-sm sm:text-base font-black uppercase tracking-[0.2em] text-amber-200 animate-pulse">
                   {ocarinaShuffling
-                    ? '⏳ Ocarina da Floresta Reembaralhando Tudo!'
+                    ? '⏳ O Arlequim Está Reembaralhando Tudo!'
                     : previewShuffling
                       ? 'Testando Embaralhamento Riffle...'
                       : shuffleDeepLoading
-                        ? 'Consultando o Oráculo & Preparando a Mão...'
+                        ? 'O Arlequim Está Preparando a Mesa...'
                         : 'Embaralhando o Baralho da Sessão Secreta...'}
                 </div>
                 <div className="text-xs text-emerald-200/80 leading-relaxed">
                   {ocarinaShuffling
-                    ? 'A melodia do tempo está trocando e embaralhando todas as cartas fechadas da mesa sem gastar ficha'
+                    ? 'A melodia reversa está trocando e embaralhando todas as cartas fechadas da mesa sem gastar ficha'
                     : previewShuffling
                       ? 'Intercalando as cartas no feltro antes de distribuir sua mão'
                       : shuffleDeepLoading
@@ -2095,10 +2218,12 @@ export default function SecretDrawPage({
           ) : (
             /* MÃO DE 3 A 10 CARTAS DE BARALHO NA MESA */
             <div className="relative z-10 flex flex-col items-center gap-4">
-              <div className="w-full max-w-[1160px] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-black/40 border border-amber-400/25 rounded-2xl px-4 py-2.5">
+              <div className="w-full max-w-[1160px] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-black/45 border border-amber-400/25 rounded-2xl px-4 py-2.5">
                 <div className="flex flex-col gap-0.5 text-center sm:text-left">
                   <div className="text-xs font-black uppercase tracking-[0.16em] text-amber-200 flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                    <span>🍀 Foi sorteado {currentRound.cards.length} carta{currentRound.cards.length === 1 ? '' : 's'} — boa sorte!</span>
+                    <span>
+                      {`🃏 Mesa do Arlequim • ${currentRound.cards.length} carta${currentRound.cards.length === 1 ? '' : 's'} na mesa`}
+                    </span>
                     <span className="text-[10px] font-mono text-zinc-400">• Rodada #{currentRound.id}</span>
                   </div>
                   <div className="text-[11px] text-emerald-100/80">
@@ -2405,27 +2530,51 @@ export default function SecretDrawPage({
                             className={`secret-card-face secret-card-face-front rounded-[18px] border-2 ${suit.borderFrame} bg-gradient-to-b ${suit.frontGradient} ${suit.glowShadow} overflow-hidden flex flex-col`}
                           >
                             {isSpecialFront ? (
-                              <>
-                                <img
-                                  src={getSecretCardUrl(card.specialEvent.imageUrl)}
-                                  alt={card.specialEvent.title}
-                                  className="w-full h-full object-cover bg-white"
-                                />
-                                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black via-black/55 to-transparent" />
-                                <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
-                                  <span className="px-2 py-0.5 rounded-full bg-orange-600/90 border border-amber-300/70 text-[9px] font-black text-white shadow">
-                                    {isSpecialTriggered ? '🔥 ESPECIAL ATIVADA' : '👁️ LAB: ESPECIAL'}
-                                  </span>
-                                </div>
-                                <div className="absolute bottom-2 inset-x-2 text-center">
-                                  <div className="text-xs font-black text-white drop-shadow">
-                                    {card.specialEvent.icon} {card.specialEvent.title}
-                                  </div>
-                                  <div className="text-[9.5px] font-semibold text-amber-200 truncate">
-                                    {card.specialEvent.shortTag}
-                                  </div>
-                                </div>
-                              </>
+                              (() => {
+                                const frontMeta = getSpecialCardDisplayMeta(
+                                  card.specialEvent,
+                                  specialCatalogList
+                                );
+                                const frontImgUrl = resolveSpecialCardPrimaryUrl(
+                                  card.specialEvent,
+                                  specialCatalogList
+                                );
+                                return (
+                                  <>
+                                    <img
+                                      src={getSecretCardUrl(frontImgUrl)}
+                                      alt={frontMeta.title}
+                                      className={`w-full h-full object-cover ${
+                                        card.specialEvent.rarity === 'cursed' ? 'bg-zinc-950' : 'bg-white'
+                                      }`}
+                                    />
+                                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black via-black/55 to-transparent" />
+                                    <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
+                                      <span
+                                        className={`px-2 py-0.5 rounded-full border text-[9px] font-black shadow ${
+                                          card.specialEvent.rarity === 'cursed'
+                                            ? 'bg-rose-700/90 border-rose-300/65 text-white'
+                                            : 'bg-zinc-950/90 border-amber-300/70 text-amber-200'
+                                        }`}
+                                      >
+                                        {isSpecialTriggered
+                                          ? card.specialEvent.rarity === 'cursed'
+                                            ? '🩸 MALDIÇÃO'
+                                            : '✦ ARLEQUIM'
+                                          : '👁️ LAB: ESPECIAL'}
+                                      </span>
+                                    </div>
+                                    <div className="absolute bottom-2 inset-x-2 text-center">
+                                      <div className="text-xs font-black text-white drop-shadow">
+                                        {card.specialEvent.icon} {frontMeta.title}
+                                      </div>
+                                      <div className="text-[9.5px] font-semibold text-amber-200 truncate">
+                                        {card.specialEvent.shortTag}
+                                      </div>
+                                    </div>
+                                  </>
+                                );
+                              })()
                             ) : (
                               <>
                             {/* Pôster Full-Bleed dentro da carta */}
@@ -2554,15 +2703,44 @@ export default function SecretDrawPage({
           if (focusCard.specialEvent) {
             const sp = focusCard.specialEvent;
             const sMeta = SPECIAL_RARITY_META[sp.rarity] || SPECIAL_RARITY_META.rare;
+            const spDisplay = getSpecialCardDisplayMeta(sp, specialCatalogList);
+            const spGallery = getSpecialCardArtGallery(sp, specialCatalogList);
+            const safeSpIdx = Math.min(spotlightArtIdx, Math.max(0, spGallery.length - 1));
+            const activeSpArt = spGallery[safeSpIdx]?.url || resolveSpecialCardPrimaryUrl(sp, specialCatalogList);
             return (
               <section className={`rounded-3xl border-2 ${suit.borderFrame} bg-gradient-to-br from-zinc-950 via-zinc-900/90 to-zinc-950 p-4 sm:p-5 shadow-2xl`}>
                 <div className="flex flex-col sm:flex-row gap-5 items-center sm:items-start">
-                  <div className="w-28 sm:w-32 shrink-0 rounded-2xl overflow-hidden border-2 border-amber-300/40 bg-white shadow-2xl">
-                    <img
-                      src={getSecretCardUrl(sp.imageUrl)}
-                      alt={sp.title}
-                      className="w-full h-40 sm:h-48 object-cover"
-                    />
+                  <div className="flex flex-col items-center gap-1.5 shrink-0">
+                    <div
+                      className={`w-28 sm:w-32 rounded-2xl overflow-hidden border-2 border-amber-300/40 shadow-2xl ${
+                        sp.rarity === 'cursed' && safeSpIdx === 0 ? 'bg-zinc-950' : 'bg-white'
+                      }`}
+                    >
+                      <img
+                        src={getSecretCardUrl(activeSpArt)}
+                        alt={spDisplay.title}
+                        className="w-full h-40 sm:h-48 object-cover"
+                      />
+                    </div>
+                    {spGallery.length > 1 && (
+                      <div className="flex flex-wrap items-center justify-center gap-1 max-w-[140px]">
+                        {spGallery.map((art, aIdx) => (
+                          <button
+                            key={art.url}
+                            type="button"
+                            onClick={() => setSpotlightArtIdx(aIdx)}
+                            className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition cursor-pointer ${
+                              safeSpIdx === aIdx
+                                ? 'bg-amber-400 text-slate-950'
+                                : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800'
+                            }`}
+                            title={`Ver arte: ${art.label}`}
+                          >
+                            {art.kind === 'arlequim' ? 'Arl' : art.kind === 'alt' ? 'Alt' : `C${aIdx}`}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1 flex flex-col gap-2 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -2574,9 +2752,14 @@ export default function SecretDrawPage({
                       </span>
                     </div>
                     <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
-                      {sp.icon} {sp.title}
+                      {sp.icon} {spDisplay.title}
                     </h2>
-                    <p className="text-sm text-zinc-300 leading-relaxed">{sp.description}</p>
+                    {spDisplay.quote && (
+                      <p className="text-xs italic text-amber-200/85 border-l-2 border-amber-400/45 pl-2.5">
+                        “{spDisplay.quote}”
+                      </p>
+                    )}
+                    <p className="text-sm text-zinc-300 leading-relaxed">{spDisplay.description}</p>
                     {sp.resultSummary && (
                       <div className="rounded-xl bg-black/55 border border-white/15 px-3 py-2 text-xs font-bold text-emerald-200">
                         {sp.resultSummary}
@@ -2740,33 +2923,55 @@ export default function SecretDrawPage({
         })()
       )}
 
-      {/* MESA VAZIA ANTES DO PRIMEIRO SORTEIO OU APÓS FINALIZAR ESCOLHA */}
+      {/* MESA VAZIA ANTES DO PRIMEIRO SORTEIO OU QUANDO AS FICHAS ACABARAM */}
       {!drawing && !previewShuffling && !currentRound && (
-        isSecretDrawCycleExhausted ? (
-          <section className="secret-sanctum-card rounded-[2rem] border-2 border-fuchsia-400/45 p-7 sm:p-10 flex flex-col items-center justify-center text-center gap-5 shadow-2xl">
-            <SecretDrawCycleRestDisplay weekKey={chipsWallet.weekKey} />
+        isDeckClosedOutOfChips ? (
+          <section className="rounded-[2rem] border-2 p-7 sm:p-10 flex flex-col items-center justify-center text-center gap-5 shadow-2xl border-amber-400/30 bg-gradient-to-br from-[#0a090e] via-[#121017] to-[#070a09]">
+            <SecretDrawCycleRestDisplay
+              weekKey={chipsWallet.weekKey}
+              outOfChips={true}
+              hasQueuedMovies={hasQueuedOrPendingSecretMovies}
+            />
 
             <div className="max-w-xl flex flex-col items-center gap-2">
               <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-snug">
-                Você já zerou todas as fichas e a fila desse ciclo — volte na próxima recarga!
+                {hasQueuedOrPendingSecretMovies
+                  ? 'O Arlequim fechou a banca — sem mais fichas por agora!'
+                  : 'Você viu todos os filmes que o Arlequim sorteou — parabéns!'}
               </h3>
-              <p className="text-xs sm:text-sm text-emerald-100/80 leading-relaxed">
-                O Crupier do Destino recolheu o baralho de{' '}
-                <strong className="text-fuchsia-300">{chipsWallet.weekKey || 'temporada'}</strong> no cofre de veludo: não restam mais fichas de sorteio nem filmes aguardando na fila de assistir. Aproveite o catálogo até a próxima recarga!
+              <p className="text-xs sm:text-sm text-zinc-300/85 leading-relaxed">
+                {hasQueuedOrPendingSecretMovies ? (
+                  <>
+                    O Arlequim embaralhou tudo que podia em{' '}
+                    <strong className="text-amber-300">
+                      {formatCycleKeyLabel(chipsWallet.weekKey, { fallback: 'temporada' })}
+                    </strong>{' '}
+                    e trancou o baralho no cofre de veludo. Suas fichas acabaram por enquanto, mas{' '}
+                    <strong className="text-emerald-300">os {activeWatchCount} filme(s) já escolhidos</strong> continuam esperando você na fila abaixo!
+                  </>
+                ) : (
+                  <>
+                    Espero que tenha gostado… ou não. Será que o Arlequim se importa? O baralho da{' '}
+                    <strong className="text-amber-300">
+                      {formatCycleKeyLabel(chipsWallet.weekKey, { fallback: 'temporada' })}
+                    </strong>{' '}
+                    já está guardado no cofre de veludo — aproveite o catálogo até a próxima recarga!
+                  </>
+                )}
               </p>
             </div>
 
             <div className="w-full max-w-2xl grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-left">
-              <div className="rounded-2xl border border-fuchsia-400/35 bg-black/45 px-3.5 py-2.5 flex items-center gap-2.5">
-                <span className="w-8 h-8 rounded-xl bg-fuchsia-500/20 border border-fuchsia-400/40 flex items-center justify-center text-base shrink-0">
+              <div className="rounded-2xl border bg-black/45 px-3.5 py-2.5 flex items-center gap-2.5 border-amber-400/25">
+                <span className="w-8 h-8 rounded-xl border flex items-center justify-center text-base shrink-0 bg-amber-500/15 border-amber-400/35">
                   🎟️
                 </span>
                 <div className="min-w-0">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-fuchsia-300/90">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-amber-300/90">
                     Fichas &amp; Fila
                   </div>
                   <div className="text-xs font-black text-white truncate">
-                    0/{maxChipsBank} fichas • Fila 0/{activeWatchLimit}
+                    0/{maxChipsBank} fichas • Fila {activeWatchCount}/{activeWatchLimit}
                   </div>
                 </div>
               </div>
@@ -2799,8 +3004,8 @@ export default function SecretDrawPage({
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-2.5">
-              <div className="inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-2xl border border-fuchsia-400/40 bg-fuchsia-950/60 text-xs font-bold text-fuchsia-100 shadow-inner">
-                <Lock className="w-3.5 h-3.5 text-fuchsia-300 shrink-0" />
+              <div className="inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-2xl border text-xs font-bold shadow-inner border-amber-400/30 bg-zinc-950/90 text-zinc-200">
+                <Lock className="w-3.5 h-3.5 shrink-0 text-amber-300" />
                 <span>
                   Baralho selado •{' '}
                   {nextSecretCountdownLabel ? (
@@ -2825,9 +3030,9 @@ export default function SecretDrawPage({
           </section>
         ) : (
           <section
-            className="rounded-[2rem] border-2 border-emerald-500/20 p-8 flex flex-col items-center justify-center text-center gap-3.5 shadow-[inset_0_0_80px_rgba(0,0,0,0.8)]"
+            className="rounded-[2rem] border-2 p-8 flex flex-col items-center justify-center text-center gap-3.5 shadow-[inset_0_0_80px_rgba(0,0,0,0.8)] border-amber-400/20"
             style={{
-              background: 'radial-gradient(ellipse at center, #0e382b 0%, #072019 56%, #040d0a 100%)',
+              background: 'radial-gradient(ellipse at center, #0b221a 0%, #05110d 56%, #030706 100%)',
             }}
           >
             <div className="w-24 h-36 rounded-2xl border-2 border-amber-300/70 bg-[#120820] overflow-hidden shadow-2xl">
@@ -2838,20 +3043,17 @@ export default function SecretDrawPage({
               />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-black text-white">A mesa está livre para um novo sorteio!</h3>
+              <h3 className="text-base sm:text-lg font-black text-white">
+                A mesa do Arlequim está pronta para a próxima aposta.
+              </h3>
               <p className="text-xs text-emerald-100/75 max-w-md mt-1">
                 {activeWatchCount >= activeWatchLimit ? (
                   <span>
                     Sua fila atingiu o máximo de <strong>{activeWatchCount}/{activeWatchLimit} filmes</strong>. Cadastre ou decline um filme na grade abaixo para liberar vagas!
                   </span>
-                ) : chipsRemaining <= 0 ? (
-                  <span>
-                    Suas fichas de sorteio acabaram! Próxima recarga: <strong>{chipsWallet.nextResetLabel}</strong> ({chipsAllowance} fichas a cada {cycleDays} dias, acumula até {maxChipsBank})
-                    {showLabTools ? <> (ou clique em <strong>+1 Ficha Lab</strong> no painel acima para continuar testando)</> : '.'}
-                  </span>
                 ) : (
                   <span>
-                    Você tem <strong>{chipsRemaining}/{maxChipsBank} ficha(s)</strong> (ganha {chipsAllowance} a cada {cycleDays} dias) e <strong>{activeWatchLimit - activeWatchCount} vaga(s)</strong> na fila. Ao sortear, lembre-se: clicou na carta, vai direto para a fila!
+                    Você tem <strong>{chipsRemaining}/{maxChipsBank} ficha(s)</strong> (ganha {chipsAllowance} nos dias 1 e 15 do mês) e <strong>{activeWatchLimit - activeWatchCount} vaga(s)</strong> na fila. Ao sortear, lembre-se: clicou na carta, vai direto para a fila!
                   </span>
                 )}
               </p>
@@ -2861,7 +3063,7 @@ export default function SecretDrawPage({
                 type="button"
                 disabled={activeWatchCount >= activeWatchLimit || chipsRemaining <= 0 || acting}
                 onClick={handleDrawCards}
-                className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-fuchsia-500 to-amber-500 hover:brightness-110 text-white shadow cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
+                className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:brightness-110 shadow cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950"
               >
                 🎲 Embaralhar &amp; Sortear (3–10)
               </button>
@@ -3269,7 +3471,7 @@ export default function SecretDrawPage({
                               fCard?.boomerangLocked
                                 ? '⛓️ Esta carta foi acorrentada (Corrente do Destino / Coroa) e não pode usar o Passe Bumerangue!'
                                 : boomerangChipsRemaining <= 0
-                                  ? `Suas Fichas Bumerangue acabaram (${boomerangAllowance}/${cycleDays} dias, máx. ${maxBoomerangBank})! Recarrega ${chipsWallet.nextResetLabel}.`
+                                  ? `Suas Fichas Bumerangue acabaram (${boomerangAllowance} nos dias 1 e 15 do mês, máx. ${maxBoomerangBank})! Recarrega ${chipsWallet.nextResetLabel}.`
                                   : 'Tira da sua fila agora e devolve ao baralho para poder sair novamente depois (não queima o filme).'
                             }
                             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-sky-500/20 hover:bg-sky-500/35 text-sky-200 border border-sky-400/50 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
@@ -3324,7 +3526,7 @@ export default function SecretDrawPage({
                           <div className="rounded-xl border border-sky-400/45 bg-sky-950/35 p-2.5 flex flex-col gap-2">
                             <p className="text-[11px] text-sky-100/90 leading-snug">
                               🪃 <strong>Não quer ver agora sem queimar o filme?</strong> Sai da fila hoje (libera 1 vaga), usa{' '}
-                              <strong>1 Ficha Bumerangue</strong> ({boomerangChipsRemaining}/{maxBoomerangBank} acumulados • +{boomerangAllowance}/{cycleDays}d) e{' '}
+                              <strong>1 Ficha Bumerangue</strong> ({boomerangChipsRemaining}/{maxBoomerangBank} acumulados • +{boomerangAllowance} nos dias 1 e 15) e{' '}
                               <strong>volta pro baralho</strong> para poder ser sorteado de novo!
                             </p>
                             <div className="flex flex-wrap gap-1.5">
@@ -3409,7 +3611,21 @@ export default function SecretDrawPage({
           })()}
 
           {/* GRADE COMPACTA DE CARDS MENORES COM ANIMAÇÕES ORBITAIS POR DIFICULDADE */}
-          {filteredMiniCatalog.length > 0 && (
+          {filteredMiniCatalog.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-amber-400/25 bg-black/35 px-4 py-6 text-center flex flex-col items-center gap-1.5">
+              <span className="text-xl">🎭</span>
+              <p className="text-xs sm:text-sm font-black text-amber-200">
+                {miniCatalogFilter === 'active' || !hasQueuedOrPendingSecretMovies
+                  ? 'Você viu todos os filmes que o Arlequim sorteou — parabéns!'
+                  : 'Nenhuma carta nesta categoria no momento.'}
+              </p>
+              <p className="text-[11px] sm:text-xs text-zinc-400 max-w-lg">
+                {miniCatalogFilter === 'active' || !hasQueuedOrPendingSecretMovies
+                  ? 'Espero que tenha gostado… ou não. Será que o Arlequim se importa?'
+                  : 'Escolha outro filtro acima ou puxe novas cartas na mesa quando tiver fichas disponíveis.'}
+              </p>
+            </div>
+          ) : (
             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3">
               {filteredMiniCatalog.map((entry) => {
                 const gCard = entry.card;
@@ -3914,6 +4130,7 @@ export default function SecretDrawPage({
       {/* MODAL CINEMATOGRÁFICO UNIFICADO (TARÔ / MISTÉRIO / CARTAS ESPECIAIS) */}
       <SecretDrawCardRevealModal
         session={revealModalSession}
+        specialCardsCatalog={specialCatalogList}
         onClose={handleRevealModalClose}
         onOpenChainedSpecial={(chainedOutcome) => {
           setRevealModalSession({
@@ -3925,6 +4142,246 @@ export default function SecretDrawPage({
           });
         }}
       />
+
+      {/* MODAL GRIMÓRIO & HISTÓRIA DO ARLEQUIM */}
+      {showGrimoireModal && (() => {
+        const selectedSpec =
+          specialCatalogList.find((c) => c.id === grimoireSelectedId) || specialCatalogList[0];
+        const selectedMeta = SPECIAL_RARITY_META[selectedSpec?.rarity] || SPECIAL_RARITY_META.rare;
+        const selectedDisplay = getSpecialCardDisplayMeta(selectedSpec, specialCatalogList);
+        const selectedGallery = getSpecialCardArtGallery(selectedSpec, specialCatalogList);
+        const safeGrimArtIdx = Math.min(grimoireArtIdx, Math.max(0, selectedGallery.length - 1));
+        const activeGrimUrl = selectedGallery[safeGrimArtIdx]?.url || selectedSpec?.images?.[0] || '';
+        const isSelectedUnlocked = grimoireRevealAll || showLabTools || discoveredSpecialIds.has(selectedSpec?.id);
+        const selectedTimesDrawn = Number(specialCountsById[selectedSpec?.id] || 0);
+        const selectedSharePct =
+          totalSpecialTriggered > 0 ? Math.round((selectedTimesDrawn / totalSpecialTriggered) * 100) : 0;
+
+        return (
+          <div
+            className="fixed inset-0 z-50 bg-black/88 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowGrimoireModal(false);
+            }}
+          >
+            <div className="relative w-full max-w-5xl rounded-3xl border border-amber-400/30 bg-gradient-to-br from-[#0b0a0f] via-[#121017] to-[#08090c] p-5 sm:p-6 shadow-[0_24px_80px_rgba(0,0,0,0.9)] space-y-5 my-auto">
+              <div className="flex items-start justify-between gap-4 border-b border-zinc-800/90 pb-4">
+                <div className="flex items-start gap-3.5 min-w-0">
+                  <div className="hidden sm:block w-[72px] h-[88px] rounded-xl overflow-hidden border border-amber-400/40 bg-[#090c0b] shrink-0 shadow-lg">
+                    <img
+                      src={getSecretCardUrl(HARLEQUIN_CROUPIER_AVATAR)}
+                      alt="O Arlequim"
+                      className="w-full h-full object-cover object-[47%_16%] scale-[1.42] origin-[47%_16%]"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-300/85">
+                        Arquivo da Sala Particular • {discoveredSpecialIds.size}/{specialCatalogList.length} Descobertas
+                      </span>
+                      <span
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-emerald-400/40 bg-emerald-500/15 text-[10px] font-mono font-black text-emerald-200"
+                        title="Total de cartas especiais sorteadas e ativadas na mesa"
+                      >
+                        🎲 Total de Especiais Tiradas: {totalSpecialTriggered}×
+                      </span>
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-black text-white">
+                      {HARLEQUIN_BACKGROUND_LORE.title}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-3xl">
+                      {HARLEQUIN_BACKGROUND_LORE.summary}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setGrimoireRevealAll((v) => !v)}
+                    className={`px-3 py-1.5 rounded-xl text-[11px] font-black border transition cursor-pointer ${
+                      grimoireRevealAll
+                        ? 'bg-amber-400/20 border-amber-300/60 text-amber-200'
+                        : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-zinc-500'
+                    }`}
+                  >
+                    {grimoireRevealAll ? '👁️ Mostrando Todas' : '👁️ Espiar Todas'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowGrimoireModal(false)}
+                    className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-white flex items-center justify-center cursor-pointer"
+                    title="Fechar Grimório"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                {/* Grade de Cartas */}
+                <div className="lg:col-span-7 grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+                  {specialCatalogList.map((spec) => {
+                    const unlocked = grimoireRevealAll || showLabTools || discoveredSpecialIds.has(spec.id);
+                    const sDisplay = getSpecialCardDisplayMeta(spec, specialCatalogList);
+                    const thumb = resolveSpecialCardPrimaryUrl(spec, specialCatalogList);
+                    const isSelected = selectedSpec?.id === spec.id;
+                    const timesDrawn = Number(specialCountsById[spec.id] || 0);
+
+                    return (
+                      <button
+                        key={spec.id}
+                        type="button"
+                        onClick={() => {
+                          setGrimoireSelectedId(spec.id);
+                          setGrimoireArtIdx(0);
+                        }}
+                        className={`group rounded-2xl border p-1.5 flex flex-col gap-1.5 text-left transition cursor-pointer ${
+                          isSelected
+                            ? 'border-amber-400 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
+                            : 'border-zinc-800 bg-zinc-950/80 hover:border-zinc-600'
+                        }`}
+                      >
+                        <div
+                          className={`relative w-full aspect-[2/3] rounded-xl overflow-hidden ${
+                            spec.rarity === 'cursed' ? 'bg-zinc-950' : 'bg-white'
+                          }`}
+                        >
+                          <img
+                            src={getSecretCardUrl(thumb)}
+                            alt={unlocked ? sDisplay.title : 'Carta Misteriosa'}
+                            className={`w-full h-full object-cover transition ${
+                              unlocked ? 'group-hover:scale-105' : 'brightness-[0.15] contrast-150 grayscale'
+                            }`}
+                          />
+                          {!unlocked && (
+                            <div className="absolute inset-0 flex items-center justify-center text-zinc-400 text-lg font-black">
+                              ?
+                            </div>
+                          )}
+                          <span
+                            className={`absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-mono font-black border shadow ${
+                              timesDrawn > 0
+                                ? 'bg-amber-400/95 border-amber-100 text-slate-950'
+                                : 'bg-black/75 border-zinc-700/80 text-zinc-400'
+                            }`}
+                            title={`Tirada ${timesDrawn} ${timesDrawn === 1 ? 'vez' : 'vezes'}`}
+                          >
+                            {timesDrawn}×
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-1 px-0.5">
+                          <span className="text-[10px] font-black text-zinc-200 truncate">
+                            {unlocked ? `${spec.icon} ${sDisplay.title}` : '??? Carta Oculta'}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Detalhe da Carta Selecionada */}
+                {selectedSpec && (
+                  <div className="lg:col-span-5 rounded-2xl border border-zinc-800 bg-black/50 p-4 flex flex-col gap-3">
+                    <div className="flex flex-col items-center gap-2">
+                      <div
+                        className={`relative w-44 sm:w-48 aspect-[2/3] rounded-2xl overflow-hidden border-2 border-amber-300/40 shadow-2xl ${
+                          selectedSpec.rarity === 'cursed' && safeGrimArtIdx === 0 ? 'bg-zinc-950' : 'bg-white'
+                        }`}
+                      >
+                        <img
+                          src={getSecretCardUrl(activeGrimUrl)}
+                          alt={isSelectedUnlocked ? selectedDisplay.title : 'Carta Misteriosa'}
+                          className={`w-full h-full object-cover ${
+                            isSelectedUnlocked ? '' : 'brightness-[0.15] contrast-150 grayscale'
+                          }`}
+                        />
+                        {!isSelectedUnlocked && (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-zinc-300">
+                            <Lock className="w-7 h-7" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">
+                              Não Descoberta
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {isSelectedUnlocked && selectedGallery.length > 1 && (
+                        <div className="flex flex-wrap items-center justify-center gap-1">
+                          {selectedGallery.map((art, aIdx) => (
+                            <button
+                              key={art.url}
+                              type="button"
+                              onClick={() => setGrimoireArtIdx(aIdx)}
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition cursor-pointer ${
+                                safeGrimArtIdx === aIdx
+                                  ? 'bg-amber-400 text-slate-950'
+                                  : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-zinc-800'
+                              }`}
+                            >
+                              {art.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2 border-t border-zinc-800/80 pt-3">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className={`px-2 py-0.5 rounded-full border text-[10px] font-black ${selectedMeta.badgeClass}`}>
+                          {selectedMeta.icon} {selectedMeta.label}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded-full border text-[10px] font-mono font-black ${
+                            selectedTimesDrawn > 0
+                              ? 'border-amber-400/50 bg-amber-500/15 text-amber-200'
+                              : 'border-zinc-700 bg-zinc-900 text-zinc-400'
+                          }`}
+                        >
+                          🎲 Tirada {selectedTimesDrawn} {selectedTimesDrawn === 1 ? 'vez' : 'vezes'}
+                          {selectedTimesDrawn > 0 && totalSpecialTriggered > 0 ? ` (${selectedSharePct}%)` : ''}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-mono text-zinc-400">
+                          {selectedSpec.shortTag}
+                        </span>
+                      </div>
+
+                      <h3 className="text-lg font-black text-white">
+                        {isSelectedUnlocked ? `${selectedSpec.icon} ${selectedDisplay.title}` : '??? Segredo da Mesa'}
+                      </h3>
+
+                      {isSelectedUnlocked ? (
+                        <>
+                          {selectedDisplay.lore && (
+                            <p className="text-xs text-zinc-300 leading-relaxed">
+                              {selectedDisplay.lore}
+                            </p>
+                          )}
+                          {selectedDisplay.quote && (
+                            <p className="text-[11px] italic text-amber-200/85 border-l-2 border-amber-400/50 pl-2.5">
+                              “{selectedDisplay.quote}”
+                            </p>
+                          )}
+                          <div className="rounded-xl bg-zinc-900/90 border border-zinc-800 px-3 py-2 text-[11px] text-zinc-300">
+                            <strong className="text-zinc-100">Efeito na mesa:</strong> {selectedDisplay.description}
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-xs text-zinc-500 italic">
+                          Esta carta ainda não apareceu nos seus sorteios. Clique em “Espiar Todas” acima se quiser revelar o arquivo completo.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

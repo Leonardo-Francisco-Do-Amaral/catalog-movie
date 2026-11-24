@@ -29,25 +29,34 @@ function getSaoPauloDateParts(referenceDate = new Date()): { year: number; month
   };
 }
 
-/**
- * Calcula o ciclo fixo de 15 dias no fuso America/Sao_Paulo ancorado em 01/01/2026.
- */
-export function getSaoPaulo15DayCycleInfo(referenceDate = new Date()): Cycle15Info {
-  const { year, month, day } = getSaoPauloDateParts(referenceDate);
-  const todayUtcMs = Date.UTC(year, month - 1, day);
-  const daysSinceAnchor = Math.floor((todayUtcMs - CYCLE_ANCHOR_UTC_MS) / MS_PER_DAY);
-  const cycleIndex = Math.max(0, Math.floor(daysSinceAnchor / CYCLE_PERIOD_DAYS));
-  const nextCycleMs = CYCLE_ANCHOR_UTC_MS + (cycleIndex + 1) * CYCLE_PERIOD_DAYS * MS_PER_DAY;
-  const nextDt = new Date(nextCycleMs);
-  const dd = String(nextDt.getUTCDate()).padStart(2, '0');
-  const mm = String(nextDt.getUTCMonth() + 1).padStart(2, '0');
-  const yyyy = nextDt.getUTCFullYear();
+function getHalfMonthInfoFromParts(year: number, month: number, day: number): Cycle15Info {
+  const isSecondHalf = day >= 15;
+  const half = isSecondHalf ? 2 : 1;
+  const cycleIndex = (year * 12 + (month - 1)) * 2 + (isSecondHalf ? 1 : 0);
+  const mm = String(month).padStart(2, '0');
+
+  let nextResetLabel: string;
+  if (!isSecondHalf) {
+    nextResetLabel = `15/${mm}/${year} às 00:00 (Brasília)`;
+  } else {
+    const nextYear = month === 12 ? year + 1 : year;
+    const nextMonth = month === 12 ? 1 : month + 1;
+    nextResetLabel = `01/${String(nextMonth).padStart(2, '0')}/${nextYear} às 00:00 (Brasília)`;
+  }
 
   return {
     cycleIndex,
-    cycleKey: `Q15-${cycleIndex}`,
-    nextResetLabel: `${dd}/${mm}/${yyyy} às 00:00 (Brasília)`,
+    cycleKey: `H-${year}-${mm}-${half}`,
+    nextResetLabel,
   };
+}
+
+/**
+ * Calcula o ciclo quinzenal fixo no fuso America/Sao_Paulo com viradas no dia 1 e no dia 15 de cada mês.
+ */
+export function getSaoPaulo15DayCycleInfo(referenceDate = new Date()): Cycle15Info {
+  const { year, month, day } = getSaoPauloDateParts(referenceDate);
+  return getHalfMonthInfoFromParts(year, month, day);
 }
 
 /**
@@ -66,9 +75,23 @@ export function getSaoPauloMonthCycleInfo(referenceDate = new Date()): MonthlyCy
 }
 
 function parsePreviousCycleIndex(previousKey: string): number | null {
+  const hMatch = previousKey.match(/^H-(\d{4})-(\d{2})-(1|2)$/);
+  if (hMatch) {
+    const year = Number(hMatch[1]);
+    const month = Number(hMatch[2]);
+    const isSecondHalf = hMatch[3] === '2';
+    return (year * 12 + (month - 1)) * 2 + (isSecondHalf ? 1 : 0);
+  }
   if (previousKey.startsWith('Q15-')) {
     const idx = Number(previousKey.slice(4));
-    return Number.isFinite(idx) ? idx : null;
+    if (!Number.isFinite(idx) || idx < 0) return null;
+    // Converte o formato legado Q15-N para o ciclo dia 1 / dia 15 correspondente ao fim daquela janela
+    const periodEndDt = new Date(CYCLE_ANCHOR_UTC_MS + (idx * 15 + 14) * MS_PER_DAY);
+    return getHalfMonthInfoFromParts(
+      periodEndDt.getUTCFullYear(),
+      periodEndDt.getUTCMonth() + 1,
+      periodEndDt.getUTCDate()
+    ).cycleIndex;
   }
   const mMatch = previousKey.match(/^M-(\d{4})-(\d{2})$/);
   if (mMatch) {
@@ -77,8 +100,35 @@ function parsePreviousCycleIndex(previousKey: string): number | null {
   return null;
 }
 
+export function formatCycleKeyLabel(rawKey: string | null | undefined, short = false): string {
+  const clean = String(rawKey || '').trim();
+  if (!clean) return 'Temporada Atual';
+  const monthsFull = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+  ];
+  const monthsShort = [
+    'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+    'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez',
+  ];
+  const names = short ? monthsShort : monthsFull;
+
+  const hMatch = clean.match(/^H-(\d{4})-(\d{2})-(1|2)$/);
+  if (hMatch) {
+    const mIdx = Math.max(0, Math.min(11, Number(hMatch[2]) - 1));
+    const halfLabel = hMatch[3] === '1' ? '1ª Quinzena' : '2ª Quinzena';
+    return short ? `${halfLabel} • ${names[mIdx]}/${hMatch[1]}` : `${halfLabel} de ${names[mIdx]}/${hMatch[1]}`;
+  }
+  const mMatch = clean.match(/^M-(\d{4})-(\d{2})$/);
+  if (mMatch) {
+    const mIdx = Math.max(0, Math.min(11, Number(mMatch[2]) - 1));
+    return `${names[mIdx]}/${mMatch[1]}`;
+  }
+  return clean;
+}
+
 /**
- * Calcula o novo saldo acumulado de fichas na virada de ciclo (15 dias ou mensal), respeitando o teto máximo.
+ * Calcula o novo saldo acumulado de fichas na virada de ciclo (dias 1/15 ou mensal), respeitando o teto máximo.
  */
 export function computeCycleBankedBalance(params: {
   previousCycleKey: string | null | undefined;
@@ -89,19 +139,22 @@ export function computeCycleBankedBalance(params: {
   maxBankCap: number;
 }): number {
   const prev = String(params.previousCycleKey || '');
+  const curBal = Math.max(0, Number(params.currentBalance || 0));
   if (prev === params.currentCycleKey) {
-    return Math.max(0, Number(params.currentBalance || 0));
+    return curBal;
   }
   const prevIdx = parsePreviousCycleIndex(prev);
   if (prevIdx !== null) {
-    const elapsed =
-      params.currentCycleIndex > prevIdx ? params.currentCycleIndex - prevIdx : 1;
+    const elapsed = Math.max(0, params.currentCycleIndex - prevIdx);
+    if (elapsed === 0) {
+      return Math.min(params.maxBankCap, curBal);
+    }
     return Math.min(
       params.maxBankCap,
-      Math.max(0, Number(params.currentBalance || 0)) + params.allowancePerCycle * elapsed
+      curBal + params.allowancePerCycle * elapsed
     );
   }
-  // Primeira migração a partir do formato semanal antigo (YYYY-Wxx) ou registro inicial
+  // Primeira migração a partir de formato semanal antigo (YYYY-Wxx) ou registro inicial
   return Math.min(
     params.maxBankCap,
     Math.max(params.allowancePerCycle, Number(params.currentBalance ?? params.allowancePerCycle))

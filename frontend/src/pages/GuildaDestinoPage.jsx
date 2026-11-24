@@ -216,7 +216,7 @@ export default function GuildaDestinoPage({
                     )}
                   </div>
                   <p className="text-xs text-zinc-400 mt-0.5">
-                    Cartas misteriosas da sua lista • 3 fichas a cada 15 dias (máx. 5) e Bumerangue.
+                    Cartas misteriosas da sua lista • 3 fichas nos dias 1 e 15 do mês (máx. 5) e Bumerangue.
                   </p>
                 </div>
               </div>
@@ -243,7 +243,7 @@ export default function GuildaDestinoPage({
                     )}
                   </div>
                   <p className="text-xs text-zinc-400 mt-0.5">
-                    Forja D20 de 4 pilares + 5 Cartas de Tarô ocultas • 3 fichas / 15 dias (máx. 5) &amp; Declínios.
+                    Forja D20 de 4 pilares + 5 Cartas de Tarô ocultas • 3 fichas nos dias 1 e 15 (máx. 5) &amp; Declínios.
                   </p>
                 </div>
               </div>

@@ -166,12 +166,12 @@ export async function assertClassPowerChargeAvailable(mode: ClassPowerMode): Pro
   const wallet = await getClassPowerWalletStatus();
   if (mode === 'secret_draw' && wallet.secretCharges <= 0) {
     throw new Error(
-      `Sua carga de Poder da Sessão Secreta acabou (1 a cada ${wallet.cycleDays} dias, máx. ${wallet.maxSecretCharges}). Recarga: ${wallet.nextReset15Label}.`
+      `Sua carga de Poder da Sessão Secreta acabou (1 nos dias 1 e 15 do mês, máx. ${wallet.maxSecretCharges}). Recarga: ${wallet.nextReset15Label}.`
     );
   }
   if (mode === 'chimera' && wallet.chimeraCharges <= 0) {
     throw new Error(
-      `Sua carga de Poder da Quimera acabou (1 a cada ${wallet.cycleDays} dias, máx. ${wallet.maxChimeraCharges}). Recarga: ${wallet.nextReset15Label}.`
+      `Sua carga de Poder da Quimera acabou (1 nos dias 1 e 15 do mês, máx. ${wallet.maxChimeraCharges}). Recarga: ${wallet.nextReset15Label}.`
     );
   }
   if (mode === 'bingo' && wallet.bingoCharges <= 0) {

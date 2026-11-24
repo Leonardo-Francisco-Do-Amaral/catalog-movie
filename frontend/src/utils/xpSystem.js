@@ -1,5 +1,6 @@
 import { UN_COUNTRIES_195, HISTORICAL_TERRITORIES } from '../data/unCountries195';
 import { getCountryRarityTier } from '../data/countryRarityTiers';
+import { formatCycleKeyLabel } from './cycleCountdown';
 
 export const XP_PER_MOVIE = 10;
 export const MIN_TIME_MACHINE_YEAR = 1920;
@@ -871,7 +872,7 @@ export function computeXpGainEvent(prev, next) {
       tags.push({
         type: 'bingo',
         icon: '🎯',
-        label: `+${diffXp} XP Bingo Mensal (${entry.monthKey})`,
+        label: `+${diffXp} XP Bingo Mensal (${formatCycleKeyLabel(entry.monthKey, { short: true })})`,
         xp: diffXp,
         rarityOrTier: 'gold',
       });

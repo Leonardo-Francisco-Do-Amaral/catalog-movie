@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { triggerXPGainToast, dispatchXpStatusUpdate } from '../utils/xpSystem';
-import { getNextMonthCountdownLabel } from '../utils/cycleCountdown';
+import { getNextMonthCountdownLabel, formatCycleKeyLabel } from '../utils/cycleCountdown';
 import {
   playBingoCageSpinSound,
   playBingoStampSound,
@@ -389,7 +389,7 @@ function GuildCompletedGrimoireDisplay({ monthKey = '' }) {
       </div>
 
       <div className="px-3.5 py-1 rounded-full bg-emerald-950/75 border border-emerald-400/50 text-[10.5px] font-black uppercase tracking-widest text-emerald-200 shadow-inner">
-        ⚜️ Grimórios de {monthKey || 'Mês Atual'} • 100% Selados &amp; Arquivados
+        ⚜️ Grimórios de {formatCycleKeyLabel(monthKey, { fallback: 'Mês Atual' })} • 100% Selados &amp; Arquivados
       </div>
     </div>
   );
@@ -1399,7 +1399,7 @@ export default function BingoPage({
                 title="Duplo clique ou Alt+L para alternar Laboratório"
                 className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-[#1a1008]/90 border border-[#8b6339]/60 text-[#f2d6a2] select-none cursor-pointer"
               >
-                📅 {wallet.monthKey || 'Mês'} • Renova {wallet.nextResetLabel}
+                📅 {formatCycleKeyLabel(wallet.monthKey, { fallback: 'Mês Atual' })} • Renova {wallet.nextResetLabel}
               </span>
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-black bg-[#3a1f0a]/85 border border-amber-400/50 text-amber-200">
                 ⚡ +{Number(xpSummary.totalXp || 0).toLocaleString('pt-BR')} XP Colhidos
@@ -1408,7 +1408,7 @@ export default function BingoPage({
             <p className="text-xs text-[#d4b483] mt-1">
               {isMonthCompletedAllDone ? (
                 <>
-                  🏆 Você já gabaritou todos os grimórios de <strong className="text-emerald-300">{wallet.monthKey}</strong>! Novos contratos abrem em <strong className="text-amber-200">{wallet.nextResetLabel}</strong>.
+                  🏆 Você já gabaritou todos os grimórios de <strong className="text-emerald-300">{formatCycleKeyLabel(wallet.monthKey, { fallback: 'Mês Atual' })}</strong>! Novos contratos abrem em <strong className="text-amber-200">{wallet.nextResetLabel}</strong>.
                 </>
               ) : (
                 <>
@@ -1635,7 +1635,7 @@ export default function BingoPage({
               Você já completou todos os grimórios desse mês — volte mês que vem!
             </h3>
             <p className="text-xs sm:text-sm text-[#e6cca1] leading-relaxed">
-              Os escribas selaram o cofre de <strong className="text-emerald-300">{wallet.monthKey}</strong> com lacre real e recolheram todos os pergaminhos da taverna. Aproveite os filmes do catálogo, troféus e demais desafios até o próximo ciclo!
+              Os escribas selaram o cofre de <strong className="text-emerald-300">{formatCycleKeyLabel(wallet.monthKey, { fallback: 'Mês Atual' })}</strong> com lacre real e recolheram todos os pergaminhos da taverna. Aproveite os filmes do catálogo, troféus e demais desafios até o próximo ciclo!
             </p>
           </div>
 
@@ -1660,7 +1660,7 @@ export default function BingoPage({
               </span>
               <div className="min-w-0">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-amber-300/90">
-                  Colheita de {wallet.monthKey}
+                  Colheita de {formatCycleKeyLabel(wallet.monthKey, { short: true, fallback: 'Mês Atual' })}
                 </div>
                 <div className="text-xs font-black text-amber-200 truncate">
                   +{currentMonthTotalXp.toLocaleString('pt-BR')} XP Selado
@@ -1703,7 +1703,7 @@ export default function BingoPage({
           {hasCompletedCurrentMonth && wallet.forgeChips > 0 && (
             <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/45 text-[11px] font-bold text-emerald-200">
               <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
-              Você já gabaritou {currentMonthBoardCount} grimório(s) em {wallet.monthKey} — e possui {wallet.forgeChips} ficha(s) extra(s) acumulada(s)!
+              Você já gabaritou {currentMonthBoardCount} grimório(s) em {formatCycleKeyLabel(wallet.monthKey, { fallback: 'Mês Atual' })} — e possui {wallet.forgeChips} ficha(s) extra(s) acumulada(s)!
             </div>
           )}
           <div className="max-w-lg -mt-1">
@@ -1735,7 +1735,7 @@ export default function BingoPage({
               <div className="flex items-center gap-2 text-xs text-amber-100">
                 <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0" />
                 <span>
-                  Esta mesa pertence ao mês anterior (<strong>{activeBoard.monthKey}</strong>). Continue completando os contratos ou arquive para abrir a de <strong>{wallet.monthKey}</strong>.
+                  Esta mesa pertence ao mês anterior (<strong>{formatCycleKeyLabel(activeBoard.monthKey)}</strong>). Continue completando os contratos ou arquive para abrir a de <strong>{formatCycleKeyLabel(wallet.monthKey)}</strong>.
                 </span>
               </div>
               <button
@@ -1937,7 +1937,7 @@ export default function BingoPage({
                   REMESSA Nº {formatTicketSerial(activeBoard.id)}
                 </span>
                 <span className="text-xs font-bold text-[#d4b483] font-serif italic">
-                  EDIÇÃO {activeBoard.monthKey} • {activeBoard.completedSquaresCount}/16 LACRADOS
+                  EDIÇÃO {formatCycleKeyLabel(activeBoard.monthKey).toUpperCase()} • {activeBoard.completedSquaresCount}/16 LACRADOS
                 </span>
               </div>
 
@@ -2105,7 +2105,7 @@ export default function BingoPage({
               >
                 <div>
                   <div className="text-xs font-black text-[#f8ead0]">
-                    Remessa #{formatTicketSerial(hb.id)} • {hb.monthKey}
+                    Remessa #{formatTicketSerial(hb.id)} • {formatCycleKeyLabel(hb.monthKey, { short: true })}
                   </div>
                   <div className="text-[10.5px] text-[#c9a36b] font-mono">
                     {hb.completedSquaresCount}/16 contratos • {hb.completedLinesCount}/10 fileiras •{' '}

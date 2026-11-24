@@ -5,6 +5,9 @@ import {
   getSecretCardUrl,
   getSecretPlayingCardMeta,
   getSecretSuitBackImage,
+  getSpecialCardArtGallery,
+  getSpecialCardDisplayMeta,
+  resolveSpecialCardPrimaryUrl,
 } from '../utils/secretSpecialCardsCatalog';
 import {
   playChimeraTarotRarityRevealSound,
@@ -74,6 +77,7 @@ export default function SecretDrawCardRevealModal({
   session,
   onClose,
   onOpenChainedSpecial,
+  specialCardsCatalog = null,
 }) {
   const rawReactId = useId();
   const svgUid = rawReactId.replace(/[^a-zA-Z0-9_-]/g, '');
@@ -82,6 +86,7 @@ export default function SecretDrawCardRevealModal({
   const [coinSettled, setCoinSettled] = useState(false);
   const [sealChargePct, setSealChargePct] = useState(0);
   const [burnProgress, setBurnProgress] = useState(0);
+  const [selectedArtIdx, setSelectedArtIdx] = useState(0);
   const timersRef = useRef([]);
   const rafRef = useRef(null);
   const sessionRef = useRef(session);
@@ -118,6 +123,7 @@ export default function SecretDrawCardRevealModal({
     setCoinSettled(false);
     setSealChargePct(0);
     setBurnProgress(0);
+    setSelectedArtIdx(0);
 
     if (activeSession.mode === 'movie') {
       // Cartas normais (não especiais): apenas um som simples de virar carta, independente da dificuldade
@@ -277,6 +283,22 @@ export default function SecretDrawCardRevealModal({
   const pulledMovie = outcome?.pulledMoviePick || null;
   const chainedOutcome = outcome?.chainedOutcome || null;
   const deckCardMeta = getSecretPlayingCardMeta(card, session.roundId || outcome?.roundId || 1);
+  const specialGallery = !isMovie ? getSpecialCardArtGallery(specialEvent, specialCardsCatalog) : [];
+  const safeArtIdx = Math.min(selectedArtIdx, Math.max(0, specialGallery.length - 1));
+  const displayedSpecialUrl =
+    specialGallery[safeArtIdx]?.url ||
+    resolveSpecialCardPrimaryUrl(specialEvent, specialCardsCatalog) ||
+    specialEvent?.imageUrl ||
+    '';
+  const specialDisplayMeta = !isMovie
+    ? getSpecialCardDisplayMeta(specialEvent, specialCardsCatalog)
+    : null;
+  const effectiveSpecialOutcomeKind =
+    specRarity === 'cursed' || specialCoinFace === 'tails'
+      ? 'cursed'
+      : specRarity === 'bet' && !specialCoinFace
+        ? 'bet'
+        : 'blessing';
 
   return (
     <div
@@ -302,15 +324,31 @@ export default function SecretDrawCardRevealModal({
         {/* Banner Flutuante Superior */}
         <div className="relative z-10 text-center">
           {!isMovie ? (
-            <div className="inline-flex flex-col items-center gap-2">
-              <div className="secret-burn-banner px-5 py-2 rounded-full border border-orange-400/60 bg-gradient-to-r from-orange-600/40 via-amber-500/35 to-rose-600/40 text-amber-100 text-xs sm:text-base font-black tracking-wide uppercase shadow-[0_0_32px_rgba(249,115,22,0.65)]">
-                🔥 PARABÉNS! VOCÊ DESCOBRIU UMA CARTA ESPECIAL!
+            <div className="inline-flex flex-col items-center gap-1.5">
+              <div
+                className={`secret-burn-banner px-5 py-2 rounded-full border text-xs sm:text-base font-black tracking-wide uppercase ${
+                  !isFlipped
+                    ? 'border-amber-400/50 bg-[#141118]/90 text-amber-200 shadow-[0_0_28px_rgba(245,158,11,0.35)]'
+                    : effectiveSpecialOutcomeKind === 'cursed'
+                      ? 'border-rose-500/65 bg-gradient-to-r from-zinc-950 via-rose-950/85 to-zinc-950 text-rose-200 shadow-[0_0_32px_rgba(244,63,94,0.45)]'
+                      : effectiveSpecialOutcomeKind === 'bet'
+                        ? 'border-amber-400/65 bg-gradient-to-r from-zinc-950 via-amber-950/70 to-zinc-950 text-amber-200 shadow-[0_0_28px_rgba(245,158,11,0.45)]'
+                        : 'border-emerald-400/55 bg-gradient-to-r from-zinc-950 via-emerald-950/80 to-zinc-950 text-emerald-200 shadow-[0_0_30px_rgba(16,185,129,0.4)]'
+                }`}
+              >
+                {!isFlipped
+                  ? '🃏 O Arlequim deu uma carta especial'
+                  : effectiveSpecialOutcomeKind === 'cursed'
+                    ? '🩸 Maldição do Arlequim Revelada'
+                    : specialCoinFace === 'heads'
+                      ? '🪙 Aposta Vencida — Bênção do Arlequim'
+                      : '✦ Bênção do Arlequim em Cena'}
               </div>
-              {isFlipped && (
-                <p className="text-xs sm:text-sm text-white/75 drop-shadow">
-                  {specMeta.icon} Carta {specMeta.label} ativada na sua sessão!
-                </p>
-              )}
+              <p className="text-xs sm:text-sm text-zinc-300/90 drop-shadow">
+                {!isFlipped
+                  ? 'Agora é só saber se é bênção ou maldição...'
+                  : `${specMeta.icon} ${specialDisplayMeta?.title} • ${specMeta.label}`}
+              </p>
             </div>
           ) : (
             <div className="inline-flex flex-col items-center gap-1.5">
@@ -321,10 +359,10 @@ export default function SecretDrawCardRevealModal({
               </div>
               <p className="text-xs sm:text-sm text-white/70 drop-shadow">
                 {!isFlipped
-                  ? 'Virando carta secreta da mesa...'
+                  ? 'O Arlequim está virando a carta...'
                   : mysteryStep < 3
-                  ? 'Decifrando pistas e marcos do filme...'
-                  : 'Todos os segredos desta carta foram revelados!'}
+                    ? 'Decifrando pistas e marcos do filme...'
+                    : `O Arlequim revelou a sessão: "${card.resolved?.title || card.planilha?.rawTitle}"`}
               </p>
             </div>
           )}
@@ -469,9 +507,15 @@ export default function SecretDrawCardRevealModal({
                 <div className="relative z-10 w-full h-full rounded-[19px] overflow-hidden bg-[#090710]">
                   {/* Arte final da Carta Especial esperando por baixo do selo */}
                   <img
-                    src={getSecretCardUrl(specialEvent.imageUrl)}
-                    alt={isFlipped ? specialEvent.title || 'Carta Especial' : 'Carta Especial Oculta'}
-                    className="w-full h-full object-cover bg-white"
+                    src={getSecretCardUrl(displayedSpecialUrl)}
+                    alt={
+                      isFlipped
+                        ? specialDisplayMeta?.title || specialEvent.title || 'Carta Especial'
+                        : 'Carta Especial Oculta'
+                    }
+                    className={`w-full h-full object-cover ${
+                      specRarity === 'cursed' && safeArtIdx === 0 ? 'bg-zinc-950' : 'bg-white'
+                    }`}
                   />
 
                   {isFlipped && (
@@ -620,6 +664,35 @@ export default function SecretDrawCardRevealModal({
                 ⏭ Pular animação e revelar tudo
               </button>
             )}
+
+            {/* Seletor discreto para espiar outras artes da carta (alternativas / clássicas) */}
+            {!isMovie && isFlipped && specialGallery.length > 1 && (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="mt-3 flex flex-wrap items-center justify-center gap-1 px-2.5 py-1.5 rounded-full bg-zinc-950/90 border border-white/15 shadow-lg max-w-[360px]"
+              >
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mr-1">
+                  Outras artes:
+                </span>
+                {specialGallery.map((art, aIdx) => (
+                  <button
+                    key={art.url}
+                    type="button"
+                    onClick={() => setSelectedArtIdx(aIdx)}
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition cursor-pointer ${
+                      safeArtIdx === aIdx
+                        ? art.kind === 'classic'
+                          ? 'bg-amber-400/25 text-amber-200 border border-amber-300/60'
+                          : 'bg-emerald-500/25 text-emerald-200 border border-emerald-400/60'
+                        : 'bg-white/5 text-zinc-400 hover:text-zinc-200 border border-transparent'
+                    }`}
+                    title={`Visualizar arte: ${art.label}`}
+                  >
+                    {art.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* COLUNA DIREITA: PROGRESSÃO MISTERIOSA OU RESULTADO ESPECIAL (PAINÉIS SOLTOS NO PALCO) */}
@@ -754,18 +827,21 @@ export default function SecretDrawCardRevealModal({
             ) : (
               /* PAINEL DE CARTA ESPECIAL — ZERO SPOILERS ANTES DO FLIP! */
               !isFlipped ? (
-                <div className="rounded-2xl border border-orange-400/40 bg-black/60 backdrop-blur-md p-5 sm:p-6 space-y-4 shadow-[0_0_40px_rgba(249,115,22,0.18)]">
+                <div className="rounded-2xl border backdrop-blur-md p-5 sm:p-6 space-y-4 border-amber-400/35 bg-[#0c0a10]/85 shadow-[0_0_40px_rgba(245,158,11,0.12)]">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-orange-400/50 bg-orange-950/60 text-xs font-black text-amber-200 uppercase tracking-widest animate-pulse">
-                      🔥 Carta Misteriosa • ???
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-black uppercase tracking-widest animate-pulse border-amber-400/45 bg-amber-950/45 text-amber-200">
+                      🃏 Carta do Arlequim • ???
                     </div>
                   </div>
 
-                  <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight">
-                    {sealChargePct < 100
-                      ? 'Despertando Carta...'
-                      : 'Revelando Destino...'}
-                  </h3>
+                  <div>
+                    <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight">
+                      {sealChargePct < 100 ? 'O Arlequim entrou em cena...' : 'Revelando Destino...'}
+                    </h3>
+                    <p className="text-xs text-zinc-400 mt-1 italic">
+                      O Arlequim te deu uma carta especial — agora é só saber se é bênção ou maldição.
+                    </p>
+                  </div>
 
                   <div className="space-y-3 pt-1">
                     {/* Barra 1 */}
@@ -818,10 +894,15 @@ export default function SecretDrawCardRevealModal({
                     </div>
                     <h3 className="text-2xl font-black text-white flex items-center gap-2">
                       <span>{specialEvent.icon}</span>
-                      <span>{specialEvent.title}</span>
+                      <span>{specialDisplayMeta?.title || specialEvent.title}</span>
                     </h3>
+                    {specialDisplayMeta?.quote && (
+                      <p className="text-xs italic text-amber-200/90 mt-1.5 border-l-2 border-amber-400/55 pl-2.5">
+                        “{specialDisplayMeta.quote}”
+                      </p>
+                    )}
                     <p className="text-sm text-white/80 mt-2 leading-relaxed">
-                      {specialEvent.description}
+                      {specialDisplayMeta?.description || specialEvent.description}
                     </p>
                   </div>
 
@@ -867,7 +948,8 @@ export default function SecretDrawCardRevealModal({
                           {specialEvent.outcomeData?.targetTitle && (
                             <p className="text-xs text-white/80 mt-1">
                               Alvo: <strong className="text-white">{specialEvent.outcomeData.targetTitle}</strong> (
-                              {specialEvent.outcomeData.oldXp} → {specialEvent.outcomeData.newXp} XP)
+                              {specialEvent.outcomeData.prevXp ?? specialEvent.outcomeData.oldXp} →{' '}
+                              {specialEvent.outcomeData.nextXp ?? specialEvent.outcomeData.newXp} XP)
                             </p>
                           )}
                         </div>
@@ -897,6 +979,20 @@ export default function SecretDrawCardRevealModal({
                         {specialEvent.resultSummary || 'Efeito especial ativado!'}
                       </p>
 
+                      {specialEvent.id === 'portal_dimensional' &&
+                        specialEvent.outcomeData?.targetTitle &&
+                        !specialEvent.outcomeData?.noTarget && (
+                          <div className="rounded-xl bg-cyan-950/55 border border-cyan-400/40 px-3 py-2.5 text-xs text-cyan-100">
+                            <span className="font-black text-cyan-200">
+                              🌀 O Arlequim adora este filme — ele ainda vai te dar o XP!
+                            </span>{' '}
+                            <span className="text-white/85">
+                              Filme: <strong>{specialEvent.outcomeData.targetTitle}</strong> (+
+                              {specialEvent.outcomeData.awardXp} XP liberados sem assistir).
+                            </span>
+                          </div>
+                        )}
+
                       {Array.isArray(specialEvent.outcomeData?.reshuffledDetails) &&
                         specialEvent.outcomeData.reshuffledDetails.length > 0 && (
                           <div className="flex flex-wrap gap-1.5">
@@ -912,20 +1008,20 @@ export default function SecretDrawCardRevealModal({
                         )}
 
                       {pulledMovie && (
-                        <div className="flex items-center gap-3 p-2.5 rounded-xl bg-black/50 border border-white/15">
+                        <div className="flex items-center gap-3 p-2.5 rounded-xl bg-black/50 border border-emerald-400/30">
                           {pulledMovie.card?.resolved?.posterUrl && (
                             <img
                               src={pulledMovie.card.resolved.posterUrl}
-                              alt={pulledMovie.movieTitle}
+                              alt={pulledMovie.card?.resolved?.title || pulledMovie.movieTitle}
                               className="w-11 h-16 object-cover rounded-lg border border-white/15 shrink-0"
                             />
                           )}
                           <div className="min-w-0">
                             <div className="text-[11px] font-bold text-emerald-300">
-                              ✈️ Puxado direto para a Fila ({pulledMovie.card?.difficultyLabel})
+                              {`🃏 O Arlequim deu sua bênção, mas ele escolheu o filme (${pulledMovie.card?.difficultyLabel}):`}
                             </div>
                             <div className="text-sm font-black text-white truncate">
-                              {pulledMovie.movieTitle}
+                              Filme: {pulledMovie.card?.resolved?.title || pulledMovie.movieTitle}
                             </div>
                             <div className="text-xs text-amber-300 font-bold">
                               +{pulledMovie.xpReward} XP
@@ -941,7 +1037,7 @@ export default function SecretDrawCardRevealModal({
                           className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500/30 via-fuchsia-500/30 to-rose-500/30 hover:from-amber-500/45 hover:to-rose-500/45 border border-amber-300/60 text-amber-100 text-xs sm:text-sm font-black transition shadow-lg"
                         >
                           ⚡ A Carta Puxada Escondia "{chainedOutcome.specialEvent.icon}{' '}
-                          {chainedOutcome.specialEvent.title}" — Abrir Revelação em Cadeia!
+                          {chainedOutcome.specialEvent.harlequinTitle || chainedOutcome.specialEvent.title}" — Abrir Revelação em Cadeia!
                         </button>
                       )}
                     </div>

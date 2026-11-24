@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { triggerXPGainToast, dispatchXpStatusUpdate } from '../utils/xpSystem';
-import { getCycle15CountdownLabel } from '../utils/cycleCountdown';
+import { getCycle15CountdownLabel, formatCycleKeyLabel } from '../utils/cycleCountdown';
 import {
   playChimeraJackpotTickSound,
   playChimeraJackpotFanfareSound,
@@ -173,7 +173,7 @@ function ChimeraCycleRestDisplay({ cycleKey = '' }) {
       </div>
 
       <div className="px-3.5 py-1 rounded-full bg-emerald-950/75 border border-emerald-400/45 text-[10.5px] font-black uppercase tracking-widest text-emerald-200 shadow-inner">
-        🧬 Forja de Quimeras • {cycleKey ? `Ciclo ${cycleKey} ` : ''}em Repouso
+        🧬 Forja de Quimeras • {formatCycleKeyLabel(cycleKey, { short: true, fallback: 'Ciclo Atual' })} • Em Repouso
       </div>
     </div>
   );
@@ -602,11 +602,10 @@ export default function ChimeraPage({
     maxDeclineBank: 2,
     nextBlessedRolls: 0,
     chipsUsedThisWeek: 0,
-    nextResetLabel: 'Ciclo de 15 dias (Brasília)',
+    nextResetLabel: 'Dias 1 e 15 do mês (Brasília)',
   };
   const maxChipsBank = Number(wallet.maxChipsBank || 5);
   const maxDeclineBank = Number(wallet.maxDeclineBank || 2);
-  const cycleDays = Number(wallet.cycleDays || 15);
   const baseActiveLimit = Number(statusData?.baseActiveLimit ?? 2);
   const labActiveLimit = Number(statusData?.labActiveLimit ?? statusData?.activeLimit ?? baseActiveLimit);
   const activeLimit = showLabTools ? labActiveLimit : baseActiveLimit;
@@ -751,7 +750,7 @@ export default function ChimeraPage({
                   className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/35 text-emerald-300 text-[10px] font-black uppercase tracking-widest select-none"
                 >
                   <Dna className="w-3.5 h-3.5" />
-                  Ciclo {cycleDays} Dias • {wallet.weeklyAllowance || 3} Fichas (máx. {maxChipsBank}) •{' '}
+                  Dias 1 e 15 • {wallet.weeklyAllowance || 3} Fichas (máx. {maxChipsBank}) •{' '}
                   {wallet.declineChipsRemaining ?? 0} Declínio{(wallet.declineChipsRemaining ?? 0) === 1 ? '' : 's'}{' '}
                   disp. (máx. {maxDeclineBank})
                 </span>
@@ -784,7 +783,7 @@ export default function ChimeraPage({
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 shrink-0">
             <div className="rounded-2xl bg-zinc-950/80 border border-emerald-500/30 px-3 py-2.5 text-center">
               <div className="text-[10px] uppercase font-black tracking-wider text-emerald-300/80">
-                Fichas ({cycleDays}d)
+                Fichas (1º/15)
               </div>
               <div className="text-xl font-black font-mono text-emerald-300 mt-0.5">
                 {wallet.chipsRemaining}
@@ -792,7 +791,7 @@ export default function ChimeraPage({
               </div>
             </div>
             <div
-              title={`Ganha +1 Declínio a cada ${cycleDays} dias (acumula até ${maxDeclineBank}). Declinar devolve +1 Ficha de Forja!`}
+              title={`Ganha +1 Declínio nos dias 1 e 15 do mês (acumula até ${maxDeclineBank}). Declinar devolve +1 Ficha de Forja!`}
               className="rounded-2xl bg-zinc-950/80 border border-sky-500/30 px-3 py-2.5 text-center"
             >
               <div className="text-[10px] uppercase font-black tracking-wider text-sky-300/80">
@@ -1055,7 +1054,7 @@ export default function ChimeraPage({
                     }`}
                     title={classPowerWallet?.nextReset15Label ? `Recarga: ${classPowerWallet.nextReset15Label}` : undefined}
                   >
-                    ⚡ Cargas: {chimeraPowerCharges}/{maxChimeraPowerCharges} (15 dias)
+                    ⚡ Cargas: {chimeraPowerCharges}/{maxChimeraPowerCharges} (dias 1 e 15)
                   </span>
                 </div>
                 <div className="text-sm font-black text-white flex flex-wrap items-center gap-2">
@@ -1379,7 +1378,7 @@ export default function ChimeraPage({
                           disabled={actionBusy || (wallet.declineChipsRemaining ?? 0) <= 0}
                           title={
                             (wallet.declineChipsRemaining ?? 0) <= 0
-                              ? `Sem Declínios disponíveis (1 a cada ${cycleDays} dias, máx. ${maxDeclineBank}).`
+                              ? `Sem Declínios disponíveis (1 nos dias 1 e 15 do mês, máx. ${maxDeclineBank}).`
                               : 'Gasta 1 Declínio para cancelar esta Quimera e DEVOLVER +1 Ficha de Forja!'
                           }
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/40 text-sky-200 text-[11px] font-black transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
@@ -1429,7 +1428,7 @@ export default function ChimeraPage({
                 </h3>
                 <p className="text-xs sm:text-sm text-emerald-100/80 leading-relaxed">
                   Os alquimistas apagaram os fornos de{' '}
-                  <strong className="text-emerald-300">{wallet.cycleKey || wallet.weekKey || 'temporada'}</strong>: não há mais Quimeras ativas na caçada nem fichas de D20 restantes no momento. Aguarde a virada do ciclo para despertar novas criaturas!
+                  <strong className="text-emerald-300">{formatCycleKeyLabel(wallet.cycleKey || wallet.weekKey, { fallback: 'temporada' })}</strong>: não há mais Quimeras ativas na caçada nem fichas de D20 restantes no momento. Aguarde a virada do ciclo para despertar novas criaturas!
                 </p>
               </div>
 
@@ -1443,7 +1442,7 @@ export default function ChimeraPage({
                       Fichas de Forja
                     </div>
                     <div className="text-xs font-black text-white truncate">
-                      0/{maxChipsBank} (+{wallet.weeklyAllowance || 3} a cada {cycleDays}d)
+                      0/{maxChipsBank} (+{wallet.weeklyAllowance || 3} dias 1 e 15)
                     </div>
                   </div>
                 </div>
@@ -1629,7 +1628,7 @@ export default function ChimeraPage({
                         disabled={actionBusy || (wallet.declineChipsRemaining ?? 0) <= 0}
                         title={
                           (wallet.declineChipsRemaining ?? 0) <= 0
-                            ? `Sem Declínios disponíveis (1 a cada ${cycleDays} dias, máx. ${maxDeclineBank}).`
+                            ? `Sem Declínios disponíveis (1 nos dias 1 e 15 do mês, máx. ${maxDeclineBank}).`
                             : 'Gasta 1 Declínio para cancelar esta Quimera e DEVOLVER +1 Ficha de Forja!'
                         }
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/40 text-sky-200 text-[11px] font-black transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"

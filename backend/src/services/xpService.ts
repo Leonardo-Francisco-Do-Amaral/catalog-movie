@@ -1,4 +1,5 @@
 import { query } from '../config/database';
+import { formatCycleKeyLabel } from '../utils/cycleUtils';
 import { TrophyTier } from '../data/trophyDefinitions';
 import { CountryRarityTier, getCountryRarityTier, HISTORICAL_TERRITORIES, UN_COUNTRIES_195 } from '../data/unCountries195';
 import { buildWorldChallengePayload } from './worldChallengeService';
@@ -1296,7 +1297,7 @@ export function computeXpGainEvent(
           ? `• ${lnDelta} linha${lnDelta > 1 ? 's' : ''}`
           : sqDelta > 0
             ? `• ${sqDelta} casa${sqDelta > 1 ? 's' : ''}`
-            : `(${entry.monthKey})`;
+            : `(${formatCycleKeyLabel(entry.monthKey, true)})`;
       tags.push({
         type: 'bingo',
         icon: '🎯',

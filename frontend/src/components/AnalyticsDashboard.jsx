@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { getCountryIsoFromName } from './InteractiveGlobe3D';
 import TrophyChecklistModal from './TrophyChecklistModal';
+import { formatCycleKeyLabel } from '../utils/cycleCountdown';
 import {
   TROPHY_XP_BY_TIER,
   TROPHY_TIER_META,
@@ -953,7 +954,7 @@ export default function AnalyticsDashboard({
       claimedSquaresTotal: Number(xpBg?.claimedSquaresTotal || 0),
       statTotal: Number(xpBg?.statPoints?.total || 0),
       hasActiveBoard: Boolean(activeBoard),
-      activeMonthKey: activeBoard?.monthKey || bingoData?.wallet?.monthKey || 'Atual',
+      activeMonthKey: formatCycleKeyLabel(activeBoard?.monthKey || bingoData?.wallet?.monthKey, { short: true, fallback: 'Atual' }),
       completedSquares,
       claimedSquares,
       completedLines,

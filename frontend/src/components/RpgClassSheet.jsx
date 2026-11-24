@@ -378,7 +378,7 @@ export default function RpgClassSheet({
                     {CLASS_POWER_MODE_META[equippedPowersProfile.specialtyMode]?.icon}{' '}
                     {CLASS_POWER_MODE_META[equippedPowersProfile.specialtyMode]?.label}
                   </strong>{' '}
-                  • Cada modo tem 1 carga compartilhada (15d Secreta/Quimera, 1 mês Pergaminhos) — troque de classe no Grimório conforme sua estratégia!
+                  • Cada modo tem 1 carga compartilhada (dias 1 e 15 Secreta/Quimera, 1 mês Pergaminhos) — troque de classe no Grimório conforme sua estratégia!
                 </div>
               </div>
             </div>
@@ -413,7 +413,7 @@ export default function RpgClassSheet({
               const nextReset =
                 modeKey === 'bingo'
                   ? powerWallet?.nextResetMonthLabel || '01 do mês'
-                  : powerWallet?.nextReset15Label || 'ciclo 15d';
+                  : powerWallet?.nextReset15Label || 'dias 1 e 15 do mês';
               const armedBuff =
                 modeKey === 'secret_draw' ? powerWallet?.secretBuff : null;
 
