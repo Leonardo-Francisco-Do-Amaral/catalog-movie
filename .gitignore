@@ -41,3 +41,7 @@ Desktop.ini
 scratch/
 scratch_*
 *.tmp
+
+# Backups locais do banco de dados (snapshots)
+backups/
+

@@ -79,6 +79,7 @@ import {
   syncSecretDrawPoolFromBuffer,
   checkAndCompleteActiveDrawOnMovieSave,
   activateSecretDrawClassPower,
+  activateSecretDrawBazaarPower,
 } from './services/secretDrawService';
 import {
   ensureChimeraTables,
@@ -94,6 +95,7 @@ import {
   labResetChimeras,
   checkChimeraMatchOnMovieSave,
   activateChimeraClassPower,
+  activateChimeraBazaarPower,
 } from './services/chimeraService';
 import {
   ensureBingoTables,
@@ -112,11 +114,19 @@ import {
   labResetBingo,
   BingoChipType,
   activateBingoClassPower,
+  activateBingoBazaarPower,
 } from './services/bingoService';
 import {
   getClassPowerWalletStatus,
   labGrantClassPowerCharge,
 } from './services/classPowersService';
+import {
+  getGuildBazaarStatus,
+  purchaseGuildBazaarItem,
+  equipGuildBazaarCosmetics,
+  updateGuildBazaarSettings,
+  labResetGuildBazaar,
+} from './services/guildBazaarService';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -2254,6 +2264,29 @@ app.get('/api/secret-draw/status', async (_req: Request, res: Response) => {
   }
 });
 
+app.post('/api/secret-draw/bazaar-power', async (req: Request, res: Response) => {
+  try {
+    const action = String(req.body?.action || '').trim() as
+      | 'arm_amulet'
+      | 'arm_plus2'
+      | 'arm_plus5'
+      | 'arm_special_storm'
+      | 'activate_radar'
+      | 'transmute_pick';
+    const pickId = req.body?.pickId ? Number(req.body.pickId) : null;
+    if (!action) {
+      return res.status(400).json({ success: false, error: 'action é obrigatório.' });
+    }
+    const result = await activateSecretDrawBazaarPower({ action, pickId });
+    return res.json({ success: true, ...result });
+  } catch (err: any) {
+    return res.status(400).json({
+      success: false,
+      error: err?.message || 'Erro ao usar Poder do Bazar na Sessão Secreta.',
+    });
+  }
+});
+
 app.post('/api/secret-draw/draw', async (req: Request, res: Response) => {
   try {
     const rawCount = req.body?.requestedCount;
@@ -2267,7 +2300,8 @@ app.post('/api/secret-draw/draw', async (req: Request, res: Response) => {
         ? rawSagaRule
         : 'redirect_first';
     const data = await drawSecretCards({ requestedCount, sagaRule });
-    return res.json({ success: true, data });
+    const bazaarStatus = await getGuildBazaarStatus().catch(() => null);
+    return res.json({ success: true, data, bazaarStatus });
   } catch (err: any) {
     console.error('[SecretDraw] Erro ao sortear cartas:', err.message);
     return res.status(400).json({ success: false, error: err.message });
@@ -2281,8 +2315,13 @@ app.post('/api/secret-draw/choose', async (req: Request, res: Response) => {
     if (!roundId || !seat) {
       return res.status(400).json({ success: false, error: 'roundId e seat são obrigatórios.' });
     }
-    const prevXp = await getQuickXpSnapshot().catch(() => null);
-    const outcome = await chooseSecretSeatAction(roundId, seat, { deferOcarina: true });
+    let prevXp: any = null;
+    const outcome = await chooseSecretSeatAction(roundId, seat, {
+      deferOcarina: true,
+      beforeXpCandidateSpecial: async () => {
+        prevXp = await getQuickXpSnapshot().catch(() => null);
+      },
+    });
 
     if (outcome.kind === 'special') {
       const portalPick =
@@ -2295,12 +2334,19 @@ app.post('/api/secret-draw/choose', async (req: Request, res: Response) => {
           console.warn('[Bingo] Erro ao avaliar Portal da Sessão Secreta:', bErr?.message)
         );
       }
-      const [data, xpStatus] = await Promise.all([
+      const portalGold = Number(portalPick?.goldAwarded || 0);
+      const specialBazaarGold = Number(outcome?.specialEvent?.outcomeData?.bazaarGoldAdded || 0);
+      const blockedByAmulet = Boolean(outcome?.specialEvent?.outcomeData?.blockedByAmulet);
+      const shouldFetchXp = Boolean(portalPick?.id);
+      const [data, xpStatus, bazaarStatus] = await Promise.all([
         getSecretDrawStatus(),
-        getQuickXpSnapshot().catch(() => null),
+        shouldFetchXp ? getQuickXpSnapshot().catch(() => null) : Promise.resolve(null),
+        portalGold + specialBazaarGold > 0 || blockedByAmulet
+          ? getGuildBazaarStatus().catch(() => null)
+          : Promise.resolve(null),
       ]);
-      const xpGain = computeXpGainEvent(prevXp, xpStatus);
-      return res.json({ success: true, kind: 'special', outcome, data, xpStatus, xpGain });
+      const xpGain = shouldFetchXp ? computeXpGainEvent(prevXp, xpStatus) : null;
+      return res.json({ success: true, kind: 'special', outcome, data, xpStatus, xpGain, bazaarStatus });
     }
 
     const data = await getSecretDrawStatus();
@@ -2322,8 +2368,11 @@ app.post('/api/secret-draw/finish-round', async (req: Request, res: Response) =>
       return res.status(400).json({ success: false, error: 'roundId é obrigatório.' });
     }
     const result = await finishSecretDrawRound(roundId);
-    const data = await getSecretDrawStatus();
-    return res.json({ success: true, result, data });
+    const [data, bazaarStatus] = await Promise.all([
+      getSecretDrawStatus(),
+      result.insuranceRefunded ? getGuildBazaarStatus().catch(() => null) : Promise.resolve(null),
+    ]);
+    return res.json({ success: true, result, data, bazaarStatus });
   } catch (err: any) {
     console.error('[SecretDraw] Erro ao finalizar escolha da mão:', err.message);
     return res.status(400).json({ success: false, error: err.message });
@@ -2374,12 +2423,13 @@ app.post('/api/secret-draw/claim', async (req: Request, res: Response) => {
       pickId: claimed.id,
       difficulty: claimed.difficulty,
     }).catch((bErr: any) => console.warn('[Bingo] Erro ao avaliar Sessão Secreta:', bErr?.message));
-    const [data, xpStatus] = await Promise.all([
+    const [data, xpStatus, bazaarStatus] = await Promise.all([
       getSecretDrawStatus(),
       getQuickXpSnapshot().catch(() => null),
+      Number(claimed.goldAwarded || 0) > 0 ? getGuildBazaarStatus().catch(() => null) : Promise.resolve(null),
     ]);
     const xpGain = computeXpGainEvent(prevXp, xpStatus);
-    return res.json({ success: true, claimed, data, xpStatus, xpGain });
+    return res.json({ success: true, claimed, data, xpStatus, xpGain, bazaarStatus });
   } catch (err: any) {
     console.error('[SecretDraw] Erro ao colher XP da carta:', err.message);
     return res.status(400).json({ success: false, error: err.message });
@@ -2442,12 +2492,15 @@ app.post('/api/secret-draw/lab/trigger-special', async (req: Request, res: Respo
         console.warn('[Bingo] Erro ao avaliar Portal Lab:', bErr?.message)
       );
     }
-    const [data, xpStatus] = await Promise.all([
+    const portalGold = Number(portalPick?.goldAwarded || 0);
+    const specialBazaarGold = Number(outcome?.specialEvent?.outcomeData?.bazaarGoldAdded || 0);
+    const [data, xpStatus, bazaarStatus] = await Promise.all([
       getSecretDrawStatus(),
       getQuickXpSnapshot().catch(() => null),
+      portalGold + specialBazaarGold > 0 ? getGuildBazaarStatus().catch(() => null) : Promise.resolve(null),
     ]);
     const xpGain = computeXpGainEvent(prevXp, xpStatus);
-    return res.json({ success: true, kind: 'special', outcome, data, xpStatus, xpGain });
+    return res.json({ success: true, kind: 'special', outcome, data, xpStatus, xpGain, bazaarStatus });
   } catch (err: any) {
     console.error('[SecretDraw] Erro ao disparar Carta Especial no Lab:', err.message);
     return res.status(400).json({ success: false, error: err.message });
@@ -2534,6 +2587,30 @@ app.post('/api/chimeras/class-power', async (req: Request, res: Response) => {
   }
 });
 
+app.post('/api/chimeras/bazaar-power', async (req: Request, res: Response) => {
+  try {
+    const chimeraId = req.body?.chimeraId ? Number(req.body.chimeraId) : null;
+    const action = String(req.body?.action || '').trim() as
+      | 'oracle_2'
+      | 'oracle_3'
+      | 'tarot_reroll'
+      | 'invert_essence'
+      | 'golden_jackpot'
+      | 'arm_amulet';
+    const category = req.body?.category ? (String(req.body.category).trim() as any) : null;
+    if (!action || (action !== 'arm_amulet' && !chimeraId)) {
+      return res.status(400).json({ success: false, error: 'chimeraId e action são obrigatórios.' });
+    }
+    const result = await activateChimeraBazaarPower({ chimeraId, action, category });
+    return res.json({ success: true, ...result });
+  } catch (err: any) {
+    return res.status(400).json({
+      success: false,
+      error: err?.message || 'Erro ao aplicar Poder do Bazar na Quimera.',
+    });
+  }
+});
+
 app.get('/api/chimeras/status', async (req: Request, res: Response) => {
   try {
     const labMode = req.query?.lab === '1' || req.query?.lab === 'true';
@@ -2568,8 +2645,8 @@ app.post('/api/chimeras/pick-rune', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'chimeraId e runeId são obrigatórios.' });
     }
     const updated = await pickChimeraFateRune(chimeraId, runeId);
-    const data = await getChimeraStatus();
-    return res.json({ success: true, chimera: updated, data });
+    const [data, bazaarStatus] = await Promise.all([getChimeraStatus(), getGuildBazaarStatus()]);
+    return res.json({ success: true, chimera: updated, bazaarStatus, data });
   } catch (err: any) {
     console.error('[Chimera] Erro ao selar Carta de Tarô da Quimera:', err.message);
     return res.status(400).json({ success: false, error: err.message });
@@ -2588,12 +2665,13 @@ app.post('/api/chimeras/claim', async (req: Request, res: Response) => {
       chimeraId: claimed.id,
       jackpotsHitCount: Number(claimed.matchDetails?.jackpotsHitCount || 0),
     }).catch((bErr: any) => console.warn('[Bingo] Erro ao avaliar Quimera:', bErr?.message));
-    const [data, xpStatus] = await Promise.all([
+    const [data, xpStatus, bazaarStatus] = await Promise.all([
       getChimeraStatus(),
       getQuickXpSnapshot().catch(() => null),
+      Number(claimed.goldAwarded || 0) > 0 ? getGuildBazaarStatus().catch(() => null) : Promise.resolve(null),
     ]);
     const xpGain = computeXpGainEvent(prevXp, xpStatus);
-    return res.json({ success: true, claimed, data, xpStatus, xpGain });
+    return res.json({ success: true, claimed, data, xpStatus, xpGain, bazaarStatus });
   } catch (err: any) {
     console.error('[Chimera] Erro ao colher XP da Quimera:', err.message);
     return res.status(400).json({ success: false, error: err.message });
@@ -2849,6 +2927,101 @@ app.post('/api/bingo/lab/reset', async (_req: Request, res: Response) => {
     return res.json({ success: true, data, xpStatus });
   } catch (err: any) {
     console.error('[Bingo] Erro ao resetar Bingo no Lab:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ============================================================================
+// BAZAR CLANDESTINO DO ARLEQUIM & AVATAR DA GUILDA
+// ============================================================================
+app.get('/api/guild-bazaar/status', async (_req: Request, res: Response) => {
+  try {
+    const data = await getGuildBazaarStatus();
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[GuildBazaar] Erro ao carregar status:', err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/guild-bazaar/buy', async (req: Request, res: Response) => {
+  try {
+    const itemId = String(req.body?.itemId || '').trim();
+    if (!itemId) {
+      return res.status(400).json({ success: false, error: 'itemId é obrigatório.' });
+    }
+    const result = await purchaseGuildBazaarItem(itemId);
+    return res.json({
+      success: true,
+      data: result.status,
+      purchasedItem: result.purchasedItem,
+      grantedSummary: result.grantedSummary,
+    });
+  } catch (err: any) {
+    console.error('[GuildBazaar] Erro ao comprar item:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/bingo/bazaar-power', async (req: Request, res: Response) => {
+  try {
+    const boardId = Number(req.body?.boardId);
+    const targetType = String(req.body?.targetType || 'square').trim() as 'square' | 'line';
+    const squareIndex =
+      req.body?.squareIndex !== undefined && req.body?.squareIndex !== null
+        ? Number(req.body.squareIndex)
+        : null;
+    const lineId = req.body?.lineId ? String(req.body.lineId).trim() : null;
+    if (!boardId) {
+      return res.status(400).json({ success: false, error: 'boardId é obrigatório.' });
+    }
+    const result = await activateBingoBazaarPower({ boardId, targetType, squareIndex, lineId });
+    return res.json({ success: true, ...result });
+  } catch (err: any) {
+    return res.status(400).json({
+      success: false,
+      error: err?.message || 'Erro ao aplicar Sinete Híbrido no Bingo.',
+    });
+  }
+});
+
+app.put('/api/guild-bazaar/equip', async (req: Request, res: Response) => {
+  try {
+    const data = await equipGuildBazaarCosmetics({
+      skin: req.body?.skin ? String(req.body.skin) : undefined,
+      backdrop: req.body?.backdrop ? String(req.body.backdrop) : undefined,
+      frame: req.body?.frame ? String(req.body.frame) : undefined,
+      bubble: req.body?.bubble ? String(req.body.bubble) : undefined,
+      xpBarSkin: req.body?.xpBarSkin ? String(req.body.xpBarSkin) : undefined,
+    });
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[GuildBazaar] Erro ao equipar cosmético:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/guild-bazaar/settings', async (req: Request, res: Response) => {
+  try {
+    const data = await updateGuildBazaarSettings({
+      avatarEnabled:
+        typeof req.body?.avatarEnabled === 'boolean' ? req.body.avatarEnabled : undefined,
+      labInfiniteMoney:
+        typeof req.body?.labInfiniteMoney === 'boolean' ? req.body.labInfiniteMoney : undefined,
+    });
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[GuildBazaar] Erro ao atualizar configurações:', err.message);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/guild-bazaar/lab/reset', async (_req: Request, res: Response) => {
+  try {
+    const data = await labResetGuildBazaar();
+    return res.json({ success: true, data });
+  } catch (err: any) {
+    console.error('[GuildBazaar] Erro ao resetar Bazar Lab:', err.message);
     return res.status(500).json({ success: false, error: err.message });
   }
 });

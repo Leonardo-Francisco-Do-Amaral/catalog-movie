@@ -67,25 +67,44 @@ export default function ChimeraAwakenCeremony({
   onClose = () => {},
 }) {
   const [displayedXp, setDisplayedXp] = useState(0);
+  const [displayedGold, setDisplayedGold] = useState(0);
   const displayedXpRef = useRef(0);
+  const displayedGoldRef = useRef(0);
 
   const r = contract?.recipe || {};
   const md = contract?.matchDetails || {};
   const movie = contract?.matchedMovie || {};
-  const totalXp = Number(md.totalClaimableXp || r.totalBaseXp || 0);
+  const isGoldMode =
+    md.effectiveRewardMode === 'gold' ||
+    r.effectiveRewardMode === 'gold' ||
+    r.rewardMode === 'gold' ||
+    Number(r.emperorMidasBonusRate || 0) > 0;
+  const goldRate = Number(
+    md.goldRate || 0.85 * (1 + Number(r.emperorMidasBonusRate || 0) + Number(r.emperorGoldCartelBoostRate || 0))
+  );
+  const totalXp = isGoldMode ? 0 : Number(md.totalClaimableXp || r.totalBaseXp || 0);
+  const totalGold = Number(md.totalClaimableGold ?? (isGoldMode ? r.totalBaseGold || 0 : 0));
   const jackpotsHit = Number(md.jackpotsHitCount || 0);
   const isClaimed = Boolean(claimResult);
+
+  const formatPillarPts = (pts) =>
+    isGoldMode ? `${Math.round(Number(pts || 0) * goldRate)} 🪙` : `${Number(pts || 0)} XP`;
 
   // Odômetro acelerado sincronizado com o avanço das etapas
   useEffect(() => {
     if (!contract) return;
-    const target =
+    const targetXp =
       revealStep >= 5
         ? totalXp
         : Math.round((totalXp * Math.min(4, revealStep)) / 5);
+    const targetGold =
+      revealStep >= 5
+        ? totalGold
+        : Math.round((totalGold * Math.min(4, revealStep)) / 5);
 
-    const startVal = displayedXpRef.current;
-    if (startVal === target) return;
+    const startXp = displayedXpRef.current;
+    const startGold = displayedGoldRef.current;
+    if (startXp === targetXp && startGold === targetGold) return;
 
     const duration = 360;
     const startTs = performance.now();
@@ -95,21 +114,26 @@ export default function ChimeraAwakenCeremony({
       const elapsed = now - startTs;
       const pct = Math.min(1, elapsed / duration);
       const eased = 1 - Math.pow(1 - pct, 3);
-      const nextVal = Math.round(startVal + (target - startVal) * eased);
-      displayedXpRef.current = nextVal;
-      setDisplayedXp(nextVal);
+      const nextXp = Math.round(startXp + (targetXp - startXp) * eased);
+      const nextGold = Math.round(startGold + (targetGold - startGold) * eased);
+      displayedXpRef.current = nextXp;
+      displayedGoldRef.current = nextGold;
+      setDisplayedXp(nextXp);
+      setDisplayedGold(nextGold);
       if (pct < 1) {
         rafId = requestAnimationFrame(tick);
       }
     };
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [contract, revealStep, totalXp]);
+  }, [contract, revealStep, totalXp, totalGold]);
 
   useEffect(() => {
     if (!contract) {
       displayedXpRef.current = 0;
+      displayedGoldRef.current = 0;
       setDisplayedXp(0);
+      setDisplayedGold(0);
     }
   }, [contract]);
 
@@ -310,7 +334,7 @@ export default function ChimeraAwakenCeremony({
                       !revealed ? 'text-zinc-500' : st.hit ? 'text-amber-300' : 'text-emerald-300'
                     }`}
                   >
-                    {revealed ? `+${st.baseXp + st.bonusXp} XP` : '...'}
+                    {revealed ? `+${formatPillarPts(st.baseXp + st.bonusXp)}` : '...'}
                   </span>
                 </div>
               </div>
@@ -326,6 +350,10 @@ export default function ChimeraAwakenCeremony({
               (r.requiresSubbedBonusXp || 0) > 0 ||
               (md.categoryBoostXp || 0) > 0 ||
               (r.categoryXpMultiplierBonusRate || 0) > 0 ||
+              (md.jackpotFlatGold || 0) > 0 ||
+              (md.emperorCartelGold || 0) > 0 ||
+              Number(r.emperorTaxMultiplier || 1) < 1 ||
+              Number(r.emperorCurseTaxMultiplier || 1) < 1 ||
               sealedRunes.length > 0) && (
             <div className="chimera-jackpot-pop grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
               {(r.difficultyBonusXp || 0) > 0 && (
@@ -333,7 +361,7 @@ export default function ChimeraAwakenCeremony({
                   <span className="flex items-center gap-1.5">
                     <Flame className="w-3.5 h-3.5 text-rose-300" /> Bônus D20 Difícil
                   </span>
-                  <span className="font-mono font-black">+{r.difficultyBonusXp} XP</span>
+                  <span className="font-mono font-black">+{formatPillarPts(r.difficultyBonusXp)}</span>
                 </div>
               )}
 
@@ -347,7 +375,7 @@ export default function ChimeraAwakenCeremony({
                 >
                   <span className="truncate">{r.specialRule.icon} {r.specialRule.label}</span>
                   <span className="font-mono font-black shrink-0 ml-2">
-                    {md.hitSpecialBonus ? `+${md.specialBonusXp} XP` : '+0 XP'}
+                    {md.hitSpecialBonus ? `+${formatPillarPts(md.specialBonusXp)}` : isGoldMode ? '+0 🪙' : '+0 XP'}
                   </span>
                 </div>
               )}
@@ -362,7 +390,7 @@ export default function ChimeraAwakenCeremony({
                 >
                   <span>🎙️ Estrela da Dublagem</span>
                   <span className="font-mono font-black">
-                    {md.hitDubbingBonus ? `+${md.dubbingBonusXp} XP` : '+0 XP (Legendado)'}
+                    {md.hitDubbingBonus ? `+${formatPillarPts(md.dubbingBonusXp)}` : isGoldMode ? '+0 🪙 (Legendado)' : '+0 XP (Legendado)'}
                   </span>
                 </div>
               )}
@@ -377,7 +405,7 @@ export default function ChimeraAwakenCeremony({
                 >
                   <span>💬 Estrela das Legendas</span>
                   <span className="font-mono font-black">
-                    {md.hitSubbingBonus ? `+${md.subbingBonusXp} XP` : '+0 XP (Não Legendado)'}
+                    {md.hitSubbingBonus ? `+${formatPillarPts(md.subbingBonusXp)}` : isGoldMode ? '+0 🪙 (Não Leg.)' : '+0 XP (Não Legendado)'}
                   </span>
                 </div>
               )}
@@ -387,7 +415,32 @@ export default function ChimeraAwakenCeremony({
                   <span>
                     🗼 Sobrecarga da Torre (+{Math.round((r.categoryXpMultiplierBonusRate || 0.25) * 100)}%/Cat)
                   </span>
-                  <span className="font-mono font-black">+{md.categoryBoostXp || 0} XP</span>
+                  <span className="font-mono font-black">+{formatPillarPts(md.categoryBoostXp || 0)}</span>
+                </div>
+              )}
+
+              {(md.jackpotFlatGold || 0) > 0 && (
+                <div className="rounded-xl border border-amber-300/70 bg-amber-500/20 px-3 py-2 flex items-center justify-between text-[11px] text-amber-100 font-bold">
+                  <span>🪙 Dividendos da Coroa ({jackpotsHit} Jackpot{jackpotsHit === 1 ? '' : 's'})</span>
+                  <span className="font-mono font-black">+{md.jackpotFlatGold} 🪙</span>
+                </div>
+              )}
+
+              {(md.emperorCartelGold || 0) > 0 && (
+                <div className="rounded-xl border border-amber-300/70 bg-amber-500/20 px-3 py-2 flex items-center justify-between text-[11px] text-amber-100 font-bold">
+                  <span>🥃 Sindicato do Imperador ({(md.matchedGenres || []).length} Gên.)</span>
+                  <span className="font-mono font-black">+{md.emperorCartelGold} 🪙</span>
+                </div>
+              )}
+
+              {(Number(r.emperorTaxMultiplier || 1) < 1 || Number(r.emperorCurseTaxMultiplier || 1) < 1) && (
+                <div className="rounded-xl border border-rose-400/60 bg-rose-950/50 px-3 py-2 flex items-center justify-between text-[11px] text-rose-200 font-bold sm:col-span-2">
+                  <span>
+                    {Number(r.emperorCurseTaxMultiplier || 1) < 1
+                      ? '🔱 Maldição do Imperador (Sem Jackpots + Tributo -50%)'
+                      : '📜 Édito do Trono (+1 Carta de Tarô • Tributo -50%)'}
+                  </span>
+                  <span className="font-mono font-black">Tributo Aplicado</span>
                 </div>
               )}
 
@@ -404,7 +457,7 @@ export default function ChimeraAwakenCeremony({
                     {sealedRunes.map((sr) => `${sr.icon} ${sr.runeName}`).join(' • ')}
                   </span>
                   <span className="font-mono font-black shrink-0">
-                    {(md.runeBonusXp || 0) > 0 ? `+${md.runeBonusXp} XP` : 'Poderes Aplicados'}
+                    {(md.runeBonusXp || 0) > 0 ? `+${formatPillarPts(md.runeBonusXp)}` : 'Poderes Aplicados'}
                   </span>
                 </div>
               )}
@@ -412,7 +465,7 @@ export default function ChimeraAwakenCeremony({
           )}
         </div>
 
-        {/* Baú de Tesouro / Odômetro de XP + CTA Final */}
+        {/* Baú de Tesouro / Odômetro de XP ou Ouro + CTA Final */}
         <div
           className={`relative z-10 rounded-2xl border-2 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${
             isClaimed
@@ -432,10 +485,25 @@ export default function ChimeraAwakenCeremony({
             </div>
             <div>
               <div className="text-[10px] uppercase font-black tracking-widest text-amber-300/85">
-                {isClaimed ? 'Espólio Adicionado ao Seu Nível!' : 'Baú de XP da Quimera'}
+                {isClaimed
+                  ? isGoldMode
+                    ? 'Ouro Depositado no Bazar do Arlequim!'
+                    : 'Espólio Adicionado ao Seu Nível!'
+                  : isGoldMode
+                  ? 'Baú de Ouro do Bazar'
+                  : 'Baú de XP da Quimera'}
               </div>
-              <div className="text-3xl font-black font-mono text-amber-300 leading-none mt-1">
-                +{displayedXp.toLocaleString('pt-BR')} XP
+              <div className="flex flex-wrap items-baseline gap-3 mt-1">
+                {!isGoldMode && (
+                  <span className="text-3xl font-black font-mono text-amber-300 leading-none">
+                    +{displayedXp.toLocaleString('pt-BR')} XP
+                  </span>
+                )}
+                {(isGoldMode || totalGold > 0) && (
+                  <span className={`${isGoldMode ? 'text-3xl' : 'text-xl'} font-black font-mono text-yellow-300 leading-none`}>
+                    +{displayedGold.toLocaleString('pt-BR')} 🪙
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -463,6 +531,10 @@ export default function ChimeraAwakenCeremony({
               <Sparkles className={`w-4 h-4 ${claiming ? 'animate-spin' : ''}`} />
               {claiming
                 ? 'Colhendo Espólio...'
+                : isGoldMode
+                ? jackpotsHit >= 1
+                  ? '🎰 COLHER JACKPOT & OURO!'
+                  : '🪙 COLHER OURO DO BAZAR!'
                 : jackpotsHit >= 1
                 ? '🎰 COLHER JACKPOT & XP!'
                 : '⚔️ COLHER ESPÓLIO & XP!'}

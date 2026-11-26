@@ -155,12 +155,12 @@ export default function SecretDrawCardRevealModal({
         revealSoundKey = coinFace === 'tails' ? 'cursed' : coinFace === 'heads' ? 'legendary' : 'rare';
       }
 
-      // Cronologia Especial:
-      // 0ms -> 1550ms: Barrinha carrega até 100% (suspense total)
-      // 1550ms -> 4250ms: Selo começa a queimar do centro para fora bem devagar com som fire-crackling.mp3
-      // 4250ms: Carta revelada + som normal da carta especial (exceto Rei Duas-Caras que espera a moeda!)
-      const BAR_MS = 1550;
-      const BURN_MS = 2700;
+      // Cronologia Especial balanceada para suspense misterioso:
+      // 0ms -> 950ms: Barrinha carrega até 100% (suspense crescente)
+      // 950ms -> 2900ms: Selo queima do centro para fora com som fire-crackling.mp3
+      // 2900ms: Arte especial revelada + som da carta especial (exceto Rei Duas-Caras que espera a moeda!)
+      const BAR_MS = 950;
+      const BURN_MS = 1950;
       const startAt = performance.now();
       let fireStarted = false;
       let burnFinished = false;
@@ -209,18 +209,18 @@ export default function SecretDrawCardRevealModal({
                 setCoinSettled(true);
                 setMysteryStep(3);
                 playChimeraTarotRarityRevealSound(coinFace === 'heads' ? 'legendary' : 'cursed');
-              }, 1500);
+              }, 1200);
               timersRef.current.push(tCoin);
             } else {
               setCoinSettled(true);
             }
-          }, 480);
+          }, 420);
 
           const postTimers = [tStep2];
           if (!(isTwoFace && coinFace)) {
             const tStep3 = setTimeout(() => {
               setMysteryStep(3);
-            }, 900);
+            }, 820);
             postTimers.push(tStep3);
           }
           timersRef.current.push(...postTimers);
@@ -282,6 +282,8 @@ export default function SecretDrawCardRevealModal({
   const specialCoinFace = specialEvent?.outcomeData?.coinFace || null;
   const pulledMovie = outcome?.pulledMoviePick || null;
   const chainedOutcome = outcome?.chainedOutcome || null;
+  const cardIsGold = card?.rewardMode === 'gold';
+  const cardRewardText = cardIsGold ? `+${card.goldReward || 0} 🪙` : `+${card.xpReward || 0} XP`;
   const deckCardMeta = getSecretPlayingCardMeta(card, session.roundId || outcome?.roundId || 1);
   const specialGallery = !isMovie ? getSpecialCardArtGallery(specialEvent, specialCardsCatalog) : [];
   const safeArtIdx = Math.min(selectedArtIdx, Math.max(0, specialGallery.length - 1));
@@ -418,8 +420,14 @@ export default function SecretDrawCardRevealModal({
                         <span className="px-2.5 py-0.5 rounded-full bg-black/75 border border-white/20">
                           {movieMeta.rank} {movieMeta.suit}
                         </span>
-                        <span className="px-2.5 py-0.5 rounded-full bg-amber-500/25 border border-amber-300/45 text-amber-200">
-                          +{card.xpReward || 0} XP
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full border ${
+                            cardIsGold
+                              ? 'bg-amber-400/30 border-amber-300/70 text-amber-200'
+                              : 'bg-amber-500/25 border-amber-300/45 text-amber-200'
+                          }`}
+                        >
+                          {cardRewardText}
                         </span>
                       </div>
                     </div>
@@ -450,8 +458,14 @@ export default function SecretDrawCardRevealModal({
                             </span>
                           </div>
 
-                          <span className="px-2.5 py-1 rounded-full border border-amber-300/60 bg-black/80 text-amber-200 text-xs sm:text-sm font-black shadow">
-                            +{card.xpReward || 0} XP
+                          <span
+                            className={`px-2.5 py-1 rounded-full border text-xs sm:text-sm font-black shadow ${
+                              cardIsGold
+                                ? 'border-amber-300/80 bg-amber-500/25 text-amber-200'
+                                : 'border-amber-300/60 bg-black/80 text-amber-200'
+                            }`}
+                          >
+                            {cardRewardText}
                           </span>
                         </div>
 
@@ -793,7 +807,7 @@ export default function SecretDrawCardRevealModal({
                       Pista 3 • Marcos & Conquistas Ocultas
                     </span>
                     <span className="text-xs font-black text-amber-300">
-                      +{card.xpReward || 0} XP ao concluir
+                      {cardRewardText} ao concluir
                     </span>
                   </div>
                   {mysteryStep >= 3 ? (
@@ -814,7 +828,7 @@ export default function SecretDrawCardRevealModal({
                       </div>
                     ) : (
                       <p className="text-xs text-white/65">
-                        Nenhum marco extra além do catálogo — puro cinema & +{card.xpReward || 0} XP!
+                        Nenhum marco extra além do catálogo — puro cinema &amp; {cardRewardText}!
                       </p>
                     )
                   ) : (
@@ -942,20 +956,22 @@ export default function SecretDrawCardRevealModal({
                             }`}
                           >
                             {specialCoinFace === 'heads'
-                              ? '✨ DEU CARA! XP DOBRADO (2×)!'
-                              : '💀 DEU COROA! XP PELA METADE + BUMERANGUE TRAVADO!'}
+                              ? '✨ DEU CARA! PRÊMIO DOBRADO (2×)!'
+                              : '💀 DEU COROA! PRÊMIO PELA METADE + BUMERANGUE TRAVADO!'}
                           </div>
                           {specialEvent.outcomeData?.targetTitle && (
                             <p className="text-xs text-white/80 mt-1">
                               Alvo: <strong className="text-white">{specialEvent.outcomeData.targetTitle}</strong> (
-                              {specialEvent.outcomeData.prevXp ?? specialEvent.outcomeData.oldXp} →{' '}
-                              {specialEvent.outcomeData.nextXp ?? specialEvent.outcomeData.newXp} XP)
+                              {specialEvent.outcomeData?.rewardMode === 'gold'
+                                ? `${specialEvent.outcomeData.prevGold} → ${specialEvent.outcomeData.nextGold} 🪙`
+                                : `${specialEvent.outcomeData.prevXp ?? specialEvent.outcomeData.oldXp} → ${specialEvent.outcomeData.nextXp ?? specialEvent.outcomeData.newXp} XP`}
+                              )
                             </p>
                           )}
                         </div>
                       ) : (
                         <p className="text-sm text-amber-200/85 animate-pulse mt-1">
-                          Cara (2× XP) ou Coroa (0.5× + Corrente)...
+                          Cara (2× Prêmio) ou Coroa (0.5× + Corrente)...
                         </p>
                       )}
                     </div>
@@ -979,31 +995,102 @@ export default function SecretDrawCardRevealModal({
                         {specialEvent.resultSummary || 'Efeito especial ativado!'}
                       </p>
 
+                      {specialEvent.outcomeData?.blockedByAmulet && (
+                        <div className="rounded-xl bg-emerald-950/75 border border-emerald-300/65 px-3 py-2.5 text-xs text-emerald-100 shadow-[0_0_20px_rgba(16,185,129,0.28)]">
+                          <div className="font-black text-emerald-200 flex items-center gap-1.5">
+                            <span>🛡️ ESCUDO DO ARLEQUIM ESTILHAÇOU!</span>
+                          </div>
+                          <div className="mt-0.5 text-emerald-100/85">
+                            Seu Amuleto Contra-Maldição protegeu a mesa e anulou completamente:{' '}
+                            <strong>{specialEvent.outcomeData?.blockedCurseTitle || specialEvent.title}</strong>.
+                          </div>
+                        </div>
+                      )}
+
                       {specialEvent.id === 'portal_dimensional' &&
                         specialEvent.outcomeData?.targetTitle &&
                         !specialEvent.outcomeData?.noTarget && (
                           <div className="rounded-xl bg-cyan-950/55 border border-cyan-400/40 px-3 py-2.5 text-xs text-cyan-100">
                             <span className="font-black text-cyan-200">
-                              🌀 O Arlequim adora este filme — ele ainda vai te dar o XP!
+                              🌀 O Arlequim adora este filme — ele ainda vai te dar o prêmio!
                             </span>{' '}
                             <span className="text-white/85">
-                              Filme: <strong>{specialEvent.outcomeData.targetTitle}</strong> (+
-                              {specialEvent.outcomeData.awardXp} XP liberados sem assistir).
+                              Filme: <strong>{specialEvent.outcomeData.targetTitle}</strong> (
+                              {specialEvent.outcomeData.rewardMode === 'gold'
+                                ? `+${specialEvent.outcomeData.awardGold || 0} 🪙 no Bazar`
+                                : `+${specialEvent.outcomeData.awardXp || 0} XP`}{' '}
+                              liberados sem assistir).
                             </span>
+                          </div>
+                        )}
+
+                      {Array.isArray(specialEvent.outcomeData?.convertedDetails) &&
+                        specialEvent.outcomeData.convertedDetails.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {specialEvent.outcomeData.convertedDetails.map((item) => (
+                              <span
+                                key={item.seat}
+                                className="px-2 py-1 rounded-lg bg-amber-500/20 border border-amber-300/60 text-[11px] font-bold text-amber-100"
+                              >
+                                🪙 Carta #{item.seat}: +{item.prevXp} XP → +{item.nextGold} 🪙 (+15%)
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                      {specialEvent.id === 'valete_mao_leve' && (
+                        <div className="rounded-xl bg-amber-950/50 border border-amber-300/50 px-3 py-2 text-xs text-amber-100 flex flex-wrap items-center justify-between gap-2">
+                          <span>🪙 <strong>+{specialEvent.outcomeData?.bazaarGoldAdded || 20} 🪙</strong> direto no Bazar</span>
+                          <span className="font-bold text-fuchsia-200">
+                            {Number(specialEvent.outcomeData?.remainingSpecialsCount || 0) > 0
+                              ? `🚨 ${specialEvent.outcomeData.remainingSpecialsCount} Carta(s) Especial(is) piscando!`
+                              : '✓ Nenhuma outra Especial nas fechadas'}
+                          </span>
+                        </div>
+                      )}
+
+                      {specialEvent.id === 'dama_toque_dourado' &&
+                        specialEvent.outcomeData?.targetTitle &&
+                        !specialEvent.outcomeData?.noTarget && (
+                          <div className="rounded-xl bg-amber-950/55 border border-amber-300/55 px-3 py-2 text-xs text-amber-100">
+                            👑 <strong>{specialEvent.outcomeData.targetTitle}</strong>: +{specialEvent.outcomeData.prevXp} XP →{' '}
+                            <strong className="text-yellow-300">+{specialEvent.outcomeData.nextGold} 🪙</strong> (+25%)
+                          </div>
+                        )}
+
+                      {specialEvent.id === 'dama_espadas_inquisidora' &&
+                        !specialEvent.outcomeData?.noTarget && (
+                          <div className="rounded-xl bg-rose-950/60 border border-rose-400/55 px-3 py-2 text-xs text-rose-100">
+                            ⚔️ Dado: <strong>{specialEvent.outcomeData?.rolledK}</strong> • Banidos{' '}
+                            <strong>{specialEvent.outcomeData?.removedPairs} par(es)</strong> ({specialEvent.outcomeData?.removedTotal} cartas: -
+                            {specialEvent.outcomeData?.removedXpSum} XP / -{specialEvent.outcomeData?.removedGoldSum} 🪙)
+                          </div>
+                        )}
+
+                      {specialEvent.id === 'maldicao_imposto_ouro' &&
+                        specialEvent.outcomeData?.targetTitle &&
+                        !specialEvent.outcomeData?.noTarget && (
+                          <div className="rounded-xl bg-rose-950/60 border border-rose-400/55 px-3 py-2 text-xs text-rose-100">
+                            🩸 <strong>{specialEvent.outcomeData.targetTitle}</strong>: +{specialEvent.outcomeData.prevGold} →{' '}
+                            <strong className="text-rose-300">+{specialEvent.outcomeData.nextGold} 🪙</strong> (-50%)
                           </div>
                         )}
 
                       {Array.isArray(specialEvent.outcomeData?.reshuffledDetails) &&
                         specialEvent.outcomeData.reshuffledDetails.length > 0 && (
                           <div className="flex flex-wrap gap-1.5">
-                            {specialEvent.outcomeData.reshuffledDetails.map((item) => (
-                              <span
-                                key={item.seat}
-                                className="px-2 py-1 rounded-lg bg-sky-500/15 border border-sky-400/40 text-[11px] font-bold text-sky-100"
-                              >
-                                Carta #{item.seat}: +{item.prevXp} → +{item.nextXp} XP ({item.nextDiff})
-                              </span>
-                            ))}
+                            {specialEvent.outcomeData.reshuffledDetails.map((item) => {
+                              const prevStr = item.prevRewardMode === 'gold' ? `+${item.prevGold || 0} 🪙` : `+${item.prevXp || 0} XP`;
+                              const nextStr = item.nextRewardMode === 'gold' ? `+${item.nextGold || 0} 🪙` : `+${item.nextXp || 0} XP`;
+                              return (
+                                <span
+                                  key={item.seat}
+                                  className="px-2 py-1 rounded-lg bg-sky-500/15 border border-sky-400/40 text-[11px] font-bold text-sky-100"
+                                >
+                                  Carta #{item.seat}: {prevStr} → {nextStr} ({item.nextDiff})
+                                </span>
+                              );
+                            })}
                           </div>
                         )}
 
@@ -1024,7 +1111,9 @@ export default function SecretDrawCardRevealModal({
                               Filme: {pulledMovie.card?.resolved?.title || pulledMovie.movieTitle}
                             </div>
                             <div className="text-xs text-amber-300 font-bold">
-                              +{pulledMovie.xpReward} XP
+                              {pulledMovie.rewardMode === 'gold'
+                                ? `+${pulledMovie.goldReward || 0} 🪙`
+                                : `+${pulledMovie.xpReward || 0} XP`}
                             </div>
                           </div>
                         </div>

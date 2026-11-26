@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { triggerXPGainToast } from '../utils/xpSystem';
+import { dispatchHarlequinWorldEvent, dispatchHarlequinProfileSync } from '../utils/harlequinEvents';
 import { getCycle15CountdownLabel, formatCycleKeyLabel } from '../utils/cycleCountdown';
 import { ALL_CINEMA_CLASSES } from '../utils/analyticsEngine';
 import {
@@ -44,6 +45,7 @@ import {
   playSecretCardFlipSound,
 } from '../utils/trophyAudio';
 import SecretDrawCardRevealModal from '../components/SecretDrawCardRevealModal';
+import PowerHelpButton from '../components/PowerHelpButton';
 import {
   SECRET_DECK_BACK_IMAGE,
   HARLEQUIN_CROUPIER_AVATAR,
@@ -187,6 +189,22 @@ const AUDIT_STYLE = {
 };
 
 const RANDOM_FAVORITE_ANIMS = ['classic', 'tornado', 'wax'];
+
+function getSecretRewardMeta(item) {
+  const isGold = item?.rewardMode === 'gold' || item?.card?.rewardMode === 'gold';
+  const amount = isGold
+    ? Number(item?.goldAwarded || item?.goldReward || item?.card?.goldReward || 0)
+    : Number(item?.xpAwarded || item?.xpReward || item?.card?.xpReward || 0);
+  return {
+    isGold,
+    amount,
+    short: isGold ? `+${amount} 🪙` : `+${amount} XP`,
+    unit: isGold ? '🪙' : 'XP',
+    badgeCls: isGold
+      ? 'bg-amber-400/25 border-amber-300/75 text-amber-200'
+      : 'bg-amber-500/20 border-amber-400/50 text-amber-200',
+  };
+}
 
 const SAGA_RULE_OPTIONS = [
   {
@@ -433,6 +451,7 @@ export default function SecretDrawPage({
   const [countMode, setCountMode] = useState('10');
   const [sagaRule, setSagaRule] = useState('redirect_first');
   const [flippedSeats, setFlippedSeats] = useState({});
+  const [flippingSeat, setFlippingSeat] = useState(null);
   const [burstSeats, setBurstSeats] = useState({});
   const [spotlightSeat, setSpotlightSeat] = useState(null);
   const [miniCatalogFilter, setMiniCatalogFilter] = useState('all');
@@ -453,6 +472,8 @@ export default function SecretDrawPage({
   const [equippedClassId, setEquippedClassId] = useState(() => getEquippedClassId());
   const [selectedPowerPickId, setSelectedPowerPickId] = useState('');
   const [actingClassPower, setActingClassPower] = useState(false);
+  const [bazaarProfile, setBazaarProfile] = useState(null);
+  const [actingBazaarPower, setActingBazaarPower] = useState(false);
   const [revealModalSession, setRevealModalSession] = useState(null);
   const [showLabSpecialPanel, setShowLabSpecialPanel] = useState(false);
   const [showGrimoireModal, setShowGrimoireModal] = useState(false);
@@ -552,16 +573,39 @@ export default function SecretDrawPage({
     }
   }, []);
 
+  const loadBazaarProfile = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/guild-bazaar/status`);
+      if (res.data?.success && res.data?.data) {
+        setBazaarProfile(res.data.data);
+      }
+    } catch {
+      // silent fallback
+    }
+  }, []);
+
   useEffect(() => {
     loadStatus();
     loadClassPowerWallet();
+    loadBazaarProfile();
     const onSync = () => {
       setEquippedClassId(getEquippedClassId());
       loadClassPowerWallet();
     };
+    const onProfileSync = (ev) => {
+      if (ev?.detail) {
+        setBazaarProfile(ev.detail);
+      } else {
+        loadBazaarProfile();
+      }
+    };
     window.addEventListener('cine-class-power-sync', onSync);
-    return () => window.removeEventListener('cine-class-power-sync', onSync);
-  }, [loadStatus, loadClassPowerWallet]);
+    window.addEventListener('cine-harlequin-profile-sync', onProfileSync);
+    return () => {
+      window.removeEventListener('cine-class-power-sync', onSync);
+      window.removeEventListener('cine-harlequin-profile-sync', onProfileSync);
+    };
+  }, [loadStatus, loadClassPowerWallet, loadBazaarProfile]);
 
   useEffect(() => {
     loadClassPowerWallet();
@@ -616,8 +660,13 @@ export default function SecretDrawPage({
       if (res.data?.success) {
         stopSecretShuffleSound();
         await loadStatus(true);
+        if (res.data.bazaarStatus) {
+          setBazaarProfile(res.data.bazaarStatus);
+          dispatchHarlequinProfileSync(res.data.bazaarStatus);
+        }
         const cardsLen = res.data?.data?.round?.cards?.length || 3;
         triggerDealSequence(cardsLen);
+        dispatchHarlequinWorldEvent('secret_draw', { cardsCount: cardsLen });
         setInfoBanner(
           `🍀 Foi sorteado ${cardsLen} carta${cardsLen === 1 ? '' : 's'} — boa sorte! (${canChoose ? 'Escolha liberada neste ciclo' : '1ª Ficha aleatória'})`
         );
@@ -767,8 +816,12 @@ export default function SecretDrawPage({
   const applySpecialOutcomeSideEffects = useCallback(
     (payloadData, outcome, sourceCard = null) => {
       setStatusData(payloadData);
-      loadClassPowerWallet();
-      dispatchClassPowerSync();
+      const spId = outcome?.specialEvent?.id;
+      const chId = outcome?.chainedOutcome?.specialEvent?.id;
+      if (spId === 'recarga_classe' || chId === 'recarga_classe') {
+        loadClassPowerWallet();
+        dispatchClassPowerSync();
+      }
 
       const sessionKey = Date.now();
       const pendingMeta = outcome?.specialEvent?.outcomeData;
@@ -877,6 +930,7 @@ export default function SecretDrawPage({
     }
 
     setActing(true);
+    setFlippingSeat(card.seat);
     setErrorMsg('');
 
     try {
@@ -904,6 +958,9 @@ export default function SecretDrawPage({
             window.dispatchEvent(new CustomEvent('cine-secret-draw-sync'));
             window.dispatchEvent(new CustomEvent('cine-bingo-sync'));
           }
+          if (res.data.bazaarStatus) {
+            dispatchHarlequinProfileSync(res.data.bazaarStatus);
+          }
           setIsDeclineOpen(false);
           setIsBoomerangOpen(false);
           setInfoBanner(
@@ -929,8 +986,9 @@ export default function SecretDrawPage({
           setIsDeclineOpen(false);
           setIsBoomerangOpen(false);
           const resolvedCard = res.data?.outcome?.card || createdPick?.card || card;
+          const rw = getSecretRewardMeta(resolvedCard);
           setInfoBanner(
-            `🔒 "${resolvedCard.resolved?.title}" (${resolvedCard.difficultyLabel} • +${resolvedCard.xpReward} XP) foi direto para a sua fila!`
+            `🔒 "${resolvedCard.resolved?.title}" (${resolvedCard.difficultyLabel} • ${rw.short}) foi direto para a sua fila!`
           );
           setRevealModalSession({
             mode: 'movie',
@@ -945,6 +1003,7 @@ export default function SecretDrawPage({
       setErrorMsg(err?.response?.data?.error || err?.message || 'Erro ao revelar carta da mesa.');
     } finally {
       setActing(false);
+      setFlippingSeat(null);
     }
   };
 
@@ -967,6 +1026,9 @@ export default function SecretDrawPage({
           window.dispatchEvent(new CustomEvent('cine-secret-draw-sync'));
           window.dispatchEvent(new CustomEvent('cine-bingo-sync'));
         }
+        if (res.data.bazaarStatus) {
+          dispatchHarlequinProfileSync(res.data.bazaarStatus);
+        }
         setInfoBanner(
           outcome?.specialEvent?.resultSummary ||
             `🧪 Lab: Carta Especial "${outcome?.specialEvent?.title}" ativada!`
@@ -981,7 +1043,7 @@ export default function SecretDrawPage({
   };
 
   const handleCardClick = (card) => {
-    if (!card) return;
+    if (!card || card.removedByCurse) return;
     if (currentRound?.status === 'revealed') {
       handleAcceptMysteryCard(currentRound.id, card);
     }
@@ -1008,6 +1070,29 @@ export default function SecretDrawPage({
     }
   };
 
+  const handleUseSecretBazaarPower = async (action, pickId = null) => {
+    if (acting || actingBazaarPower) return;
+    setActingBazaarPower(true);
+    setErrorMsg('');
+    try {
+      const res = await axios.post(`${API_BASE_URL}/secret-draw/bazaar-power`, { action, pickId });
+      if (res.data?.success) {
+        if (res.data.data) setStatusData(res.data.data);
+        if (res.data.bazaarStatus) {
+          setBazaarProfile(res.data.bazaarStatus);
+          dispatchHarlequinProfileSync(res.data.bazaarStatus);
+        }
+        setInfoBanner(res.data.message || '⚡ Poder do Bazar ativado!');
+      }
+    } catch (err) {
+      setErrorMsg(
+        err?.response?.data?.error || err?.message || 'Erro ao usar Poder do Bazar na Sessão Secreta.'
+      );
+    } finally {
+      setActingBazaarPower(false);
+    }
+  };
+
   const handleFinishSelection = async (roundId) => {
     if (!roundId || acting) return;
     setActing(true);
@@ -1016,7 +1101,12 @@ export default function SecretDrawPage({
       const res = await axios.post(`${API_BASE_URL}/secret-draw/finish-round`, { roundId });
       if (res.data?.success) {
         const pickedCount = Number(res.data?.result?.pickedCount || 0);
+        const insuranceRefunded = Boolean(res.data?.result?.insuranceRefunded);
         setStatusData(res.data.data);
+        if (res.data.bazaarStatus) {
+          setBazaarProfile(res.data.bazaarStatus);
+          dispatchHarlequinProfileSync(res.data.bazaarStatus);
+        }
         setFlippedSeats({});
         setBurstSeats({});
         setSeatAnimStyles({});
@@ -1024,7 +1114,9 @@ export default function SecretDrawPage({
         setInfoBanner(
           pickedCount > 0
             ? `Escolha finalizada com ${pickedCount} filme(s) adicionado(s) à sua fila abaixo! Cartas não escolhidas voltaram ao baralho.`
-            : 'Mão encerrada sem seleções — todas as cartas retornaram para o baralho!'
+            : insuranceRefunded
+              ? '🛡️ Seguro da Casa ativado! Mão pulada sem seleções — sua Ficha de Sorteio foi reembolsada na hora!'
+              : 'Mão encerrada sem seleções — todas as cartas retornaram para o baralho!'
         );
       }
     } catch (err) {
@@ -1082,6 +1174,7 @@ export default function SecretDrawPage({
         setIsBoomerangOpen(false);
         setIsDeclineOpen(false);
         setSelectedPickId(pickId);
+        dispatchHarlequinWorldEvent('secret_boomerang', {});
         setInfoBanner(
           '🪃 Passe Bumerangue lançado! O filme saiu da sua fila (vaga liberada) e voltou ao baralho para poder ser sorteado de novo.'
         );
@@ -1108,11 +1201,17 @@ export default function SecretDrawPage({
         if (res.data.xpGain && res.data.xpStatus) {
           triggerXPGainToast(res.data.xpGain, res.data.xpStatus);
         }
+        if (res.data.bazaarStatus) {
+          dispatchHarlequinProfileSync(res.data.bazaarStatus);
+        }
         window.dispatchEvent(new CustomEvent('cine-secret-draw-sync'));
         window.dispatchEvent(new CustomEvent('cine-bingo-sync'));
+        const claimedGold = Number(res.data?.claimed?.goldAwarded || 0);
         const claimedXp = Number(res.data?.claimed?.xpAwarded || res.data?.claimed?.xpReward || 0);
         setInfoBanner(
-          `✨ XP da Sessão Secreta colhido (+${claimedXp} XP)! Vaga liberada na sua fila.`
+          claimedGold > 0
+            ? `🪙 +${claimedGold} Moedas de Ouro depositadas direto no Bazar do Arlequim! Vaga liberada na sua fila.`
+            : `✨ XP da Sessão Secreta colhido (+${claimedXp} XP)! Vaga liberada na sua fila.`
         );
       }
     } catch (err) {
@@ -1313,7 +1412,8 @@ export default function SecretDrawPage({
       'Filme Secreto';
     const yr = pick.card?.resolved?.releaseYear ? ` (${pick.card.resolved.releaseYear})` : '';
     const suitIcon = SUIT_META[pick.difficulty || pick.card?.difficulty]?.suit || '🃏';
-    return `${suitIcon} ${title}${yr} • +${pick.xpReward} XP (Carta #${pick.seat})`;
+    const rw = getSecretRewardMeta(pick);
+    return `${suitIcon} ${title}${yr} • ${rw.short} (Carta #${pick.seat})`;
   };
 
   useEffect(() => {
@@ -2044,24 +2144,203 @@ export default function SecretDrawPage({
                 </select>
               )}
 
-              <button
-                type="button"
-                disabled={
-                  acting ||
-                  actingClassPower ||
-                  secretPowerCharges <= 0 ||
-                  (activePowerSpec.actionType === 'pick_card' && !selectedPowerPickId)
-                }
-                onClick={() => handleActivateSecretClassPower()}
-                className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-fuchsia-500 to-amber-400 hover:from-fuchsia-400 hover:to-amber-300 text-slate-950 shadow-lg cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed flex items-center gap-1.5"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                {actingClassPower ? 'Ativando...' : 'Ativar Poder'}
-              </button>
+              <div className="inline-flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={
+                    acting ||
+                    actingClassPower ||
+                    secretPowerCharges <= 0 ||
+                    (activePowerSpec.actionType === 'pick_card' && !selectedPowerPickId)
+                  }
+                  onClick={() => handleActivateSecretClassPower()}
+                  className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-fuchsia-500 to-amber-400 hover:from-fuchsia-400 hover:to-amber-300 text-slate-950 shadow-lg cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  {actingClassPower ? 'Ativando...' : 'Ativar Poder'}
+                </button>
+                <PowerHelpButton
+                  help={{
+                    icon: activePowerSpec.icon,
+                    title: `${activePowerSpec.title} (${activePowerClass?.className || ''})`,
+                    subtitle: 'Poder da Classe RPG • Sessão Secreta',
+                    description: activePowerSpec.desc,
+                    rule: `Recarrega ${maxSecretPowerCharges}× nos dias 1 e 15 (além de recarga no Bazar).`,
+                  }}
+                />
+              </div>
             </div>
           </div>
         </section>
       )}
+
+      {/* =====================================================================
+          MOCHILA DO BAZAR & RELÍQUIAS DA SESSÃO SECRETA
+         ===================================================================== */}
+      {(() => {
+        const charges = bazaarProfile?.tacticalCharges || {};
+        const armed = bazaarProfile?.armedSecretFlags || {};
+        const relics = bazaarProfile?.ownedRelics || [];
+        const hasAnyCharge =
+          Number(charges.secret_amulet || 0) > 0 ||
+          Number(charges.secret_radar || 0) > 0 ||
+          Number(charges.secret_hand_plus2 || 0) > 0 ||
+          Number(charges.secret_hand_plus5 || 0) > 0 ||
+          Number(charges.secret_special_storm || 0) > 0 ||
+          Number(charges.secret_transmute || 0) > 0;
+        const hasAnyArmedOrRelic =
+          Boolean(armed.amuletArmed) ||
+          Number(armed.pendingExtraCards || 0) > 0 ||
+          Boolean(armed.pendingSpecialStorm) ||
+          Boolean(armed.pendingRadar) ||
+          relics.length > 0;
+
+        if (!hasAnyCharge && !hasAnyArmedOrRelic) return null;
+
+        return (
+          <section className="rounded-2xl border border-amber-400/35 bg-gradient-to-r from-[#170f08]/95 via-zinc-950/90 to-[#11181c]/95 px-4 py-3 flex flex-col gap-2.5 shadow-lg">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-black uppercase tracking-wider text-amber-200">
+                <span>🎒 Poderes &amp; Relíquias do Bazar</span>
+                {relics.includes('vip_seat') && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-300/60 text-[10px] text-amber-200">
+                    🛋️ Poltrona VIP (+1 Fila)
+                    <PowerHelpButton helpKey="vip_seat" size="xs" />
+                  </span>
+                )}
+                {relics.includes('golden_loupe') && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/20 border border-yellow-300/60 text-[10px] text-yellow-200">
+                    🔍 Lupa Eterna (+10% 🪙)
+                    <PowerHelpButton helpKey="golden_loupe" size="xs" />
+                  </span>
+                )}
+                {relics.includes('house_insurance') && (
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] ${
+                      bazaarProfile?.houseInsuranceAvailableThisCycle
+                        ? 'bg-sky-500/20 border-sky-300/65 text-sky-200'
+                        : 'bg-zinc-900 border-zinc-700 text-zinc-400'
+                    }`}
+                  >
+                    🛡️ Seguro {bazaarProfile?.houseInsuranceAvailableThisCycle ? 'Pronto (1×)' : 'Usado neste ciclo'}
+                    <PowerHelpButton helpKey="house_insurance" size="xs" />
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                {armed.amuletArmed && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/25 border border-emerald-300/70 text-[10px] font-black text-emerald-200 shadow-[0_0_12px_rgba(16,185,129,0.4)] animate-pulse">
+                    🛡️ Escudo do Arlequim ARMADO
+                    <PowerHelpButton helpKey="secret_amulet" size="xs" />
+                  </span>
+                )}
+                {Number(armed.pendingExtraCards || 0) > 0 && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/25 border border-cyan-300/70 text-[10px] font-black text-cyan-200">
+                    🃏 +{armed.pendingExtraCards} Cartas Armadas
+                  </span>
+                )}
+                {armed.pendingSpecialStorm && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-purple-500/25 border border-purple-300/70 text-[10px] font-black text-purple-200">
+                    🌪️ 2–6 Especiais Armadas
+                  </span>
+                )}
+                {armed.pendingRadar && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-fuchsia-500/25 border border-fuchsia-300/70 text-[10px] font-black text-fuchsia-200">
+                    🕵️ Radar Armado
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {hasAnyCharge && (
+              <div className="flex flex-wrap items-center gap-2">
+                {Number(charges.secret_amulet || 0) > 0 && (
+                  <div className="inline-flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={actingBazaarPower || Boolean(armed.amuletArmed)}
+                      onClick={() => handleUseSecretBazaarPower('arm_amulet')}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-950/75 hover:bg-emerald-900/80 border border-emerald-400/60 text-[11px] font-black text-emerald-100 cursor-pointer disabled:opacity-45"
+                    >
+                      🛡️ Armar Escudo Anti-Maldição ({charges.secret_amulet}×)
+                    </button>
+                    <PowerHelpButton helpKey="secret_amulet" size="xs" />
+                  </div>
+                )}
+                {Number(charges.secret_radar || 0) > 0 && (
+                  <div className="inline-flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={actingBazaarPower}
+                      onClick={() => handleUseSecretBazaarPower('activate_radar')}
+                      className="px-3 py-1.5 rounded-xl bg-fuchsia-950/75 hover:bg-fuchsia-900/80 border border-fuchsia-400/60 text-[11px] font-black text-fuchsia-100 cursor-pointer disabled:opacity-45"
+                    >
+                      🕵️ Radar do Croupier ({charges.secret_radar}×)
+                    </button>
+                    <PowerHelpButton helpKey="secret_radar" size="xs" />
+                  </div>
+                )}
+                {Number(charges.secret_hand_plus2 || 0) > 0 && (
+                  <div className="inline-flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={actingBazaarPower || Number(armed.pendingExtraCards || 0) > 0}
+                      onClick={() => handleUseSecretBazaarPower('arm_plus2')}
+                      title={
+                        Number(armed.pendingExtraCards || 0) > 0
+                          ? `Já existe +${armed.pendingExtraCards} carta(s) extra(s) armada(s) para o próximo sorteio`
+                          : 'Armar +2 cartas extras para o próximo sorteio'
+                      }
+                      className="px-3 py-1.5 rounded-xl bg-sky-950/75 hover:bg-sky-900/80 border border-sky-400/60 text-[11px] font-black text-sky-100 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
+                    >
+                      🃏 Manga Cheia +2 Cartas ({charges.secret_hand_plus2}×)
+                    </button>
+                    <PowerHelpButton helpKey="secret_hand_plus2" size="xs" />
+                  </div>
+                )}
+                {Number(charges.secret_hand_plus5 || 0) > 0 && (
+                  <div className="inline-flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={actingBazaarPower || Number(armed.pendingExtraCards || 0) > 0}
+                      onClick={() => handleUseSecretBazaarPower('arm_plus5')}
+                      title={
+                        Number(armed.pendingExtraCards || 0) > 0
+                          ? `Já existe +${armed.pendingExtraCards} carta(s) extra(s) armada(s) para o próximo sorteio`
+                          : 'Armar +5 cartas extras para o próximo sorteio'
+                      }
+                      className="px-3 py-1.5 rounded-xl bg-amber-950/75 hover:bg-amber-900/80 border border-amber-400/60 text-[11px] font-black text-amber-100 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
+                    >
+                      🌟 Manga Cheia +5 Cartas ({charges.secret_hand_plus5}×)
+                    </button>
+                    <PowerHelpButton helpKey="secret_hand_plus5" size="xs" />
+                  </div>
+                )}
+                {Number(charges.secret_special_storm || 0) > 0 && (
+                  <div className="inline-flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={actingBazaarPower || Boolean(armed.pendingSpecialStorm)}
+                      onClick={() => handleUseSecretBazaarPower('arm_special_storm')}
+                      className="px-3 py-1.5 rounded-xl bg-purple-950/75 hover:bg-purple-900/80 border border-purple-400/60 text-[11px] font-black text-purple-100 cursor-pointer disabled:opacity-45"
+                    >
+                      🌪️ 2–6 Especiais ({charges.secret_special_storm}×)
+                    </button>
+                    <PowerHelpButton helpKey="secret_special_storm" size="xs" />
+                  </div>
+                )}
+                {Number(charges.secret_transmute || 0) > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-300/45 text-[10.5px] font-bold text-amber-200">
+                    ⚖️ Selo de Transmutação ({charges.secret_transmute}×): use na carta da fila abaixo
+                    <PowerHelpButton helpKey="secret_transmute" size="xs" />
+                  </span>
+                )}
+              </div>
+            )}
+          </section>
+        );
+      })()}
 
       {errorMsg && (
         <div className="rounded-2xl border border-rose-500/45 bg-rose-950/35 px-4 py-3 text-sm text-rose-200 flex items-center justify-between gap-2">
@@ -2218,29 +2497,79 @@ export default function SecretDrawPage({
           ) : (
             /* MÃO DE 3 A 10 CARTAS DE BARALHO NA MESA */
             <div className="relative z-10 flex flex-col items-center gap-4">
-              <div className="w-full max-w-[1160px] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-black/45 border border-amber-400/25 rounded-2xl px-4 py-2.5">
-                <div className="flex flex-col gap-0.5 text-center sm:text-left">
-                  <div className="text-xs font-black uppercase tracking-[0.16em] text-amber-200 flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                    <span>
-                      {`🃏 Mesa do Arlequim • ${currentRound.cards.length} carta${currentRound.cards.length === 1 ? '' : 's'} na mesa`}
-                    </span>
-                    <span className="text-[10px] font-mono text-zinc-400">• Rodada #{currentRound.id}</span>
-                  </div>
-                  <div className="text-[11px] text-emerald-100/80">
-                    Clicou na carta, aceitou! Ela vira e vai direto para a fila sem troca ({currentRoundPickedSeats.length} aceita(s) aqui • Fila: <strong className="text-amber-300">{activeWatchCount}/{activeWatchLimit}</strong>)
-                  </div>
-                </div>
+              {(() => {
+                let tableXpTotal = 0;
+                let tableGoldTotal = 0;
+                let tableClosedCount = 0;
+                let tableBanishedCount = 0;
+                let tableSpecialCount = 0;
+                for (const c of currentRound.cards || []) {
+                  if (c.removedByCurse) {
+                    tableBanishedCount += 1;
+                    continue;
+                  }
+                  const seatNum = Number(c.seat);
+                  if (currentRoundPickedSeats.includes(seatNum) || c.specialEvent?.triggered) continue;
+                  tableClosedCount += 1;
+                  if (c.specialEvent) tableSpecialCount += 1;
+                  const rw = getSecretRewardMeta(c);
+                  if (rw.isGold) tableGoldTotal += rw.amount;
+                  else tableXpTotal += rw.amount;
+                }
+                return (
+                  <div className="w-full max-w-[1160px] flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 bg-black/45 border border-amber-400/25 rounded-2xl px-4 py-2.5">
+                    <div className="flex flex-col gap-1 text-center lg:text-left">
+                      <div className="text-xs font-black uppercase tracking-[0.16em] text-amber-200 flex flex-wrap items-center justify-center lg:justify-start gap-2">
+                        <span>
+                          {`🃏 Mesa do Arlequim • ${currentRound.cards.length} carta${currentRound.cards.length === 1 ? '' : 's'} na mesa`}
+                        </span>
+                        <span className="text-[10px] font-mono text-zinc-400">• Rodada #{currentRound.id}</span>
+                        {tableBanishedCount > 0 && (
+                          <span className="px-2 py-0.5 rounded-full bg-rose-950/80 border border-rose-400/55 text-[10px] font-black text-rose-200 normal-case tracking-normal">
+                            ⚔️ {tableBanishedCount} banida{tableBanishedCount > 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-emerald-100/80">
+                        Clicou na carta, aceitou! Ela vira e vai direto para a fila sem troca ({currentRoundPickedSeats.length} aceita(s) aqui • Fila: <strong className="text-amber-300">{activeWatchCount}/{activeWatchLimit}</strong>)
+                      </div>
+                    </div>
 
-                <button
-                  type="button"
-                  disabled={acting}
-                  onClick={() => handleFinishSelection(currentRound.id)}
-                  className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/25 transition-all cursor-pointer disabled:opacity-50 shrink-0"
-                  title="Encerra esta mão e devolve todas as cartas que permaneceram fechadas ao baralho"
-                >
-                  ✅ Finalizar Escolha ({currentRoundPickedSeats.length > 0 ? `${currentRoundPickedSeats.length} na fila` : 'Pular Mão'})
-                </button>
-              </div>
+                    <div className="flex flex-wrap items-center justify-center lg:justify-end gap-2 shrink-0">
+                      <div
+                        className="flex flex-wrap items-center gap-1.5 rounded-xl bg-black/60 border border-white/15 px-3 py-1.5"
+                        title={`Total possível nas ${tableClosedCount} carta(s) ainda fechada(s) da mesa`}
+                      >
+                        <span className="text-[10px] uppercase tracking-wider font-black text-zinc-400 mr-0.5">
+                          Na mesa ({tableClosedCount}):
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-400/45 text-[11px] font-black font-mono text-cyan-200">
+                          ⚡ +{tableXpTotal} XP
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-300/55 text-[11px] font-black font-mono text-yellow-200">
+                          🪙 +{tableGoldTotal}
+                        </span>
+                        <span
+                          title="Quantidade de Cartas Especiais disfarçadas ainda fechadas nesta mesa (a localização continua oculta!)"
+                          className="px-2 py-0.5 rounded-full bg-fuchsia-500/15 border border-fuchsia-400/45 text-[11px] font-black font-mono text-fuchsia-200"
+                        >
+                          🎭 {tableSpecialCount} {tableSpecialCount === 1 ? 'Especial' : 'Especiais'}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={acting}
+                        onClick={() => handleFinishSelection(currentRound.id)}
+                        className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/25 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                        title="Encerra esta mão e devolve todas as cartas que permaneceram fechadas ao baralho"
+                      >
+                        ✅ Finalizar Escolha ({currentRoundPickedSeats.length > 0 ? `${currentRoundPickedSeats.length} na fila` : 'Pular Mão'})
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {(() => {
                 const cardsCount = currentRound.cards.length;
@@ -2256,22 +2585,29 @@ export default function SecretDrawPage({
                   <div className={gridWrapClass}>
                     {currentRound.cards.map((card, idx) => {
                       const suit = SUIT_META[card.difficulty] || SUIT_META.common;
+                      const cardReward = getSecretRewardMeta(card);
                       const deckMeta = getSecretPlayingCardMeta(card, currentRound?.id);
                       const isDealt = idx < dealingCount;
                       const isPickedInRound = currentRoundPickedSeats.includes(Number(card.seat));
+                      const isBanished = Boolean(card.removedByCurse);
                       const isSpecialTriggered = Boolean(card.specialEvent?.triggered);
                       const isSpecialFront =
-                        Boolean(card.specialEvent) && (isSpecialTriggered || effectiveLabTransparent);
+                        !isBanished &&
+                        Boolean(card.specialEvent) &&
+                        (isSpecialTriggered || effectiveLabTransparent);
                       const isFlipped =
-                        effectiveLabTransparent ||
-                        isPickedInRound ||
-                        isSpecialTriggered ||
-                        Boolean(flippedSeats[card.seat]);
+                        !isBanished &&
+                        (effectiveLabTransparent ||
+                          isPickedInRound ||
+                          isSpecialTriggered ||
+                          Boolean(flippedSeats[card.seat]));
+                      const hasRadarPulse = Boolean(card.specialPulseHint && !isBanished && !isFlipped && !isPickedInRound);
                       const revealedGroups = card.simpleMilestonesHint
                         ? groupSimpleMilestones(
                             card.decoyMilestones?.length ? card.decoyMilestones : card.milestones
                           )
                         : [];
+                      const isFlippingThis = !isBanished && !isFlipped && Number(flippingSeat) === Number(card.seat);
                       const isSelectedSpotlight = spotlightSeat === card.seat;
                       const burstKey = burstSeats[card.seat] || 0;
                       const fanClass = isLargeHand
@@ -2360,29 +2696,67 @@ export default function SecretDrawPage({
                             {/* CORPO DA CARTA DE BARALHO (3D SCENE PURO) */}
                             <div
                               role="button"
-                              tabIndex={0}
-                              onClick={() => handleCardClick(card)}
+                              aria-disabled={isBanished}
+                              tabIndex={isBanished ? -1 : 0}
+                              onClick={() => !isBanished && handleCardClick(card)}
                               onKeyDown={(e) => {
+                                if (isBanished) return;
                                 if (e.key === 'Enter' || e.key === ' ') {
                                   e.preventDefault();
                                   handleCardClick(card);
                                 }
                               }}
-                              className={`secret-card-scene ${cardSizeClass} cursor-pointer select-none focus:outline-none ${
-                                isPickedInRound
-                                  ? 'ring-2 ring-emerald-400 rounded-[20px] ring-offset-4 ring-offset-[#072019] shadow-[0_0_28px_rgba(16,185,129,0.55)]'
-                                  : isSelectedSpotlight
-                                    ? 'ring-2 ring-amber-300/85 rounded-[20px] ring-offset-4 ring-offset-[#072019]'
-                                    : ''
+                              className={`secret-card-scene ${cardSizeClass} select-none focus:outline-none ${
+                                isBanished
+                                  ? 'cursor-not-allowed opacity-60 grayscale contrast-125'
+                                  : isFlippingThis
+                                    ? 'cursor-wait ring-2 ring-amber-300 rounded-[20px] ring-offset-4 ring-offset-[#072019] animate-pulse shadow-[0_0_30px_rgba(251,191,36,0.65)]'
+                                  : isPickedInRound
+                                    ? 'cursor-pointer ring-2 ring-emerald-400 rounded-[20px] ring-offset-4 ring-offset-[#072019] shadow-[0_0_28px_rgba(16,185,129,0.55)]'
+                                    : hasRadarPulse
+                                      ? 'cursor-pointer secret-special-radar-pulse rounded-[20px]'
+                                      : isSelectedSpotlight
+                                        ? 'cursor-pointer ring-2 ring-amber-300/85 rounded-[20px] ring-offset-4 ring-offset-[#072019]'
+                                        : 'cursor-pointer'
                               }`}
                             >
                               <div className={`secret-card-inner ${modeClass} ${isFlipped ? 'is-flipped' : ''}`}>
                           {/* ===================== VERSO (MODELO 4: OPÇÃO 1 ORBE / OPÇÃO 2 TOPO+ORBE) ===================== */}
                           <div
-                            className={`secret-card-face secret-card-face-back rounded-[18px] border-2 ${suit.borderFrame} bg-[#09070e] ${suit.glowShadow} overflow-hidden flex flex-col`}
+                            className={`secret-card-face secret-card-face-back rounded-[18px] border-2 ${
+                              isBanished ? 'border-rose-500/65 bg-black' : `${suit.borderFrame} bg-[#09070e] ${suit.glowShadow}`
+                            } overflow-hidden flex flex-col`}
                           >
-                            {/* Se revelada pelo Mini Arlequim (3 ou 5) enquanto ainda fechada */}
-                            {card.revealedPreview ? (
+                            {/* Banida pela Dama de Espadas — A Inquisidora (Q ♠) */}
+                            {isBanished ? (
+                              <>
+                                <img
+                                  src={getSecretSuitBackImage(card.difficulty)}
+                                  alt={`Banida ${card.difficultyLabel}`}
+                                  className="absolute inset-0 w-full h-full object-cover opacity-25 grayscale"
+                                />
+                                <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/80 via-rose-950/60 to-black/90" />
+                                <div className="relative z-10 flex-1 p-3 flex flex-col items-center justify-between text-center">
+                                  <span className="px-2 py-0.5 rounded-full bg-rose-950/90 border border-rose-400/60 text-[9px] font-black text-rose-200 uppercase tracking-wider">
+                                    ⚔️ Q ♠ Banida
+                                  </span>
+                                  <div className="rounded-xl bg-black/80 border border-rose-400/50 px-2.5 py-2 space-y-1 shadow-xl">
+                                    <div className="text-[11px] font-black text-rose-200 leading-tight">
+                                      Banida pela Inquisidora
+                                    </div>
+                                    <div className="text-[9.5px] font-mono text-zinc-400 line-through">
+                                      {cardReward.short} • {suit.rank} {suit.suit}
+                                    </div>
+                                    <div className="text-[9px] font-bold text-rose-300/90">
+                                      Devolvida ao baralho
+                                    </div>
+                                  </div>
+                                  <span className="px-2 py-0.5 rounded-full bg-black/80 border border-white/10 text-[9px] font-black uppercase tracking-widest text-zinc-500">
+                                    Carta #{card.seat}
+                                  </span>
+                                </div>
+                              </>
+                            ) : card.revealedPreview ? (
                               <>
                                 {card.resolved?.posterUrl ? (
                                   <img
@@ -2399,13 +2773,20 @@ export default function SecretDrawPage({
                                 )}
                                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black via-black/45 to-black/75" />
                                 <div className="relative z-10 flex-1 p-2.5 flex flex-col justify-between">
-                                  <div className="flex items-center justify-between gap-1">
-                                    <span className="px-2 py-0.5 rounded-full bg-fuchsia-600/85 border border-fuchsia-300/70 text-[9px] font-black text-white shadow">
-                                      🃏 Arlequim Revelou!
-                                    </span>
-                                    <span className={`text-[10px] font-black font-mono px-2 py-0.5 rounded-full border ${suit.xpChip}`}>
-                                      +{card.xpReward} XP
-                                    </span>
+                                  <div className="flex flex-col gap-1">
+                                    <div className="flex items-center justify-between gap-1">
+                                      <span className="px-2 py-0.5 rounded-full bg-fuchsia-600/85 border border-fuchsia-300/70 text-[9px] font-black text-white shadow">
+                                        🃏 Arlequim Revelou!
+                                      </span>
+                                      <span className={`text-[10px] font-black font-mono px-2 py-0.5 rounded-full border ${cardReward.isGold ? 'bg-amber-400/30 border-amber-300/75 text-amber-200' : suit.xpChip}`}>
+                                        {cardReward.short}
+                                      </span>
+                                    </div>
+                                    {card.goldConvertedByJack && (
+                                      <span className="self-end px-2 py-0.5 rounded-full bg-amber-950/90 border border-amber-300/70 text-[8.5px] font-black text-amber-200 shadow">
+                                        🪙 J♦ +15% Ouro
+                                      </span>
+                                    )}
                                   </div>
                                   <div className="mt-auto space-y-1">
                                     <div className="text-[10px] font-black uppercase text-amber-300">
@@ -2432,21 +2813,26 @@ export default function SecretDrawPage({
                                 {/* Camada sutil para leitura mantendo os 4 cristais dos cantos intactos */}
                                 <div className="relative z-10 flex-1 flex flex-col items-center justify-between p-2">
                                   {/* FAIXA SUPERIOR: Opção 1 (só +XP central) vs Opção 2 (Naipe+Rank+XP central longe dos cantos) */}
-                                  <div className="w-full flex justify-center pt-1">
+                                  <div className="w-full flex flex-col items-center gap-1 pt-1">
                                     {cardBackLayout === 'top' ? (
                                       <div className="px-2.5 py-0.5 rounded-full bg-black/82 backdrop-blur-md border border-white/25 flex items-center gap-1.5 shadow-lg">
                                         <span className={`text-[11px] font-black font-serif ${suit.accentText}`}>
                                           {suit.rank} {suit.suit}
                                         </span>
                                         <span className="text-white/30 text-[10px]">•</span>
-                                        <span className="text-[10px] font-black font-mono text-amber-200">
-                                          +{card.xpReward} XP
+                                        <span className={`text-[10px] font-black font-mono ${cardReward.isGold ? 'text-yellow-300' : 'text-amber-200'}`}>
+                                          {cardReward.short}
                                         </span>
                                       </div>
                                     ) : (
-                                      <div className="px-2.5 py-0.5 rounded-full bg-black/80 backdrop-blur-md border border-white/25 text-[10px] font-black font-mono text-amber-200 shadow-lg">
-                                        +{card.xpReward} XP
+                                      <div className={`px-2.5 py-0.5 rounded-full backdrop-blur-md border text-[10px] font-black font-mono shadow-lg ${cardReward.isGold ? 'bg-amber-950/85 border-amber-300/65 text-yellow-200' : 'bg-black/80 border-white/25 text-amber-200'}`}>
+                                        {cardReward.short}
                                       </div>
+                                    )}
+                                    {card.goldConvertedByJack && (
+                                      <span className="px-2 py-0.5 rounded-full bg-amber-950/90 border border-amber-300/75 text-[8.5px] font-black text-amber-200 shadow">
+                                        🪙 J♦ +15% Ouro
+                                      </span>
                                     )}
                                   </div>
 
@@ -2470,9 +2856,11 @@ export default function SecretDrawPage({
                                     )}
 
                                     <div className="px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-[10px] font-black text-zinc-100 whitespace-nowrap">
-                                      {hiddenCount > 0
-                                        ? `❓ ${hiddenCount} Marco${hiddenCount > 1 ? 's' : ''}`
-                                        : '❓ Destino Selado'}
+                                      {isFlippingThis
+                                        ? '✨ Virando...'
+                                        : hiddenCount > 0
+                                          ? `❓ ${hiddenCount} Marco${hiddenCount > 1 ? 's' : ''}`
+                                          : '❓ Destino Selado'}
                                     </div>
 
                                     {/* Visão dos Marcos I/II (quando ativada na mesa!) */}
@@ -2490,32 +2878,73 @@ export default function SecretDrawPage({
                                       </div>
                                     )}
 
-                                    {/* Buffs de Classe (Raio-X / Microfone) */}
-                                    {(currentRound.powerFlags?.xrayMilestones || currentRound.powerFlags?.revealYearRuntime) && (
-                                      <div className="flex flex-col items-center gap-1 pt-0.5 max-w-full">
-                                        {currentRound.powerFlags?.revealYearRuntime && (card.resolved?.releaseYear || card.resolved?.runtime) && (
-                                          <span className="px-1.5 py-0.5 rounded bg-cyan-950/90 border border-cyan-400/50 text-[8.5px] font-black font-mono text-cyan-200">
-                                            🎙️ {card.resolved?.releaseYear || '?'} • {card.resolved?.runtime ? `${card.resolved.runtime}m` : '?m'}
-                                          </span>
-                                        )}
-                                        {currentRound.powerFlags?.xrayMilestones && Array.isArray(card.milestones) && card.milestones.length > 0 && (
-                                          <div className="flex flex-wrap justify-center gap-1 max-w-full">
-                                            {card.milestones.slice(0, 2).map((m, mIdx) => (
-                                              <span
-                                                key={mIdx}
-                                                className="px-1 py-0.5 rounded bg-black/80 border border-amber-400/45 text-[8px] font-bold text-amber-200 truncate max-w-[105px]"
-                                              >
-                                                {m.icon} {m.label}
+                                    {/* Buffs de Classe (Raio-X / Microfone / Portal das Décadas) */}
+                                    {(currentRound.powerFlags?.xrayMilestones ||
+                                      currentRound.powerFlags?.xrayUnconqueredYearsOnly ||
+                                      currentRound.powerFlags?.revealYearRuntime) &&
+                                      (() => {
+                                        const showRuntime = Boolean(currentRound.powerFlags?.revealYearRuntime);
+                                        const showAllMilestones = Boolean(currentRound.powerFlags?.xrayMilestones);
+                                        const showYearsOnly = Boolean(
+                                          currentRound.powerFlags?.xrayUnconqueredYearsOnly
+                                        );
+                                        const effectiveYear = card.resolved?.releaseYear || card.decoyYear;
+                                        const effectiveRuntime = card.resolved?.runtime || card.decoyRuntime;
+                                        const rawMilestones =
+                                          Array.isArray(card.milestones) && card.milestones.length > 0
+                                            ? card.milestones
+                                            : Array.isArray(card.decoyMilestones)
+                                              ? card.decoyMilestones
+                                              : [];
+                                        const visibleMilestones = showAllMilestones
+                                          ? rawMilestones.slice(0, 2)
+                                          : showYearsOnly
+                                            ? rawMilestones
+                                                .filter(
+                                                  (m) =>
+                                                    m.system === 'time_machine' &&
+                                                    String(m.label || '').startsWith('Ano inédito')
+                                                )
+                                                .slice(0, 2)
+                                            : [];
+                                        if (
+                                          !(showRuntime && (effectiveYear || effectiveRuntime)) &&
+                                          visibleMilestones.length === 0
+                                        ) {
+                                          return null;
+                                        }
+                                        return (
+                                          <div className="flex flex-col items-center gap-1 pt-0.5 max-w-full">
+                                            {showRuntime && (effectiveYear || effectiveRuntime) && (
+                                              <span className="px-1.5 py-0.5 rounded bg-cyan-950/90 border border-cyan-400/50 text-[8.5px] font-black font-mono text-cyan-200">
+                                                🎙️ {effectiveYear || '?'} •{' '}
+                                                {effectiveRuntime ? `${effectiveRuntime}m` : '?m'}
                                               </span>
-                                            ))}
+                                            )}
+                                            {visibleMilestones.length > 0 && (
+                                              <div className="flex flex-wrap justify-center gap-1 max-w-full">
+                                                {visibleMilestones.map((m, mIdx) => (
+                                                  <span
+                                                    key={mIdx}
+                                                    className="px-1 py-0.5 rounded bg-black/80 border border-amber-400/45 text-[8px] font-bold text-amber-200 truncate max-w-[105px]"
+                                                  >
+                                                    {m.icon} {m.label}
+                                                  </span>
+                                                ))}
+                                              </div>
+                                            )}
                                           </div>
-                                        )}
-                                      </div>
-                                    )}
+                                        );
+                                      })()}
                                   </div>
 
-                                  {/* Número discreto na base longe dos cristais dos cantos */}
-                                  <div className="pb-0.5">
+                                  {/* Número discreto na base longe dos cristais dos cantos + radar de Carta Especial Oculta */}
+                                  <div className="pb-0.5 flex flex-col items-center gap-1">
+                                    {hasRadarPulse && (
+                                      <span className="px-2 py-0.5 rounded-full bg-fuchsia-950/95 border border-fuchsia-300/80 text-[9px] font-black text-fuchsia-200 shadow-[0_0_12px_rgba(232,121,249,0.75)] animate-pulse">
+                                        🕵️ Carta Especial Oculta
+                                      </span>
+                                    )}
                                     <span className="px-2 py-0.5 rounded-full bg-black/75 border border-white/15 text-[9px] font-black uppercase tracking-widest text-white/75">
                                       Carta #{card.seat}
                                     </span>
@@ -2608,8 +3037,8 @@ export default function SecretDrawPage({
                                   <span className={`text-xs ${suit.accentText}`}>{deckMeta.symbol}</span>
                                 </div>
 
-                                <span className={`text-[10px] font-black font-mono px-2 py-0.5 rounded-full border backdrop-blur-sm ${suit.xpChip}`}>
-                                  +{card.xpReward} XP
+                                <span className={`text-[10px] font-black font-mono px-2 py-0.5 rounded-full border backdrop-blur-sm ${cardReward.isGold ? 'bg-amber-400/25 border-amber-300/75 text-amber-200' : suit.xpChip}`}>
+                                  {cardReward.short}
                                 </span>
                               </div>
 
@@ -2789,19 +3218,24 @@ export default function SecretDrawPage({
                 </div>
 
                 <div className="flex-1 flex flex-col gap-2.5 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-black border ${suit.badge}`}>
-                      {suit.suit} Carta #{focusCard.seat} • {focusCard.difficultyLabel}
-                    </span>
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-black font-mono bg-amber-500/20 text-amber-200 border border-amber-400/50 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" /> +{focusCard.xpReward} XP
-                    </span>
-                    {focusIsPicked && (
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-200 border border-emerald-400/55">
-                        ✓ Selecionada p/ Fila
-                      </span>
-                    )}
-                  </div>
+                  {(() => {
+                    const focusRw = getSecretRewardMeta(focusCard);
+                    return (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-black border ${suit.badge}`}>
+                          {suit.suit} Carta #{focusCard.seat} • {focusCard.difficultyLabel}
+                        </span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-black font-mono border flex items-center gap-1 ${focusRw.badgeCls}`}>
+                          <Sparkles className="w-3 h-3" /> {focusRw.short}
+                        </span>
+                        {focusIsPicked && (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-200 border border-emerald-400/55">
+                            ✓ Selecionada p/ Fila
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   <div>
                     <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
@@ -2889,11 +3323,14 @@ export default function SecretDrawPage({
                   </div>
 
                   {/* Status na Fila ou Finalizar Escolha */}
+                  {(() => {
+                    const focusBtnRw = getSecretRewardMeta(focusCard);
+                    return (
                   <div className="flex flex-wrap items-center gap-2.5 pt-1">
                     {focusIsPicked ? (
                       <span className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-200 border border-emerald-400/50">
                         <Lock className="w-4 h-4" />
-                        🔒 Carta #{focusCard.seat} travada na sua fila abaixo (+{focusCard.xpReward} XP ao cadastrar)
+                        🔒 Carta #{focusCard.seat} travada na sua fila abaixo ({focusBtnRw.short} ao cadastrar)
                       </span>
                     ) : (
                       <button
@@ -2903,7 +3340,7 @@ export default function SecretDrawPage({
                         className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-lg cursor-pointer disabled:opacity-50"
                       >
                         <Lock className="w-4 h-4" />
-                        Aceitar Carta #{focusCard.seat} na Fila (+{focusCard.xpReward} XP)
+                        Aceitar Carta #{focusCard.seat} na Fila ({focusBtnRw.short})
                       </button>
                     )}
 
@@ -2916,6 +3353,8 @@ export default function SecretDrawPage({
                       ✅ Finalizar Escolha ({currentRoundPickedSeats.length} na fila)
                     </button>
                   </div>
+                    );
+                  })()}
                 </div>
               </div>
             </section>
@@ -3081,23 +3520,36 @@ export default function SecretDrawPage({
         )
       )}
 
-      {/* BANNER DOURADO: CARTAS CONCLUÍDAS PRONTAS PARA COLHER XP */}
-      {readyToClaimPicks.length > 0 && (
+      {/* BANNER DOURADO: CARTAS CONCLUÍDAS PRONTAS PARA COLHER */}
+      {readyToClaimPicks.length > 0 && (() => {
+        const readyXpSum = readyToClaimPicks.reduce(
+          (acc, p) => acc + (getSecretRewardMeta(p).isGold ? 0 : getSecretRewardMeta(p).amount),
+          0
+        );
+        const readyGoldSum = readyToClaimPicks.reduce(
+          (acc, p) => acc + (getSecretRewardMeta(p).isGold ? getSecretRewardMeta(p).amount : 0),
+          0
+        );
+        return (
         <section className="rounded-3xl border-2 border-amber-300/75 bg-gradient-to-br from-amber-950/65 via-zinc-950 to-emerald-950/50 p-4 sm:p-5 flex flex-col gap-3 shadow-[0_0_30px_rgba(251,191,36,0.2)]">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
               <h2 className="text-sm sm:text-base font-black text-amber-200 uppercase tracking-wide">
-                🃏 Cartas Concluídas — Prontas para Colher XP ({readyToClaimPicks.length})
+                🃏 Cartas Concluídas — Prontas para Colher ({readyToClaimPicks.length})
               </h2>
             </div>
             <span className="text-[11px] font-mono font-bold text-amber-200/90">
-              Total pronto: +{readyToClaimPicks.reduce((acc, p) => acc + Number(p.xpReward || 0), 0)} XP
+              Total pronto:{' '}
+              {[readyXpSum > 0 ? `+${readyXpSum} XP` : null, readyGoldSum > 0 ? `+${readyGoldSum} 🪙` : null]
+                .filter(Boolean)
+                .join(' • ') || '+0 XP'}
             </span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {readyToClaimPicks.map((pick) => {
               const pCard = pick.card;
+              const pRw = getSecretRewardMeta(pick);
               return (
                 <div
                   key={`ready_${pick.id}`}
@@ -3115,7 +3567,7 @@ export default function SecretDrawPage({
                       {pCard?.resolved?.title || pick.movieKey}
                     </div>
                     <div className="text-[10px] font-mono text-amber-200/85">
-                      {pCard?.difficultyLabel || pick.difficulty} • +{pick.xpReward} XP aguardando
+                      {pCard?.difficultyLabel || pick.difficulty} • {pRw.short} aguardando
                     </div>
                   </button>
                   <button
@@ -3124,14 +3576,15 @@ export default function SecretDrawPage({
                     onClick={() => handleClaimPick(pick.id)}
                     className="shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-yellow-300 hover:brightness-110 text-slate-950 shadow cursor-pointer disabled:opacity-50"
                   >
-                    ✨ +{pick.xpReward} XP
+                    {pRw.isGold ? `🪙 ${pRw.short}` : `✨ ${pRw.short}`}
                   </button>
                 </div>
               );
             })}
           </div>
         </section>
-      )}
+        );
+      })()}
 
       {/* =====================================================================
           EM BAIXO: PEQUENO CATÁLOGO — FILA PARA ASSISTIR (CARDS MENORES)
@@ -3284,23 +3737,26 @@ export default function SecretDrawPage({
                   </div>
 
                   <div className="flex-1 flex flex-col gap-2 min-w-0">
+                    {(() => {
+                      const focusedRw = getSecretRewardMeta(focusedPick);
+                      return (
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-black border ${suit.badge}`}>
                         {suit.suit} {fCard?.difficultyLabel || fDiff}
                       </span>
                       {isReadyToClaimItem && (
                         <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black font-mono bg-amber-400/25 text-amber-200 border border-amber-300/80 animate-pulse">
-                          ✨ +{focusedPick.xpReward} XP Pronto para Colher!
+                          {focusedRw.isGold ? `🪙 ${focusedRw.short} Pronto p/ Colher!` : `✨ ${focusedRw.short} Pronto para Colher!`}
                         </span>
                       )}
                       {isActiveMission && (
                         <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black font-mono bg-amber-500/20 text-amber-200 border border-amber-400/55">
-                          🔒 +{focusedPick.xpReward} XP Travado
+                          🔒 {focusedRw.short} Travado
                         </span>
                       )}
                       {isCompletedItem && (
                         <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black font-mono bg-emerald-400/20 text-emerald-200 border border-emerald-300/75 shadow-[0_0_12px_rgba(16,185,129,0.25)]">
-                          🏆 MISSÃO CUMPRIDA • +{focusedPick.xpAwarded || focusedPick.xpReward} XP COLHIDO
+                          🏆 MISSÃO CUMPRIDA • {focusedRw.short} COLHIDO
                         </span>
                       )}
                       {isBoomerangItem && (
@@ -3320,7 +3776,22 @@ export default function SecretDrawPage({
                       )}
                       {fCard?.halfXpCursed && (
                         <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-rose-500/25 text-rose-200 border border-rose-400/60">
-                          💔 0.5× XP Maldição
+                          {focusedRw.isGold ? '🩸 -50% Tributo (7 ♦)' : '💔 0.5× Maldição'}
+                        </span>
+                      )}
+                      {fCard?.goldConvertedByJack && (
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-500/25 text-amber-200 border border-amber-300/65">
+                          🪙 Valete de Ouros (+15% 🪙)
+                        </span>
+                      )}
+                      {fCard?.goldConvertedByQueen && (
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-500/30 text-yellow-200 border border-amber-300/75 shadow-[0_0_12px_rgba(251,191,36,0.25)]">
+                          👑 Toque Dourado (+25% 🪙)
+                        </span>
+                      )}
+                      {fCard?.transmutedByBazaar && (
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-500/20 text-amber-200 border border-amber-300/60">
+                          ⚖️ Transmutada pelo Selo do Bazar
                         </span>
                       )}
                       {fCard?.boomerangLocked && (
@@ -3335,10 +3806,12 @@ export default function SecretDrawPage({
                       )}
                       {fCard?.portalHarvested && (
                         <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-cyan-500/20 text-cyan-200 border border-cyan-400/55">
-                          🌀 Portal Colheu XP & Devolveu ao Baralho
+                          🌀 Portal Colheu Prêmio &amp; Devolveu ao Baralho
                         </span>
                       )}
                     </div>
+                      );
+                    })()}
 
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
                       <h3 className="text-lg sm:text-xl font-black text-white leading-tight">
@@ -3419,10 +3892,15 @@ export default function SecretDrawPage({
                       </div>
                     )}
 
-                    {isReadyToClaimItem && (
+                    {isReadyToClaimItem && (() => {
+                      const focusedClaimRw = getSecretRewardMeta(focusedPick);
+                      return (
                       <div className="rounded-2xl border border-amber-300/60 bg-amber-500/15 p-3 flex flex-wrap items-center justify-between gap-2.5">
                         <div className="text-xs text-amber-100">
-                          <strong>🎬 Missão Concluída!</strong> Este filme já entrou no catálogo. Colete seu XP para liberar +XP e reabrir a vaga da fila:
+                          <strong>🎬 Missão Concluída!</strong>{' '}
+                          {focusedClaimRw.isGold
+                            ? 'Este filme já entrou no catálogo. Colete suas Moedas para o Bazar e reabra a vaga da fila:'
+                            : 'Este filme já entrou no catálogo. Colete seu XP e reabra a vaga da fila:'}
                         </div>
                         <button
                           type="button"
@@ -3431,12 +3909,15 @@ export default function SecretDrawPage({
                           className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-yellow-300 hover:brightness-110 text-slate-950 shadow-[0_0_20px_rgba(251,191,36,0.45)] cursor-pointer disabled:opacity-50"
                         >
                           <Sparkles className="w-3.5 h-3.5" />
-                          Colher +{focusedPick.xpReward} XP Agora!
+                          Colher {focusedClaimRw.short} Agora!
                         </button>
                       </div>
-                    )}
+                      );
+                    })()}
 
-                    {isActiveMission && (
+                    {isActiveMission && (() => {
+                      const focusedActiveRw = getSecretRewardMeta(focusedPick);
+                      return (
                       <div className="flex flex-col gap-2 pt-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <button
@@ -3445,8 +3926,23 @@ export default function SecretDrawPage({
                             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow cursor-pointer"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />
-                            Cadastrar no Catálogo (+{focusedPick.xpReward} XP)
+                            Cadastrar no Catálogo ({focusedActiveRw.short})
                           </button>
+
+                          {Number(bazaarProfile?.tacticalCharges?.secret_transmute || 0) > 0 && (
+                            <div className="inline-flex items-center gap-1">
+                              <button
+                                type="button"
+                                disabled={acting || actingBazaarPower}
+                                onClick={() => handleUseSecretBazaarPower('transmute_pick', focusedPick.id)}
+                                title="Inverte esta carta entre XP (⚡) e Ouro do Bazar (🪙)"
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-amber-500/20 hover:bg-amber-500/35 text-amber-200 border border-amber-300/60 cursor-pointer disabled:opacity-45"
+                              >
+                                ⚖️ {focusedActiveRw.isGold ? 'Virar XP (⚡)' : 'Virar Ouro (🪙)'} ({bazaarProfile.tacticalCharges.secret_transmute}×)
+                              </button>
+                              <PowerHelpButton helpKey="secret_transmute" size="xs" />
+                            </div>
+                          )}
 
                           {showLabTools && (
                             <button
@@ -3456,7 +3952,7 @@ export default function SecretDrawPage({
                               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-violet-500/20 hover:bg-violet-500/35 text-violet-200 border border-violet-400/50 cursor-pointer disabled:opacity-50"
                             >
                               <Unlock className="w-3.5 h-3.5" />
-                              Concluir Lab (+{focusedPick.xpReward} XP)
+                              Concluir Lab ({focusedActiveRw.short})
                             </button>
                           )}
 
@@ -3603,7 +4099,8 @@ export default function SecretDrawPage({
                           </div>
                         )}
                       </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
@@ -3818,6 +4315,9 @@ export default function SecretDrawPage({
                       )}
 
                       {/* Rodapé compacto */}
+                      {(() => {
+                        const entryRw = getSecretRewardMeta(entry);
+                        return (
                       <div className="absolute bottom-0 inset-x-0 p-2 flex flex-col gap-0.5">
                         <div className="text-[11px] font-black text-white leading-tight line-clamp-2 drop-shadow">
                           {gCard?.resolved?.title}
@@ -3826,7 +4326,7 @@ export default function SecretDrawPage({
                           <div className="bg-emerald-500/25 border border-emerald-400/60 rounded-lg px-1.5 py-0.5 mt-0.5 flex items-center justify-between text-[9px] font-mono">
                             <span className="font-bold text-emerald-100">🏆 Visto</span>
                             <span className="font-black text-emerald-200">
-                              ✓ +{entry.xpAwarded || entry.xpReward} XP
+                              ✓ {entryRw.short}
                             </span>
                           </div>
                         ) : (
@@ -3837,16 +4337,18 @@ export default function SecretDrawPage({
                                 isReadyToClaim
                                   ? 'text-amber-300 animate-pulse'
                                   : isActive
-                                    ? 'text-amber-300'
+                                    ? entryRw.isGold
+                                      ? 'text-yellow-300'
+                                      : 'text-amber-300'
                                     : isBoomerang
                                       ? 'text-sky-300'
                                       : 'text-zinc-400'
                               }`}
                             >
                               {isReadyToClaim
-                                ? `✨ +${entry.xpReward} XP`
+                                ? `${entryRw.isGold ? '🪙' : '✨'} ${entryRw.short}`
                                 : isActive
-                                  ? `⏳ +${entry.xpReward} XP`
+                                  ? `⏳ ${entryRw.short}`
                                   : isBoomerang
                                     ? 'No Baralho'
                                     : 'Vórtice'}
@@ -3854,6 +4356,8 @@ export default function SecretDrawPage({
                           </div>
                         )}
                       </div>
+                        );
+                      })()}
                     </div>
                   </button>
                 );
@@ -4114,7 +4618,7 @@ export default function SecretDrawPage({
                       {chosen ? `${chosen.resolved?.title} (${chosen.resolved?.releaseYear || '?'})` : 'Não escolhida'}
                     </div>
                     <div className="text-[10px] text-zinc-500 font-mono">
-                      {chosen ? `${chosen.difficultyIcon} ${chosen.difficultyLabel}` : `${r.auditLog?.length || 0} checagens`}
+                      {chosen ? `${chosen.difficultyIcon} ${chosen.difficultyLabel}` : `${r.auditCount ?? r.auditLog?.length ?? 0} checagens`}
                     </div>
                   </div>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border shrink-0 ${badgeCls}`}>

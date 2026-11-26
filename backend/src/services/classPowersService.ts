@@ -16,6 +16,7 @@ export interface SecretDrawPowerBuff {
   filterMaxRuntime?: number;
   prioritizeUnconqueredYears?: boolean;
   revealMilestonesXray?: boolean;
+  xrayUnconqueredYearsOnly?: boolean;
   revealYearRuntime?: boolean;
   allowExtraActivePick?: boolean;
   bonusNextPickXp?: number;

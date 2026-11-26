@@ -22,6 +22,10 @@ import {
 } from 'lucide-react';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { triggerXPGainToast, dispatchXpStatusUpdate } from '../utils/xpSystem';
+import {
+  dispatchHarlequinWorldEvent,
+  dispatchHarlequinProfileSync,
+} from '../utils/harlequinEvents';
 import { getNextMonthCountdownLabel, formatCycleKeyLabel } from '../utils/cycleCountdown';
 import {
   playBingoCageSpinSound,
@@ -35,6 +39,7 @@ import {
   getEquippedClassId,
   dispatchClassPowerSync,
 } from '../utils/classPowersCatalog';
+import PowerHelpButton from '../components/PowerHelpButton';
 
 const FAMILY_META = {
   secret_draw: { label: 'Sessão Secreta', border: 'border-fuchsia-500/40', badge: 'bg-fuchsia-500/15 text-fuchsia-200 border-fuchsia-400/40' },
@@ -72,7 +77,24 @@ const TARGET_ACTION_META = {
     hint: 'Clique em qualquer pergaminho em aberto na mesa para aplicar o poder da classe selecionada!',
     ring: 'ring-amber-400/95 border-amber-300',
   },
+  hybrid_seal: {
+    label: '⚖️ Sinete Híbrido (50% XP / 50% 🪙 ou +25% 🪙)',
+    hint: 'Clique em um Pergaminho (ou Fileira) ainda não colhido para dividir em 50% XP + 50% Ouro ou dar +25% de Ouro!',
+    ring: 'ring-yellow-300 border-yellow-300',
+  },
 };
+
+function formatBingoRewardShort(item) {
+  const xp = Number(item?.xpReward || 0);
+  const gold = Number(item?.goldReward || 0);
+  if (item?.rewardMode === 'hybrid' || (xp > 0 && gold > 0)) {
+    return `+${xp} XP • +${gold} 🪙`;
+  }
+  if (item?.rewardMode === 'gold' || gold > 0) {
+    return `+${gold} 🪙`;
+  }
+  return `+${xp} XP`;
+}
 
 const ROMAN_NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI'];
 
@@ -158,7 +180,11 @@ function isPassportDiplomaticSquareClient(sq) {
 }
 
 function isSquareEligibleForAction(square, action, activeClassId = '') {
-  if (!square || square.completed || square.claimed) return false;
+  if (!square || square.claimed) return false;
+  if (action === 'hybrid_seal') {
+    return square.rewardMode !== 'hybrid' && !(square.rewardMode === 'gold' && square.hybridGoldBoost);
+  }
+  if (square.completed) return false;
   if (action === 'upgrade') return square.difficultyState !== 'upgraded';
   if (action === 'downgrade') return square.difficultyState !== 'downgraded';
   if (action === 'class_power') {
@@ -522,6 +548,9 @@ function ParchmentContractTile({
 
   const isUpgraded = square.difficultyState === 'upgraded';
   const isDowngraded = square.difficultyState === 'downgraded';
+  const isGoldScroll = square.rewardMode === 'gold';
+  const isHybridScroll = square.rewardMode === 'hybrid';
+  const rewardText = formatBingoRewardShort(square);
   const statKey = resolveGoalStatKey(square);
   const statMeta = STAT_BADGE_META[statKey] || STAT_BADGE_META.SOR;
   const statPts = isUpgraded ? 0.2 : isDowngraded ? (square.preserveNormalStat ? 0.1 : 0) : 0.1;
@@ -531,7 +560,11 @@ function ParchmentContractTile({
   const clickable = targetedAction ? eligibleTarget : (isReadyToClaim || canToggleScroll);
 
   const useGreenSeal = square.index % 3 === 0;
-  const sealClass = useGreenSeal ? 'bingo-wax-seal-green' : 'bingo-wax-seal';
+  const sealClass = isGoldScroll || isHybridScroll
+    ? 'bingo-wax-seal-gold'
+    : useGreenSeal
+      ? 'bingo-wax-seal-green'
+      : 'bingo-wax-seal';
 
   const handleClick = () => {
     if (!clickable) return;
@@ -551,7 +584,13 @@ function ParchmentContractTile({
         disabled={acting || Boolean(targetedAction)}
         onClick={handleClick}
         title={`${square.title} (${statMeta.label}: ${statPtsText} ${statKey}) — Clique para abrir este pergaminho lacrado`}
-        className={`group relative rounded-xl border border-[#54381e]/75 bg-[#180f07]/80 hover:border-[#b8894c]/85 hover:bg-[#22150a]/90 p-2.5 flex flex-col justify-between items-center gap-2 min-h-[168px] sm:min-h-[180px] transition-all bingo-parchment-font ${hoverRingClass} ${
+        className={`group relative rounded-xl border p-2.5 flex flex-col justify-between items-center gap-2 min-h-[168px] sm:min-h-[180px] transition-all bingo-parchment-font ${
+          isGoldScroll
+            ? 'border-yellow-400/75 bg-[#241905]/90 hover:border-yellow-300'
+            : isHybridScroll
+              ? 'border-amber-300/65 bg-[#19200b]/90 hover:border-amber-200'
+              : 'border-[#54381e]/75 bg-[#180f07]/80 hover:border-[#b8894c]/85 hover:bg-[#22150a]/90'
+        } ${hoverRingClass} ${
           targetedAction
             ? 'opacity-35 saturate-50 pointer-events-none cursor-default'
             : 'cursor-pointer active:scale-[0.98]'
@@ -559,16 +598,16 @@ function ParchmentContractTile({
       >
         <div className="w-full flex items-center justify-between gap-1 text-[9.5px]">
           <span className="tracking-[0.14em] font-bold text-[#c79f63] uppercase">
-            Contrato #{roman}
+            {isGoldScroll ? '🪙 #' : '#'}{roman}
           </span>
-          <span className="font-bold text-amber-300/95">
-            +{square.xpReward} XP • {statMeta.icon} {statPtsText} {statKey} ✓
+          <span className={`font-bold ${isGoldScroll ? 'text-yellow-300' : 'text-amber-300/95'}`}>
+            {rewardText} • {statMeta.icon} {statPtsText} {statKey} ✓
           </span>
         </div>
 
         {/* Pergaminho enrolado na horizontal com cordão de sisal e lacre 3D */}
         <div className="relative w-full my-auto px-0.5 flex items-center justify-center">
-          <div className="relative w-full h-14 rounded-full bingo-rolled-scroll-body flex items-center justify-between overflow-visible">
+          <div className={`relative w-full h-14 rounded-full bingo-rolled-scroll-body flex items-center justify-between overflow-visible ${isGoldScroll ? 'ring-1 ring-yellow-300/60' : ''}`}>
             <span className="w-3.5 h-14 rounded-l-full border-r border-[#1a0e05]/85 bg-[radial-gradient(circle_at_center,#b8894c_22%,#5e3b1b_55%,#1b0e05_92%)] shrink-0" />
             <div className="flex-1 h-full relative flex items-center justify-center">
               <span className="w-1.5 h-14 bg-gradient-to-r from-[#d4b483] via-[#a37d4c] to-[#6b4f2b] shadow-md" />
@@ -580,7 +619,7 @@ function ParchmentContractTile({
                 }`}
               >
                 <span className="w-7 h-7 rounded-full border border-white/25 flex items-center justify-center text-sm text-amber-100/95 shadow-inner">
-                  ⚜️
+                  {isGoldScroll ? '🪙' : isHybridScroll ? '⚖️' : '⚜️'}
                 </span>
               </div>
             </div>
@@ -600,17 +639,21 @@ function ParchmentContractTile({
     );
   }
 
-  let bodyToneClass = 'bingo-parchment-cell border-[#8c6236]/65 group-hover:border-[#d4a460]';
+  let bodyToneClass = isGoldScroll
+    ? 'bingo-parchment-cell-gold border-yellow-400/80 shadow-[0_0_22px_rgba(250,204,21,0.2)] group-hover:border-yellow-300'
+    : isHybridScroll
+      ? 'bingo-parchment-cell-hybrid border-amber-300/75 group-hover:border-amber-200'
+      : 'bingo-parchment-cell border-[#8c6236]/65 group-hover:border-[#d4a460]';
+
   if (targetedAction && !eligibleTarget) {
-    bodyToneClass = 'bingo-parchment-cell border-[#5a3c20]/45 opacity-35 saturate-50';
+    bodyToneClass = `${isGoldScroll ? 'bingo-parchment-cell-gold' : 'bingo-parchment-cell'} border-[#5a3c20]/45 opacity-35 saturate-50`;
   } else if (eligibleTarget && targetMeta) {
-    bodyToneClass = `bingo-parchment-cell ring-2 ${targetMeta.ring} border-amber-300 shadow-[0_0_24px_rgba(251,191,36,0.35)]`;
+    bodyToneClass = `${isGoldScroll ? 'bingo-parchment-cell-gold' : 'bingo-parchment-cell'} ring-2 ${targetMeta.ring} border-amber-300 shadow-[0_0_24px_rgba(251,191,36,0.35)]`;
   } else if (isReadyToClaim) {
-    bodyToneClass =
-      'bingo-parchment-cell bingo-daub-pulse border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.34)]';
-  } else if (isUpgraded) {
+    bodyToneClass = `${isGoldScroll ? 'bingo-parchment-cell-gold' : isHybridScroll ? 'bingo-parchment-cell-hybrid' : 'bingo-parchment-cell'} bingo-daub-pulse border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.34)]`;
+  } else if (isUpgraded && !isGoldScroll && !isHybridScroll) {
     bodyToneClass = 'bingo-parchment-cell-upgraded border-orange-500/80';
-  } else if (isDowngraded) {
+  } else if (isDowngraded && !isGoldScroll && !isHybridScroll) {
     bodyToneClass = 'bingo-parchment-cell-downgraded border-dashed border-sky-400/75';
   }
 
@@ -624,11 +667,14 @@ function ParchmentContractTile({
         square.claimed && isScrollOpen ? 'bingo-scroll-unroll-anim' : ''
       } ${hoverRingClass} ${clickable ? 'cursor-pointer active:scale-[0.985]' : 'cursor-default'}`}
     >
-      <div className="bingo-scroll-roller w-full shrink-0" />
+      <div className={`${isGoldScroll ? 'bingo-scroll-roller-gold' : 'bingo-scroll-roller'} w-full shrink-0`} />
 
       <div
         className={`relative flex-1 mx-1 border-x px-2.5 py-2 flex flex-col justify-between gap-1.5 overflow-hidden ${bodyToneClass}`}
       >
+        {isGoldScroll && !square.claimed && (
+          <div className="pointer-events-none absolute -top-6 -left-6 w-24 h-24 rounded-full bg-gradient-to-br from-yellow-400/20 to-amber-500/5 blur-xl" />
+        )}
         {isUpgraded && !square.claimed && (
           <div className="pointer-events-none absolute -top-6 -right-6 w-20 h-20 rounded-full bg-gradient-to-br from-orange-500/25 to-rose-600/15 blur-xl" />
         )}
@@ -636,10 +682,10 @@ function ParchmentContractTile({
           <div className="pointer-events-none absolute -bottom-6 -left-6 w-20 h-20 rounded-full bg-gradient-to-tr from-sky-400/25 to-cyan-500/10 blur-xl" />
         )}
 
-        {/* Cabeçalho ornamental + Selo discreto de Atributo + Dificuldade modificada */}
+        {/* Cabeçalho ornamental + Selo discreto de Atributo + Tipo Dourado/Híbrido */}
         <div className="relative z-10 flex items-center justify-between gap-1 text-[9.5px]">
-          <span className="font-bold tracking-[0.12em] uppercase text-[#dfba7a] truncate">
-            ~ Contrato #{roman} ~
+          <span className={`font-bold tracking-[0.12em] uppercase truncate ${isGoldScroll ? 'text-yellow-200' : 'text-[#dfba7a]'}`}>
+            {isGoldScroll ? `🪙 Dourado #${roman}` : isHybridScroll ? `⚖️ Híbrido #${roman}` : `~ Contrato #${roman} ~`}
           </span>
           <div className="flex items-center gap-1 shrink-0">
             <span
@@ -648,6 +694,11 @@ function ParchmentContractTile({
             >
               {statMeta.icon} {statKey} {statPtsText}
             </span>
+            {isGoldScroll && square.hybridGoldBoost && (
+              <span className="px-1.5 py-0.5 rounded bg-yellow-900/80 border border-yellow-300/75 text-[8.5px] font-bold text-yellow-100">
+                +25% 🪙
+              </span>
+            )}
             {isUpgraded && (
               <span className="px-1.5 py-0.5 rounded bg-orange-900/70 border border-orange-400/70 text-[8.5px] font-bold text-orange-200">
                 🔥 +Dif
@@ -670,7 +721,9 @@ function ParchmentContractTile({
         </div>
 
         {/* Brasão escuro entalhado com título */}
-        <div className="relative z-10 rounded-md border border-[#966a38]/45 bg-[#190f07]/70 px-2 py-1.5 shadow-inner flex items-center gap-2">
+        <div className={`relative z-10 rounded-md border px-2 py-1.5 shadow-inner flex items-center gap-2 ${
+          isGoldScroll ? 'border-yellow-400/50 bg-[#1a1102]/80' : 'border-[#966a38]/45 bg-[#190f07]/70'
+        }`}>
           <span className="w-6 h-6 rounded-full bg-[#362110] border border-[#b8894c]/55 flex items-center justify-center text-sm leading-none shrink-0 select-none">
             {square.icon}
           </span>
@@ -692,7 +745,10 @@ function ParchmentContractTile({
               </strong>
             </span>
             <span className="text-[#d6be96]">
-              Recompensa: <strong className="text-amber-300">+{square.xpReward} XP</strong>
+              Prêmio:{' '}
+              <strong className={isGoldScroll ? 'text-yellow-300' : isHybridScroll ? 'text-emerald-200' : 'text-amber-300'}>
+                {rewardText}
+              </strong>
             </span>
           </div>
         </div>
@@ -700,7 +756,7 @@ function ParchmentContractTile({
         {/* Rodapé com rubrica + lacre ou CTA */}
         <div className="relative z-10 flex items-center justify-between gap-1.5 pt-1 border-t border-[#8b6339]/30">
           <span className="text-[9.5px] italic text-[#bfa06e]/85 select-none truncate">
-            ~ ✒️ Selo da Guilda ~
+            {isGoldScroll ? '~ 🪙 Pergaminho Áureo ~' : isHybridScroll ? '~ ⚖️ Contrato Misto ~' : '~ ✒️ Selo da Guilda ~'}
           </span>
 
           {square.claimed ? (
@@ -711,28 +767,34 @@ function ParchmentContractTile({
               <span
                 className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] text-amber-100 ${sealClass}`}
               >
-                ⚜️
+                {isGoldScroll ? '🪙' : '⚜️'}
               </span>
             </div>
+          ) : eligibleTarget && targetedAction ? (
+            <span className="px-2 py-0.5 rounded bg-amber-400/25 border border-amber-300 text-[9px] font-black text-amber-200 shrink-0">
+              {targetedAction === 'class_power'
+                ? `⚡ ${getClassPowerSquarePreview(square, activePowerClassId)}`
+                : targetedAction === 'hybrid_seal'
+                  ? isGoldScroll
+                    ? '⚖️ +25% 🪙'
+                    : '⚖️ 50/50 🪙'
+                  : '⚡ APLICAR'}
+            </span>
           ) : isReadyToClaim && !targetedAction ? (
             <span
               className={`px-2 py-0.5 rounded-full text-[9.5px] font-black tracking-wide text-amber-100 animate-pulse shrink-0 ${sealClass}`}
             >
-              ⚜️ LACRAR +{square.xpReward}
-            </span>
-          ) : eligibleTarget ? (
-            <span className="px-2 py-0.5 rounded bg-amber-400/25 border border-amber-300 text-[9px] font-black text-amber-200 shrink-0">
-              {targetedAction === 'class_power'
-                ? `⚡ ${getClassPowerSquarePreview(square, activePowerClassId)}`
-                : '⚡ APLICAR'}
+              {isGoldScroll ? '🪙' : '⚜️'} LACRAR {rewardText}
             </span>
           ) : (
-            <span className="text-[9.5px] font-bold text-[#c7a36b] shrink-0">ABERTO</span>
+            <span className={`text-[9.5px] font-bold shrink-0 ${isGoldScroll ? 'text-yellow-300/90' : 'text-[#c7a36b]'}`}>
+              {isGoldScroll ? 'OURO' : 'ABERTO'}
+            </span>
           )}
         </div>
       </div>
 
-      <div className="bingo-scroll-roller w-full shrink-0" />
+      <div className={`${isGoldScroll ? 'bingo-scroll-roller-gold' : 'bingo-scroll-roller'} w-full shrink-0`} />
     </button>
   );
 }
@@ -741,29 +803,48 @@ function LineBadgeButton({
   line,
   compactLabel,
   acting,
+  targetedAction = null,
   onHoverLine,
   onClaimLine,
+  onApplyHybridLine = null,
   fullWidth = false,
 }) {
   const ready = line.completed && !line.claimed;
+  const canApplyHybrid =
+    targetedAction === 'hybrid_seal' &&
+    !line.claimed &&
+    line.rewardMode !== 'hybrid' &&
+    !(line.rewardMode === 'gold' && line.hybridGoldBoost);
+  const clickable = ready || canApplyHybrid;
+  const rewardLabel = formatBingoRewardShort(line);
   const toneClass = line.claimed
     ? 'border-[#9a3412] bg-gradient-to-r from-[#6c1d13] to-[#4b120b] text-[#fde68a] font-serif shadow-[0_2px_10px_rgba(127,29,29,0.5)]'
-    : ready
-      ? 'border-amber-300 bg-gradient-to-r from-amber-500 to-yellow-400 text-[#261406] font-serif shadow-[0_0_16px_rgba(245,158,11,0.45)] animate-pulse cursor-pointer'
-      : 'border-[#6e4e2e]/70 bg-[#24180d]/90 text-[#e8d5b5] font-serif hover:border-[#b8864b] hover:bg-[#322112]';
+    : canApplyHybrid
+      ? 'border-yellow-300 ring-2 ring-yellow-300/80 bg-yellow-950/80 text-yellow-100 font-serif cursor-pointer animate-pulse'
+      : ready
+        ? 'border-amber-300 bg-gradient-to-r from-amber-500 to-yellow-400 text-[#261406] font-serif shadow-[0_0_16px_rgba(245,158,11,0.45)] animate-pulse cursor-pointer'
+        : line.rewardMode === 'hybrid'
+          ? 'border-amber-300/60 bg-gradient-to-r from-[#173a2b] to-[#4a3309] text-amber-100 font-serif'
+          : 'border-[#6e4e2e]/70 bg-[#24180d]/90 text-[#e8d5b5] font-serif hover:border-[#b8864b] hover:bg-[#322112]';
 
   return (
     <button
       type="button"
-      disabled={acting || !ready}
+      disabled={acting || !clickable}
       onMouseEnter={() => onHoverLine(line.indices)}
       onMouseLeave={() => onHoverLine(null)}
-      onClick={() => ready && onClaimLine(line.id)}
-      title={`${line.label} (+${line.xpReward} XP)`}
+      onClick={() => {
+        if (canApplyHybrid && onApplyHybridLine) {
+          onApplyHybridLine(line.id);
+        } else if (ready) {
+          onClaimLine(line.id);
+        }
+      }}
+      title={canApplyHybrid ? `Aplicar Sinete Híbrido em ${line.label}` : `${line.label} (${rewardLabel})`}
       className={`${fullWidth ? 'w-full' : ''} px-2 py-1.5 rounded-xl border text-[10px] font-black transition-all flex items-center justify-center gap-1 ${toneClass}`}
     >
-      <span>{compactLabel}</span>
-      <span>{line.claimed ? '✓' : `+${line.xpReward}`}</span>
+      <span>{canApplyHybrid ? '⚖️' : compactLabel}</span>
+      <span>{line.claimed ? '✓' : line.rewardMode === 'hybrid' ? '⚖️' : rewardLabel.replace(' XP', '')}</span>
     </button>
   );
 }
@@ -900,6 +981,7 @@ export default function BingoPage({
   const [equippedClassId, setEquippedClassId] = useState(() => getEquippedClassId());
   const [selectedGoalKeyForPower, setSelectedGoalKeyForPower] = useState('');
   const [actingClassPower, setActingClassPower] = useState(false);
+  const [bazaarProfile, setBazaarProfile] = useState(null);
 
   const handleToggleClaimedScroll = (squareIndex) => {
     setUnrolledClaimedMap((prev) => ({
@@ -992,20 +1074,41 @@ export default function BingoPage({
     }
   }, []);
 
+  const loadBazaarProfile = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/guild-bazaar/status`);
+      if (res.data?.success && res.data?.data) {
+        setBazaarProfile(res.data.data);
+      }
+    } catch {
+      // silent fallback
+    }
+  }, []);
+
   useEffect(() => {
     loadClassPowerWallet();
+    loadBazaarProfile();
     const onSync = () => loadStatus({ silent: true });
     const onClassSync = () => {
       setEquippedClassId(getEquippedClassId());
       loadClassPowerWallet();
     };
+    const onProfileSync = (ev) => {
+      if (ev?.detail) {
+        setBazaarProfile(ev.detail);
+      } else {
+        loadBazaarProfile();
+      }
+    };
     window.addEventListener('cine-bingo-sync', onSync);
     window.addEventListener('cine-class-power-sync', onClassSync);
+    window.addEventListener('cine-harlequin-profile-sync', onProfileSync);
     return () => {
       window.removeEventListener('cine-bingo-sync', onSync);
       window.removeEventListener('cine-class-power-sync', onClassSync);
+      window.removeEventListener('cine-harlequin-profile-sync', onProfileSync);
     };
-  }, [loadStatus, loadClassPowerWallet]);
+  }, [loadStatus, loadClassPowerWallet, loadBazaarProfile]);
 
   const markJustStamped = (indices) => {
     const map = {};
@@ -1093,7 +1196,12 @@ export default function BingoPage({
         if (res.data.xpGain && res.data.xpStatus) {
           triggerXPGainToast(res.data.xpGain, res.data.xpStatus);
         }
+        if (res.data.bazaarStatus) {
+          setBazaarProfile(res.data.bazaarStatus);
+          dispatchHarlequinProfileSync(res.data.bazaarStatus);
+        }
         const gained = Number(res.data.claimedXp || 0);
+        const gainedGold = Number(res.data.claimedGold || 0);
         const completedAllForMonth =
           !res.data.data?.activeBoard &&
           Number(res.data.data?.wallet?.forgeChips || 0) <= 0;
@@ -1101,8 +1209,10 @@ export default function BingoPage({
           playBingoLineSound(targetType === 'blackout');
           markJustStamped(Array.from({ length: 16 }, (_, i) => i));
           setUnrolledClaimedMap({});
+          dispatchHarlequinWorldEvent('bingo_claimed', { targetType });
         } else if (targetType === 'line') {
           playBingoLineSound(false);
+          dispatchHarlequinWorldEvent('bingo_claimed', { targetType });
         } else {
           playBingoStampSound();
           if (targetId !== undefined) {
@@ -1116,18 +1226,69 @@ export default function BingoPage({
             });
           }
         }
+        const rewardSummary = [
+          gained > 0 ? `+${gained} XP` : null,
+          gainedGold > 0 ? `+${gainedGold} 🪙` : null,
+        ]
+          .filter(Boolean)
+          .join(' • ');
         setInfoBanner(
           completedAllForMonth
-            ? `🏆 +${gained} XP colhido! Você já completou todos os grimórios desse mês — volte mês que vem!`
-            : `✨ Lacre aplicado! +${gained} XP dos Pergaminhos da Guilda colhido!`
+            ? `🏆 ${rewardSummary} colhido! Você já completou todos os grimórios desse mês — volte mês que vem!`
+            : `✨ Lacre aplicado! ${rewardSummary} dos Pergaminhos da Guilda colhido!`
         );
         dispatchBingoSync();
       }
     });
 
+  const handleApplyHybridLine = (lineId) => {
+    if (!activeBoard || acting) return;
+    runMutation(async () => {
+      const res = await axios.post(`${API_BASE_URL}/bingo/bazaar-power`, {
+        boardId: activeBoard.id,
+        targetType: 'line',
+        lineId,
+      });
+      if (res.data?.success) {
+        playBingoStampSound();
+        if (res.data.status) applyServerState(res.data.status);
+        if (res.data.bazaarStatus) {
+          setBazaarProfile(res.data.bazaarStatus);
+          dispatchHarlequinProfileSync(res.data.bazaarStatus);
+        }
+        setTargetedAction(null);
+        setInfoBanner(res.data.message || '⚖️ Sinete Híbrido aplicado na Fileira!');
+        dispatchBingoSync();
+      }
+    });
+  };
+
   const handleSquareClick = (square) => {
     if (!activeBoard) return;
     const roman = ROMAN_NUMERALS[square.index] || String(square.index + 1);
+
+    if (targetedAction === 'hybrid_seal') {
+      if (!isSquareEligibleForAction(square, 'hybrid_seal')) return;
+      runMutation(async () => {
+        const res = await axios.post(`${API_BASE_URL}/bingo/bazaar-power`, {
+          boardId: activeBoard.id,
+          targetType: 'square',
+          squareIndex: square.index,
+        });
+        if (res.data?.success) {
+          playBingoStampSound();
+          if (res.data.status) applyServerState(res.data.status);
+          if (res.data.bazaarStatus) {
+            setBazaarProfile(res.data.bazaarStatus);
+            dispatchHarlequinProfileSync(res.data.bazaarStatus);
+          }
+          setTargetedAction(null);
+          setInfoBanner(res.data.message || `⚖️ Sinete Híbrido aplicado no Contrato #${roman}!`);
+          dispatchBingoSync();
+        }
+      });
+      return;
+    }
 
     if (targetedAction === 'class_power') {
       if (!isSquareEligibleForAction(square, 'class_power', activePowerClass?.id)) return;
@@ -1613,7 +1774,14 @@ export default function BingoPage({
             onClick={() => handleClaimReward(activeBoard.id, 'all')}
             className="shrink-0 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-[#991b1b] via-[#b45309] to-[#d97706] hover:brightness-110 text-[#fef3c7] border border-amber-300/70 shadow-lg cursor-pointer disabled:opacity-50"
           >
-            ⚜️ Lacrar Tudo (+{activeBoard.readyToClaimXp} XP)
+            ⚜️ Lacrar Tudo (
+            {[
+              Number(activeBoard.readyToClaimXp || 0) > 0 ? `+${activeBoard.readyToClaimXp} XP` : null,
+              Number(activeBoard.readyToClaimGold || 0) > 0 ? `+${activeBoard.readyToClaimGold} 🪙` : null,
+            ]
+              .filter(Boolean)
+              .join(' • ') || '+0 XP'}
+            )
           </button>
         </section>
       )}
@@ -1703,12 +1871,18 @@ export default function BingoPage({
           {hasCompletedCurrentMonth && wallet.forgeChips > 0 && (
             <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/45 text-[11px] font-bold text-emerald-200">
               <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
-              Você já gabaritou {currentMonthBoardCount} grimório(s) em {formatCycleKeyLabel(wallet.monthKey, { fallback: 'Mês Atual' })} — e possui {wallet.forgeChips} ficha(s) extra(s) acumulada(s)!
+              Você já gabaritou {currentMonthBoardCount}{' '}
+              {currentMonthBoardCount === 1 ? 'grimório' : 'grimórios'} em{' '}
+              {formatCycleKeyLabel(wallet.monthKey, { fallback: 'Mês Atual' })} — e possui{' '}
+              {wallet.forgeChips}{' '}
+              {wallet.forgeChips === 1 ? 'cartela extra disponível' : 'cartelas extras disponíveis'}!
             </div>
           )}
           <div className="max-w-lg -mt-1">
             <h3 className="text-lg sm:text-xl font-black text-[#faf0dc]">
-              Abra sua Remessa Mensal de 16 Pergaminhos!
+              {hasCompletedCurrentMonth && wallet.forgeChips > 0
+                ? 'Abra sua Cartela Extra de 16 Pergaminhos!'
+                : 'Abra sua Remessa Mensal de 16 Pergaminhos!'}
             </h3>
             <p className="text-xs text-[#d4b483] mt-1 leading-relaxed">
               Apenas <strong>1 mesa de contratos ativa por vez</strong> (4×4 = 16 missões amplas do catálogo). Lacre pergaminhos concluídos, feche qualquer das 10 fileiras (<strong className="text-amber-300">+75 XP</strong>) ou conquiste o Grande Sinete 16/16 (<strong className="text-amber-200">+200 XP</strong>)!
@@ -1720,7 +1894,8 @@ export default function BingoPage({
             onClick={handleForgeBoard}
             className="px-6 py-3 rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider bg-gradient-to-r from-[#7f1d1d] via-[#b45309] to-[#d97706] hover:brightness-110 text-[#fef3c7] border border-amber-300/75 shadow-[0_0_28px_rgba(180,83,9,0.45)] cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
           >
-            📜 Romper Lacre &amp; Abrir 16 Pergaminhos ({wallet.forgeChips}/{wallet.maxForgeChips})
+            📜 Romper Lacre &amp; Abrir 16 Pergaminhos • {wallet.forgeChips}{' '}
+            {wallet.forgeChips === 1 ? 'Ficha' : 'Fichas'}
           </button>
           {wallet.forgeChips <= 0 && (
             <p className="text-[11px] text-amber-300 font-mono">
@@ -1806,39 +1981,61 @@ export default function BingoPage({
                   )}
 
                   {activePowerSpec.targetMode === 'instant' ? (
-                    <button
-                      type="button"
-                      disabled={acting || actingClassPower || bingoPowerCharges <= 0}
-                      onClick={handleActivateInstantBingoPower}
-                      className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 text-slate-950 shadow-lg cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
-                    >
-                      {actingClassPower ? 'Ativando...' : '⚡ Ativar Poder Agora'}
-                    </button>
+                    <div className="inline-flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={acting || actingClassPower || bingoPowerCharges <= 0}
+                        onClick={handleActivateInstantBingoPower}
+                        className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 text-slate-950 shadow-lg cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
+                      >
+                        {actingClassPower ? 'Ativando...' : '⚡ Ativar Poder Agora'}
+                      </button>
+                      <PowerHelpButton
+                        help={{
+                          icon: activePowerSpec.icon,
+                          title: `${activePowerSpec.title} (${activePowerClass?.className || ''})`,
+                          subtitle: 'Poder da Classe RPG • Pergaminhos',
+                          description: activePowerSpec.desc,
+                          rule: `Recarrega ${maxBingoPowerCharges}× nos dias 1 e 15 (além de recarga no Bazar).`,
+                        }}
+                      />
+                    </div>
                   ) : (
-                    <button
-                      type="button"
-                      disabled={
-                        acting ||
-                        actingClassPower ||
-                        bingoPowerCharges <= 0 ||
-                        eligibleSquaresCount === 0 ||
-                        (activePowerSpec.targetMode === 'pick_square_and_goal' && !selectedGoalKeyForPower)
-                      }
-                      onClick={() =>
-                        setTargetedAction((prev) => (prev === 'class_power' ? null : 'class_power'))
-                      }
-                      className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider border transition-all cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ${
-                        targetedAction === 'class_power'
-                          ? 'bg-amber-400 text-slate-950 border-amber-200 shadow-[0_0_20px_rgba(251,191,36,0.45)] animate-pulse'
-                          : 'bg-gradient-to-r from-amber-400 to-yellow-300 hover:from-amber-300 hover:to-yellow-200 text-slate-950 border-amber-200 shadow'
-                      }`}
-                    >
-                      {eligibleSquaresCount === 0
-                        ? 'Sem Pergaminhos Elegíveis na Mesa'
-                        : targetedAction === 'class_power'
-                          ? `🎯 Clique num Pergaminho Iluminado (${eligibleSquaresCount})...`
-                          : `🎯 Mirar Pergaminho na Mesa (${eligibleSquaresCount})`}
-                    </button>
+                    <div className="inline-flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={
+                          acting ||
+                          actingClassPower ||
+                          bingoPowerCharges <= 0 ||
+                          eligibleSquaresCount === 0 ||
+                          (activePowerSpec.targetMode === 'pick_square_and_goal' && !selectedGoalKeyForPower)
+                        }
+                        onClick={() =>
+                          setTargetedAction((prev) => (prev === 'class_power' ? null : 'class_power'))
+                        }
+                        className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider border transition-all cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ${
+                          targetedAction === 'class_power'
+                            ? 'bg-amber-400 text-slate-950 border-amber-200 shadow-[0_0_20px_rgba(251,191,36,0.45)] animate-pulse'
+                            : 'bg-gradient-to-r from-amber-400 to-yellow-300 hover:from-amber-300 hover:to-yellow-200 text-slate-950 border-amber-200 shadow'
+                        }`}
+                      >
+                        {eligibleSquaresCount === 0
+                          ? 'Sem Pergaminhos Elegíveis na Mesa'
+                          : targetedAction === 'class_power'
+                            ? `🎯 Clique num Pergaminho Iluminado (${eligibleSquaresCount})...`
+                            : `🎯 Mirar Pergaminho na Mesa (${eligibleSquaresCount})`}
+                      </button>
+                      <PowerHelpButton
+                        help={{
+                          icon: activePowerSpec.icon,
+                          title: `${activePowerSpec.title} (${activePowerClass?.className || ''})`,
+                          subtitle: 'Poder da Classe RPG • Pergaminhos',
+                          description: activePowerSpec.desc,
+                          rule: `Recarrega ${maxBingoPowerCharges}× nos dias 1 e 15 (além de recarga no Bazar).`,
+                        }}
+                      />
+                    </div>
                   )}
                 </div>
               </div>
@@ -1868,58 +2065,93 @@ export default function BingoPage({
                   ✖ Cancelar Modo
                 </button>
               )}
-              <button
-                type="button"
-                disabled={acting || wallet.squareRerollChips <= 0}
-                onClick={() => setTargetedAction((prev) => (prev === 'square_reroll' ? null : 'square_reroll'))}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black border cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ${
-                  targetedAction === 'square_reroll'
-                    ? 'bg-sky-400 text-slate-950 border-sky-200'
-                    : 'bg-sky-500/15 hover:bg-sky-500/25 text-sky-200 border-sky-400/45'
-                }`}
-              >
-                <Dices className="w-3.5 h-3.5" />
-                Trocar 1 Contrato ({wallet.squareRerollChips}/{wallet.maxSquareRerollChips})
-              </button>
+              <div className="inline-flex items-center gap-1">
+                <button
+                  type="button"
+                  disabled={acting || wallet.squareRerollChips <= 0}
+                  onClick={() => setTargetedAction((prev) => (prev === 'square_reroll' ? null : 'square_reroll'))}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black border cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ${
+                    targetedAction === 'square_reroll'
+                      ? 'bg-sky-400 text-slate-950 border-sky-200'
+                      : 'bg-sky-500/15 hover:bg-sky-500/25 text-sky-200 border-sky-400/45'
+                  }`}
+                >
+                  <Dices className="w-3.5 h-3.5" />
+                  Trocar 1 Contrato ({wallet.squareRerollChips}/{wallet.maxSquareRerollChips})
+                </button>
+                <PowerHelpButton helpKey="bingo_square_reroll" size="xs" />
+              </div>
 
-              <button
-                type="button"
-                disabled={acting || wallet.upgradeChips <= 0}
-                onClick={() => setTargetedAction((prev) => (prev === 'upgrade' ? null : 'upgrade'))}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black border cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ${
-                  targetedAction === 'upgrade'
-                    ? 'bg-orange-400 text-slate-950 border-orange-200'
-                    : 'bg-orange-500/15 hover:bg-orange-500/25 text-orange-200 border-orange-400/45'
-                }`}
-              >
-                <ArrowUpCircle className="w-3.5 h-3.5" />
-                +Dif ({wallet.upgradeChips}/{wallet.maxUpgradeChips})
-              </button>
+              <div className="inline-flex items-center gap-1">
+                <button
+                  type="button"
+                  disabled={acting || wallet.upgradeChips <= 0}
+                  onClick={() => setTargetedAction((prev) => (prev === 'upgrade' ? null : 'upgrade'))}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black border cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ${
+                    targetedAction === 'upgrade'
+                      ? 'bg-orange-400 text-slate-950 border-orange-200'
+                      : 'bg-orange-500/15 hover:bg-orange-500/25 text-orange-200 border-orange-400/45'
+                  }`}
+                >
+                  <ArrowUpCircle className="w-3.5 h-3.5" />
+                  +Dif ({wallet.upgradeChips}/{wallet.maxUpgradeChips})
+                </button>
+                <PowerHelpButton helpKey="bingo_upgrade" size="xs" />
+              </div>
 
-              <button
-                type="button"
-                disabled={acting || wallet.downgradeChips <= 0}
-                onClick={() => setTargetedAction((prev) => (prev === 'downgrade' ? null : 'downgrade'))}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black border cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ${
-                  targetedAction === 'downgrade'
-                    ? 'bg-emerald-400 text-slate-950 border-emerald-200'
-                    : 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border-emerald-400/45'
-                }`}
-              >
-                <ArrowDownCircle className="w-3.5 h-3.5" />
-                -Dif ({wallet.downgradeChips}/{wallet.maxDowngradeChips})
-              </button>
+              <div className="inline-flex items-center gap-1">
+                <button
+                  type="button"
+                  disabled={acting || wallet.downgradeChips <= 0}
+                  onClick={() => setTargetedAction((prev) => (prev === 'downgrade' ? null : 'downgrade'))}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black border cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ${
+                    targetedAction === 'downgrade'
+                      ? 'bg-emerald-400 text-slate-950 border-emerald-200'
+                      : 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border-emerald-400/45'
+                  }`}
+                >
+                  <ArrowDownCircle className="w-3.5 h-3.5" />
+                  -Dif ({wallet.downgradeChips}/{wallet.maxDowngradeChips})
+                </button>
+                <PowerHelpButton helpKey="bingo_downgrade" size="xs" />
+              </div>
 
-              <button
-                type="button"
-                disabled={acting || wallet.boardRerollChips <= 0 || activeBoard.completedSquaresCount >= 16}
-                onClick={() => handleBoardReroll(activeBoard.id)}
-                title="Reescreve apenas os contratos em aberto; pergaminhos concluídos permanecem intactos!"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-[#3a210f] hover:bg-[#4e2d15] text-[#f5deb3] border border-[#b8894c]/60 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                Trocar Mesa ({wallet.boardRerollChips}/{wallet.maxBoardRerollChips})
-              </button>
+              {Number(bazaarProfile?.tacticalCharges?.bingo_hybrid_seal || 0) > 0 && (
+                <div className="inline-flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={acting}
+                    onClick={() => setTargetedAction((prev) => (prev === 'hybrid_seal' ? null : 'hybrid_seal'))}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black border cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ${
+                      targetedAction === 'hybrid_seal'
+                        ? 'bg-yellow-300 text-slate-950 border-yellow-100'
+                        : 'bg-amber-500/20 hover:bg-amber-500/35 text-yellow-200 border-yellow-400/60'
+                    }`}
+                  >
+                    ⚖️ Sinete Híbrido ({bazaarProfile.tacticalCharges.bingo_hybrid_seal}×)
+                  </button>
+                  <PowerHelpButton helpKey="bingo_hybrid_seal" size="xs" />
+                </div>
+              )}
+              {(bazaarProfile?.ownedRelics || []).includes('golden_loupe') && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-yellow-500/15 border border-yellow-300/45 text-[10.5px] font-black text-yellow-200">
+                  🔍 Lupa +10% 🪙
+                  <PowerHelpButton helpKey="golden_loupe" size="xs" />
+                </span>
+              )}
+              <div className="inline-flex items-center gap-1">
+                <button
+                  type="button"
+                  disabled={acting || wallet.boardRerollChips <= 0 || activeBoard.completedSquaresCount >= 16}
+                  onClick={() => handleBoardReroll(activeBoard.id)}
+                  title="Reescreve apenas os contratos em aberto; pergaminhos concluídos permanecem intactos!"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-[#3a210f] hover:bg-[#4e2d15] text-[#f5deb3] border border-[#b8894c]/60 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Trocar Mesa ({wallet.boardRerollChips}/{wallet.maxBoardRerollChips})
+                </button>
+                <PowerHelpButton helpKey="bingo_board_reroll" size="xs" />
+              </div>
             </div>
           </div>
 
@@ -1960,13 +2192,15 @@ export default function BingoPage({
                       line={diag}
                       compactLabel={diagId === 'diag_main' ? '↘ Diag.' : '↙ Diag.'}
                       acting={acting}
+                      targetedAction={targetedAction}
                       onHoverLine={setHoveredLineIndices}
                       onClaimLine={(id) => handleClaimReward(activeBoard.id, 'line', id)}
+                      onApplyHybridLine={handleApplyHybridLine}
                     />
                   );
                 })}
                 <span className="px-2.5 py-1 rounded-lg border text-[11px] font-black bg-[#26190e]/90 border-[#6e4e2e]/70 text-amber-300 font-serif">
-                  +{Number(activeBoard.xpAwarded || 0)} XP na Mesa
+                  +{Number(activeBoard.xpAwarded || 0)} XP{Number(activeBoard.goldAwarded || 0) > 0 ? ` • +${activeBoard.goldAwarded} 🪙` : ''} na Mesa
                 </span>
               </div>
             </div>
@@ -2005,8 +2239,10 @@ export default function BingoPage({
                         line={colLine}
                         compactLabel={`↓ Col ${cIdx + 1}`}
                         acting={acting}
+                        targetedAction={targetedAction}
                         onHoverLine={setHoveredLineIndices}
                         onClaimLine={(id) => handleClaimReward(activeBoard.id, 'line', id)}
+                        onApplyHybridLine={handleApplyHybridLine}
                       />
                     );
                   })}
@@ -2025,8 +2261,10 @@ export default function BingoPage({
                           line={rowLine}
                           compactLabel={`L${rIdx + 1}`}
                           acting={acting}
+                          targetedAction={targetedAction}
                           onHoverLine={setHoveredLineIndices}
                           onClaimLine={(id) => handleClaimReward(activeBoard.id, 'line', id)}
+                          onApplyHybridLine={handleApplyHybridLine}
                           fullWidth
                         />
                       </div>

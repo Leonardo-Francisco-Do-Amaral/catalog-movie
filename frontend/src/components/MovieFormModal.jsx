@@ -29,6 +29,7 @@ import { UN_COUNTRIES_195, HISTORICAL_TERRITORIES } from '../data/unCountries195
 import { triggerApiRefreshToast } from './ApiRefreshToastContainer';
 import { stopUniverseMusicPlayer } from '../utils/universeAudio';
 import { API_BASE_URL, resolveBackendAssetUrl } from '../utils/apiConfig';
+import { dispatchHarlequinWorldEvent } from '../utils/harlequinEvents';
 
 const DEFAULT_PLATFORMS = [
   'Cinema',
@@ -752,6 +753,13 @@ export default function MovieFormModal({
 
       if (!ghostRun) {
         onSave(newlyUnlocked, savedMovie, resData.xpStatus);
+        dispatchHarlequinWorldEvent('movie_saved', {
+          movie: savedMovie,
+          newlyUnlocked,
+          worldChallengeUnlocks,
+          timeMachineUnlocks,
+          isEditMode: edited,
+        });
       }
       onClose();
     };

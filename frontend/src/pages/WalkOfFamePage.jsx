@@ -22,6 +22,7 @@ import WalkOfFameStickerCard from '../components/WalkOfFameStickerCard';
 import WalkOfFamePackModal from '../components/WalkOfFamePackModal';
 import WalkOfFameTimelineModal from '../components/WalkOfFameTimelineModal';
 import WalkOfFameDirectorVerdictModal from '../components/WalkOfFameDirectorVerdictModal';
+import { dispatchHarlequinWorldEvent } from '../utils/harlequinEvents';
 import {
   STICKER_TIER_THEMES,
   DIRECTOR_TIER_THEMES,
@@ -439,6 +440,9 @@ export default function WalkOfFamePage({
           applyPayload(res.data.data);
           triggerCardPasteAnim(pack.star.id);
           publishWalkMutationEffects(res.data.data, { allowEmptyStatsToast: true });
+          if (pack?.star?.id) {
+            dispatchHarlequinWorldEvent('walk_of_fame_pack', { starId: pack.star.id });
+          }
           const remaining = res.data.data.pendingPacks || [];
           setActivePackModal(null);
           setNextPackChoiceCount(remaining.length);
@@ -470,6 +474,9 @@ export default function WalkOfFamePage({
         if (res.data?.success && res.data?.data) {
           applyPayload(res.data.data);
           publishWalkMutationEffects(res.data.data, { allowEmptyStatsToast: true });
+          if (pack?.star?.id) {
+            dispatchHarlequinWorldEvent('walk_of_fame_pack', { starId: pack.star.id });
+          }
           const remaining = res.data.data.pendingPacks || [];
           setActivePackModal(null);
           setNextPackChoiceCount(remaining.length);

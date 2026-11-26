@@ -24,6 +24,7 @@ import {
   stopAllTrophyAudio,
 } from '../utils/trophyAudio';
 import { TAROT_BACK_IMAGE, getRuneTarotMeta } from '../utils/chimeraTarotCatalog';
+import PowerHelpButton from './PowerHelpButton';
 
 const D20_TIER_THEME = {
   nightmare: {
@@ -162,6 +163,18 @@ const SPELL_THEME_BY_RARITY = {
     tagPill: 'bg-rose-500/20 border-rose-400/60 text-rose-100',
     ctaCls: 'border-rose-400/85 text-rose-100 shadow-[0_0_28px_rgba(244,63,94,0.5)] hover:bg-rose-500/20',
   },
+  shielded: {
+    neonConic:
+      'conic-gradient(from 0deg, transparent 0deg 30deg, #059669 75deg, #34d399 125deg, #d1fae5 155deg, transparent 200deg 225deg, #10b981 275deg, #6ee7b7 315deg, transparent 355deg)',
+    cardShadow: '0 0 56px rgba(16, 185, 129, 0.65), 0 0 115px rgba(5, 150, 105, 0.35)',
+    badgeNeonGlow: '0 0 28px rgba(16, 185, 129, 0.95), inset 0 0 14px rgba(52, 211, 153, 0.35)',
+    badgeText: 'text-emerald-200',
+    badgeInnerBg: 'bg-[#031910]/95',
+    ringBorder: 'border-emerald-300',
+    divider: 'via-emerald-300/70',
+    tagPill: 'bg-emerald-500/20 border-emerald-400/60 text-emerald-100',
+    ctaCls: 'border-emerald-300/85 text-emerald-100 shadow-[0_0_26px_rgba(16,185,129,0.5)] hover:bg-emerald-500/20',
+  },
 };
 
 const CHARGING_NEON_CONIC =
@@ -257,9 +270,14 @@ export function TarotCardShowcaseModal({ rune, onClose }) {
   };
 
   if (!rune || !arcana) return null;
-  const rStyle = RUNE_RARITY_STYLE[rune.rarity] || RUNE_RARITY_STYLE.common;
-  const spellTheme = SPELL_THEME_BY_RARITY[rune.rarity] || SPELL_THEME_BY_RARITY.common;
-  const isCursed = rune.rarity === 'cursed';
+  const isBlockedByShield = Boolean(rune.blockedByAmulet);
+  const rStyle = isBlockedByShield
+    ? { ...RUNE_RARITY_STYLE.cursed, label: '🛡️ Bloqueada pelo Escudo' }
+    : RUNE_RARITY_STYLE[rune.rarity] || RUNE_RARITY_STYLE.common;
+  const spellTheme = isBlockedByShield
+    ? SPELL_THEME_BY_RARITY.shielded
+    : SPELL_THEME_BY_RARITY[rune.rarity] || SPELL_THEME_BY_RARITY.common;
+  const isCursed = rune.rarity === 'cursed' && !isBlockedByShield;
   const showRarityBurst = revealStage === 'vibrating' || revealStage === 'revealed';
   const isFullyRevealed = revealStage === 'revealed';
 
@@ -472,7 +490,11 @@ export function TarotCardShowcaseModal({ rune, onClose }) {
                 }}
                 className={`px-8 py-3 rounded-full border-2 bg-zinc-950/85 font-black uppercase text-xs sm:text-sm tracking-[0.18em] transition-all cursor-pointer active:scale-[0.98] ${spellTheme.ctaCls}`}
               >
-                {isCursed ? '💀 Aceitar Destino' : '✦ Confirmar & Continuar'}
+                {isBlockedByShield
+                  ? '🛡️ Salvo pelo Escudo! Continuar'
+                  : isCursed
+                  ? '💀 Aceitar Destino'
+                  : '✦ Confirmar & Continuar'}
               </button>
             </div>
           </div>
@@ -633,6 +655,9 @@ export default function ChimeraForgeRitual({
   onDiscardChimera,
   declineChipsRemaining = 0,
   showLabTools = false,
+  bazaarProfile = null,
+  actingBazaarPower = false,
+  onUseBazaarPower = null,
 }) {
   const recipe = contract?.recipe || null;
   const d20Rolls = recipe?.d20Rolls || {
@@ -690,6 +715,13 @@ export default function ChimeraForgeRitual({
   const optPillars = new Set(recipe?.optionalPillars || []);
   const fateRunes = recipe?.fateRunes || [];
   const chosenFateRune = recipe?.chosenFateRune || null;
+  const isGoldReward =
+    recipe?.effectiveRewardMode === 'gold' ||
+    recipe?.rewardMode === 'gold' ||
+    Number(recipe?.emperorMidasBonusRate || 0) > 0;
+  const goldRate =
+    0.85 * (1 + Number(recipe?.emperorMidasBonusRate || 0) + Number(recipe?.emperorGoldCartelBoostRate || 0));
+  const formatPts = (pts) => (isGoldReward ? `${Math.round(Number(pts || 0) * goldRate)} 🪙` : `${pts} XP`);
   const chosenFateRunes =
     Array.isArray(recipe?.chosenFateRunes) && recipe.chosenFateRunes.length > 0
       ? recipe.chosenFateRunes
@@ -791,7 +823,6 @@ export default function ChimeraForgeRitual({
   if (!recipe) return null;
 
   const overallTier = recipe.d20Difficulty || 'balanced';
-  const overallTheme = D20_TIER_THEME[overallTier] || D20_TIER_THEME.balanced;
   const activeModalCatMeta = CATEGORY_ORDER.find((c) => c.id === modalCat);
   const modalTargetRoll = modalCat ? Number(d20Rolls[modalCat] || 10) : 10;
   const modalTier = resolveDifficultyKey(modalTargetRoll);
@@ -815,23 +846,31 @@ export default function ChimeraForgeRitual({
                 🚀 ou 2000+
               </span>
             )}
+            {(recipe.extraYearRanges || []).map((rng, idx) => (
+              <span
+                key={`opp-yr-${idx}`}
+                className="ml-2 px-2 py-0.5 rounded-full bg-fuchsia-500/20 border border-fuchsia-400/55 text-fuchsia-200 text-[10px] font-black align-middle"
+              >
+                🙃 ou {rng.minYear}–{rng.maxYear}
+              </span>
+            ))}
           </div>
           <div className="text-[11px] opacity-85 mt-0.5">
-            {recipe.eraLabel} • Faixa de {recipe.windowSize} anos (+{recipe.baseYearXp} XP)
+            {recipe.eraLabel} • Faixa de {recipe.windowSize} anos (+{formatPts(recipe.baseYearXp)})
           </div>
           {optPillars.has('year') && (
             <div className="mt-1.5 inline-flex w-fit items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-400/50 text-indigo-200 text-[10px] font-bold">
-              ♾️ Ano Opcional (Completa sem XP se fora da faixa)
+              ♾️ Ano Opcional (Completa sem bônus se fora da faixa)
             </div>
           )}
           <div className={`mt-2 pt-2 border-t border-white/10 text-[11px] font-bold ${cursedPillars.has('year') ? 'text-rose-300' : 'text-amber-300'}`}>
             {cursedPillars.has('year')
-              ? '💀 Jackpot Ceifado pela Morte (+0 XP)'
+              ? `🔱/💀 Jackpot Ceifado (+0 ${isGoldReward ? '🪙' : 'XP'})`
               : legPillars.has('year')
-              ? `👑 CATEGORIA 100% JACKPOT (+${recipe.jackpotYearXp} XP)`
+              ? `👑 CATEGORIA 100% JACKPOT (+${formatPts(recipe.jackpotYearXp)})`
               : recipe.extraTargetYears?.length
-              ? `⏳ Alvos: ${recipe.targetYear} / ${recipe.extraTargetYears.join(' / ')} (+${recipe.jackpotYearXp} XP)`
-              : `🎯 Exato: ${recipe.targetYear} (+${recipe.jackpotYearXp} XP)`}
+              ? `⏳ Alvos: ${recipe.targetYear} / ${recipe.extraTargetYears.join(' / ')} (+${formatPts(recipe.jackpotYearXp)})`
+              : `🎯 Exato: ${recipe.targetYear} (+${formatPts(recipe.jackpotYearXp)})`}
           </div>
         </>
       );
@@ -877,12 +916,12 @@ export default function ChimeraForgeRitual({
           </div>
           <div className={`mt-2 pt-2 border-t border-white/10 text-[11px] font-bold ${cursedPillars.has('country') ? 'text-rose-300' : 'text-amber-300'}`}>
             {cursedPillars.has('country')
-              ? '💀 Jackpot Ceifado pela Morte (+0 XP)'
+              ? `🔱/💀 Jackpot Ceifado (+0 ${isGoldReward ? '🪙' : 'XP'})`
               : legPillars.has('country')
-              ? `👑 BLOCO 100% JACKPOT (+${recipe.jackpotCountryXp} XP)`
+              ? `👑 BLOCO 100% JACKPOT (+${formatPts(recipe.jackpotCountryXp)})`
               : extraCountryNames.length > 0
-              ? `🚩 Jackpots${recipe.stackableCountryJackpots ? ' Acumuláveis' : ''}: ${[recipe.jackpotCountry, ...extraCountryNames].join(' / ')} (+${recipe.jackpotCountryXp} XP${recipe.stackableCountryJackpots ? ' cada' : ''})`
-              : `🚩 País Jackpot: ${recipe.jackpotCountry} (+${recipe.jackpotCountryXp} XP)`}
+              ? `🚩 Jackpots${recipe.stackableCountryJackpots ? ' Acumuláveis' : ''}: ${[recipe.jackpotCountry, ...extraCountryNames].join(' / ')} (+${formatPts(recipe.jackpotCountryXp)}${recipe.stackableCountryJackpots ? ' cada' : ''})`
+              : `🚩 País Jackpot: ${recipe.jackpotCountry} (+${formatPts(recipe.jackpotCountryXp)})`}
           </div>
         </>
       );
@@ -919,21 +958,23 @@ export default function ChimeraForgeRitual({
             })}
           </div>
           <div className="text-[11px] opacity-80 mt-1.5">
-            Basta 1 gênero (+{recipe.baseGenreXp} XP)
+            Basta 1 gênero (+{formatPts(recipe.baseGenreXp)})
           </div>
           {optPillars.has('genre') && (
             <div className="mt-1.5 inline-flex w-fit items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-400/50 text-indigo-200 text-[10px] font-bold">
-              🕊️ Gêneros Desativados (Sem XP se não bater)
+              🕊️ Gêneros Desativados (Sem bônus se não bater)
             </div>
           )}
           <div className={`mt-2 pt-2 border-t border-white/10 text-[11px] font-bold ${cursedPillars.has('genre') ? 'text-rose-300' : 'text-amber-300'}`}>
             {cursedPillars.has('genre')
-              ? '💀 Jackpot Ceifado pela Morte (+0 XP)'
+              ? `🔱/💀 Jackpot Ceifado (+0 ${isGoldReward ? '🪙' : 'XP'})`
               : legPillars.has('genre')
-              ? `👑 GÊNEROS 100% JACKPOT (+${recipe.jackpotGenreXp} XP)`
+              ? `👑 GÊNEROS 100% JACKPOT (+${formatPts(recipe.jackpotGenreXp)})`
+              : recipe.emperorCartelGenres
+              ? `🥃 Cartel Imperador: Todos Jackpots +${formatPts(recipe.jackpotGenreXp)} (+${recipe.emperorCrimeBonusGoldPerGenre || 15} 🪙/gênero)!`
               : recipe.extraJackpotGenres?.length
-              ? `🌀 2+ Gêneros ou Ouro (${recipe.extraJackpotGenres.join(' / ')}) acumulam +${recipe.jackpotGenreXp} XP!`
-              : `🎭 Quaisquer 2 juntos (+${recipe.jackpotGenreXp} XP)`}
+              ? `🌀 2+ Gêneros ou Ouro (${recipe.extraJackpotGenres.join(' / ')}) acumulam +${formatPts(recipe.jackpotGenreXp)}!`
+              : `🎭 Quaisquer 2 juntos (+${formatPts(recipe.jackpotGenreXp)})`}
           </div>
         </>
       );
@@ -968,6 +1009,11 @@ export default function ChimeraForgeRitual({
             );
           })}
         </div>
+        {Number(recipe.minTagsRequired || 1) > 1 && (
+          <div className="mt-1.5 inline-flex w-fit items-center gap-1 px-2.5 py-0.5 rounded-full bg-fuchsia-500/25 border border-fuchsia-400/60 text-fuchsia-100 text-[10px] font-black">
+            🃏 Exige ≥ {recipe.minTagsRequired} Tags (Sem Gêneros)
+          </div>
+        )}
         {optPillars.has('tag') && (
           <div className="mt-1.5 inline-flex w-fit items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-400/50 text-indigo-200 text-[10px] font-bold">
             🌑 Tags Opcionais (Sem XP de Tag se não bater)
@@ -975,12 +1021,12 @@ export default function ChimeraForgeRitual({
         )}
         <div className={`mt-2 pt-2 border-t border-white/10 text-[11px] font-bold ${cursedPillars.has('tag') ? 'text-rose-300' : 'text-amber-300'}`}>
           {cursedPillars.has('tag')
-            ? '💀 Jackpot Ceifado pela Morte (+0 XP)'
+            ? `🔱/💀 Jackpot Ceifado (+0 ${isGoldReward ? '🪙' : 'XP'})`
             : legPillars.has('tag')
-            ? `👑 TODAS AS TAGS = JACKPOT (+${recipe.jackpotTagXp} XP)`
+            ? `👑 TODAS AS TAGS = JACKPOT (+${formatPts(recipe.jackpotTagXp)})`
             : recipe.extraJackpotTags?.length
-            ? `☄️ Ouros${recipe.stackableTagJackpots ? ' Acumuláveis' : ''}: ${Array.from(goldSet).join(' / ')} (+${recipe.jackpotTagXp} XP${recipe.stackableTagJackpots ? ' cada' : ''})`
-            : `👑 Tag Ouro: ${recipe.jackpotTag} (+${recipe.jackpotTagXp} XP)`}
+            ? `☄️ Ouros${recipe.stackableTagJackpots ? ' Acumuláveis' : ''}: ${Array.from(goldSet).join(' / ')} (+${formatPts(recipe.jackpotTagXp)}${recipe.stackableTagJackpots ? ' cada' : ''})`
+            : `👑 Tag Ouro: ${recipe.jackpotTag} (+${formatPts(recipe.jackpotTagXp)})`}
         </div>
       </>
     );
@@ -988,44 +1034,84 @@ export default function ChimeraForgeRitual({
 
   return (
     <section
-      className={`rounded-3xl border-2 p-5 sm:p-6 transition-all duration-500 bg-gradient-to-br ${
-        allCategoriesRevealed ? overallTheme.bg : 'from-zinc-950 via-zinc-900 to-indigo-950/30'
-      } ${allCategoriesRevealed ? overallTheme.ring : 'border-amber-400/45 shadow-[0_0_45px_rgba(251,191,36,0.18)]'}`}
+      className={`rounded-3xl p-5 sm:p-6 transition-all duration-500 ${
+        isGoldReward ? 'chimera-card-gold' : 'chimera-card-xp'
+      }`}
     >
       {/* Cabeçalho da Mesa D20 */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-white/10">
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/15 border border-amber-300/45 text-amber-200 text-[10px] font-black uppercase tracking-widest">
               <Dices className="w-3.5 h-3.5" />
               Mesa de Forja D20 • {revealedCount}/4 Categorias Sorteadas
             </span>
-            {allCategoriesRevealed && (recipe.difficultyBonusXp || 0) > 0 && (
-              <span className="chimera-jackpot-pop px-2.5 py-1 rounded-full bg-rose-500/20 border border-rose-400/50 text-rose-200 text-[10px] font-black">
-                +{recipe.difficultyBonusXp} XP Dificuldade
-              </span>
-            )}
-            {allCategoriesRevealed && recipe.specialRule && (
-              <span className="chimera-jackpot-pop inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-cyan-500/20 border border-cyan-400/50 text-cyan-100 text-[10px] font-black">
-                <Zap className="w-3 h-3" /> {recipe.specialRule.label}
-              </span>
-            )}
-            {allCategoriesRevealed && (recipe.requiresDubbedBonusXp || 0) > 0 && (
-              <span className="chimera-jackpot-pop inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/50 text-emerald-100 text-[10px] font-black">
-                🎙️ Dublado +{recipe.requiresDubbedBonusXp} XP
-              </span>
-            )}
-            {allCategoriesRevealed && (recipe.requiresSubbedBonusXp || 0) > 0 && (
-              <span className="chimera-jackpot-pop inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-sky-500/20 border border-sky-400/50 text-sky-100 text-[10px] font-black">
-                💬 Legendado +{recipe.requiresSubbedBonusXp} XP
-              </span>
-            )}
-            {allCategoriesRevealed && (recipe.categoryXpMultiplierBonusRate || 0) > 0 && (
-              <span className="chimera-jackpot-pop inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-100 text-[10px] font-black">
-                🗼 +{Math.round(recipe.categoryXpMultiplierBonusRate * 100)}% XP / Categoria
-              </span>
-            )}
+            <span
+              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-wider ${
+                isGoldReward
+                  ? 'bg-amber-400/20 border-amber-300/65 text-amber-200 shadow-[0_0_16px_rgba(251,191,36,0.25)]'
+                  : 'bg-emerald-500/20 border-emerald-400/55 text-emerald-200'
+              }`}
+            >
+              {isGoldReward ? '🪙 Contrato de Ouro do Bazar' : '⚡ Contrato de XP RPG'}
+            </span>
           </div>
+
+          {allCategoriesRevealed &&
+            ((recipe.emperorJackpotGoldPerHit || 0) > 0 ||
+              (recipe.difficultyBonusXp || 0) > 0 ||
+              Boolean(recipe.specialRule) ||
+              (recipe.requiresDubbedBonusXp || 0) > 0 ||
+              (recipe.requiresSubbedBonusXp || 0) > 0 ||
+              (recipe.categoryXpMultiplierBonusRate || 0) > 0 ||
+              Boolean(recipe.foolRuntimeRule) ||
+              Boolean(recipe.cursedDeclineLocked)) && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-300/90 mr-1">
+                  ✨ Regras &amp; Bônus:
+                </span>
+                {(recipe.emperorJackpotGoldPerHit || 0) > 0 && (
+                  <span className="chimera-jackpot-pop inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/25 border border-amber-300/60 text-amber-100 text-[10px] font-black">
+                    🪙 +{recipe.emperorJackpotGoldPerHit} 🪙 / Jackpot
+                  </span>
+                )}
+                {(recipe.difficultyBonusXp || 0) > 0 && (
+                  <span className="chimera-jackpot-pop px-2.5 py-0.5 rounded-full bg-rose-500/20 border border-rose-400/50 text-rose-200 text-[10px] font-black">
+                    +{formatPts(recipe.difficultyBonusXp)} Dificuldade
+                  </span>
+                )}
+                {recipe.specialRule && (
+                  <span className="chimera-jackpot-pop inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/50 text-cyan-100 text-[10px] font-black">
+                    <Zap className="w-3 h-3" /> {String(recipe.specialRule.label || '').replace(/^Especial:\s*/i, '')}
+                  </span>
+                )}
+                {(recipe.requiresDubbedBonusXp || 0) > 0 && (
+                  <span className="chimera-jackpot-pop inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/50 text-emerald-100 text-[10px] font-black">
+                    🎙️ Dublado +{formatPts(recipe.requiresDubbedBonusXp)}
+                  </span>
+                )}
+                {(recipe.requiresSubbedBonusXp || 0) > 0 && (
+                  <span className="chimera-jackpot-pop inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-500/20 border border-sky-400/50 text-sky-100 text-[10px] font-black">
+                    💬 Legendado +{formatPts(recipe.requiresSubbedBonusXp)}
+                  </span>
+                )}
+                {(recipe.categoryXpMultiplierBonusRate || 0) > 0 && (
+                  <span className="chimera-jackpot-pop inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-100 text-[10px] font-black">
+                    🗼 +{Math.round(recipe.categoryXpMultiplierBonusRate * 100)}% {isGoldReward ? 'Ouro' : 'XP'} / Cat
+                  </span>
+                )}
+                {recipe.foolRuntimeRule && (
+                  <span className="chimera-jackpot-pop inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-500/20 border border-rose-400/55 text-rose-100 text-[10px] font-black">
+                    ⏳ {'>'}120m: -{recipe.foolRuntimeRule.penaltyXp} XP | ≤95m/Dub: +{recipe.foolRuntimeRule.bonusXp} XP
+                  </span>
+                )}
+                {recipe.cursedDeclineLocked && (
+                  <span className="chimera-jackpot-pop inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-500/25 border border-rose-400/60 text-rose-100 text-[10px] font-black">
+                    🔔 Declinar Trancado
+                  </span>
+                )}
+              </div>
+            )}
 
           <h3 className="text-lg sm:text-2xl font-black text-white flex items-center gap-2 mt-1">
             {allCategoriesRevealed && overallTier === 'nightmare' && (
@@ -1198,20 +1284,122 @@ export default function ChimeraForgeRitual({
               </div>
               <p className="text-[11px] text-zinc-400 max-w-xl">
                 {runePicksRemaining === 0 && chosenFateRunes.length > 0
-                  ? 'Clique em qualquer carta revelada na mesa abaixo para abrir em tamanho grande e ler seu significado.'
+                  ? 'Clique na(s) carta(s) selada(s) abaixo para ampliar e ler seu significado. As demais cartas permanecem ocultas.'
                   : revealRemainingRarities
                   ? 'A Clarividência revelou as auras das cartas fechadas (incluindo eventual Maldição da Morte 💀)! Clique para virar.'
-                  : 'Passe o cursor e escolha sua carta no leque — cuidados ocultos aguardam entre bênçãos Comuns, Raras, Lendárias e a temida Morte (XIII).'}
+                  : 'Passe o cursor e escolha sua carta no leque — cuidados ocultos aguardam entre bênçãos Comuns, Raras, Lendárias e Maldições.'}
               </p>
+
+              {onUseBazaarPower && (() => {
+                const charges = bazaarProfile?.tacticalCharges || {};
+                const armedAmulet = Boolean(bazaarProfile?.armedSecretFlags?.amuletArmed);
+                const cAmulet = Number(charges.secret_amulet || 0);
+                const c2 = Number(charges.chimera_oracle_2 || 0);
+                const c3 = Number(charges.chimera_oracle_3 || 0);
+                const cReroll = Number(charges.chimera_tarot_reroll || 0);
+                const usedTarotPower = recipe.bazaarTarotPowerUsed || null;
+                const usedTarotLabel =
+                  usedTarotPower === 'oracle_3'
+                    ? 'Oráculo Triplo'
+                    : usedTarotPower === 'oracle_2'
+                    ? 'Oráculo Bis'
+                    : usedTarotPower === 'tarot_reroll'
+                    ? 'Novo Corte do Tarô'
+                    : '';
+                const hasUnpicked = fateRunes.some((r) => !r.chosen);
+                const showTarotButtons = !usedTarotPower && hasUnpicked && (c2 > 0 || c3 > 0 || cReroll > 0);
+                if (!armedAmulet && cAmulet <= 0 && !usedTarotPower && !showTarotButtons) return null;
+
+                return (
+                  <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+                    {armedAmulet ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-300/70 text-[10.5px] font-black text-emerald-200 shadow-[0_0_14px_rgba(16,185,129,0.35)]">
+                        🛡️ Escudo Anti-Maldição ARMADO
+                        <PowerHelpButton helpKey="secret_amulet" size="xs" />
+                      </span>
+                    ) : cAmulet > 0 ? (
+                      <div className="inline-flex items-center gap-1">
+                        <button
+                          type="button"
+                          disabled={actingBazaarPower || runeBusy}
+                          onClick={() => onUseBazaarPower(contract.id, 'arm_amulet')}
+                          className="px-3 py-1 rounded-xl bg-emerald-950/85 hover:bg-emerald-900 border border-emerald-400/60 text-[10.5px] font-black text-emerald-100 cursor-pointer disabled:opacity-45"
+                        >
+                          🛡️ Armar Escudo Anti-Maldição ({cAmulet}×)
+                        </button>
+                        <PowerHelpButton helpKey="secret_amulet" size="xs" />
+                      </div>
+                    ) : null}
+
+                    {usedTarotPower ? (
+                      <span className="px-3 py-1 rounded-xl bg-purple-500/15 border border-purple-400/45 text-[10.5px] font-black text-purple-200">
+                        ✨ Poder de Tarô usado nesta Quimera: {usedTarotLabel} (máx. 1)
+                      </span>
+                    ) : (
+                      showTarotButtons && (
+                        <>
+                          {cReroll > 0 && (
+                            <div className="inline-flex items-center gap-1">
+                              <button
+                                type="button"
+                                disabled={actingBazaarPower || runeBusy}
+                                onClick={() => onUseBazaarPower(contract.id, 'tarot_reroll')}
+                                className="px-3 py-1 rounded-xl bg-sky-950/85 hover:bg-sky-900 border border-sky-400/60 text-[10.5px] font-black text-sky-100 cursor-pointer disabled:opacity-45"
+                              >
+                                🎲 Novo Corte do Tarô ({cReroll}×)
+                              </button>
+                              <PowerHelpButton helpKey="chimera_tarot_reroll" size="xs" />
+                            </div>
+                          )}
+                          {c2 > 0 && (
+                            <div className="inline-flex items-center gap-1">
+                              <button
+                                type="button"
+                                disabled={actingBazaarPower || runeBusy}
+                                onClick={() => onUseBazaarPower(contract.id, 'oracle_2')}
+                                className="px-3 py-1 rounded-xl bg-purple-950/85 hover:bg-purple-900 border border-purple-400/60 text-[10.5px] font-black text-purple-100 cursor-pointer disabled:opacity-45"
+                              >
+                                🔮 Oráculo Bis (+1 • {c2}×)
+                              </button>
+                              <PowerHelpButton helpKey="chimera_oracle_2" size="xs" />
+                            </div>
+                          )}
+                          {c3 > 0 && (
+                            <div className="inline-flex items-center gap-1">
+                              <button
+                                type="button"
+                                disabled={actingBazaarPower || runeBusy}
+                                onClick={() => onUseBazaarPower(contract.id, 'oracle_3')}
+                                className="px-3 py-1 rounded-xl bg-amber-950/85 hover:bg-amber-900 border border-amber-300/65 text-[10.5px] font-black text-amber-100 cursor-pointer disabled:opacity-45"
+                              >
+                                👑 Oráculo Triplo (+2 • {c3}×)
+                              </button>
+                              <PowerHelpButton helpKey="chimera_oracle_3" size="xs" />
+                            </div>
+                          )}
+                        </>
+                      )
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="relative z-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 py-3 sm:py-5 px-1">
               {fateRunes.map((rune, idx) => {
-                const rStyle = RUNE_RARITY_STYLE[rune.rarity] || RUNE_RARITY_STYLE.common;
+                const isShieldBlocked = Boolean(rune.blockedByAmulet);
+                const rStyle = isShieldBlocked
+                  ? {
+                      ...RUNE_RARITY_STYLE.cursed,
+                      label: '🛡️ Bloqueada',
+                      openCard:
+                        'border-emerald-400/85 bg-gradient-to-b from-emerald-950/90 via-zinc-950 to-black text-emerald-100 shadow-[0_0_24px_rgba(16,185,129,0.4)]',
+                    }
+                  : RUNE_RARITY_STYLE[rune.rarity] || RUNE_RARITY_STYLE.common;
                 const arcanaMeta = getRuneTarotMeta(rune);
                 const isChosen = Boolean(rune.chosen) || chosenFateRunes.some((cr) => cr.id === rune.id);
-                const revealed = isChosen || (runePicksRemaining === 0 && chosenFateRunes.length > 0);
-                const showClosedRarityHint = !revealed && revealRemainingRarities;
+                const revealed = isChosen;
+                const showClosedRarityHint = !revealed && revealRemainingRarities && runePicksRemaining > 0;
                 const arcTiltCls = [
                   'lg:-rotate-6 lg:translate-y-4',
                   'lg:-rotate-3 lg:translate-y-1',
@@ -1243,14 +1431,14 @@ export default function ChimeraForgeRitual({
                         setInspectedRune(rune);
                       }
                     }}
-                    className={`group relative flex flex-col text-left rounded-2xl border-2 overflow-hidden transition-all duration-300 cursor-pointer ${
+                    className={`group relative flex flex-col text-left rounded-2xl border-2 overflow-hidden transition-all duration-300 ${
                       !revealed
-                        ? `${arcTiltCls} hover:rotate-0 hover:-translate-y-4 hover:scale-[1.05] hover:z-30 ${
-                            showClosedRarityHint ? closedRarityFrame : MYSTERY_RUNE_BACK_CLS
-                          }`
-                        : isChosen
-                        ? `${rStyle.revealAnim} ${rStyle.openCard} scale-[1.03] z-20 hover:scale-[1.06]`
-                        : 'border-zinc-700/80 bg-zinc-950/90 text-zinc-400 opacity-70 hover:opacity-100 hover:scale-[1.03]'
+                        ? isDisabled
+                          ? `${arcTiltCls} opacity-50 grayscale-[35%] cursor-not-allowed ${MYSTERY_RUNE_BACK_CLS}`
+                          : `${arcTiltCls} cursor-pointer hover:rotate-0 hover:-translate-y-4 hover:scale-[1.05] hover:z-30 ${
+                              showClosedRarityHint ? closedRarityFrame : MYSTERY_RUNE_BACK_CLS
+                            }`
+                        : `${rStyle.revealAnim} ${rStyle.openCard} scale-[1.03] z-20 cursor-pointer hover:scale-[1.06]`
                     }`}
                   >
                     {/* Faíscas explosivas quando o jogador tira Lendária! */}
@@ -1304,9 +1492,15 @@ export default function ChimeraForgeRitual({
                             </span>
                           </div>
                           <div className="absolute bottom-2 inset-x-2 text-center">
-                            <span className="inline-block px-2.5 py-1 rounded-full bg-black/80 border border-amber-300/45 text-[10px] font-black uppercase tracking-wider text-amber-200 group-hover:bg-amber-400 group-hover:text-zinc-950 transition-colors">
-                              ✨ Virar Carta
-                            </span>
+                            {runePicksRemaining <= 0 ? (
+                              <span className="inline-block px-2.5 py-1 rounded-full bg-black/80 border border-zinc-700 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                                🔒 Não Escolhida
+                              </span>
+                            ) : (
+                              <span className="inline-block px-2.5 py-1 rounded-full bg-black/80 border border-amber-300/45 text-[10px] font-black uppercase tracking-wider text-amber-200 group-hover:bg-amber-400 group-hover:text-zinc-950 transition-colors">
+                                ✨ Virar Carta
+                              </span>
+                            )}
                           </div>
                         </>
                       )}
@@ -1317,7 +1511,9 @@ export default function ChimeraForgeRitual({
                           <div className="absolute top-2 left-2 right-2 flex items-center justify-between gap-1">
                             <span
                               className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase border backdrop-blur-md ${
-                                rune.rarity === 'cursed'
+                                isShieldBlocked
+                                  ? 'bg-emerald-500/95 border-emerald-100 text-zinc-950'
+                                  : rune.rarity === 'cursed'
                                   ? 'bg-rose-600/90 border-rose-200 text-white'
                                   : rune.rarity === 'legendary'
                                     ? 'bg-amber-400 text-zinc-950 border-amber-100'
@@ -1366,12 +1562,12 @@ export default function ChimeraForgeRitual({
         )
       )}
 
-      {/* Aviso se alguma Maldição de Morte anulou Jackpot em algum pilar */}
+      {/* Aviso se alguma Maldição anulou Jackpot em algum pilar */}
       {cursedPillars.size > 0 && (
         <div className="mt-3 rounded-xl border border-rose-500/45 bg-rose-950/35 px-3.5 py-2 text-[11px] font-bold text-rose-200 flex items-center gap-2">
           <Skull className="w-4 h-4 text-rose-400 shrink-0" />
           <span>
-            Maldição da Morte ativa: o Jackpot foi ceifado em{' '}
+            Maldição ativa na mesa: o Jackpot foi anulado em{' '}
             {Array.from(cursedPillars).join(', ').toUpperCase()}.
           </span>
         </div>

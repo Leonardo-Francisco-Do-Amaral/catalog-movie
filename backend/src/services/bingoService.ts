@@ -7,6 +7,11 @@ import {
   ClassPowerWalletStatus,
   consumeClassPowerCharge,
 } from './classPowersService';
+import {
+  grantGuildBazaarCoins,
+  applyGoldenLoupeBonus,
+  consumeTacticalPowerCharge,
+} from './guildBazaarService';
 
 export type BingoFamily =
   | 'secret_draw'
@@ -63,6 +68,8 @@ export interface BingoGoalDefinition {
   downgraded: BingoGoalVariant;
 }
 
+export type BingoRewardMode = 'xp' | 'gold' | 'hybrid';
+
 export interface BingoSquare {
   index: number;
   goalKey: string;
@@ -76,8 +83,13 @@ export interface BingoSquare {
   progress: number;
   completed: boolean;
   claimed: boolean;
+  rewardMode?: BingoRewardMode;
+  baseXpValue?: number;
   xpReward: number;
   xpAwarded: number;
+  goldReward?: number;
+  goldAwarded?: number;
+  hybridGoldBoost?: boolean;
   difficultyState: BingoDifficultyState;
   lineWildcard?: boolean;
   preserveNormalStat?: boolean;
@@ -94,8 +106,12 @@ export interface BingoLineReward {
   indices: [number, number, number, number];
   completed: boolean;
   claimed: boolean;
+  rewardMode?: BingoRewardMode;
   xpReward: number;
   xpAwarded: number;
+  goldReward?: number;
+  goldAwarded?: number;
+  hybridGoldBoost?: boolean;
 }
 
 export interface BingoBoardData {
@@ -104,8 +120,11 @@ export interface BingoBoardData {
   blackout: {
     completed: boolean;
     claimed: boolean;
+    rewardMode?: BingoRewardMode;
     xpReward: number;
     xpAwarded: number;
+    goldReward?: number;
+    goldAwarded?: number;
   };
 }
 
@@ -115,8 +134,10 @@ export interface BingoBoardRecord {
   status: 'active' | 'completed' | 'archived';
   board: BingoBoardData;
   xpAwarded: number;
+  goldAwarded: number;
   readyToClaimCount: number;
   readyToClaimXp: number;
+  readyToClaimGold: number;
   completedSquaresCount: number;
   completedLinesCount: number;
   createdAt: string;
@@ -577,9 +598,13 @@ export async function ensureBingoTables(): Promise<void> {
       status VARCHAR(32) NOT NULL DEFAULT 'active',
       board_json JSONB NOT NULL,
       xp_awarded INTEGER NOT NULL DEFAULT 0,
+      gold_awarded INTEGER NOT NULL DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       completed_at TIMESTAMP NULL
     );
+
+    ALTER TABLE bingo_boards
+      ADD COLUMN IF NOT EXISTS gold_awarded INTEGER NOT NULL DEFAULT 0;
 
     CREATE INDEX IF NOT EXISTS idx_bingo_boards_status
       ON bingo_boards (status);
@@ -661,9 +686,62 @@ function shuffleArr<T>(arr: T[]): T[] {
   return out;
 }
 
-function createSquareFromDef(def: BingoGoalDefinition, index: number, difficultyState: BingoDifficultyState = 'normal'): BingoSquare {
-  const variant = def[difficultyState];
+export const BINGO_GOLD_PER_XP_RATE = 0.85;
+
+export function computeBingoGoldFromXp(xp: number): number {
+  return Math.max(12, Math.round(Math.max(0, Number(xp || 0)) * BINGO_GOLD_PER_XP_RATE));
+}
+
+function applySquareRewardMode(
+  sq: BingoSquare,
+  mode: BingoRewardMode,
+  basePoints: number,
+  hybridGoldBoost = false
+): BingoSquare {
+  const cleanBase = Math.max(10, Math.round(Number(basePoints || 0)));
+  if (mode === 'gold') {
+    const baseGold = computeBingoGoldFromXp(cleanBase);
+    const goldVal = hybridGoldBoost ? Math.max(baseGold + 2, Math.round(baseGold * 1.25)) : baseGold;
+    return {
+      ...sq,
+      rewardMode: 'gold',
+      baseXpValue: cleanBase,
+      xpReward: 0,
+      goldReward: goldVal,
+      hybridGoldBoost,
+    };
+  }
+  if (mode === 'hybrid') {
+    const halfXp = Math.max(1, Math.round(cleanBase / 2));
+    const halfGold = Math.max(6, Math.round(computeBingoGoldFromXp(cleanBase) / 2));
+    return {
+      ...sq,
+      rewardMode: 'hybrid',
+      baseXpValue: cleanBase,
+      xpReward: halfXp,
+      goldReward: halfGold,
+      hybridGoldBoost: false,
+    };
+  }
   return {
+    ...sq,
+    rewardMode: 'xp',
+    baseXpValue: cleanBase,
+    xpReward: cleanBase,
+    goldReward: 0,
+    hybridGoldBoost: false,
+  };
+}
+
+function createSquareFromDef(
+  def: BingoGoalDefinition,
+  index: number,
+  difficultyState: BingoDifficultyState = 'normal',
+  rewardMode: BingoRewardMode = 'xp',
+  hybridGoldBoost = false
+): BingoSquare {
+  const variant = def[difficultyState];
+  const baseSq: BingoSquare = {
     index,
     goalKey: def.key,
     evaluatorKey: variant.evaluatorKey,
@@ -676,18 +754,28 @@ function createSquareFromDef(def: BingoGoalDefinition, index: number, difficulty
     progress: 0,
     completed: false,
     claimed: false,
+    rewardMode: 'xp',
+    baseXpValue: variant.xpReward,
     xpReward: variant.xpReward,
     xpAwarded: 0,
+    goldReward: 0,
+    goldAwarded: 0,
+    hybridGoldBoost: false,
     difficultyState,
     progressMeta: { seenDecades: [], seenCountries: [], contributors: [] },
   };
+  return applySquareRewardMode(baseSq, rewardMode, variant.xpReward, hybridGoldBoost);
 }
 
 function recalculateBoardState(board: BingoBoardData): BingoBoardData {
   const squares = board.squares.map((sq) => {
     const done = sq.progress >= sq.target;
+    const mode: BingoRewardMode = sq.rewardMode === 'gold' || sq.rewardMode === 'hybrid' ? sq.rewardMode : 'xp';
     return {
       ...sq,
+      rewardMode: mode,
+      goldReward: Number(sq.goldReward || 0),
+      goldAwarded: Number(sq.goldAwarded || 0),
       statKey: sq.statKey || BINGO_GOAL_STAT_BY_KEY[sq.goalKey] || 'SOR',
       completed: done,
       progress: Math.min(sq.target, Math.max(0, sq.progress)),
@@ -700,14 +788,20 @@ function recalculateBoardState(board: BingoBoardData): BingoBoardData {
     const allDone = spec.indices.every((idx) =>
       Boolean(squares[idx]?.completed || squares[idx]?.lineWildcard)
     );
+    const lineMode: BingoRewardMode =
+      prev?.rewardMode === 'gold' || prev?.rewardMode === 'hybrid' ? prev.rewardMode : 'xp';
     return {
       id: spec.id,
       label: spec.label,
       indices: spec.indices,
       completed: allDone,
       claimed: Boolean(prev?.claimed),
+      rewardMode: lineMode,
       xpReward: prev?.xpReward ?? BINGO_LINE_XP,
       xpAwarded: prev?.xpAwarded ?? 0,
+      goldReward: Number(prev?.goldReward || 0),
+      goldAwarded: Number(prev?.goldAwarded || 0),
+      hybridGoldBoost: Boolean(prev?.hybridGoldBoost),
     };
   });
 
@@ -715,8 +809,13 @@ function recalculateBoardState(board: BingoBoardData): BingoBoardData {
   const blackout = {
     completed: all16Done,
     claimed: Boolean(board.blackout?.claimed),
+    rewardMode: (board.blackout?.rewardMode === 'gold' || board.blackout?.rewardMode === 'hybrid'
+      ? board.blackout.rewardMode
+      : 'xp') as BingoRewardMode,
     xpReward: board.blackout?.xpReward ?? BINGO_BLACKOUT_XP,
     xpAwarded: board.blackout?.xpAwarded ?? 0,
+    goldReward: Number(board.blackout?.goldReward || 0),
+    goldAwarded: Number(board.blackout?.goldAwarded || 0),
   };
 
   return { squares, lines, blackout };
@@ -725,6 +824,7 @@ function recalculateBoardState(board: BingoBoardData): BingoBoardData {
 function summarizeBoardMetrics(board: BingoBoardData): {
   readyToClaimCount: number;
   readyToClaimXp: number;
+  readyToClaimGold: number;
   completedSquaresCount: number;
   completedLinesCount: number;
 } {
@@ -739,9 +839,13 @@ function summarizeBoardMetrics(board: BingoBoardData): {
     completedLinesCount,
     readyToClaimCount: unclaimedSquares.length + unclaimedLines.length + (unclaimedBlackout ? 1 : 0),
     readyToClaimXp:
-      unclaimedSquares.reduce((s, sq) => s + sq.xpReward, 0) +
-      unclaimedLines.reduce((s, l) => s + l.xpReward, 0) +
-      (unclaimedBlackout ? board.blackout.xpReward : 0),
+      unclaimedSquares.reduce((s, sq) => s + Number(sq.xpReward || 0), 0) +
+      unclaimedLines.reduce((s, l) => s + Number(l.xpReward || 0), 0) +
+      (unclaimedBlackout ? Number(board.blackout.xpReward || 0) : 0),
+    readyToClaimGold:
+      unclaimedSquares.reduce((s, sq) => s + Number(sq.goldReward || 0), 0) +
+      unclaimedLines.reduce((s, l) => s + Number(l.goldReward || 0), 0) +
+      (unclaimedBlackout ? Number(board.blackout.goldReward || 0) : 0),
   };
 }
 
@@ -754,6 +858,7 @@ function mapBingoBoardRow(row: any): BingoBoardRecord {
     status: row.status,
     board,
     xpAwarded: Number(row.xp_awarded || 0),
+    goldAwarded: Number(row.gold_awarded || 0),
     ...metrics,
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
     completedAt: row.completed_at ? new Date(row.completed_at).toISOString() : null,
@@ -819,6 +924,25 @@ async function generateBalanced16Squares(
     usedKeys.add(candidate.key);
     familyCounts[candidate.family] = (familyCounts[candidate.family] || 0) + 1;
     result[i] = createSquareFromDef(candidate, i, 'normal');
+  }
+
+  // Sorteia 1 Pergaminho Dourado (Ouro do Bazar) por fileira para criar cartelas mistas XP + Ouro!
+  for (let row = 0; row < 4; row += 1) {
+    const rowOpenIndices: number[] = [];
+    let rowAlreadyHasGold = false;
+    for (let col = 0; col < 4; col += 1) {
+      const idx = row * 4 + col;
+      if (result[idx]?.rewardMode === 'gold' || result[idx]?.rewardMode === 'hybrid') {
+        rowAlreadyHasGold = true;
+      } else if (!preservedSquares.has(idx)) {
+        rowOpenIndices.push(idx);
+      }
+    }
+    if (!rowAlreadyHasGold && rowOpenIndices.length > 0) {
+      const pickIdx = rowOpenIndices[Math.floor(Math.random() * rowOpenIndices.length)];
+      const basePts = Number(result[pickIdx]?.baseXpValue || result[pickIdx]?.xpReward || 35);
+      result[pickIdx] = applySquareRewardMode(result[pickIdx], 'gold', basePts, false);
+    }
   }
 
   return result;
@@ -942,7 +1066,13 @@ export async function applyBingoBoardAction(params: {
       if (!replacement) {
         throw new Error('Não há outro desafio disponível para substituir.');
       }
-      nextBoard.squares[idx] = createSquareFromDef(replacement, idx, 'normal');
+      nextBoard.squares[idx] = createSquareFromDef(
+        replacement,
+        idx,
+        'normal',
+        sq.rewardMode || 'xp',
+        Boolean(sq.hybridGoldBoost)
+      );
       walletColumn = 'square_reroll_chips';
     } else if (params.action === 'upgrade') {
       if (wallet.upgradeChips <= 0) {
@@ -954,7 +1084,13 @@ export async function applyBingoBoardAction(params: {
       const def = BINGO_GOAL_CATALOG.find((g) => g.key === sq.goalKey);
       if (!def) throw new Error('Definição do desafio não encontrada.');
       const nextState: BingoDifficultyState = sq.difficultyState === 'downgraded' ? 'normal' : 'upgraded';
-      const upgraded = createSquareFromDef(def, idx, nextState);
+      const upgraded = createSquareFromDef(
+        def,
+        idx,
+        nextState,
+        sq.rewardMode || 'xp',
+        Boolean(sq.hybridGoldBoost)
+      );
       upgraded.progress = Math.min(upgraded.target, sq.progress);
       upgraded.progressMeta = sq.progressMeta;
       nextBoard.squares[idx] = upgraded;
@@ -969,7 +1105,13 @@ export async function applyBingoBoardAction(params: {
       const def = BINGO_GOAL_CATALOG.find((g) => g.key === sq.goalKey);
       if (!def) throw new Error('Definição do desafio não encontrada.');
       const nextState: BingoDifficultyState = sq.difficultyState === 'upgraded' ? 'normal' : 'downgraded';
-      const downgraded = createSquareFromDef(def, idx, nextState);
+      const downgraded = createSquareFromDef(
+        def,
+        idx,
+        nextState,
+        sq.rewardMode || 'xp',
+        Boolean(sq.hybridGoldBoost)
+      );
       downgraded.progress = Math.min(downgraded.target, sq.progress);
       downgraded.progressMeta = sq.progressMeta;
       nextBoard.squares[idx] = downgraded;
@@ -1343,7 +1485,13 @@ export async function claimBingoReward(params: {
   boardId: number;
   targetType: 'square' | 'line' | 'blackout' | 'all';
   targetId?: string | number;
-}): Promise<{ board: BingoBoardRecord; claimedXp: number }> {
+}): Promise<{
+  board: BingoBoardRecord;
+  claimedXp: number;
+  claimedGold: number;
+  goldenLoupeBonusGold: number;
+  bazaarStatus: any;
+}> {
   await ensureBingoTables();
   const res = await query(`SELECT * FROM bingo_boards WHERE id = $1`, [params.boardId]);
   if (res.rows.length === 0) {
@@ -1357,58 +1505,88 @@ export async function claimBingoReward(params: {
   };
 
   let claimedXp = 0;
+  let baseClaimedGold = 0;
+
+  const claimSquareObj = (sq: BingoSquare) => {
+    const xpVal = Number(sq.xpReward || 0);
+    const goldVal = Number(sq.goldReward || 0);
+    sq.claimed = true;
+    sq.xpAwarded = xpVal;
+    sq.goldAwarded = goldVal;
+    claimedXp += xpVal;
+    baseClaimedGold += goldVal;
+  };
+
+  const claimLineObj = (line: BingoLineReward) => {
+    const xpVal = Number(line.xpReward || 0);
+    const goldVal = Number(line.goldReward || 0);
+    line.claimed = true;
+    line.xpAwarded = xpVal;
+    line.goldAwarded = goldVal;
+    claimedXp += xpVal;
+    baseClaimedGold += goldVal;
+  };
 
   if (params.targetType === 'all') {
     for (const sq of board.squares) {
-      if (sq.completed && !sq.claimed) {
-        sq.claimed = true;
-        sq.xpAwarded = sq.xpReward;
-        claimedXp += sq.xpReward;
-      }
+      if (sq.completed && !sq.claimed) claimSquareObj(sq);
     }
     for (const line of board.lines) {
-      if (line.completed && !line.claimed) {
-        line.claimed = true;
-        line.xpAwarded = line.xpReward;
-        claimedXp += line.xpReward;
-      }
+      if (line.completed && !line.claimed) claimLineObj(line);
     }
     if (board.blackout.completed && !board.blackout.claimed) {
+      const bXp = Number(board.blackout.xpReward || 0);
+      const bGold = Number(board.blackout.goldReward || 0);
       board.blackout.claimed = true;
-      board.blackout.xpAwarded = board.blackout.xpReward;
-      claimedXp += board.blackout.xpReward;
+      board.blackout.xpAwarded = bXp;
+      board.blackout.goldAwarded = bGold;
+      claimedXp += bXp;
+      baseClaimedGold += bGold;
     }
   } else if (params.targetType === 'square') {
     const idx = Number(params.targetId);
     const sq = board.squares[idx];
     if (!sq || !sq.completed) throw new Error('Esta casa ainda não foi concluída.');
-    if (sq.claimed) throw new Error('XP desta casa já foi colhido.');
-    sq.claimed = true;
-    sq.xpAwarded = sq.xpReward;
-    claimedXp += sq.xpReward;
+    if (sq.claimed) throw new Error('A recompensa desta casa já foi colhida.');
+    claimSquareObj(sq);
   } else if (params.targetType === 'line') {
     const line = board.lines.find((l) => l.id === String(params.targetId));
     if (!line || !line.completed) throw new Error('Esta linha ainda não está completa.');
     if (line.claimed) throw new Error('Bônus desta linha já foi colhido.');
-    line.claimed = true;
-    line.xpAwarded = line.xpReward;
-    claimedXp += line.xpReward;
+    claimLineObj(line);
   } else if (params.targetType === 'blackout') {
     if (!board.blackout.completed) throw new Error('A Cartela Cheia ainda não foi completada.');
     if (board.blackout.claimed) throw new Error('Bônus de Cartela Cheia já foi colhido.');
+    const bXp = Number(board.blackout.xpReward || 0);
+    const bGold = Number(board.blackout.goldReward || 0);
     board.blackout.claimed = true;
-    board.blackout.xpAwarded = board.blackout.xpReward;
-    claimedXp += board.blackout.xpReward;
+    board.blackout.xpAwarded = bXp;
+    board.blackout.goldAwarded = bGold;
+    claimedXp += bXp;
+    baseClaimedGold += bGold;
   }
 
-  if (claimedXp <= 0) {
+  if (claimedXp <= 0 && baseClaimedGold <= 0) {
     throw new Error('Nenhuma recompensa pronta para colheita no momento.');
+  }
+
+  let claimedGold = baseClaimedGold;
+  let goldenLoupeBonusGold = 0;
+  let bazaarStatus: any = null;
+  if (baseClaimedGold > 0) {
+    const loupe = await applyGoldenLoupeBonus(baseClaimedGold);
+    claimedGold = loupe.finalGold;
+    goldenLoupeBonusGold = loupe.bonusGold;
+    bazaarStatus = await grantGuildBazaarCoins(claimedGold);
   }
 
   const totalBoardXp =
     board.squares.reduce((s, sq) => s + Number(sq.xpAwarded || 0), 0) +
     board.lines.reduce((s, l) => s + Number(l.xpAwarded || 0), 0) +
     Number(board.blackout.xpAwarded || 0);
+
+  const totalBoardGold =
+    Number(current.goldAwarded || 0) + claimedGold;
 
   const allHarvested =
     board.squares.every((s) => s.completed && s.claimed) &&
@@ -1420,16 +1598,20 @@ export async function claimBingoReward(params: {
     `UPDATE bingo_boards
      SET board_json = $2::jsonb,
          xp_awarded = $3,
-         status = CASE WHEN $4::boolean THEN 'completed' ELSE status END,
-         completed_at = CASE WHEN $4::boolean THEN CURRENT_TIMESTAMP ELSE completed_at END
+         gold_awarded = $4,
+         status = CASE WHEN $5::boolean THEN 'completed' ELSE status END,
+         completed_at = CASE WHEN $5::boolean THEN CURRENT_TIMESTAMP ELSE completed_at END
      WHERE id = $1
      RETURNING *`,
-    [params.boardId, JSON.stringify(board), totalBoardXp, allHarvested]
+    [params.boardId, JSON.stringify(board), totalBoardXp, totalBoardGold, allHarvested]
   );
 
   return {
     board: mapBingoBoardRow(upd.rows[0]),
     claimedXp,
+    claimedGold,
+    goldenLoupeBonusGold,
+    bazaarStatus,
   };
 }
 
@@ -1566,9 +1748,9 @@ export async function getQuickBingoXpSummary(): Promise<BingoXpSummary> {
   try {
     await ensureBingoTables();
     const res = await query(
-      `SELECT id, month_key, status, xp_awarded, board_json, completed_at, created_at
+      `SELECT id, month_key, status, xp_awarded, gold_awarded, board_json, completed_at, created_at
        FROM bingo_boards
-       WHERE xp_awarded > 0
+       WHERE xp_awarded > 0 OR gold_awarded > 0
        ORDER BY id ASC`
     );
 
@@ -2130,6 +2312,18 @@ export async function activateBingoClassPower(params: {
   }
 
   if (boardMutated) {
+    // Se alguma Classe adicionou +XP num Pergaminho Dourado, converte esse bônus proporcionalmente para Ouro!
+    for (let i = 0; i < board.squares.length; i += 1) {
+      const sq = board.squares[i];
+      if (sq?.rewardMode === 'gold' && Number(sq.xpReward || 0) > 0) {
+        const addedGold = computeBingoGoldFromXp(Number(sq.xpReward));
+        board.squares[i] = {
+          ...sq,
+          goldReward: Number(sq.goldReward || 0) + addedGold,
+          xpReward: 0,
+        };
+      }
+    }
     board = recalculateBoardState(board);
     await query(`UPDATE bingo_boards SET board_json = $1 WHERE id = $2`, [
       JSON.stringify(board),
@@ -2144,5 +2338,121 @@ export async function activateBingoClassPower(params: {
     effectLabel,
     status,
     classPowerWallet,
+  };
+}
+
+export async function activateBingoBazaarPower(params: {
+  boardId: number;
+  targetType: 'square' | 'line';
+  squareIndex?: number | null;
+  lineId?: string | null;
+}): Promise<{
+  message: string;
+  bazaarStatus: any;
+  status: Awaited<ReturnType<typeof getBingoStatus>>;
+}> {
+  await ensureBingoTables();
+  const res = await query(`SELECT * FROM bingo_boards WHERE id = $1`, [params.boardId]);
+  if (res.rows.length === 0) {
+    throw new Error('Cartela de Bingo não encontrada.');
+  }
+  const current = mapBingoBoardRow(res.rows[0]);
+  if (current.status !== 'active') {
+    throw new Error('Só é possível aplicar o Sinete Híbrido na cartela ativa.');
+  }
+
+  const board: BingoBoardData = {
+    squares: current.board.squares.map((s) => ({ ...s })),
+    lines: current.board.lines.map((l) => ({ ...l })),
+    blackout: { ...current.board.blackout },
+  };
+
+  let message = '';
+  if (params.targetType === 'line') {
+    const lineIdx = board.lines.findIndex((l) => l.id === String(params.lineId || ''));
+    if (lineIdx === -1) {
+      throw new Error('Selecione uma Fileira válida para aplicar o Sinete Híbrido.');
+    }
+    const line = board.lines[lineIdx];
+    if (line.claimed) {
+      throw new Error('Esta Fileira já foi colhida.');
+    }
+    if (line.rewardMode === 'hybrid' || (line.rewardMode === 'gold' && line.hybridGoldBoost)) {
+      throw new Error('Esta Fileira já recebeu o Sinete Híbrido!');
+    }
+    const cons = await consumeTacticalPowerCharge('bingo_hybrid_seal');
+    if (line.rewardMode === 'gold') {
+      const curG = Math.max(12, Number(line.goldReward || computeBingoGoldFromXp(BINGO_LINE_XP)));
+      const nextG = Math.max(curG + 2, Math.round(curG * 1.25));
+      board.lines[lineIdx] = { ...line, goldReward: nextG, hybridGoldBoost: true };
+      message = `⚖️ Sinete Híbrido aplicou +25% de Ouro na ${line.label}: +${nextG} 🪙!`;
+    } else {
+      const basePts = Math.max(10, Number(line.xpReward || BINGO_LINE_XP));
+      const halfXp = Math.round(basePts / 2);
+      const halfGold = Math.round(computeBingoGoldFromXp(basePts) / 2);
+      board.lines[lineIdx] = {
+        ...line,
+        rewardMode: 'hybrid',
+        xpReward: halfXp,
+        goldReward: halfGold,
+      };
+      message = `⚖️ Sinete Híbrido converteu a ${line.label} em +${halfXp} XP + ${halfGold} 🪙!`;
+    }
+    const recalc = recalculateBoardState(board);
+    await query(`UPDATE bingo_boards SET board_json = $2::jsonb WHERE id = $1`, [
+      current.id,
+      JSON.stringify(recalc),
+    ]);
+    return {
+      message,
+      bazaarStatus: cons.status,
+      status: await getBingoStatus(),
+    };
+  }
+
+  const idx = Number(params.squareIndex);
+  if (!Number.isInteger(idx) || idx < 0 || idx >= 16 || !board.squares[idx]) {
+    throw new Error('Selecione um pergaminho válido (0 a 15) para aplicar o Sinete Híbrido.');
+  }
+  const sq = board.squares[idx];
+  if (sq.claimed) {
+    throw new Error('Este pergaminho já foi colhido — escolha um contrato em aberto ou ainda não lacrado.');
+  }
+  if (sq.rewardMode === 'hybrid') {
+    throw new Error('Este pergaminho já está convertido no modo Híbrido (50% XP / 50% 🪙)!');
+  }
+  if (sq.rewardMode === 'gold' && sq.hybridGoldBoost) {
+    throw new Error('Este Pergaminho Dourado já recebeu o bônus de +25% Moedas!');
+  }
+
+  const cons = await consumeTacticalPowerCharge('bingo_hybrid_seal');
+  if (sq.rewardMode === 'gold') {
+    const def = BINGO_GOAL_CATALOG.find((g) => g.key === sq.goalKey);
+    const basePts = Number(sq.baseXpValue || def?.[sq.difficultyState || 'normal']?.xpReward || 35);
+    const boosted = applySquareRewardMode(sq, 'gold', basePts, true);
+    board.squares[idx] = {
+      ...boosted,
+      goldReward: Math.max(
+        Number(boosted.goldReward || 0),
+        Math.round(Number(sq.goldReward || computeBingoGoldFromXp(basePts)) * 1.25)
+      ),
+      hybridGoldBoost: true,
+    };
+    message = `🪙 Sinete Híbrido turbinou o Pergaminho Dourado "${sq.title}" em +25% (+${board.squares[idx].goldReward} 🪙)!`;
+  } else {
+    const basePts = Math.max(10, Number(sq.xpReward || sq.baseXpValue || 35));
+    board.squares[idx] = applySquareRewardMode(sq, 'hybrid', basePts, false);
+    message = `⚖️ Sinete Híbrido dividiu "${sq.title}" em +${board.squares[idx].xpReward} XP + ${board.squares[idx].goldReward} 🪙!`;
+  }
+
+  const recalc = recalculateBoardState(board);
+  await query(`UPDATE bingo_boards SET board_json = $2::jsonb WHERE id = $1`, [
+    current.id,
+    JSON.stringify(recalc),
+  ]);
+  return {
+    message,
+    bazaarStatus: cons.status,
+    status: await getBingoStatus(),
   };
 }

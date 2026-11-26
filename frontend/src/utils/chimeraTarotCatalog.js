@@ -1,6 +1,34 @@
 export const TAROT_BACK_IMAGE = '/tarot/Verso.png';
 
 export const TAROT_ARCANA_BY_KEY = {
+  0: {
+    key: '0',
+    roman: '0',
+    name: 'O Louco',
+    subtitle: 'Caos Criativo, Máscaras & Viradas do Destino',
+    image: '/tarot/0.jpg',
+    accentBorder: 'border-fuchsia-400/80',
+    accentGlow: 'shadow-[0_0_44px_rgba(217,70,239,0.42)]',
+    accentBadge: 'bg-fuchsia-500/20 border-fuchsia-300/70 text-fuchsia-100',
+    meaning:
+      'O Louco (Arcano 0) simboliza o salto no escuro, a quebra de regras e a brincadeira imprevisível sobre a mesa. Na Quimera Cinéfila, arranca pilares inteiros, joga chuvas de Tags, vira épocas de ponta-cabeça, auto-declina criaturas entediantes devolvendo Fichas de Forja e também prega maldições travessas como a Trava dos Guizos.',
+    cinemaRefs:
+      'O Arlequim pendurado de cabeça para baixo soltando cartas douradas de Tarô em película 35mm diante de uma estante de máscaras icônicas do cinema: Coringa, Frank (Donnie Darko), Billy (Jogos Mortais / Saw), Jason Voorhees (Sexta-Feira 13), Ghostface (Pânico), a máscara de Guy Fawkes (V de Vingança), Hannibal Lecter (O Silêncio dos Inocentes) e Maria (Metrópolis), cercadas por ampulhetas, velas e um projetor antigo.',
+  },
+  IV: {
+    key: 'IV',
+    roman: 'IV',
+    name: 'O Imperador',
+    subtitle: 'Ouro do Bazar, Sindicato Criminal & Tributos',
+    image: '/tarot/IV.png',
+    accentBorder: 'border-amber-400/85',
+    accentGlow: 'shadow-[0_0_44px_rgba(245,158,11,0.45)]',
+    accentBadge: 'bg-amber-500/25 border-amber-300/75 text-amber-100',
+    meaning:
+      'O Imperador governa o ouro, o cartel cinematográfico e os tributos da Guilda. Na Quimera Cinéfila, ele converte XP em Moedas do Bazar com bônus, impõe sindicatos de Ação/Policial/Mistério com Jackpots acumuláveis, cobra tributos em Ouro por Jackpot, negocia cartas extras em troca de espólio ou amaldiçoa contratos gananciosos.',
+    cinemaRefs:
+      'Inspirado nos grandes chefões e magnatas do cinema noir e de máfia: sentado no trono de rolos 35mm com capa imperial escarlate, segurando cetro de claquete dourada, D20 incandescente e cofres transbordando moedas, estatuetas de premiação, revólver, dossiê, lupa e fichas de cassino sob holofotes dourados.',
+  },
   IX: {
     key: 'IX',
     roman: 'IX',
@@ -169,9 +197,26 @@ export const RUNE_TO_ARCANA_KEY = {
   death_scythe_tags: 'XIII',
   death_cracked_hourglass: 'XIII',
   death_exile_countries: 'XIII',
+
+  // 0 - O Louco
+  fool_chaos_tags: '0',
+  fool_auto_decline: '0',
+  fool_gallery_of_masks: '0',
+  fool_upside_down: '0',
+  fool_blank_canvas: '0',
+  fool_curse_guizos_lock: '0',
+  fool_curse_impatient: '0',
+
+  // IV - O Imperador
+  emperor_midas_decree: 'IV',
+  emperor_gold_cartel: 'IV',
+  emperor_jackpot_tribute: 'IV',
+  emperor_double_edict: 'IV',
+  emperor_greed_curse: 'IV',
 };
 
-export const TAROT_ARCANA_ORDER = ['IX', 'XXI', 'VI', 'XVIII', 'XVI', 'X', 'II', 'XIII'];
+export const TAROT_ARCANA_ORDER = ['0', 'IV', 'IX', 'XXI', 'VI', 'XVIII', 'XVI', 'X', 'II', 'XIII'];
+export const TAROT_ARCANAS_LIST = TAROT_ARCANA_ORDER.map((k) => TAROT_ARCANA_BY_KEY[k]).filter(Boolean);
 
 export function getRuneTarotMeta(runeOrId) {
   const id = typeof runeOrId === 'string' ? runeOrId : runeOrId?.id || runeOrId?.effectType;

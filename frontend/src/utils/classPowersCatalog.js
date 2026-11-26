@@ -523,7 +523,7 @@ export const CLASS_POWERS_BY_ID = {
         icon: '⏳',
         cooldownLabel: '1 uso / dias 1 e 15',
         actionType: 'next_draw',
-        desc: 'Prepara o próximo sorteio com 9 cartas e exibe Raio-X destacando os Anos Inéditos da Máquina do Tempo!',
+        desc: 'Prepara o próximo sorteio com 9 cartas e exibe Raio-X destacando somente os Anos Inéditos da Máquina do Tempo!',
       },
       chimera: {
         title: 'Fenda Cronológica Suprema',

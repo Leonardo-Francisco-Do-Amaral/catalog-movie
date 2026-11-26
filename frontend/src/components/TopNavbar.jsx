@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import axios from 'axios';
 import {
   Search,
   X,
@@ -20,8 +21,10 @@ import {
   FileSpreadsheet,
   Lock
 } from 'lucide-react';
+import { API_BASE_URL } from '../utils/apiConfig';
 import { calculateClientXpStatus } from '../utils/xpSystem';
 import { computeRpgAndGuilds } from '../utils/analyticsEngine';
+import { getXpBarSkinMeta } from '../data/xpBarSkins';
 import LevelDetailsModal from './LevelDetailsModal';
 
 const COUNTRY_TO_ISO = {
@@ -162,6 +165,7 @@ export default function TopNavbar({
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [isLevelModalOpen, setIsLevelModalOpen] = useState(false);
   const [liveXpStatus, setLiveXpStatus] = useState(xpStatus);
+  const [equippedXpBarSkin, setEquippedXpBarSkin] = useState('classic');
   const [filterSortModes, setFilterSortModes] = useState(() => {
     const defaults = {
       tags: 'alpha',
@@ -211,6 +215,31 @@ export default function TopNavbar({
     window.addEventListener('cine-xp-status-sync', handleXpSync);
     return () => window.removeEventListener('cine-xp-status-sync', handleXpSync);
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    axios
+      .get(`${API_BASE_URL}/guild-bazaar/status`)
+      .then((res) => {
+        if (mounted && res.data?.success && res.data?.data?.equippedXpBarSkin) {
+          setEquippedXpBarSkin(res.data.data.equippedXpBarSkin);
+        }
+      })
+      .catch(() => {});
+
+    const onProfileSync = (ev) => {
+      if (ev?.detail?.equippedXpBarSkin) {
+        setEquippedXpBarSkin(ev.detail.equippedXpBarSkin);
+      }
+    };
+    window.addEventListener('cine-harlequin-profile-sync', onProfileSync);
+    return () => {
+      mounted = false;
+      window.removeEventListener('cine-harlequin-profile-sync', onProfileSync);
+    };
+  }, []);
+
+  const xpBarSkinMeta = getXpBarSkinMeta(equippedXpBarSkin);
 
   // Fecha dropdown ao clicar fora ou apertar ESC
   useEffect(() => {
@@ -610,10 +639,13 @@ export default function TopNavbar({
                     {rpgStats.className}
                   </span>
                 </div>
-                <div className="w-full bg-zinc-950 h-1.5 rounded-full overflow-hidden border border-zinc-800/80">
+                <div className={`w-full h-1.5 rounded-full overflow-hidden border ${xpBarSkinMeta.trackClass}`}>
                   <div
-                    className="bg-gradient-to-r from-amber-500 via-yellow-400 to-emerald-400 h-full rounded-full transition-all duration-700"
-                    style={{ width: `${Math.max(rpgStats.xpPercentage > 0 ? 4 : 0, rpgStats.xpPercentage)}%` }}
+                    className={`${xpBarSkinMeta.barClass} h-full rounded-full transition-all duration-700`}
+                    style={{
+                      width: `${Math.max(rpgStats.xpPercentage > 0 ? 4 : 0, rpgStats.xpPercentage)}%`,
+                      boxShadow: xpBarSkinMeta.glowStyle,
+                    }}
                   />
                 </div>
               </div>
@@ -1213,6 +1245,7 @@ export default function TopNavbar({
         isOpen={isLevelModalOpen}
         onClose={() => setIsLevelModalOpen(false)}
         xpStatus={rpgStats.xpStatus}
+        xpBarSkinId={equippedXpBarSkin}
         catalogStats={rpgStats}
         onNavigateTab={(tab) => setActiveTab(tab)}
       />

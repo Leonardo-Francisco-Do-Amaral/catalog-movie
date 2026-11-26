@@ -12,11 +12,13 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { COUNTRY_RARITY_META, TROPHY_TIER_META, TIME_MACHINE_RARITY_META } from '../utils/xpSystem';
+import { getXpBarSkinMeta } from '../data/xpBarSkins';
 
 export default function LevelDetailsModal({
   isOpen,
   onClose,
   xpStatus,
+  xpBarSkinId = 'classic',
   catalogStats,
   onNavigateTab,
 }) {
@@ -175,12 +177,20 @@ export default function LevelDetailsModal({
               </span>
             </div>
 
-            <div className="w-full h-3.5 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800 p-0.5">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-emerald-400 transition-all duration-700 shadow-[0_0_16px_rgba(245,158,11,0.5)]"
-                style={{ width: `${Math.max(progressPercentage > 0 ? 2 : 0, progressPercentage)}%` }}
-              />
-            </div>
+            {(() => {
+              const barMeta = getXpBarSkinMeta(xpBarSkinId);
+              return (
+                <div className={`w-full h-3.5 rounded-full overflow-hidden border p-0.5 ${barMeta.trackClass}`}>
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${barMeta.barClass}`}
+                    style={{
+                      width: `${Math.max(progressPercentage > 0 ? 2 : 0, progressPercentage)}%`,
+                      boxShadow: barMeta.glowStyle,
+                    }}
+                  />
+                </div>
+              );
+            })()}
 
             <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] pt-0.5">
               {nextTitleMilestone ? (

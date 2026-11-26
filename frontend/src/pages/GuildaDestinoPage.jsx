@@ -1,22 +1,35 @@
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import axios from 'axios';
-import { Shield, Sparkles, Dna, ScrollText, RefreshCw, ChevronRight } from 'lucide-react';
+import {
+  Shield,
+  Sparkles,
+  Dna,
+  ScrollText,
+  RefreshCw,
+  ChevronRight,
+  Store,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { computeRpgAndGuilds } from '../utils/analyticsEngine';
 import RpgClassSheet from '../components/RpgClassSheet';
+import { dispatchHarlequinProfileSync } from '../utils/harlequinEvents';
 
 const SecretDrawPage = React.lazy(() => import('./SecretDrawPage'));
 const ChimeraPage = React.lazy(() => import('./ChimeraPage'));
 const BingoPage = React.lazy(() => import('./BingoPage'));
+const GuildBazaarPage = React.lazy(() => import('./GuildBazaarPage'));
 
 const SUB_TABS = [
   { id: 'class', label: '🛡️ Classe RPG & Atributos', accent: 'amber' },
   { id: 'secret_draw', label: '🃏 Sessão Secreta', accent: 'fuchsia' },
   { id: 'chimera', label: '🧬 Quimera Cinéfila', accent: 'emerald' },
   { id: 'bingo', label: '📜 Pergaminhos da Guilda', accent: 'amber' },
+  { id: 'bazaar', label: '🏪 Bazar do Arlequim', accent: 'rose' },
 ];
 
-const VALID_GUILD_TABS = ['class', 'secret_draw', 'chimera', 'bingo'];
+const VALID_GUILD_TABS = ['class', 'secret_draw', 'chimera', 'bingo', 'bazaar'];
 
 export default function GuildaDestinoPage({
   movies = [],
@@ -30,6 +43,7 @@ export default function GuildaDestinoPage({
   onChimeraReadyCountChange,
   bingoReadyCount = 0,
   onBingoReadyCountChange,
+  onRefreshGuildCounts,
   onXpStatusChange,
   onOpenAddMovieForSecretCard,
   onOpenAddMovieForChimera,
@@ -41,6 +55,9 @@ export default function GuildaDestinoPage({
   const [trophiesList, setTrophiesList] = useState([]);
   const [walkOfFameData, setWalkOfFameData] = useState(null);
   const [secretDrawData, setSecretDrawData] = useState(null);
+  const [avatarEnabled, setAvatarEnabled] = useState(true);
+  const [togglingAvatar, setTogglingAvatar] = useState(false);
+  const [bazaarCategory, setBazaarCategory] = useState('all');
 
   useEffect(() => {
     if (VALID_GUILD_TABS.includes(initialSubTab)) {
@@ -98,6 +115,51 @@ export default function GuildaDestinoPage({
     [movies, liveXp, trophiesList, walkOfFameData, secretDrawData]
   );
 
+  useEffect(() => {
+    let mounted = true;
+    const loadBazaarToggle = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/guild-bazaar/status`);
+        if (mounted && res.data?.success && res.data?.data) {
+          setAvatarEnabled(res.data.data.avatarEnabled !== false);
+        }
+      } catch {
+        // mantém valor padrão caso servidor offline
+      }
+    };
+    loadBazaarToggle();
+
+    const onProfileSync = (ev) => {
+      if (mounted && ev?.detail && typeof ev.detail.avatarEnabled === 'boolean') {
+        setAvatarEnabled(ev.detail.avatarEnabled);
+      }
+    };
+    window.addEventListener('cine-harlequin-profile-sync', onProfileSync);
+    return () => {
+      mounted = false;
+      window.removeEventListener('cine-harlequin-profile-sync', onProfileSync);
+    };
+  }, []);
+
+  const handleToggleAvatar = async () => {
+    if (togglingAvatar) return;
+    setTogglingAvatar(true);
+    try {
+      const nextVal = !avatarEnabled;
+      const res = await axios.put(`${API_BASE_URL}/guild-bazaar/settings`, {
+        avatarEnabled: nextVal,
+      });
+      if (res.data?.success && res.data?.data) {
+        setAvatarEnabled(res.data.data.avatarEnabled !== false);
+        dispatchHarlequinProfileSync(res.data.data);
+      }
+    } catch {
+      // ignora erro transitório
+    } finally {
+      setTogglingAvatar(false);
+    }
+  };
+
   const { activeXp, characterClass, totalStatPoints, rpgAttributes } = rpgData;
 
   const handleSelectSubTab = (nextId) => {
@@ -112,34 +174,70 @@ export default function GuildaDestinoPage({
         <div className="pointer-events-none absolute -top-24 -right-20 w-72 h-72 rounded-full bg-amber-500/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 -left-16 w-64 h-64 rounded-full bg-fuchsia-500/10 blur-3xl" />
 
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex flex-col gap-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/40 text-amber-300 text-[10px] font-black uppercase tracking-widest">
-                <Shield className="w-3.5 h-3.5" />
-                Salão Central de RPG &amp; Contratos
-              </span>
-              {characterClass?.className && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-zinc-700 text-zinc-200 text-[10px] font-bold">
-                  <span>{characterClass.classIcon}</span>
-                  <span>{characterClass.className}</span>
-                  <span className="text-amber-300 font-mono">• Nv.{activeXp?.level || 1}</span>
+        <div className="relative z-10 flex flex-col gap-4">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+            <div className="min-w-0 flex-1 flex flex-col gap-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/40 text-amber-300 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+                  <Shield className="w-3.5 h-3.5" />
+                  Salão Central de RPG &amp; Contratos
                 </span>
-              )}
+                {characterClass?.className && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-zinc-700 text-zinc-200 text-[10px] font-bold whitespace-nowrap">
+                    <span>{characterClass.classIcon}</span>
+                    <span>{characterClass.className}</span>
+                    <span className="text-amber-300 font-mono">• Nv.{activeXp?.level || 1}</span>
+                  </span>
+                )}
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white leading-tight">
+                ⚔️ Guilda do Destino
+              </h1>
+              <p className="text-xs text-zinc-400 max-w-3xl leading-relaxed">
+                Gerencie sua Classe Cinéfila e Pontos de Atributo, sorteie cartas na{' '}
+                <strong className="text-fuchsia-300">Sessão Secreta</strong>, forje contratos na{' '}
+                <strong className="text-emerald-300">Quimera Cinéfila</strong>, lacre missões nos{' '}
+                <strong className="text-amber-300">Pergaminhos da Guilda 4×4</strong> e equipe cosméticos ou suprimentos mensais no{' '}
+                <strong className="text-rose-300">Bazar do Arlequim</strong>.
+              </p>
             </div>
-            <h1 className="text-xl sm:text-3xl font-black tracking-tight text-white">
-              ⚔️ Guilda do Destino
-            </h1>
-            <p className="text-xs text-zinc-400 max-w-2xl">
-              Gerencie sua Classe Cinéfila e Pontos de Atributo, sorteie cartas na{' '}
-              <strong className="text-fuchsia-300">Sessão Secreta</strong>, forje contratos na{' '}
-              <strong className="text-emerald-300">Quimera Cinéfila</strong> e lacre missões nos{' '}
-              <strong className="text-amber-300">Pergaminhos da Guilda 4×4</strong>.
-            </p>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                disabled={togglingAvatar}
+                onClick={handleToggleAvatar}
+                role="switch"
+                aria-checked={avatarEnabled}
+                title="Ativar ou pausar os comentários do Avatar do Arlequim no catálogo"
+                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-2xl border text-[11px] font-black transition cursor-pointer whitespace-nowrap shadow-md ${
+                  avatarEnabled
+                    ? 'bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-400/50 text-emerald-200 shadow-emerald-500/10'
+                    : 'bg-rose-500/15 hover:bg-rose-500/25 border-rose-400/45 text-rose-200 shadow-rose-500/10'
+                }`}
+              >
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    avatarEnabled ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]' : 'bg-rose-400'
+                  }`}
+                />
+                {avatarEnabled ? (
+                  <>
+                    <Eye className="w-3.5 h-3.5" />
+                    🎭 Avatar Ativo
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="w-3.5 h-3.5" />
+                    🔕 Avatar Desativado
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Navegação Interna Separada dos Submódulos */}
-          <div className="flex flex-wrap items-center gap-2 bg-zinc-950/85 p-1.5 rounded-2xl border border-zinc-800/90 shrink-0">
+          <div className="w-full flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 bg-zinc-950/85 p-1.5 rounded-2xl border border-zinc-800/90">
             {SUB_TABS.map((tab) => {
               const isActive = subTab === tab.id;
               const activeCls =
@@ -147,8 +245,8 @@ export default function GuildaDestinoPage({
                   ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-md shadow-fuchsia-500/25'
                   : tab.accent === 'emerald'
                   ? 'bg-gradient-to-r from-emerald-400 to-amber-300 text-zinc-950 shadow-md shadow-emerald-400/25'
-                  : tab.accent === 'cyan'
-                  ? 'bg-gradient-to-r from-cyan-400 to-amber-300 text-zinc-950 shadow-md shadow-cyan-400/25'
+                  : tab.accent === 'rose'
+                  ? 'bg-gradient-to-r from-rose-500 via-amber-400 to-yellow-300 text-zinc-950 shadow-md shadow-rose-500/25'
                   : 'bg-gradient-to-r from-amber-400 to-yellow-300 text-zinc-950 shadow-md shadow-amber-400/25';
 
               const readyBadgeCount =
@@ -165,7 +263,7 @@ export default function GuildaDestinoPage({
                   key={tab.id}
                   type="button"
                   onClick={() => handleSelectSubTab(tab.id)}
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
                     isActive
                       ? activeCls
                       : 'text-zinc-300 hover:text-white hover:bg-zinc-900'
@@ -192,10 +290,14 @@ export default function GuildaDestinoPage({
             totalStatPoints={totalStatPoints}
             rpgAttributes={rpgAttributes}
             showPowersTeaser
+            onOpenBazaar={(cat) => {
+              setBazaarCategory(cat || 'all');
+              handleSelectSubTab('bazaar');
+            }}
           />
 
           {/* Portais Rápidos para os Desafios Separados */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <button
               type="button"
               onClick={() => handleSelectSubTab('secret_draw')}
@@ -276,6 +378,31 @@ export default function GuildaDestinoPage({
               </div>
               <ChevronRight className="w-5 h-5 text-amber-300 group-hover:translate-x-1 transition-transform shrink-0" />
             </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setBazaarCategory('all');
+                handleSelectSubTab('bazaar');
+              }}
+              className="group text-left rounded-3xl border border-rose-500/40 bg-gradient-to-br from-rose-950/35 via-zinc-950 to-zinc-950 hover:border-amber-400/75 p-5 flex items-center justify-between gap-4 transition-all cursor-pointer"
+            >
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-400/40 flex items-center justify-center text-2xl shrink-0">
+                  🏪
+                </div>
+                <div>
+                  <div className="text-sm font-black text-white flex items-center gap-2 flex-wrap">
+                    <span>Bazar do Arlequim</span>
+                    <Store className="w-3.5 h-3.5 text-amber-300" />
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Skins, fundos, molduras, balões e 10 suprimentos mensais reais para todos os modos.
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-amber-300 group-hover:translate-x-1 transition-transform shrink-0" />
+            </button>
           </div>
         </div>
       ) : (
@@ -309,6 +436,12 @@ export default function GuildaDestinoPage({
                 }
               }}
               onOpenAddMovieForChimera={onOpenAddMovieForChimera}
+            />
+          ) : subTab === 'bazaar' ? (
+            <GuildBazaarPage
+              initialCategory={bazaarCategory}
+              onRefreshGuildCounts={onRefreshGuildCounts}
+              onOpenClassStudio={() => handleSelectSubTab('class')}
             />
           ) : (
             <BingoPage

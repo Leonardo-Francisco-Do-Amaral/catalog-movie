@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import axios from 'axios';
 import { X, Sparkles, Zap, PartyPopper } from 'lucide-react';
+import { API_BASE_URL } from '../utils/apiConfig';
+import { getXpBarSkinMeta } from '../data/xpBarSkins';
 import { playXpEventSound } from '../utils/trophyAudio';
 import { notifyXpBarStarted, notifyXpBarCleared } from '../utils/xpSystem';
 
@@ -82,7 +85,8 @@ function getTagBadgeStyle(tag) {
   return 'bg-zinc-800 text-zinc-200 border-zinc-700';
 }
 
-function XPGainCard({ item, onDismiss }) {
+function XPGainCard({ item, xpBarSkinId = 'classic', onDismiss }) {
+  const xpBarSkinMeta = getXpBarSkinMeta(xpBarSkinId);
   const { id, event } = item;
   const {
     gainedXp,
@@ -322,20 +326,19 @@ function XPGainCard({ item, onDismiss }) {
           </span>
           <span className="text-zinc-300 font-bold">
             {xpInCurrentLevel.toLocaleString('pt-BR')} / {xpNeededForNextLevel.toLocaleString('pt-BR')} XP{' '}
-            <span className="text-amber-300">({Math.round(barWidth)}%)</span>
+            <span style={{ color: xpBarSkinMeta.previewAccent }}>({Math.round(barWidth)}%)</span>
           </span>
         </div>
 
-        <div className="relative w-full h-3 rounded-full bg-zinc-900 border border-zinc-700/90 overflow-hidden p-0.5">
+        <div className={`relative w-full h-3 rounded-full border overflow-hidden p-0.5 ${xpBarSkinMeta.trackClass}`}>
           <div
             style={{
               width: `${barWidth}%`,
               transition: barAnimated ? 'width 0.9s cubic-bezier(0.22, 1, 0.36, 1)' : 'none',
+              boxShadow: xpBarSkinMeta.glowStyle,
             }}
-            className={`relative h-full rounded-full ${
-              showLevelUpCelebration
-                ? 'bg-gradient-to-r from-amber-400 via-yellow-300 to-emerald-400 shadow-[0_0_16px_rgba(251,191,36,0.9)]'
-                : 'bg-gradient-to-r from-amber-500 via-amber-400 to-emerald-400 shadow-[0_0_12px_rgba(245,158,11,0.65)]'
+            className={`relative h-full rounded-full ${xpBarSkinMeta.barClass} ${
+              showLevelUpCelebration ? 'brightness-110' : ''
             }`}
           >
             <div className="absolute right-0 top-0 bottom-0 w-3 bg-white/60 blur-[2px] rounded-full" />
@@ -372,7 +375,7 @@ function XPGainCard({ item, onDismiss }) {
       {/* Timer inferior de fechamento */}
       <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-zinc-800/80 overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-amber-400 to-emerald-400"
+          className={`h-full ${xpBarSkinMeta.barClass}`}
           style={{
             animation: `xpHudTimer ${durationMs}ms linear forwards`,
           }}
@@ -384,7 +387,31 @@ function XPGainCard({ item, onDismiss }) {
 
 export default function XPGainToastContainer() {
   const [items, setItems] = useState([]);
+  const [equippedXpBarSkin, setEquippedXpBarSkin] = useState('classic');
   const wasActiveRef = useRef(false);
+
+  useEffect(() => {
+    let mounted = true;
+    axios
+      .get(`${API_BASE_URL}/guild-bazaar/status`)
+      .then((res) => {
+        if (mounted && res.data?.success && res.data?.data?.equippedXpBarSkin) {
+          setEquippedXpBarSkin(res.data.data.equippedXpBarSkin);
+        }
+      })
+      .catch(() => {});
+
+    const onProfileSync = (ev) => {
+      if (ev?.detail?.equippedXpBarSkin) {
+        setEquippedXpBarSkin(ev.detail.equippedXpBarSkin);
+      }
+    };
+    window.addEventListener('cine-harlequin-profile-sync', onProfileSync);
+    return () => {
+      mounted = false;
+      window.removeEventListener('cine-harlequin-profile-sync', onProfileSync);
+    };
+  }, []);
 
   const dismiss = useCallback((id) => {
     setItems((prev) => prev.filter((x) => x.id !== id));
@@ -458,7 +485,7 @@ export default function XPGainToastContainer() {
       className="fixed bottom-5 right-5 z-[9999] pointer-events-none flex flex-col gap-3 max-w-[430px] w-[calc(100vw-2.5rem)] sm:w-full"
     >
       {items.map((item) => (
-        <XPGainCard key={item.id} item={item} onDismiss={dismiss} />
+        <XPGainCard key={item.id} item={item} xpBarSkinId={equippedXpBarSkin} onDismiss={dismiss} />
       ))}
 
       <style>{`

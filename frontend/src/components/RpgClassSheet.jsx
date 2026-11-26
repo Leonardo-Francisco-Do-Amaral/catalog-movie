@@ -10,12 +10,14 @@ import {
   getClassPowers,
   dispatchClassPowerSync,
 } from '../utils/classPowersCatalog';
+import HarlequinAvatarStudio from './HarlequinAvatarStudio';
 
 export default function RpgClassSheet({
   characterClass = {},
   totalStatPoints = 0,
   rpgAttributes = [],
   showPowersTeaser = true,
+  onOpenBazaar,
 }) {
   const [isGrimoireOpen, setIsGrimoireOpen] = useState(false);
   const [grimoireSearch, setGrimoireSearch] = useState('');
@@ -85,6 +87,9 @@ export default function RpgClassSheet({
 
   return (
     <div className="flex flex-col gap-5">
+      {/* MONTADOR DO AVATAR RPG (SKINS, FUNDOS, MOLDURAS & BALÕES) */}
+      <HarlequinAvatarStudio onOpenBazaar={onOpenBazaar} />
+
       {/* FICHA DE ATRIBUTOS POR PONTOS & CLASSE DO PERSONAGEM */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
         {/* Coluna da Esquerda (Card da Classe do Personagem - 6 colunas) */}

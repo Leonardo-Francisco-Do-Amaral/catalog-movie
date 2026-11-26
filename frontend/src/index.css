@@ -2967,3 +2967,821 @@ html, body, #root {
 .animate-click-blood {
   animation: clickBloodFall 1.8s forwards ease-in;
 }
+
+/* =====================================================================
+   HARLEQUIN LAB — LEVITAÇÃO, PARTÍCULAS DE AURA & ANIME CUT-IN OVERLAY
+   ===================================================================== */
+@keyframes harlequinLevitate {
+  0%, 100% {
+    transform: translateY(0px) rotate(-0.4deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(0.6deg);
+  }
+}
+
+.harlequin-levitate {
+  animation: harlequinLevitate 3.8s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes harlequinPedestalShadow {
+  0%, 100% {
+    transform: scaleX(1) scaleY(1);
+    opacity: 0.72;
+  }
+  50% {
+    transform: scaleX(0.84) scaleY(0.86);
+    opacity: 0.42;
+  }
+}
+
+.harlequin-pedestal-shadow {
+  animation: harlequinPedestalShadow 3.8s ease-in-out infinite;
+}
+
+@keyframes harlequinMoteFloat {
+  0%, 100% {
+    transform: translateY(0px) scale(0.9) rotate(0deg);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateY(-14px) scale(1.18) rotate(12deg);
+    opacity: 0.92;
+  }
+}
+
+.harlequin-mote {
+  animation: harlequinMoteFloat 3.4s ease-in-out infinite;
+}
+
+@keyframes harlequinCutInFlash {
+  0% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.harlequin-cutin-flash {
+  animation: harlequinCutInFlash 0.32s ease-out forwards;
+}
+
+@keyframes harlequinCutInBand {
+  0% {
+    opacity: 0;
+    transform: skewY(-2deg) scaleY(0.08) translateX(-18%);
+  }
+  16% {
+    opacity: 1;
+    transform: skewY(-2deg) scaleY(1.06) translateX(0%);
+  }
+  26% {
+    transform: skewY(-2deg) scaleY(1) translateX(0%);
+  }
+  84% {
+    opacity: 1;
+    transform: skewY(-2deg) scaleY(1) translateX(0%);
+  }
+  100% {
+    opacity: 0;
+    transform: skewY(-2deg) scaleY(0.18) translateX(12%);
+  }
+}
+
+.harlequin-cutin-band {
+  animation: harlequinCutInBand 1.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes harlequinCutInSpeedlines {
+  0% {
+    transform: translateX(-8%);
+  }
+  100% {
+    transform: translateX(8%);
+  }
+}
+
+.harlequin-cutin-speedlines {
+  animation: harlequinCutInSpeedlines 1.85s linear forwards;
+}
+
+@keyframes harlequinCutInPortrait {
+  0% {
+    transform: scale(calc(var(--cutin-scale, 2.1) * 1.18)) translateX(-8%);
+    filter: contrast(1.18) brightness(1.1);
+  }
+  22% {
+    transform: scale(var(--cutin-scale, 2.1)) translateX(0%);
+    filter: contrast(1.06) brightness(1.02);
+  }
+  100% {
+    transform: scale(calc(var(--cutin-scale, 2.1) * 1.07)) translateX(2%);
+    filter: contrast(1.08) brightness(1.04);
+  }
+}
+
+.harlequin-cutin-portrait {
+  animation: harlequinCutInPortrait 1.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Camadas de Clima, Chuva Noir, Neblina, Tempestade Magnética & Holo Prismático */
+@keyframes harlequinRainFallA {
+  0% {
+    background-position: 0px 0px;
+  }
+  100% {
+    background-position: -48px 260px;
+  }
+}
+
+@keyframes harlequinRainFallB {
+  0% {
+    background-position: 18px 0px;
+  }
+  100% {
+    background-position: -64px 340px;
+  }
+}
+
+.harlequin-rain-layer-a {
+  background-image: repeating-linear-gradient(
+    102deg,
+    transparent 0px,
+    transparent 24px,
+    rgba(191, 219, 254, 0.24) 24px,
+    rgba(191, 219, 254, 0.24) 25.5px
+  );
+  background-size: 96px 260px;
+  animation: harlequinRainFallA 0.55s linear infinite;
+}
+
+.harlequin-rain-layer-b {
+  background-image: repeating-linear-gradient(
+    102deg,
+    transparent 0px,
+    transparent 38px,
+    rgba(226, 232, 240, 0.14) 38px,
+    rgba(226, 232, 240, 0.14) 39px
+  );
+  background-size: 120px 340px;
+  animation: harlequinRainFallB 0.85s linear infinite;
+}
+
+@keyframes harlequinFogDrift {
+  0%, 100% {
+    transform: translateX(-6%) scale(1.03);
+    opacity: 0.48;
+  }
+  50% {
+    transform: translateX(6%) scale(1.08);
+    opacity: 0.78;
+  }
+}
+
+.harlequin-fog-drift {
+  animation: harlequinFogDrift 8s ease-in-out infinite;
+}
+
+@keyframes harlequinMagnetSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.harlequin-magnet-spin {
+  animation: harlequinMagnetSpin 11s linear infinite;
+}
+
+.harlequin-magnet-spin-rev {
+  animation: harlequinMagnetSpin 16s linear infinite reverse;
+}
+
+@keyframes harlequinLightningPulse {
+  0%, 72%, 100% {
+    opacity: 0;
+  }
+  74% {
+    opacity: 0.52;
+  }
+  76% {
+    opacity: 0.08;
+  }
+  79% {
+    opacity: 0.65;
+  }
+  84% {
+    opacity: 0;
+  }
+}
+
+.harlequin-lightning-pulse {
+  animation: harlequinLightningPulse 4.8s ease-in-out infinite;
+}
+
+@keyframes harlequinProjectorSway {
+  0%, 100% {
+    transform: rotate(-7deg);
+    opacity: 0.55;
+  }
+  50% {
+    transform: rotate(7deg);
+    opacity: 0.85;
+  }
+}
+
+.harlequin-projector-beam {
+  transform-origin: top center;
+  animation: harlequinProjectorSway 7s ease-in-out infinite;
+}
+
+@keyframes harlequinHoloSweep {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.harlequin-holo-foil {
+  background-size: 220% 220%;
+  animation: harlequinHoloSweep 4.5s ease-in-out infinite;
+}
+
+/* Coreografia Balatro / RPG ao clicar e falar com o Arlequim */
+@keyframes harlequinClickJumpL {
+  0% {
+    transform: translateY(0px) scale(1, 1) rotateZ(0deg) rotateY(0deg);
+  }
+  14% {
+    transform: translateY(10px) scale(1.13, 0.84) rotateZ(0deg) rotateY(0deg);
+  }
+  38% {
+    transform: translateY(-28px) scale(0.9, 1.13) rotateZ(-9deg) rotateY(-16deg);
+  }
+  62% {
+    transform: translateY(4px) scale(1.07, 0.92) rotateZ(6deg) rotateY(8deg);
+  }
+  82% {
+    transform: translateY(-6px) scale(0.98, 1.03) rotateZ(-2.5deg) rotateY(-3deg);
+  }
+  100% {
+    transform: translateY(0px) scale(1, 1) rotateZ(0deg) rotateY(0deg);
+  }
+}
+
+@keyframes harlequinClickJumpR {
+  0% {
+    transform: translateY(0px) scale(1, 1) rotateZ(0deg) rotateY(0deg);
+  }
+  14% {
+    transform: translateY(10px) scale(1.13, 0.84) rotateZ(0deg) rotateY(0deg);
+  }
+  38% {
+    transform: translateY(-28px) scale(0.9, 1.13) rotateZ(9deg) rotateY(16deg);
+  }
+  62% {
+    transform: translateY(4px) scale(1.07, 0.92) rotateZ(-6deg) rotateY(-8deg);
+  }
+  82% {
+    transform: translateY(-6px) scale(0.98, 1.03) rotateZ(2.5deg) rotateY(3deg);
+  }
+  100% {
+    transform: translateY(0px) scale(1, 1) rotateZ(0deg) rotateY(0deg);
+  }
+}
+
+@keyframes harlequinClickSpin {
+  0% {
+    transform: translateY(0px) scale(1, 1) rotateY(0deg) rotateZ(0deg);
+  }
+  15% {
+    transform: translateY(8px) scale(1.08, 0.88) rotateY(-18deg) rotateZ(-3deg);
+  }
+  52% {
+    transform: translateY(-26px) scale(1.06, 1.06) rotateY(195deg) rotateZ(6deg);
+  }
+  82% {
+    transform: translateY(3px) scale(1.04, 0.95) rotateY(368deg) rotateZ(-3deg);
+  }
+  100% {
+    transform: translateY(0px) scale(1, 1) rotateY(360deg) rotateZ(0deg);
+  }
+}
+
+@keyframes harlequinClickShake {
+  0% {
+    transform: translateX(0px) translateY(0px) rotate(0deg) scale(1);
+  }
+  16% {
+    transform: translateX(-12px) translateY(-10px) rotate(-7deg) scale(1.05, 0.95);
+  }
+  34% {
+    transform: translateX(12px) translateY(-14px) rotate(7deg) scale(0.96, 1.06);
+  }
+  52% {
+    transform: translateX(-9px) translateY(-6px) rotate(-5deg) scale(1.03, 0.97);
+  }
+  70% {
+    transform: translateX(7px) translateY(-2px) rotate(3.5deg) scale(0.99, 1.02);
+  }
+  86% {
+    transform: translateX(-3px) translateY(1px) rotate(-1.5deg) scale(1.01, 0.99);
+  }
+  100% {
+    transform: translateX(0px) translateY(0px) rotate(0deg) scale(1);
+  }
+}
+
+@keyframes harlequinTalkingBob {
+  0%, 100% {
+    transform: translateY(0px) scale(1, 1) rotate(0deg);
+  }
+  45% {
+    transform: translateY(-5px) scale(1.022, 0.984) rotate(-1.3deg);
+  }
+  75% {
+    transform: translateY(-2px) scale(0.99, 1.018) rotate(1.1deg);
+  }
+}
+
+@keyframes harlequinSheenSweep {
+  0% {
+    transform: translateX(-130%) skewX(-24deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateX(180%) skewX(-24deg);
+    opacity: 0;
+  }
+}
+
+@keyframes harlequinRingBurst {
+  0% {
+    transform: scale(0.68);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.48);
+    opacity: 0;
+  }
+}
+
+@keyframes harlequinParticleBurst {
+  0% {
+    transform: translate(-50%, -50%) scale(0.45) rotate(0deg);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--tx) * 0.35), calc(-50% + var(--ty) * 0.35)) scale(1.22) rotate(calc(var(--rot) * 0.35));
+  }
+  100% {
+    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0.55) rotate(var(--rot));
+    opacity: 0;
+  }
+}
+
+.harlequin-click-jump-l {
+  animation: harlequinClickJumpL 0.62s cubic-bezier(0.22, 1.35, 0.36, 1) forwards;
+}
+
+.harlequin-click-jump-r {
+  animation: harlequinClickJumpR 0.62s cubic-bezier(0.22, 1.35, 0.36, 1) forwards;
+}
+
+.harlequin-click-spin {
+  animation: harlequinClickSpin 0.72s cubic-bezier(0.22, 1.25, 0.36, 1) forwards;
+}
+
+.harlequin-click-shake {
+  animation: harlequinClickShake 0.5s ease-out forwards;
+}
+
+.harlequin-talking-bob {
+  animation: harlequinTalkingBob 0.22s ease-in-out infinite;
+}
+
+.harlequin-sheen-sweep {
+  animation: harlequinSheenSweep 0.56s ease-out forwards;
+}
+
+.harlequin-ring-burst {
+  animation: harlequinRingBurst 0.58s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.harlequin-particle-burst {
+  animation: harlequinParticleBurst 0.78s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes harlequinBubblePop {
+  0% {
+    transform: scale(0.95) translateY(4px);
+    opacity: 0.72;
+  }
+  100% {
+    transform: scale(1) translateY(0px);
+    opacity: 1;
+  }
+}
+
+.harlequin-bubble-pop {
+  animation: harlequinBubblePop 0.22s ease-out forwards;
+}
+
+@keyframes harlequinCursorBlink {
+  0%, 49% {
+    opacity: 1;
+  }
+  50%, 100% {
+    opacity: 0;
+  }
+}
+
+.harlequin-cursor-blink {
+  animation: harlequinCursorBlink 0.75s steps(1) infinite;
+}
+
+@keyframes harlequinMoodChipFloat {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.7);
+  }
+  28% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1.1);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(-2px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0px) scale(1);
+  }
+}
+
+.harlequin-mood-chip {
+  animation: harlequinMoodChipFloat 0.55s cubic-bezier(0.22, 1.35, 0.36, 1) forwards;
+}
+
+@keyframes harlequinPopupEnter {
+  0% {
+    opacity: 0;
+    transform: translate3d(-24px, 28px, 0) scale(0.84) rotate(-3deg);
+  }
+  62% {
+    opacity: 1;
+    transform: translate3d(4px, -4px, 0) scale(1.03) rotate(1deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+}
+
+.harlequin-popup-enter {
+  animation: harlequinPopupEnter 0.44s cubic-bezier(0.22, 1.35, 0.36, 1) forwards;
+}
+
+/* ============================================================================
+   BAZAR CLANDESTINO DO ARLEQUIM (ESTÉTICA FÍSICA DE LOJA RPG / BALATRO)
+   ============================================================================ */
+.rpg-shop-wood-bg {
+  background:
+    radial-gradient(circle at 22% 14%, rgba(245, 158, 11, 0.14) 0%, transparent 46%),
+    radial-gradient(circle at 82% 20%, rgba(180, 83, 9, 0.12) 0%, transparent 42%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 195, 115, 0.018) 0px,
+      rgba(255, 195, 115, 0.018) 2px,
+      rgba(0, 0, 0, 0.08) 2px,
+      rgba(0, 0, 0, 0.08) 18px
+    ),
+    linear-gradient(180deg, #160c07 0%, #100805 55%, #090504 100%);
+}
+
+.rpg-shop-brass-panel {
+  border: 2px solid #9a7132;
+  background: linear-gradient(165deg, rgba(32, 18, 11, 0.96) 0%, rgba(16, 10, 7, 0.98) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(251, 211, 141, 0.38),
+    inset 0 0 0 2px rgba(24, 13, 8, 0.92),
+    inset 0 0 0 3px rgba(217, 169, 86, 0.28),
+    0 18px 42px rgba(0, 0, 0, 0.85);
+}
+
+.rpg-shop-velvet-rug {
+  border: 2px solid #8f6b2e;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(16, 185, 129, 0.14) 0%, transparent 60%),
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.015) 0px,
+      rgba(255, 255, 255, 0.015) 1px,
+      transparent 1px,
+      transparent 6px
+    ),
+    radial-gradient(circle at 50% 45%, #123328 0%, #091e17 64%, #05110d 100%);
+  box-shadow:
+    inset 0 0 0 4px rgba(10, 26, 20, 0.92),
+    inset 0 0 0 5px rgba(245, 199, 107, 0.28),
+    inset 0 16px 38px rgba(0, 0, 0, 0.65),
+    0 22px 48px rgba(0, 0, 0, 0.88);
+}
+
+.rpg-shop-price-tag {
+  background: linear-gradient(155deg, #f3dcab 0%, #e0ba72 60%, #c49547 100%);
+  color: #261507;
+  border: 1.5px solid #6b4516;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 250, 224, 0.72),
+    0 5px 12px rgba(0, 0, 0, 0.65);
+  transform: rotate(-2deg);
+}
+
+.rpg-shop-btn-gold {
+  background: linear-gradient(180deg, #fbd269 0%, #e09c27 100%);
+  color: #1f1103;
+  border: 1.5px solid #fff1b8;
+  border-bottom: 4px solid #854d0e;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55);
+  transition: transform 90ms ease, border-bottom-width 90ms ease, filter 120ms ease;
+}
+.rpg-shop-btn-gold:hover {
+  filter: brightness(1.07);
+}
+.rpg-shop-btn-gold:active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+}
+
+.rpg-shop-btn-crimson {
+  background: linear-gradient(180deg, #e11d48 0%, #9f1239 100%);
+  color: #fff1f2;
+  border: 1.5px solid #fda4af;
+  border-bottom: 4px solid #4c0519;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55);
+  transition: transform 90ms ease, border-bottom-width 90ms ease, filter 120ms ease;
+}
+.rpg-shop-btn-crimson:hover {
+  filter: brightness(1.08);
+}
+.rpg-shop-btn-crimson:active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+}
+
+.rpg-shop-btn-emerald {
+  background: linear-gradient(180deg, #10b981 0%, #047857 100%);
+  color: #ecfdf5;
+  border: 1.5px solid #6ee7b7;
+  border-bottom: 4px solid #064e3b;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55);
+  transition: transform 90ms ease, border-bottom-width 90ms ease, filter 120ms ease;
+}
+.rpg-shop-btn-emerald:hover {
+  filter: brightness(1.08);
+}
+.rpg-shop-btn-emerald:active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+}
+
+@keyframes rpgLanternFlicker {
+  0%, 100% {
+    opacity: 0.42;
+    transform: scale(1);
+  }
+  38% {
+    opacity: 0.62;
+    transform: scale(1.04);
+  }
+  67% {
+    opacity: 0.48;
+    transform: scale(0.98);
+  }
+}
+
+.rpg-lantern-glow {
+  animation: rpgLanternFlicker 3.6s ease-in-out infinite;
+}
+
+@keyframes rpgStampSlam {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.2) rotate(-18deg);
+  }
+  65% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.92) rotate(-10deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(-11deg);
+  }
+}
+
+.rpg-sold-stamp {
+  animation: rpgStampSlam 0.34s cubic-bezier(0.22, 1.35, 0.36, 1) forwards;
+}
+
+@keyframes rpgShelfDeal {
+  0% {
+    opacity: 0.45;
+    transform: translateY(10px) scale(0.96) rotate(-1.5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0px) scale(1) rotate(0deg);
+  }
+}
+
+.rpg-shelf-deal {
+  animation: rpgShelfDeal 0.32s cubic-bezier(0.22, 1.25, 0.36, 1) forwards;
+}
+
+@keyframes bazaarRevealPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.55) translateY(26px) rotate(-6deg);
+  }
+  58% {
+    opacity: 1;
+    transform: scale(1.06) translateY(-6px) rotate(1.5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0px) rotate(0deg);
+  }
+}
+
+.bazaar-reveal-pop {
+  animation: bazaarRevealPop 0.52s cubic-bezier(0.22, 1.35, 0.36, 1) forwards;
+}
+
+@keyframes bazaarRaysSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.bazaar-rays-spin {
+  animation: bazaarRaysSpin 18s linear infinite;
+}
+
+@keyframes bazaarCoinBurst {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.5) rotate(0deg);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--bx)), calc(-50% + var(--by))) scale(1.15) rotate(var(--brot));
+  }
+}
+
+.bazaar-coin-burst {
+  animation: bazaarCoinBurst 0.95s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes secretSpecialRadarPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(217, 70, 239, 0.85), 0 0 24px rgba(251, 191, 36, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.98), 0 0 42px rgba(217, 70, 239, 0.9);
+  }
+}
+
+.secret-special-radar-pulse {
+  animation: secretSpecialRadarPulse 1.35s ease-in-out infinite;
+}
+
+@keyframes xpBarRgbFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.xp-bar-skin-crimson {
+  background: linear-gradient(90deg, #9f1239 0%, #e11d48 48%, #fb7185 82%, #f43f5e 100%);
+  background-size: 180% 100%;
+  animation: xpBarRgbFlow 3.2s ease infinite;
+}
+
+.xp-bar-skin-gold {
+  background: linear-gradient(90deg, #b45309 0%, #f59e0b 35%, #fef08a 65%, #facc15 100%);
+  background-size: 200% 100%;
+  animation: xpBarRgbFlow 2.8s ease infinite;
+}
+
+.xp-bar-skin-violet {
+  background: linear-gradient(90deg, #6d28d9 0%, #a855f7 45%, #38bdf8 85%, #8b5cf6 100%);
+  background-size: 200% 100%;
+  animation: xpBarRgbFlow 3.6s ease infinite;
+}
+
+.xp-bar-skin-rainbow {
+  background: linear-gradient(90deg, #ef4444 0%, #f59e0b 22%, #10b981 44%, #06b6d4 66%, #8b5cf6 84%, #ec4899 100%);
+}
+
+.xp-bar-skin-rgb {
+  background: linear-gradient(90deg, #ff2a5f, #ffae00, #22ff7a, #00e5ff, #9b4dff, #ff2a85, #ff2a5f);
+  background-size: 300% 100%;
+  animation: xpBarRgbFlow 2.4s linear infinite;
+}
+
+.bingo-parchment-cell-gold {
+  background: linear-gradient(155deg, #5c4310 0%, #3d2a07 52%, #241703 100%);
+  box-shadow:
+    inset 0 0 24px rgba(250, 204, 21, 0.24),
+    inset 0 1px 0 rgba(254, 240, 138, 0.35),
+    0 10px 24px rgba(0, 0, 0, 0.65);
+}
+
+.bingo-parchment-cell-hybrid {
+  background: linear-gradient(140deg, #173a2b 0%, #2b2711 52%, #4a3309 100%);
+  box-shadow:
+    inset 0 0 24px rgba(251, 191, 36, 0.2),
+    inset 0 1px 0 rgba(167, 243, 208, 0.25),
+    0 10px 22px rgba(0, 0, 0, 0.62);
+}
+
+.bingo-wax-seal-gold {
+  background: radial-gradient(circle at 34% 30%, #fde047 0%, #d97706 48%, #78350f 85%, #451a03 100%);
+  border: 1px solid rgba(254, 249, 195, 0.55);
+  box-shadow:
+    inset 0 2px 5px rgba(255, 255, 255, 0.45),
+    inset 0 -3px 6px rgba(69, 26, 3, 0.78),
+    0 4px 12px rgba(245, 158, 11, 0.45);
+}
+
+.bingo-scroll-roller-gold {
+  height: 11px;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, #fef08a 0%, #d97706 46%, #78350f 82%, #2b1402 100%);
+  border: 1px solid rgba(254, 240, 138, 0.55);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.75);
+}
+
+@keyframes chimeraGoldAura {
+  0%, 100% {
+    box-shadow:
+      inset 0 0 32px rgba(251, 191, 36, 0.14),
+      0 0 28px rgba(245, 158, 11, 0.24);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 42px rgba(254, 240, 138, 0.22),
+      0 0 44px rgba(251, 191, 36, 0.42);
+  }
+}
+
+@keyframes chimeraXpAura {
+  0%, 100% {
+    box-shadow:
+      inset 0 0 30px rgba(16, 185, 129, 0.14),
+      0 0 26px rgba(6, 182, 212, 0.20);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 40px rgba(45, 212, 191, 0.24),
+      0 0 40px rgba(16, 185, 129, 0.36);
+  }
+}
+
+.chimera-card-gold {
+  background: linear-gradient(145deg, rgba(66, 40, 5, 0.78) 0%, rgba(18, 13, 6, 0.96) 52%, rgba(46, 29, 4, 0.72) 100%);
+  border: 2px solid rgba(251, 191, 36, 0.78);
+  animation: chimeraGoldAura 3.4s ease-in-out infinite;
+}
+
+.chimera-card-xp {
+  background: linear-gradient(145deg, rgba(6, 46, 38, 0.74) 0%, rgba(7, 17, 22, 0.96) 52%, rgba(8, 41, 56, 0.72) 100%);
+  border: 2px solid rgba(52, 211, 153, 0.68);
+  animation: chimeraXpAura 3.4s ease-in-out infinite;
+}

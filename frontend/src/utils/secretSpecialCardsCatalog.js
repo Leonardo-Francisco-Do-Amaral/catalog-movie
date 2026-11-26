@@ -15,7 +15,8 @@ export function getSecretSuitBackImage(difficulty) {
 
 export function getSecretCardUrl(rawPath) {
   if (!rawPath) return '';
-  return encodeURI(String(rawPath));
+  const normalized = String(rawPath).replace(/^(\/secret-draw\/especiais\/.+)\.png$/i, '$1.jpg');
+  return encodeURI(normalized);
 }
 
 const DECK_RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -139,9 +140,9 @@ export function groupSimpleMilestones(milestones) {
   }));
 }
 
-export const HARLEQUIN_CROUPIER_AVATAR = '/secret-draw/especiais/arlequim/CROUPIER.png';
-export const HARLEQUIN_DUAL_AVATAR = '/secret-draw/especiais/arlequim/rei-duas-caras.png';
-export const HARLEQUIN_CURSED_AVATAR = '/secret-draw/especiais/arlequim/corrente-destino.png';
+export const HARLEQUIN_CROUPIER_AVATAR = '/secret-draw/especiais/arlequim/CROUPIER.jpg';
+export const HARLEQUIN_DUAL_AVATAR = '/secret-draw/especiais/arlequim/rei-duas-caras.jpg';
+export const HARLEQUIN_CURSED_AVATAR = '/secret-draw/especiais/arlequim/corrente-destino.jpg';
 
 export const HARLEQUIN_BACKGROUND_LORE = {
   title: 'O Croupier da Sala de Projeção Secreta',
@@ -163,8 +164,8 @@ export const FALLBACK_SPECIAL_CARDS_CATALOG = [
       'Gira a moeda do destino para 1 filme pendente da sua fila! CARA: dobra (2×) o XP do filme. COROA: corta o XP pela metade (0.5×) e trava sem Passe Bumerangue!',
     harlequinQuote: 'O Arlequim lançou a moeda: resta saber se o lado que caiu traz bênção ou maldição.',
     lore: 'Trono dividido entre ouro e cinzas. O Arlequim gira a moeda apenas pelo prazer de assistir à sua aposta.',
-    images: ['/secret-draw/especiais/arlequim/rei-duas-caras.png'],
-    classicImages: ['/secret-draw/especiais/classicas/rei-duas-caras.png'],
+    images: ['/secret-draw/especiais/arlequim/rei-duas-caras.jpg'],
+    classicImages: ['/secret-draw/especiais/classicas/rei-duas-caras.jpg'],
   },
   {
     id: 'apresentador_vem_ca',
@@ -177,8 +178,8 @@ export const FALLBACK_SPECIAL_CARDS_CATALOG = [
       'O Arlequim deu sua bênção, mas ele vai escolher o filme para você ver — puxando 1 outra carta fechada da mesa direto para a sua fila! Se esconder uma Carta Especial, ativa em cadeia.',
     harlequinQuote: 'O Arlequim deu sua bênção, mas hoje é ele quem escolhe o filme para você assistir.',
     lore: 'Com um laço de película 35mm, o croupier fisga direto do feltro a carta que você não teve coragem de virar.',
-    images: ['/secret-draw/especiais/arlequim/chamado-arlequim.png'],
-    classicImages: ['/secret-draw/especiais/classicas/apresentador.png'],
+    images: ['/secret-draw/especiais/arlequim/chamado-arlequim.jpg'],
+    classicImages: ['/secret-draw/especiais/classicas/apresentador.jpg'],
   },
   {
     id: 'ocarina_floresta',
@@ -191,8 +192,8 @@ export const FALLBACK_SPECIAL_CARDS_CATALOG = [
       'O Arlequim dedilha sua harpa sobre o relógio antigo para reembaralhar e sortear novos filmes em todas as cartas ainda fechadas da mão atual, sem gastar Ficha de Sorteio!',
     harlequinQuote: 'As notas voltam os ponteiros: o Arlequim reembaralhou o destino da mesa.',
     lore: 'Sentado sobre engrenagens antigas, ele toca a melodia reversa até rebobinar o baralho inteiro.',
-    images: ['/secret-draw/especiais/arlequim/melodia-do-tempo.png'],
-    classicImages: ['/secret-draw/especiais/classicas/ocarina-da-floresta.png'],
+    images: ['/secret-draw/especiais/arlequim/melodia-do-tempo.jpg'],
+    classicImages: ['/secret-draw/especiais/classicas/ocarina-da-floresta.jpg'],
   },
   {
     id: 'recarga_classe',
@@ -205,11 +206,11 @@ export const FALLBACK_SPECIAL_CARDS_CATALOG = [
       'O Arlequim estala a claquete do Take 2 e reativa imediatamente +1 uso do Poder Especial da sua Classe RPG exclusivamente para a Sessão Secreta!',
     harlequinQuote: 'Take 2. O Arlequim deu sinal verde para você usar o seu poder mais uma vez.',
     lore: 'Na cadeira de diretor da Sala Secreta, basta uma batida da claquete para reabrir a cena do seu poder.',
-    images: ['/secret-draw/especiais/arlequim/recarga-classe.png'],
+    images: ['/secret-draw/especiais/arlequim/recarga-classe.jpg'],
     classicImages: [
-      '/secret-draw/especiais/classicas/recarga-classe-1.png',
-      '/secret-draw/especiais/classicas/recarga-classe-2.png',
-      '/secret-draw/especiais/classicas/recarga-classe-3.png',
+      '/secret-draw/especiais/classicas/recarga-classe-1.jpg',
+      '/secret-draw/especiais/classicas/recarga-classe-2.jpg',
+      '/secret-draw/especiais/classicas/recarga-classe-3.jpg',
     ],
   },
   {
@@ -223,10 +224,10 @@ export const FALLBACK_SPECIAL_CARDS_CATALOG = [
       'Através das lentes verde e rosa do Arlequim, o verso das cartas restantes da mesa revela quantos marcos simples cada filme escondido destrava sem entregar os títulos!',
     harlequinQuote: 'Por trás das lentes 3D, até o verso fechado denuncia o que cada filme esconde.',
     lore: 'Os óculos anaglíficos do Arlequim atravessam o papel do baralho para revelar troféus, países e eras ocultas.',
-    images: ['/secret-draw/especiais/arlequim/visao-marcos.png'],
+    images: ['/secret-draw/especiais/arlequim/visao-marcos.jpg'],
     classicImages: [
-      '/secret-draw/especiais/classicas/visao-marcos-1.png',
-      '/secret-draw/especiais/classicas/visao-marcos-2.png',
+      '/secret-draw/especiais/classicas/visao-marcos-1.jpg',
+      '/secret-draw/especiais/classicas/visao-marcos-2.jpg',
     ],
   },
   {
@@ -240,8 +241,8 @@ export const FALLBACK_SPECIAL_CARDS_CATALOG = [
       'O Arlequim levita sobre o baralho e revela o pôster e o título de até 3 outros filmes ainda fechados nesta mesa antes de você escolher!',
     harlequinQuote: 'Três cartas reveladas por cortesia da casa — agora escolha sem desculpas.',
     lore: 'Um favor discreto do croupier da Sessão Secreta para testar o olhar de quem aposta alto.',
-    images: ['/secret-draw/especiais/arlequim/revela-3.png'],
-    altImages: ['/secret-draw/especiais/arlequim/revela-3-alt.png'],
+    images: ['/secret-draw/especiais/arlequim/revela-3-alt.jpg'],
+    altImages: ['/secret-draw/especiais/arlequim/revela-3.jpg'],
   },
   {
     id: 'arlequim_revela_5',
@@ -254,8 +255,8 @@ export const FALLBACK_SPECIAL_CARDS_CATALOG = [
       'LENDÁRIA: O Arlequim abre toda a mão e revela até 5 outros filmes escondidos nesta mesa com pôster, ano e raridade visíveis!',
     harlequinQuote: 'Cinco cartas iluminadas sobre o feltro. Hoje o Arlequim abriu os arquivos secretos.',
     lore: 'Quando o espetáculo chega ao auge, nem mesmo as cartas viradas conseguem esconder o que guardam.',
-    images: ['/secret-draw/especiais/arlequim/revela-5.png'],
-    altImages: ['/secret-draw/especiais/arlequim/revela-5-alt.png'],
+    images: ['/secret-draw/especiais/arlequim/revela-5-alt.jpg'],
+    altImages: ['/secret-draw/especiais/arlequim/revela-5.jpg'],
   },
   {
     id: 'portal_dimensional',
@@ -268,12 +269,12 @@ export const FALLBACK_SPECIAL_CARDS_CATALOG = [
       'LENDÁRIA: O Arlequim adora o filme sorteado da sua fila — abre um portal, entrega todo o XP dele na hora sem precisar assistir e devolve o filme intacto ao baralho!',
     harlequinQuote: 'O Arlequim adora esse filme — ele ainda vai te dar todo o XP sem precisar assistir.',
     lore: 'Por certas obras ele guarda um apreço especial: abre a fenda de película, paga a recompensa e guarda o rolo de volta.',
-    images: ['/secret-draw/especiais/arlequim/portal-dimensional.png'],
+    images: ['/secret-draw/especiais/arlequim/portal-dimensional.jpg'],
     classicImages: [
-      '/secret-draw/especiais/classicas/portal-dimensional-1.png',
-      '/secret-draw/especiais/classicas/portal-dimensional-2.png',
-      '/secret-draw/especiais/classicas/portal-dimensional-3.png',
-      '/secret-draw/especiais/classicas/portal-dimensional-4.png',
+      '/secret-draw/especiais/classicas/portal-dimensional-1.jpg',
+      '/secret-draw/especiais/classicas/portal-dimensional-2.jpg',
+      '/secret-draw/especiais/classicas/portal-dimensional-3.jpg',
+      '/secret-draw/especiais/classicas/portal-dimensional-4.jpg',
     ],
   },
   {
@@ -287,10 +288,10 @@ export const FALLBACK_SPECIAL_CARDS_CATALOG = [
       'LENDÁRIA: Transmuta 1 filme aleatório da sua fila pendente (que ainda não seja Exótico) subindo 1 nível completo de raridade e aumentando seu XP!',
     harlequinQuote: 'Uma gota da pedra rubi basta para transformar uma sessão comum em ouro.',
     lore: 'Entre grimórios antigos e um alambique dourado, o Arlequim refina uma carta comum até ela brilhar mais alto.',
-    images: ['/secret-draw/especiais/arlequim/pedra-filosofal.png'],
+    images: ['/secret-draw/especiais/arlequim/pedra-filosofal.jpg'],
     classicImages: [
-      '/secret-draw/especiais/classicas/ascensao-1.png',
-      '/secret-draw/especiais/classicas/ascensao-2.png',
+      '/secret-draw/especiais/classicas/ascensao-1.jpg',
+      '/secret-draw/especiais/classicas/ascensao-2.jpg',
     ],
   },
   {
@@ -304,8 +305,8 @@ export const FALLBACK_SPECIAL_CARDS_CATALOG = [
       'MALDIÇÃO: As engrenagens se fecham sobre 1 filme aleatório da sua fila (acima de Comum), rebaixando sua raridade em 1 nível e reduzindo seu XP!',
     harlequinQuote: 'Nem todo truque é favor. Quando as mandíbulas se fecham, até ouro vira ferro.',
     lore: 'Nos bastidores enferrujados da projeção, o sorriso do Arlequim fica mais afiado e cobra seu preço.',
-    images: ['/secret-draw/especiais/arlequim/armadilha-mecanica.png'],
-    classicImages: ['/secret-draw/especiais/classicas/armadilha-mecanica.png'],
+    images: ['/secret-draw/especiais/arlequim/armadilha-mecanica.jpg'],
+    classicImages: ['/secret-draw/especiais/classicas/armadilha-mecanica.jpg'],
   },
   {
     id: 'corrente_destino',
@@ -318,8 +319,8 @@ export const FALLBACK_SPECIAL_CARDS_CATALOG = [
       'MALDIÇÃO: Correntes pesadas prendem 1 filme aleatório da sua fila ativa, partindo o Bumerangue e proibindo devolver aquela carta para o baralho!',
     harlequinQuote: 'Sem fuga nem bumerangue: o Arlequim trancou essa escolha até o último crédito.',
     lore: 'Sob a máscara rachada e olhos carmesins, ele parte a rota de saída e acorrenta o filme à sua fila.',
-    images: ['/secret-draw/especiais/arlequim/corrente-destino.png'],
-    classicImages: ['/secret-draw/especiais/classicas/corrente-destino.png'],
+    images: ['/secret-draw/especiais/arlequim/corrente-destino.jpg'],
+    classicImages: ['/secret-draw/especiais/classicas/corrente-destino.jpg'],
   },
   {
     id: 'lamina_eclipse',
@@ -332,8 +333,73 @@ export const FALLBACK_SPECIAL_CARDS_CATALOG = [
       'MALDIÇÃO: Um golpe no escuro corta ao meio o prêmio de 1 filme aleatório da sua fila pendente, reduzindo o XP dele pela metade (0.5×)!',
     harlequinQuote: 'Um corte rápido no escuro: o filme continua na tela, mas o prêmio sangrou pela metade.',
     lore: 'Quando o eclipse escurece o baralho, o Arlequim estala as garras e rasga a recompensa ao meio.',
-    images: ['/secret-draw/especiais/arlequim/lamina-eclipse.png'],
+    images: ['/secret-draw/especiais/arlequim/lamina-eclipse.jpg'],
     altImages: ['/secret-draw/especiais/arlequim/lamina-eclipse-clara.jpg'],
+  },
+  {
+    id: 'valete_troca_fichas',
+    title: 'Valete de Ouros — Troca de Fichas',
+    harlequinTitle: 'Valete das Fichas Douradas (J ♦)',
+    icon: '🪙',
+    rarity: 'rare',
+    shortTag: 'Até 2 Cartas XP → Ouro (+15%)',
+    description:
+      'O Arlequim faz duas fichas douradas rodarem entre os dedos: converte até 2 cartas ainda fechadas da mesa que valiam XP em Ouro do Bazar (🪙) com +15% de bônus!',
+    harlequinQuote: 'XP paga a sessão, mas ouro compra o camarim inteiro — o Arlequim trocou essas duas cartas antes da virada.',
+    lore: 'Entre fichas girando no ar e cartas ainda fechadas, o Arlequim troca bilhetes de XP por ouro vivo antes mesmo do corte.',
+    images: ['/secret-draw/especiais/arlequim/valete-troca-fichas.jpg'],
+  },
+  {
+    id: 'valete_mao_leve',
+    title: 'Valete de Paus — Mão Leve',
+    harlequinTitle: 'Trapaceiro Mão Leve (J ♣)',
+    icon: '🕵️',
+    rarity: 'rare',
+    shortTag: '+20 🪙 + Pisca Especiais na Mesa',
+    description:
+      'Sem puxar filme para sua fila, o Arlequim afana +20 🪙 da banca direto para o seu Bazar e faz pulsar um contorno misterioso nas cartas fechadas que escondem outra Carta Especial!',
+    harlequinQuote: 'Vinte moedas já escorregaram pro bolso... e olha só quais cartas no feltro acabaram de piscar.',
+    lore: 'Por trás do monóculo brilhante e de dedos leves sobre o feltro, o Arlequim limpa a banca e denuncia onde moram seus próprios segredos.',
+    images: ['/secret-draw/especiais/arlequim/valete-mao-leve.jpg'],
+  },
+  {
+    id: 'dama_toque_dourado',
+    title: 'Dama de Ouros — Toque Dourado',
+    harlequinTitle: 'Dama do Toque Dourado (Q ♦)',
+    icon: '👑',
+    rarity: 'legendary',
+    shortTag: '1 Carta da Fila → Ouro (+25%)',
+    description:
+      'LENDÁRIA: O Arlequim toca 1 única carta ativa de XP na sua fila e a transmuta em Carta de Ouro (🪙) com +25% de conversão extra para gastar no Bazar!',
+    harlequinQuote: 'Um único toque do Arlequim e a película inteira derrete em ouro puro.',
+    lore: 'Com luvas banhadas em brilho líquido, o Arlequim envolve um filme escolhido na sua fila e sela seu destino em moedas raras.',
+    images: ['/secret-draw/especiais/arlequim/dama-toque-dourado.jpg'],
+  },
+  {
+    id: 'dama_espadas_inquisidora',
+    title: 'Dama de Espadas — A Inquisidora',
+    harlequinTitle: 'A Inquisidora Implacável (Q ♠)',
+    icon: '⚔️',
+    rarity: 'cursed',
+    shortTag: 'Retira 1–4 Pares (XP + Ouro) da Mesa',
+    description:
+      'MALDIÇÃO: Sob a Dama de Espadas, o Arlequim rola de 1 a 4 e bane quantidades iguais da mesa (ex.: 2 cartas de XP e 2 cartas de Ouro — incluindo Especiais disfarçadas que estiverem lá!), pois não suporta esses filmes.',
+    harlequinQuote: 'Equilíbrio na lâmina: se o Arlequim levar dois de XP, dois de Ouro também vão virar cinza.',
+    lore: 'Vestindo negro e lâminas espelhadas no escuro do baralho, o Arlequim corta pares exatos de cartas até calar a sorte da mesa.',
+    images: ['/secret-draw/especiais/arlequim/dama-espadas-inquisidora.jpg'],
+  },
+  {
+    id: 'maldicao_imposto_ouro',
+    title: '7 de Ouros — Sanguessuga Dourada',
+    harlequinTitle: 'Tributo do Submundo (7 ♦)',
+    icon: '🩸',
+    rarity: 'cursed',
+    shortTag: 'Corta Ouro da Fila (-50%)',
+    description:
+      'MALDIÇÃO: Se houver alguma carta valendo Ouro (🪙) ativa na sua fila, o Arlequim exige tributo na lâmina e corta as moedas dela pela metade (-50%). Se não houver carta de Ouro na fila, nada acontece!',
+    harlequinQuote: 'Tem ouro brilhando na sua fila? O Arlequim cobra a metade antes mesmo dos créditos finais.',
+    lore: 'Quando moedas demais brilham sobre a mesa, o Arlequim ergue sua adaga nas sombras e parte o espólio ao meio.',
+    images: ['/secret-draw/especiais/arlequim/sanguessuga-dourada.jpg'],
   },
 ];
 
@@ -371,9 +437,10 @@ export function getSpecialCardArtGallery(specialEvent, catalog = null) {
   const seen = new Set();
   const arts = [];
   const pushArt = (url, label, kind) => {
-    if (!url || seen.has(url)) return;
-    seen.add(url);
-    arts.push({ url, label, kind });
+    const cleanUrl = getSecretCardUrl(url);
+    if (!cleanUrl || seen.has(cleanUrl)) return;
+    seen.add(cleanUrl);
+    arts.push({ url: cleanUrl, label, kind });
   };
 
   primaryList.forEach((url, idx) =>
@@ -387,12 +454,13 @@ export function getSpecialCardArtGallery(specialEvent, catalog = null) {
   );
 
   // Se a URL salva no evento for válida e não estiver na lista (ex: versão legada), mantém no final apenas se não for caminho obsoleto substituído
+  const normalizedEventUrl = getSecretCardUrl(specialEvent.imageUrl);
   if (
-    specialEvent.imageUrl &&
-    !seen.has(specialEvent.imageUrl) &&
-    specialEvent.imageUrl.includes('/arlequim/')
+    normalizedEventUrl &&
+    !seen.has(normalizedEventUrl) &&
+    normalizedEventUrl.includes('/arlequim/')
   ) {
-    arts.unshift({ url: specialEvent.imageUrl, label: 'Arlequim', kind: 'arlequim' });
+    arts.unshift({ url: normalizedEventUrl, label: 'Arlequim', kind: 'arlequim' });
   }
 
   return arts;
@@ -400,10 +468,11 @@ export function getSpecialCardArtGallery(specialEvent, catalog = null) {
 
 export function resolveSpecialCardPrimaryUrl(specialEvent, catalog = null) {
   const gallery = getSpecialCardArtGallery(specialEvent, catalog);
-  if (specialEvent?.imageUrl && gallery.some((g) => g.url === specialEvent.imageUrl)) {
-    return specialEvent.imageUrl;
+  const normalizedEventUrl = getSecretCardUrl(specialEvent?.imageUrl);
+  if (normalizedEventUrl && gallery.some((g) => g.url === normalizedEventUrl)) {
+    return normalizedEventUrl;
   }
-  return gallery[0]?.url || specialEvent?.imageUrl || '';
+  return gallery[0]?.url || normalizedEventUrl || '';
 }
 
 export function getSpecialCardDisplayMeta(specialEvent, catalogOrUiMode = null, maybeCatalog = null) {

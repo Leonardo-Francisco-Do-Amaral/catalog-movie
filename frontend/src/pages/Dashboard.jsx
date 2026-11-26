@@ -18,6 +18,7 @@ import WorldChallengeToastContainer from '../components/WorldChallengeToastConta
 import XPGainToastContainer from '../components/XPGainToastContainer';
 import UniverseVictoryBanner from '../components/UniverseVictoryBanner';
 import UniverseMusicPlayer from '../components/UniverseMusicPlayer';
+import HarlequinGlobalCompanion from '../components/HarlequinGlobalCompanion';
 import ApiRefreshToastContainer, { triggerApiRefreshToast } from '../components/ApiRefreshToastContainer';
 import {
   calculateClientXpStatus,
@@ -1495,6 +1496,7 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
                 onChimeraReadyCountChange={setChimeraReadyCount}
                 bingoReadyCount={bingoReadyCount}
                 onBingoReadyCountChange={setBingoReadyCount}
+                onRefreshGuildCounts={fetchGuildReadyCounts}
                 onXpStatusChange={(nextXp) => {
                   if (nextXp) applyXpStatus(nextXp);
                 }}
@@ -1889,6 +1891,7 @@ export default function Dashboard({ modeSwitcher = null, onLockApp = null }) {
       {/* 5º Estágio (ATO 3): Letreiro Panorâmico de Vitória 100% do Códice dos Universos */}
       <UniverseVictoryBanner />
       <UniverseMusicPlayer />
+      <HarlequinGlobalCompanion />
     </div>
   );
 }
